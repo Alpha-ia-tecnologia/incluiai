@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/format";
 import { SUPPORT_LEVELS, DIMENSIONS } from "@/lib/scale";
 import { CONDITION_SUGGESTIONS, CRITERION_SUGGESTIONS, buildObjectiveDescription } from "@/lib/objective";
 import { isAIEnabled } from "@/lib/agents/model";
+import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "@/lib/case-study";
 import type { CaseAnalysis, PlanProposal, TraceStep } from "@/lib/agents/schemas";
 import { ACCESSIBILITY_RESOURCE_OPTIONS, AEE_STRATEGY_OPTIONS, COMMON_ROOM_STRATEGY_OPTIONS, DEADLINE_WEEKS, INITIAL_SITUATION_OPTIONS } from "@/lib/form-options";
 import { PageHeader, Card, SectionTitle, Badge, SupportPill, AIDisclaimer } from "@/components/ui";
@@ -36,8 +37,26 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     const create = createPlan.bind(null, id);
     const [draft, student] = await Promise.all([
       prisma.planDraft.findUnique({ where: { studentId: id } }),
-      prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true, profile: { select: { id: true } }, caseStudy: { select: { id: true } } } }),
+      prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true, profile: { select: { id: true } }, caseStudy: { select: { id: true, status: true } } } }),
     ]);
+    // Plano de ensino só com estudo de caso concluído (CA02): o servidor também barra.
+    if (!isCaseStudyConcluded(student.caseStudy)) {
+      return (
+        <>
+          <PageHeader title="Plano de ensino (PPI)" lede="O plano parte do estudo de caso: é ele que reúne a escuta da família, do estudante e a avaliação pedagógica." />
+          <Card className="max-w-2xl border-amber-800/20 bg-amber-soft/50">
+            <SectionTitle>Primeiro, conclua o estudo de caso</SectionTitle>
+            <p className="text-sm leading-relaxed text-ink" role="status">{CASE_STUDY_REQUIRED_MESSAGE}</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+              {student.caseStudy ? "O estudo de caso está em elaboração." : "O estudo de caso ainda não foi começado."} Atividades da turma com DUA não dependem disso e podem ser planejadas em Planejamento.
+            </p>
+            <Link href={`/estudantes/${id}/estudo-de-caso`} className={`${buttonCls} mt-4`}>
+              {student.caseStudy ? "Continuar o estudo de caso" : "Começar o estudo de caso"} <ArrowRight size={16} aria-hidden />
+            </Link>
+          </Card>
+        </>
+      );
+    }
     const hasData = Boolean(student.profile || student.caseStudy);
     const aiOn = isAIEnabled();
     const generate = generatePlanDraft.bind(null, id);

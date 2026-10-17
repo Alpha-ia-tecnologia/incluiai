@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { buildMaterial, type MaterialKind } from "@/lib/materials";
+import { requireStudentTeam } from "@/lib/auth";
 
 export async function generateMaterial(studentId: string, formData: FormData) {
+  await requireStudentTeam(studentId);
   const kind = String(formData.get("kind") ?? "rotina_visual") as MaterialKind;
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
   const profile = await prisma.functionalProfile.findUnique({ where: { studentId } });
@@ -21,6 +23,9 @@ export async function generateMaterial(studentId: string, formData: FormData) {
 }
 
 export async function deleteMaterial(studentId: string, materialId: string) {
-  await prisma.material.delete({ where: { id: materialId } });
+  await requireStudentTeam(studentId);
+  // Só apaga material DESTE estudante (o id sozinho não basta).
+  const removed = await prisma.material.deleteMany({ where: { id: materialId, studentId } });
+  if (!removed.count) throw new Error("Material não encontrado para este estudante.");
   revalidatePath(`/estudantes/${studentId}/materiais`);
 }

@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { canAccessStudent, canSeePedagogicalDetail, isStaffOrNetwork, type SessionUser } from "./auth";
+import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
 
 // Gravações do acompanhamento usadas pelos formulários e pelo assistente.
 // Cada uma confere a permissão de quem grava; nada aqui é ação pública.
@@ -10,6 +11,13 @@ export async function assertStudentTeam(user: SessionUser, studentId: string) {
     throw new Error("Você não tem permissão para esta ação com este estudante.");
   }
   return student;
+}
+
+// Plano de ensino só com estudo de caso concluído (CA02), em toda criação de plano:
+// manual, a partir de proposta e na própria proposta da IA ou das regras.
+export async function assertCaseStudyConcluded(studentId: string) {
+  const caseStudy = await prisma.caseStudy.findUnique({ where: { studentId }, select: { status: true } });
+  if (!isCaseStudyConcluded(caseStudy)) throw new Error(CASE_STUDY_REQUIRED_MESSAGE);
 }
 
 export type DiaryEntryInput = {

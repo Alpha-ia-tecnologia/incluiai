@@ -60,6 +60,11 @@ model Student {
   materials          Material[]
   caseStudy          CaseStudy?
   planDraft          PlanDraft?
+  duaSupports        DuaSupport[]
+  duaEvidences       DuaEvidence[]
+  duaMaterials       DuaMaterial[]
+  duaSuggestions     DuaSuggestion[]
+  aeeSessions        AeeSession[]
 }
 
 // Proposta de plano preparada pelos agentes (ou pelas regras). Fica separada
@@ -418,4 +423,251 @@ model AccessLog {
   action    String // visualizou | criou | editou
   detail    String?
   createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Planejamento com DUA (Desenho Universal para a Aprendizagem). Três níveis:
+// planejamento coletivo (versionado), aplicação numa turma ou grupo e apoios
+// individuais (acesso restrito pelo recorte do estudante). Regras do domínio em
+// src/lib/dua/domain.ts; permissões em src/lib/dua/access.ts.
+
+model DuaPlanning {
+  id            String    @id @default(cuid())
+  title         String
+  ownerId       String // profissional responsável
+  ownerName     String
+  schoolId      String? // escola do responsável: recorte de leitura do planejamento
+  className     String? // turma por nome, como em Student.className (opcional)
+  sharing       String    @default("privado") // privado | compartilhado (decisão separada da validação)
+  sharedAt      DateTime?
+  sharedBy      String?
+  collaborators String    @default("[]") // JSON: [{ id, name }]
+  reusedFromId  String? // origem do reaproveitamento (só conteúdo coletivo é copiado)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  versions     DuaPlanningVersion[]
+  applications DuaApplication[]
+  supports     DuaSupport[]
+  materials    DuaMaterial[]
+  suggestions  DuaSuggestion[]
+  audit        DuaAuditEvent[]
+
+  @@index([schoolId])
+  @@index([ownerId])
+}
+
+// Versão do planejamento. Validada, não muda mais: editar abre a versão seguinte
+// (gravação condicional em src/lib/dua/service.ts). `revision` avisa edição simultânea.
+model DuaPlanningVersion {
+  id              String      @id @default(cuid())
+  planningId      String
+  planning        DuaPlanning @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  version         Int
+  state           String      @default("rascunho") // rascunho | em_revisao | validado
+  content         String // JSON: DuaContent — só conteúdo coletivo, sem dado de estudante
+  revision        Int         @default(1)
+  createdById     String
+  createdByName   String
+  updatedById     String
+  updatedByName   String
+  submittedAt     DateTime?
+  validatedById   String?
+  validatedByName String?
+  validatedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  applications DuaApplication[]
+
+  @@unique([planningId, version])
+}
+
+// Aplicação da atividade numa turma, grupo ou atendimento. Fica presa à versão
+// usada. Concluir uma aplicação não cria presença nem atendimento de AEE.
+model DuaApplication {
+  id             String             @id @default(cuid())
+  planningId     String
+  planning       DuaPlanning        @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  versionId      String
+  version        DuaPlanningVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionNumber  Int
+  context        String // sala_comum | aee
+  schoolId       String?
+  className      String?
+  date           DateTime
+  responsibles   String             @default("[]") // JSON: [{ id, name }]
+  resources      String? // recursos disponíveis
+  organization   String?
+  participantIds String             @default("[]") // JSON: ids de estudantes (lidos sempre pelo recorte)
+  state          String             @default("planejada") // planejada | em_andamento | concluida | cancelada
+  notes          String?
+  revision       Int                @default(1)
+  createdById    String
+  createdByName  String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  evidences DuaEvidence[]
+
+  @@index([planningId])
+}
+
+// Apoio individual: estudante, barreira, apoio, itens do perfil usados (com origem
+// e data) e vínculos com objetivos do plano. Acesso restrito ao recorte do estudante.
+model DuaSupport {
+  id              String      @id @default(cuid())
+  planningId      String
+  planning        DuaPlanning @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  data            String // JSON: DuaSupportData (src/lib/dua/domain.ts)
+  state           String      @default("rascunho") // rascunho | validado
+  revision        Int         @default(1)
+  responsibleId   String
+  responsibleName String
+  validatedById   String?
+  validatedByName String?
+  validatedAt     DateTime?
+  createdById     String
+  createdByName   String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([planningId])
+  @@index([studentId])
+}
+
+// Evidência de um estudante numa aplicação: um registro por estudante e aplicação
+// (registrar de novo atualiza, não duplica). "Sem oportunidade" e "ainda não
+// registrado" ficam distintos de "ainda não demonstrou" e não entram em progresso.
+model DuaEvidence {
+  id                String         @id @default(cuid())
+  planningId        String
+  applicationId     String
+  application       DuaApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  studentId         String
+  student           Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  supportId         String?
+  versionNumber     Int
+  context           String // sala_comum | aee (da aplicação)
+  date              DateTime
+  criteria          String // JSON: [{ criterionId, status }]
+  optionsOffered    String         @default("[]") // JSON: ids das opções efetivamente oferecidas
+  participationForm String         @default("")
+  studentChoice     String         @default("")
+  supportProvided   String         @default("")
+  observedResponse  String         @default("")
+  remainingBarriers String         @default("")
+  nextStep          String         @default("")
+  observation       String // observado | sem_oportunidade | nao_registrado
+  result            String? // sim | parcial | nao — só quando algo foi observado
+  authorId          String
+  authorName        String
+  authorRole        String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([applicationId, studentId])
+  @@index([studentId])
+}
+
+// Material gerado a partir de uma versão do planejamento (coletivo) ou de um
+// apoio (individual). Fora da validação, imprime marcado como RASCUNHO.
+model DuaMaterial {
+  id              String      @id @default(cuid())
+  planningId      String
+  planning        DuaPlanning @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  versionNumber   Int
+  format          String // roteiro_passos | fonte_ampliada | rotina_visual | prancha_comunicacao | alertas_sensoriais | anexo
+  title           String
+  purpose         String // finalidade pedagógica
+  scope           String // coletivo | individual
+  studentId       String?
+  student         Student?    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  supportId       String?
+  resourceId      String? // material da biblioteca anexado (Resource)
+  content         String // JSON: [{ heading, items[] }]
+  accessibility   String      @default("[]") // JSON: recursos de acessibilidade do formato
+  aiParticipation String      @default("nenhuma") // nenhuma | conteudo_com_sugestao_revisada
+  state           String      @default("rascunho") // rascunho | validado
+  revision        Int         @default(1)
+  authorId        String
+  authorName      String
+  validatedById   String?
+  validatedByName String?
+  validatedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([planningId])
+}
+
+// Sugestão (IA ou regras) revisada bloco a bloco. Guarda referências e decisões,
+// não a cópia do contexto enviado. `requestId` evita duplicar em nova tentativa.
+model DuaSuggestion {
+  id              String      @id @default(cuid())
+  planningId      String
+  planning        DuaPlanning @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  requestId       String      @unique
+  purpose         String // opcoes | apoio_individual
+  supportId       String?
+  studentId       String?
+  student         Student?    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  versionNumber   Int
+  revision        Int // revisão do rascunho considerada
+  basisHash       String // objetivo, critérios e barreiras considerados: mudou, volta à conferência
+  profileFields   String      @default("[]") // JSON: campos do perfil usados (apoio individual)
+  promptVersion   String
+  provider        String // ia | regras
+  model           String?
+  state           String // solicitado | em_processamento | aguardando_revisao | aceito | recusado | bloqueado | falhou
+  checks          String      @default("[]") // JSON: verificações automáticas
+  blocks          String      @default("[]") // JSON: blocos com a decisão de cada um
+  removedCount    Int         @default(0) // identificadores trocados antes do envio
+  error           String?
+  requestedById   String
+  requestedByName String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([planningId])
+}
+
+// Evento de auditoria do planejamento (ação, objeto, versão, autor e data).
+// Eventos ligados a um estudante também vão para o AccessLog dele.
+model DuaAuditEvent {
+  id            String      @id @default(cuid())
+  planningId    String
+  planning      DuaPlanning @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  action        String
+  objectType    String // planejamento | versao | aplicacao | apoio | evidencia | material | sugestao
+  objectId      String?
+  versionNumber Int?
+  actorId       String
+  actorName     String
+  role          String
+  detail        String?
+  createdAt     DateTime    @default(now())
+
+  @@index([planningId])
+  @@index([actorId, createdAt])
+}
+
+// Frequência do AEE: realizado, falta ou cancelamento. Separada do diário e do
+// DUA — realizar um atendimento não é evidência de aprendizagem.
+model AeeSession {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date       DateTime
+  status     String // realizado | falta | cancelamento
+  reason     String? // motivo da falta ou do cancelamento
+  note       String?
+  authorId   String
+  authorName String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([studentId, date])
 }

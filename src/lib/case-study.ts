@@ -226,3 +226,14 @@ export function sectionProgress(section: CaseStudySection, content: CaseStudyCon
 export function missingToConclude(content: CaseStudyContent): CaseStudyField[] {
   return CASE_STUDY_FIELDS.filter((field) => field.requiredToConclude && !content[field.key]?.trim());
 }
+
+// O Plano de ensino (PPI/PAEE) parte do estudo de caso CONCLUÍDO — inclusive a
+// proposta preparada pela IA ou pelas regras (descritivo DUA, CA02). O planejamento
+// de atividade da turma com DUA não depende disso.
+export const CASE_STUDY_REQUIRED_MESSAGE =
+  "Conclua o estudo de caso do estudante antes de criar o plano de ensino. O plano parte do que o estudo de caso levantou.";
+
+export function isCaseStudyConcluded(caseStudy: { status: string } | null | undefined): boolean {
+  return caseStudy?.status === "concluido";
+}
+

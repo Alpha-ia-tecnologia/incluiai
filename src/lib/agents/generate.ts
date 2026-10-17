@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "../prisma";
+import { assertCaseStudyConcluded } from "../records";
 import type { SessionUser } from "../auth";
 import { generateActivityCards, type ActivityCard, type EngineInput } from "../activity-engine";
 import { applicableRules } from "../rules";
@@ -50,6 +51,8 @@ export function describeAgentError(error: unknown) {
 
 // Prepara uma proposta de PPI e a guarda como rascunho em PlanDraft.
 export async function createPlanDraft(studentId: string, user: SessionUser, report?: AgentReport) {
+  // A proposta de plano (IA ou regras) também exige o estudo de caso concluído (CA02).
+  await assertCaseStudyConcluded(studentId);
   const { student, text, hasEnoughData } = await loadPlanContext(studentId);
   if (!hasEnoughData) {
     throw new Error("Faça o estudo de caso ou preencha Como aprende antes de pedir uma proposta.");

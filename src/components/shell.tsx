@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Home, Users, Route, Sparkles, BarChart3, Library, Heart, ShieldCheck, Stethoscope, LogOut, School, Sprout, ChevronDown, CircleHelp, CalendarDays } from "lucide-react";
+import { Home, Users, Layers, Route, Sparkles, BarChart3, Library, Heart, ShieldCheck, Stethoscope, LogOut, School, Sprout, ChevronDown, CircleHelp, CalendarDays } from "lucide-react";
 import { NavLink } from "./nav-link";
 import { MobileNavigation } from "./mobile-navigation";
 import { getNavigation } from "@/lib/navigation";
@@ -12,7 +12,7 @@ import { hasApiKey } from "@/lib/env";
 import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantPopup } from "./assistant/assistant-popup";
 
-const ICONS = { home: Home, students: Users, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, family: Heart, care: Stethoscope, help: CircleHelp };
+const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, family: Heart, care: Stethoscope, help: CircleHelp };
 
 export function Shell({ user, children }: { user: SessionUser; children: ReactNode }) {
   // Iniciais sem títulos e observações entre parênteses: "Carla (mãe de Dante)" → "C".

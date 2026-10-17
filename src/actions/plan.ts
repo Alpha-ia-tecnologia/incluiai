@@ -3,10 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { buildObjectiveDescription } from "@/lib/objective";
-import { getCurrentUser } from "@/lib/auth";
-import { setObjectiveStatus } from "@/lib/records";
+import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
+import { assertCaseStudyConcluded, setObjectiveStatus } from "@/lib/records";
 
+// Plano de ensino: equipe com acesso ao estudante e estudo de caso concluído (CA02).
 export async function createPlan(studentId: string, formData: FormData) {
+  const user = await requireStudentTeam(studentId);
+  await assertCaseStudyConcluded(studentId);
+  const reviewDate = new Date(`${String(formData.get("reviewDate") ?? "")}T12:00:00`);
+  if (Number.isNaN(reviewDate.getTime())) throw new Error("Informe quando a equipe vai revisar o plano.");
   await prisma.plan.create({
     data: {
       studentId,
@@ -15,18 +20,23 @@ export async function createPlan(studentId: string, formData: FormData) {
       commonRoomStrategies: String(formData.get("commonRoomStrategies") ?? "").trim() || null,
       aeeStrategies: String(formData.get("aeeStrategies") ?? "").trim() || null,
       accessibilityResources: String(formData.get("accessibilityResources") ?? "").trim() || null,
-      reviewDate: new Date(String(formData.get("reviewDate"))),
+      reviewDate,
     },
   });
   await prisma.timelineEvent.create({
     data: { studentId, type: "plano", title: "PPI elaborado", description: "Plano individual de acompanhamento criado." },
   });
+  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: "Plano individual (preenchido pela equipe)" } });
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");
 }
 
 export async function createObjective(studentId: string, planId: string, formData: FormData) {
+  await requireStudentTeam(studentId);
+  // O objetivo entra no plano DESTE estudante: nada de vínculo entre pessoas diferentes.
+  const plan = await prisma.plan.findFirst({ where: { id: planId, studentId }, select: { id: true } });
+  if (!plan) throw new Error("Plano não encontrado para este estudante.");
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
   const action = String(formData.get("action") ?? "").trim();
   const condition = String(formData.get("condition") ?? "").trim();

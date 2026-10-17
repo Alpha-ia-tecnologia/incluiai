@@ -2,10 +2,12 @@ export type NavigationItem = {
   href: string;
   label: string;
   shortLabel: string;
-  icon: "home" | "students" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "family" | "care" | "help";
+  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "family" | "care" | "help";
   exact?: boolean;
   section?: "routine" | "management" | "help";
 };
+
+const PLANNER_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]);
 
 export function getNavigation(role: string, studentId: string | null): NavigationItem[] {
   const help: NavigationItem = { href: "/ajuda", label: "Ajuda e primeiros passos", shortLabel: "Ajuda", icon: "help", section: "help" };
@@ -34,6 +36,8 @@ export function getNavigation(role: string, studentId: string | null): Navigatio
     { href: "/", label: "Início", shortLabel: "Início", icon: "home", exact: true, section: "routine" },
     { href: "/estudantes", label: "Estudantes", shortLabel: "Estudantes", icon: "students", section: "routine" },
     journey,
+    // Planejamento com DUA: equipe que planeja atividades (a secretaria acompanha pelos indicadores).
+    ...(PLANNER_ROLES.has(role) ? [{ href: "/planejamento", label: "Planejamento com DUA", shortLabel: "Planejamento", icon: "planning", section: "routine" } satisfies NavigationItem] : []),
     assistant,
     { href: "/recursos", label: "Atividades e recursos", shortLabel: "Recursos", icon: "resources", section: "routine" },
     calendar,
