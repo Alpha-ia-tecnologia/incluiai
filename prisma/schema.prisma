@@ -1,0 +1,421 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model School {
+  id       String        @id @default(cuid())
+  name     String
+  region   String
+  students Student[]
+  classes  SchoolClass[]
+}
+
+// Turma cadastrada — alimenta as sugestões no cadastro de aluno e o
+// planejamento em lote. O vínculo do estudante permanece por nome (className).
+model SchoolClass {
+  id        String  @id @default(cuid())
+  name      String // ex.: "Turma B"
+  gradeYear String? // ex.: "2º ano"
+  shift     String  @default("manha")
+  schoolId  String
+  school    School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, name])
+}
+
+model Student {
+  id                  String   @id @default(cuid())
+  name                String
+  birthDate           DateTime
+  stage               String // educacao_infantil | anos_iniciais | anos_finais | ensino_medio | eja
+  gradeYear           String // ex.: "2º ano"
+  className           String // ex.: "Turma B"
+  shift               String // manha | tarde | integral
+  schoolId            String
+  school              School   @relation(fields: [schoolId], references: [id])
+  hasAEE              Boolean  @default(false)
+  aeeFrequency        String? // ex.: "2x por semana"
+  supportProfessional Boolean  @default(false)
+  guardianName        String
+  guardianPhone       String?
+  accessibilityNotes  String?
+  status              String   @default("ativo") // ativo | transferido | inativo
+  avatarHue           Int      @default(200)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  profile            FunctionalProfile?
+  plans              Plan[]
+  activities         Activity[]
+  diaryEntries       DiaryEntry[]
+  timeline           TimelineEvent[]
+  familyNotes        FamilyNote[]
+  accessLogs         AccessLog[]
+  intersectorReports IntersectorReport[]
+  materials          Material[]
+  caseStudy          CaseStudy?
+  planDraft          PlanDraft?
+}
+
+// Proposta de plano preparada pelos agentes (ou pelas regras). Fica separada
+// do Plan até o professor revisar e ativar: a IA propõe, o professor decide.
+model PlanDraft {
+  id        String   @id @default(cuid())
+  studentId String   @unique
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  content   String // JSON: PlanProposal (src/lib/agents/schemas.ts)
+  analysis  String? // JSON: análise do caso feita pelo agente analista
+  trace     String // JSON: etapas percorridas pelos agentes
+  source    String // ia | regras
+  createdBy String
+  createdAt DateTime @default(now())
+}
+
+// Estudo de caso — etapa de diagnóstico pedagógico que antecede o plano do AEE.
+// Reúne escuta da família, histórico escolar, escuta do estudante, observação
+// e avaliação pedagógica. Não exige laudo: o AEE é atendimento pedagógico.
+model CaseStudy {
+  id          String    @id @default(cuid())
+  studentId   String    @unique
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status      String    @default("rascunho") // rascunho | concluido
+  content     String // JSON: { [campo]: resposta } — campos definidos em src/lib/case-study.ts
+  updatedBy   String
+  concludedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Usuário com perfil de acesso — item 7 (necessidade de saber) e 14 (LGPD)
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String // professor_sala | professor_aee | coordenacao | gestao | secretaria | familia | terapeuta
+  schoolId     String? // vincula profissional/gestor a uma escola
+  studentId    String? // vincula família/terapeuta a um estudante
+  createdAt    DateTime @default(now())
+
+  journeyMarks  JourneyMark[]
+  conversations AssistantConversation[]
+}
+
+// Assistente (chat com agente): uma conversa por assunto. O histórico enviado
+// ao modelo é guardado anonimizado e só recebe acréscimos (os blocos de
+// raciocínio do modelo ficam vinculados à conversa e não podem ser editados).
+model AssistantConversation {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  history    String   @default("[]") // JSON: mensagens do modelo (pseudônimos no lugar dos nomes)
+  pseudonyms String   @default("{}") // JSON: { students: { id: n }, schools: { id: n } }
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  messages AssistantMessage[]
+  actions  AssistantAction[]
+}
+
+model AssistantMessage {
+  id             String                @id @default(cuid())
+  conversationId String
+  conversation   AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // usuario | assistente | sistema
+  text           String // texto exibido, com os nomes reais
+  steps          String? // JSON: ferramentas usadas no turno [{ name, label, ok }]
+  createdAt      DateTime              @default(now())
+}
+
+// Ação que altera o acompanhamento, proposta pelo assistente e executada só
+// depois que a pessoa confirma no cartão: a IA propõe, a pessoa decide.
+model AssistantAction {
+  id             String                @id @default(cuid())
+  conversationId String
+  conversation   AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  kind           String // registrar_aula | decidir_atividade | marcar_objetivo | contar_conquista | enviar_orientacoes
+  summary        String // o que vai acontecer, em linguagem natural
+  args           String // JSON
+  status         String                @default("pendente") // pendente | confirmada | cancelada
+  result         String?
+  createdAt      DateTime              @default(now())
+  decidedAt      DateTime?
+}
+
+// Marcos da jornada de cada pessoa que não deixam rastro em outro lugar:
+// boas-vindas vistas e páginas visitadas (painel, recursos, calendário...).
+// O restante da jornada é calculado dos próprios dados (src/lib/user-journey.ts).
+model JourneyMark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String // boas_vindas | painel | recursos | calendario | cadastros | familia_inicio | terapeuta_inicio
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+}
+
+// Relatório de Articulação Intersetorial — item 8.
+// Apenas informações funcionais relevantes ao ambiente escolar; registros
+// clínicos completos permanecem no sistema de saúde.
+model IntersectorReport {
+  id              String   @id @default(cuid())
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  authorName      String // terapeuta responsável
+  communication   String // formas de comunicação mais eficazes
+  accessResources String // recursos de acessibilidade utilizados
+  positioning     String? // necessidades de posicionamento ou mobilidade
+  facilitators    String // fatores que facilitam a participação
+  schoolGuidance  String // orientações aplicáveis ao ambiente escolar
+  strategiesToTry String // estratégias que podem ser testadas
+  sharedGoals     String // objetivos compartilhados entre escola e família
+  createdAt       DateTime @default(now())
+}
+
+// Material acessível produzido — item 17.10 (fase 3)
+model Material {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  kind      String // rotina_visual | historia_social | prancha_caa
+  title     String
+  content   String // JSON estruturado
+  source    String   @default("regras") // regras | ia
+  createdAt DateTime @default(now())
+}
+
+// Perfil funcional estruturado — item 17.2 da proposta.
+// Níveis de apoio: 0 IND · 1 SUP · 2 VERB · 3 MOD · 4 FIS-P · 5 FIS-T
+model FunctionalProfile {
+  id        String  @id @default(cuid())
+  studentId String  @unique
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Comunicação
+  expressiveChannel String // fala | libras | gestos | caa_prancha | caa_pecs | caa_alta_tecnologia | vocalizacoes | olhar_acionador
+  receptiveChannel  String
+  commandSteps      Int // 1..3 etapas compreendidas
+
+  // Cognição e aprendizagem (nível de apoio 0-5)
+  readingSupport   Int
+  writingSupport   Int
+  mathSupport      Int
+  attentionMinutes Int
+
+  // Interação (nível de apoio 0-5)
+  peerInteraction  Int
+  adultInteraction Int
+  groupWork        Int
+
+  // Autonomia (nível de apoio 0-5)
+  feeding      Int
+  hygiene      Int
+  mobility     Int
+  organization Int
+
+  // Sensorial — JSON: { auditiva: "hiper"|"hipo"|"tipica", visual, tatil, vestibular, proprioceptiva }
+  sensoryProfile String
+
+  // Motricidade (nível de apoio 0-5)
+  fineMotor                Int
+  grossMotor               Int
+  usesWheelchairOrOrthosis Boolean @default(false)
+
+  // Regulação — JSON arrays
+  triggers          String
+  earlySigns        String
+  calmingStrategies String
+
+  // Ritmo
+  bestShift            String // manha | tarde
+  taskToleranceMinutes Int
+
+  // Interesses âncora (obrigatório, 3-5) — JSON array
+  interests String
+
+  // Barreiras ativas — JSON array: fisica | comunicacional | pedagogica | atitudinal | tecnologica
+  barriers String
+
+  strengths String? // potencialidades (texto)
+
+  updatedAt DateTime @updatedAt
+}
+
+// Plano individual de acompanhamento (PPI) — item 4
+model Plan {
+  id                     String      @id @default(cuid())
+  studentId              String
+  student                Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status                 String      @default("ativo") // rascunho | ativo | encerrado
+  initialSituation       String
+  commonRoomStrategies   String?
+  aeeStrategies          String?
+  accessibilityResources String?
+  reviewDate             DateTime
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+  objectives             Objective[]
+}
+
+// Objetivo observável: [Quem] + [ação] + [condição/apoio] + [critério] + [prazo]
+model Objective {
+  id             String   @id @default(cuid())
+  planId         String
+  plan           Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  action         String // ação observável
+  condition      String // condição / apoio
+  criterion      String // critério mensurável
+  deadlineWeeks  Int
+  description    String // frase completa gerada
+  bnccCode       String?
+  dimension      String // comunicacao | leitura | escrita | matematica | interacao | autonomia | regulacao
+  currentSupport Int // 0-5
+  targetSupport  Int // 0-5
+  status         String   @default("ativo") // ativo | alcancado | em_revisao
+  createdAt      DateTime @default(now())
+
+  activities   Activity[]
+  diaryEntries DiaryEntry[]
+}
+
+// Atividade personalizada — item 17.4
+model Activity {
+  id                 String     @id @default(cuid())
+  studentId          String
+  student            Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  objectiveId        String?
+  objective          Objective? @relation(fields: [objectiveId], references: [id])
+  title              String
+  context            String // sala_comum | aee | casa
+  durationMinutes    Int
+  materials          String // JSON array
+  steps              String // JSON array (frases de 1 ação)
+  responseForm       String // forma de resposta aceita
+  adaptations        String // JSON array de { text, rule } — rastreável à regra
+  supportBelow       String // degrau abaixo
+  supportTarget      String // alvo
+  supportAbove       String // degrau acima
+  successCriterion   String
+  planB              String
+  classParticipation String? // como a turma participa junto (DUA)
+  reviewNotes        String? // JSON: pontos que o agente revisor pediu para o professor conferir
+  status             String     @default("sugerida") // sugerida | aceita | aplicada | rejeitada
+  rejectReason       String?
+  source             String     @default("regras") // regras | ia | professor
+  createdAt          DateTime   @default(now())
+
+  diaryEntries DiaryEntry[]
+  image        ActivityImage?
+}
+
+// Imagem de apoio gerada por IA (OpenAI) para uma atividade: sequência visual,
+// ilustração ou cartões de escolha. O prompt não leva dados pessoais.
+model ActivityImage {
+  id         String   @id @default(cuid())
+  activityId String   @unique
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  kind       String // sequencia | ilustracao | cartoes | texto livre (Outro)
+  prompt     String
+  altText    String
+  mimeType   String
+  data       Bytes
+  model      String
+  createdBy  String
+  createdAt  DateTime @default(now())
+}
+
+// Registro em 3 toques — itens 5 e 17.6
+model DiaryEntry {
+  id             String     @id @default(cuid())
+  studentId      String
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  objectiveId    String?
+  objective      Objective? @relation(fields: [objectiveId], references: [id])
+  activityId     String?
+  activity       Activity?  @relation(fields: [activityId], references: [id])
+  date           DateTime   @default(now())
+  participation  String // total | parcial | recusou
+  supportLevel   Int // 0-5
+  criterionMet   String // sim | parcial | nao
+  note           String?
+  whatWorked     String?
+  recommendation String?
+  authorRole     String // professor_sala | professor_aee | apoio | familia
+  createdAt      DateTime   @default(now())
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  type        String // avaliacao | plano | atendimento | reuniao | transferencia | alerta | conquista | recurso
+  title       String
+  description String?
+}
+
+// Banco municipal de recursos inclusivos — item 13
+model Resource {
+  id                String             @id @default(cuid())
+  title             String
+  description       String
+  stage             String
+  skillArea         String
+  accessibilityNeed String
+  resourceType      String // plano_de_aula | atividade | caa | tecnologia_assistiva | video_formacao | experiencia_exitosa
+  complexity        String // baixa | media | alta
+  timesUsed         Int                @default(0)
+  positiveOutcomes  Int                @default(0)
+  activities        ResourceActivity[]
+}
+
+// Propostas práticas vinculadas ao banco municipal. Cada recurso pode oferecer
+// diferentes formas de aplicação, mantendo evidências separadas por atividade.
+model ResourceActivity {
+  id                String   @id @default(cuid())
+  resourceId        String
+  resource          Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  title             String
+  objective         String
+  context           String // sala_comum | aee | casa
+  durationMinutes   Int
+  materials         String // JSON array
+  steps             String // JSON array
+  adaptations       String // JSON array
+  evidenceCriterion String
+  position          Int      @default(0)
+  timesUsed         Int      @default(0)
+  positiveOutcomes  Int      @default(0)
+
+  @@unique([resourceId, title])
+  @@index([resourceId, position])
+}
+
+// Conquistas registradas pela família — item 12
+model FamilyNote {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  note      String
+  author    String
+}
+
+// Log de auditoria — item 14 (LGPD)
+model AccessLog {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  actor     String
+  role      String
+  action    String // visualizou | criou | editou
+  detail    String?
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,40 @@
+{
+  "name": "educa-especial",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:setup": "prisma db push && node prisma/seed.mjs",
+    "db:resources": "prisma db push && node prisma/seed-resources.mjs",
+    "test:e2e": "node e2e-test.mjs",
+    "test:unit": "node --test src/lib/assistant/garden-scenes.test.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
+    "@langchain/core": "^1.2.17",
+    "@langchain/langgraph": "^1.5.0",
+    "@prisma/client": "^6.19.3",
+    "lucide-react": "^1.24.0",
+    "next": "16.2.10",
+    "prisma": "^6.19.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "puppeteer-core": "^25.3.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,190 @@
+/* Canteiro vivo: espera dos agentes. O estado sem animação já é a figura
+   completa; movimento só em prefers-reduced-motion: no-preference e fora
+   de [data-paused="true"]. Toda regra começa por uma classe local. */
+
+/* ---- faixa do chat (entre a conversa e o campo de mensagem) ---- */
+.faixa { display: grid; flex-shrink: 0; grid-template-rows: 0fr; background: var(--paper); }
+.faixa[data-aberta="true"] { grid-template-rows: 1fr; border-top: 1px solid var(--line); }
+.faixaInner { min-height: 0; container: faixa / inline-size; }
+.faixa[data-aberta="false"] .faixaInner { overflow: hidden; }
+.faixaBody { display: flex; min-height: 88px; align-items: center; gap: 8px; padding: 4px 12px; }
+.faixa[data-variant="compacta"] .faixaBody { min-height: 56px; padding-block: 6px; }
+
+/* ---- cartão dos formulários (PendingButton) ---- */
+.inline { container-type: inline-size; width: 100%; max-width: 36rem; margin-top: 12px; border: 1px solid var(--line); border-radius: 20px; background: var(--paper-raised); padding: 12px; }
+.inlineBody { display: grid; grid-template-columns: 64px minmax(0, 1fr) 44px; grid-template-areas: "palco legenda pausa"; align-items: center; gap: 12px; }
+.inlineBody > .stage { grid-area: palco; }
+.inlineBody > .caption { grid-area: legenda; }
+.inlineBody > .pause { grid-area: pausa; }
+@container (max-width: 22rem) {
+  .inlineBody { grid-template-columns: 64px minmax(0, 1fr); grid-template-areas: "palco pausa" "legenda legenda"; }
+  .inlineBody > .pause { justify-self: end; }
+}
+@media print { .faixa, .inline { display: none; } }
+
+/* ---- palco: o botão de regar ---- */
+.stage { position: relative; width: 64px; height: 64px; flex-shrink: 0; border: 0; border-radius: 9999px; background: transparent; padding: 0; }
+@container faixa (min-width: 24rem) { .stage { width: 80px; height: 80px; } }
+.stage:hover { box-shadow: 0 0 0 2px var(--lilac); }
+.art { display: block; width: 100%; height: 100%; clip-path: circle(50%); }
+.badge { position: absolute; right: 0; bottom: 0; display: flex; width: 16px; height: 16px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 9999px; background: var(--paper-raised); color: var(--ink-soft); }
+.faixa[data-variant="compacta"] .stage { width: 44px; height: 44px; overflow: hidden; background: var(--lilac); }
+.faixa[data-variant="compacta"] .art { clip-path: none; transform: scale(1.4); transform-origin: 50% 42%; }
+/* No palco de 44 px o regador ficaria quase todo fora do círculo: a rega
+   aparece só nas gotas e na terra molhada. */
+.faixa[data-variant="compacta"] :is(.badge, .sun, .roots, .canTilt) { display: none; }
+.faixa[data-variant="compacta"] .l2[data-essencial="false"] { display: none; }
+/* Painel do popup baixo (celular de 568 px): sempre compacto. Consulta sem
+   nome: o único contêiner de altura é o .assistant-panel (nomes de contêiner
+   viram locais nos CSS Modules do Turbopack). */
+@container (max-height: 539px) {
+  .faixa .faixaBody { min-height: 56px; padding-block: 6px; }
+  .faixa .stage { width: 44px; height: 44px; overflow: hidden; background: var(--lilac); }
+  .faixa .art { clip-path: none; transform: scale(1.4); transform-origin: 50% 42%; }
+  .faixa :is(.badge, .sun, .roots, .canTilt) { display: none; }
+  .faixa .l2[data-essencial="false"] { display: none; }
+}
+/* Faixa estreita (página /assistente a 320 px): palco compacto pela largura e
+   espaços menores, para a legenda (160 px) caber em duas linhas. Fica depois
+   das regras de base e leva .faixa, para não perder para elas. */
+@container faixa (max-width: 18rem) {
+  .faixa .faixaBody { gap: 4px; padding-inline: 4px; }
+  .faixa .stage { width: 44px; height: 44px; overflow: hidden; background: var(--lilac); }
+  .faixa .art { clip-path: none; transform: scale(1.4); transform-origin: 50% 42%; }
+  .faixa :is(.badge, .sun, .roots, .canTilt) { display: none; }
+}
+
+/* ---- legenda e pausa ---- */
+.caption { min-width: 0; flex: 1; }
+.l1 { margin: 0; color: var(--ink); font-size: 13px; font-weight: 500; line-height: 18px; }
+.l2 { margin: 2px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 16px; }
+.l2:empty { display: none; }
+.pause { display: inline-flex; width: 44px; height: 44px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 9999px; background: var(--paper-raised); color: var(--ink-soft); }
+.pause:hover { background: var(--surface-muted); color: var(--ink); }
+.pause[aria-pressed="true"] { border-color: transparent; background: var(--brand-soft); color: var(--brand-strong); }
+@media (prefers-reduced-motion: reduce) { .root .pause { display: none; } }
+
+/* ---- desenho: estado estático ---- */
+.ink { fill: none; stroke: var(--ink); stroke-linecap: round; stroke-linejoin: round; }
+.paper { fill: var(--paper-raised); stroke: var(--ink); stroke-linecap: round; stroke-linejoin: round; }
+.flagFill { fill: var(--paper-raised); stroke: none; }
+.sky { fill: var(--lilac); }
+.soil { fill: var(--brand); fill-opacity: 0.2; }
+.root[data-molhado] .soil { fill-opacity: 0.34; }
+.sun { opacity: 0; }
+.sun[data-on="true"] { opacity: 1; }
+.sunTrack { fill: none; stroke: var(--ink-soft); stroke-dasharray: 0 4.2; stroke-linecap: round; }
+.sunDisc { fill: var(--signal-yellow); stroke: var(--ink); }
+.sunHand { transform-box: view-box; transform-origin: 48px 50px; }
+.rootLine { stroke-dasharray: 1 1; stroke-dashoffset: 1; }
+.rootLine[data-on="true"] { stroke-dashoffset: 0; }
+.rootLine:not([data-on="true"]) { opacity: 0; }
+.pebble { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.pebble[data-estado="vivo"] { opacity: 1; stroke-dasharray: 2.2 1.6; }
+.pebble[data-estado="ok"] { opacity: 1; transform: scale(0.6); }
+.pebble[data-palette="sky"] { fill: var(--sky-soft); stroke: var(--sky-ink); }
+.pebble[data-palette="teal"] { fill: var(--teal-soft); stroke: var(--teal-ink); }
+.pebble[data-palette="peach"] { fill: var(--peach-soft); stroke: var(--peach-ink); }
+.pebble[data-palette="sage"] { fill: var(--sage-soft); stroke: var(--sage-ink); }
+.pebble[data-palette="rose"] { fill: var(--rose-soft); stroke: var(--rose-ink); }
+.pebble[data-palette="lime"] { fill: var(--signal-lime); stroke: var(--ink-strong); }
+.stone { opacity: 0; fill: var(--surface-muted); stroke: var(--ink-soft); stroke-dasharray: 2 1.5; }
+.stone[data-on="true"] { opacity: 1; }
+.trellis { opacity: 0; transform: translateY(6px); }
+.trellis[data-on="true"] { opacity: 1; transform: none; }
+.rung { fill: none; stroke: var(--ink-soft); stroke-dasharray: 2.2 2.2; stroke-linecap: round; stroke-width: 1.6; }
+.rung[data-estado="ativo"] { stroke: var(--brand); stroke-dasharray: none; stroke-width: 3.2; }
+.rung[data-estado="feito"] { stroke: var(--ink); stroke-dasharray: none; stroke-width: 2; }
+.stake { fill: var(--amber-soft); stroke: var(--ink); }
+.stake[data-off="true"] { opacity: 0; transform: translateY(30px); }
+.tie { fill: var(--brand); stroke: var(--ink); }
+.tie[data-off="true"] { opacity: 0; transform: translateY(6px); }
+.seed { opacity: 0; fill: var(--brand); stroke: var(--ink); }
+.stem { stroke-dasharray: 1 1; stroke-dashoffset: 1; }
+.stem[data-stem="0"] { opacity: 0; }
+.stem[data-stem="1"] { stroke-dashoffset: 0.5; }
+.stem[data-stem="2"] { stroke-dashoffset: 0; }
+.leaf { opacity: 0; transform: scale(0.1) rotate(-30deg); transform-box: fill-box; transform-origin: 0% 50%; }
+.leaf[data-on="true"] { opacity: 1; transform: none; }
+.buds { opacity: 0; transform: scale(0.6); transform-box: view-box; transform-origin: 48px 28px; }
+.buds[data-on="true"] { opacity: 1; transform: none; }
+.budShape { stroke: var(--ink); stroke-linejoin: round; transform-box: fill-box; transform-origin: 50% 100%; }
+.budShape[data-estado="aberto"] { opacity: 0; transform: scale(0.8); }
+.budFlower { opacity: 0; transform: scale(0.3); transform-box: fill-box; transform-origin: center; }
+.budFlower[data-estado="aberto"] { opacity: 1; transform: none; }
+.budPetal { stroke: var(--ink); stroke-linejoin: round; }
+:is(.budShape, .budPetal)[data-tone="sala_comum"] { fill: var(--sky-soft); }
+:is(.budShape, .budPetal)[data-tone="aee"] { fill: var(--brand-soft); }
+:is(.budShape, .budPetal)[data-tone="casa"] { fill: var(--peach-soft); }
+.budCenter[data-tone="sala_comum"] { fill: var(--sky-ink); }
+.budCenter[data-tone="aee"] { fill: var(--brand); }
+.budCenter[data-tone="casa"] { fill: var(--peach-ink); }
+.buds[data-revisao="true"] :is(.budShape, .budPetal) { stroke: var(--brand); stroke-dasharray: 2.2 1.6; }
+.crown { opacity: 0; transform: scale(0.3); transform-box: view-box; transform-origin: 48px 24px; }
+.crown[data-on="true"] { opacity: 1; transform: none; }
+.crownBud { fill: var(--brand); stroke: var(--ink); stroke-linejoin: round; }
+.petal { opacity: 0; transform: scale(0.2) rotate(-20deg); transform-box: fill-box; transform-origin: 0% 50%; }
+.flower[data-on="true"] .petal { opacity: 1; transform: none; }
+.flowerCenter { opacity: 0; fill: var(--brand); stroke: var(--ink); }
+.flower[data-on="true"] .flowerCenter { opacity: 1; }
+.sheet { opacity: 0; transform: translate(-10px, -4px) rotate(-20deg) scale(0.4); transform-box: fill-box; transform-origin: center; }
+.sheet[data-on="true"] { opacity: 1; transform: none; }
+.frame { fill: var(--brand-soft); stroke: var(--ink); }
+.textLine { fill: none; stroke: var(--ink-soft); stroke-linecap: round; }
+.pot { opacity: 0; transform: translateX(14px); }
+.pot[data-on="true"] { opacity: 1; transform: none; }
+.potBody { fill: var(--peach-soft); stroke: var(--ink); stroke-linejoin: round; }
+.checkbox { fill: none; stroke: var(--brand); stroke-dasharray: 1.6 1.1; }
+.cloud { opacity: 0; transform: translateX(-14px); }
+.cloud[data-on="true"] { opacity: 1; transform: none; }
+.canTilt { opacity: 0; transform-box: view-box; transform-origin: 77px 24px; }
+.canBody { fill: var(--sky-soft); stroke: var(--ink); stroke-linejoin: round; }
+.drop { opacity: 0; fill: var(--sky-soft); stroke: var(--sky-ink); }
+.breath, .perk, .entry { transform-box: view-box; transform-origin: 48px 70px; }
+
+/* ---- movimento ---- */
+@keyframes respira { 0%, 100% { transform: none; } 45% { transform: scale(1.03); } }
+@keyframes cai { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: none; } }
+@keyframes brota { from { opacity: 0; transform: scale(0.15); } to { opacity: 1; transform: none; } }
+@keyframes inclina-a { 0% { opacity: 0; transform: none; } 15% { opacity: 1; } 45% { transform: rotate(-16deg); } 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+@keyframes inclina-b { 0% { opacity: 0; transform: none; } 15% { opacity: 1; } 45% { transform: rotate(-16deg); } 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+@keyframes pinga-a { 0% { opacity: 0; transform: translateY(-4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px); } }
+@keyframes pinga-b { 0% { opacity: 0; transform: translateY(-4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px); } }
+@keyframes anima-a { 0%, 100% { transform: none; } 40% { transform: scaleY(1.05); } }
+@keyframes anima-b { 0%, 100% { transform: none; } 40% { transform: scaleY(1.05); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .root:not([data-paused="true"])[data-respira="true"] .breath { animation: respira 7.2s ease-in-out infinite; }
+  /* Mais específico que a regra acima (o atalho animation volta o estado a
+     running): fora da tela a respiração para e retoma de onde estava. */
+  .root:not([data-paused="true"])[data-respira="true"][data-offscreen="true"] .breath { animation-play-state: paused; }
+  .root:not([data-paused="true"])[data-entrada] .seed { animation: cai 650ms cubic-bezier(0.3, 0.7, 0.4, 1) both; }
+  .root:not([data-paused="true"])[data-entrada] .entry { animation: brota 700ms var(--ease-alpha) 450ms both; }
+  .root:not([data-paused="true"])[data-rega="a"] .canTilt { animation: inclina-a 1.1s ease-in-out both; }
+  .root:not([data-paused="true"])[data-rega="b"] .canTilt { animation: inclina-b 1.1s ease-in-out both; }
+  .root:not([data-paused="true"])[data-rega="a"] .drop { animation: pinga-a 700ms ease-in 400ms both; }
+  .root:not([data-paused="true"])[data-rega="b"] .drop { animation: pinga-b 700ms ease-in 400ms both; }
+  .root:not([data-paused="true"]) .drops > :nth-child(2) .drop { animation-delay: 520ms; }
+  .root:not([data-paused="true"]) .drops > :nth-child(3) .drop { animation-delay: 640ms; }
+  .root:not([data-paused="true"])[data-rega="a"] .perk { animation: anima-a 600ms ease-out 450ms; }
+  .root:not([data-paused="true"])[data-rega="b"] .perk { animation: anima-b 600ms ease-out 450ms; }
+
+  .root:not([data-paused="true"]) .soil { transition: fill-opacity 1.6s ease-out; }
+  .root:not([data-paused="true"])[data-molhado] .soil { transition-duration: 400ms; }
+  .root:not([data-paused="true"]) :is(.stem, .rootLine) { transition: stroke-dashoffset 700ms ease-out; }
+  .root:not([data-paused="true"]) .rootLine { transition-duration: 1.2s; }
+  .root:not([data-paused="true"]) .leaf { transition: opacity 550ms ease-out, transform 550ms ease-out; }
+  .root:not([data-paused="true"]) :is(.pebble, .stone, .tie, .trellis, .buds, .budShape, .budFlower, .crown, .sheet, .pot, .cloud) { transition: opacity 600ms ease-out, transform 600ms ease-out; }
+  .root:not([data-paused="true"]) .rung { transition: stroke 400ms ease, stroke-width 400ms ease; }
+  .root:not([data-paused="true"]) .stake { transition: opacity 800ms ease-in, transform 800ms ease-in; }
+  .root:not([data-paused="true"]) .petal { transition: opacity 900ms var(--ease-alpha), transform 900ms var(--ease-alpha); }
+  .root:not([data-paused="true"]) .flower > :nth-child(2) .petal { transition-delay: 60ms; }
+  .root:not([data-paused="true"]) .flower > :nth-child(3) .petal { transition-delay: 120ms; }
+  .root:not([data-paused="true"]) .flower > :nth-child(4) .petal { transition-delay: 180ms; }
+  .root:not([data-paused="true"]) .flower > :nth-child(5) .petal { transition-delay: 240ms; }
+  .root:not([data-paused="true"]) :is(.sun, .flowerCenter) { transition: opacity 600ms ease; }
+  .root:not([data-paused="true"]) .sunHand { transition: transform 1.2s var(--ease-alpha); }
+  /* Pausada, a faixa fecha de uma vez (0fr e overflow: hidden escondem tudo). */
+  .faixa:not([data-paused="true"])[data-aberta="false"] { transition: grid-template-rows 300ms var(--ease-alpha); }
+  .faixa:not([data-paused="true"])[data-aberta="false"] .faixaInner { opacity: 0; transition: opacity 250ms ease; }
+}
