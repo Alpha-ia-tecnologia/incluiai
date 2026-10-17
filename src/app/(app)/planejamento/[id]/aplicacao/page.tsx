@@ -4,11 +4,15 @@ import { getCurrentUser } from "@/lib/auth";
 import { DuaError, studentsInReach } from "@/lib/dua/shared";
 import { loadPlanning } from "@/lib/dua/plannings";
 import { listApplications } from "@/lib/dua/applications";
+import { CRITERION_STATUSES, CRITERION_STATUS_LABEL, isObserved } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { linkCls } from "@/components/dua/dua-ui";
 import { NewApplicationForm } from "@/components/dua/applications/new-application-form";
 import { ApplicationCard, inputDate } from "@/components/dua/applications/application-card";
+import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
+import { StackedBar } from "@/components/charts";
+import { ShareRing } from "@/components/viz/share-ring";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +44,19 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
       organization: item.content.context.organization,
     };
   });
+
+  // Resumo das evidências que a pessoa pode ver (os dados já carregados acima).
+  // Critério observado (demonstrou, em parte, ainda não) fica na barra; "sem
+  // oportunidade" e "não registrado" ficam à parte: não são progresso nem "ainda não".
+  const statuses = applications.flatMap((application) => application.evidences.flatMap((evidence) => evidence.criteria.map((item) => item.status)));
+  const criterionRows = CRITERION_STATUSES.map((status) => ({ key: status, label: CRITERION_STATUS_LABEL[status], value: statuses.filter((item) => item === status).length }));
+  const observedSegments = withSegmentColors(criterionRows.filter((row) => isObserved(row.key)));
+  const outsideRows = criterionRows.filter((row) => !isObserved(row.key));
+  // Documentação geral: participações visíveis em aplicações não canceladas com
+  // evidência registrada (observada ou "sem oportunidade"), como no painel.
+  const active = applications.filter((application) => application.state !== "cancelada");
+  const participations = active.reduce((sum, application) => sum + application.participants.length, 0);
+  const documented = active.reduce((sum, application) => sum + application.participants.filter((person) => application.evidences.some((evidence) => evidence.studentId === person.id && evidence.observation !== "nao_registrado")).length, 0);
 
   return (
     <div className="grid min-w-0 gap-8">
@@ -76,6 +93,31 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
 
       <section aria-labelledby="aplicacoes-titulo" className="min-w-0">
         <h2 id="aplicacoes-titulo" className="mb-4 font-display text-xl font-medium text-ink">Aplicações registradas ({applications.length})</h2>
+        {applications.length ? (
+          <DataBoard className="mb-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
+            <StatTile
+              label="Documentação das participações"
+              value={`${documented} de ${participations}`}
+              chart={<ShareRing id="documentacao-geral" part={documented} whole={participations} label="Documentação das participações" caption="das participações (sem contar aplicações canceladas) têm evidência registrada, observada ou “sem oportunidade”." />}
+              hint="Só estudantes do seu acesso. Mede o registro, não a aprendizagem."
+            />
+            <DataCard title="Critérios nas evidências registradas" hint="Cada critério de cada evidência, em todas as aplicações desta atividade. Mostra o que foi observado, não é nota.">
+              <StackedBar segments={observedSegments} empty="Nenhum critério observado ainda." />
+              <div className="mt-4 rounded-2xl bg-surface-muted/70 px-3.5 py-3">
+                <p className="text-xs font-medium text-ink">Fora da análise</p>
+                <ul className="mt-2 flex min-w-0 flex-wrap gap-1.5">
+                  {outsideRows.map((row) => (
+                    <li key={row.key} className="inline-flex max-w-full items-center gap-1.5 rounded-2xl border border-dashed border-line bg-paper-raised px-3 py-1.5 text-xs text-ink">
+                      <span className="min-w-0">{row.label}</span>
+                      <span className="tabular-nums font-medium">{row.value}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs leading-relaxed text-ink-soft">Ficam separados porque não são progresso nem “ainda não demonstrou”: indicam que não houve como observar ou que o registro ainda falta.</p>
+              </div>
+            </DataCard>
+          </DataBoard>
+        ) : null}
         {applications.length ? (
           <ul className="grid min-w-0 gap-4">
             {applications.map((application) => (

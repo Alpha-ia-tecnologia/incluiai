@@ -6,7 +6,11 @@ import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { Character } from "@/components/character";
 import { STAGES } from "@/lib/scale";
-import { ThumbsUp, ArrowUpRight, Search, ListChecks, BookOpen, MessagesSquare, MonitorPlay, Puzzle, Sparkles, Laptop, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Search, ListChecks, BookOpen, MessagesSquare, MonitorPlay, Puzzle, Sparkles, Laptop, type LucideIcon } from "lucide-react";
+import { RingStat } from "@/components/data-viz";
+import { SIGNAL } from "@/components/charts";
+import { UsageMeter } from "@/components/viz/usage-meter";
+import { percentOf } from "@/lib/series";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +65,8 @@ export default async function ResourcesPage({
     include: { _count: { select: { activities: true } } },
     orderBy: [{ timesUsed: "desc" }, { title: "asc" }],
   });
+  // A barra de uso compara cada recurso com o mais aplicado da lista filtrada.
+  const mostUsed = resources.reduce((max, resource) => Math.max(max, resource.timesUsed), 0);
 
   return (
     <>
@@ -109,13 +115,16 @@ export default async function ResourcesPage({
         <EmptyState title="Nenhum recurso encontrado" hint="Ajuste ou limpe os filtros para ver o catálogo completo." />
       ) : (
         <div>
-          <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <h2 className="text-base font-medium text-ink">Explore os recursos</h2>
             <span className="text-xs text-ink-soft">{resources.length} {resources.length === 1 ? "recurso disponível" : "recursos disponíveis"}</span>
           </div>
+          <p className="mb-4 max-w-3xl text-xs leading-relaxed text-ink-soft">
+            Em cada cartão, o anel mostra a boa resposta entre as aplicações registradas na rede, e a barra compara o uso com o recurso mais aplicado desta lista{mostUsed ? ` (${mostUsed}x)` : ""}. Sem aplicações, não há percentual.
+          </p>
           <div className="grid gap-5 md:grid-cols-2">
             {resources.map((r) => {
-              const successRate = r.timesUsed > 0 ? Math.round((r.positiveOutcomes / r.timesUsed) * 100) : null;
+              const successRate = percentOf(r.positiveOutcomes, r.timesUsed);
               const visual = RESOURCE_VISUALS[r.resourceType] ?? { color: "bg-surface-muted", icon: BookOpen };
               const ResourceIcon = visual.icon;
               return (
@@ -125,9 +134,6 @@ export default async function ResourcesPage({
                       <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/80"><ResourceIcon size={19} strokeWidth={1.6} aria-hidden /></span>
                       <span className="text-xs font-medium">{TYPE_LABELS[r.resourceType] ?? r.resourceType}</span>
                     </div>
-                    {successRate !== null ? (
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/85 px-2.5 py-1 text-xs font-medium" aria-label={`${successRate}% de boa resposta`} title="Percentual de boa resposta"><ThumbsUp size={12} aria-hidden /> {successRate}%</span>
-                    ) : null}
                   </div>
                   <h3 className="max-w-lg text-xl font-medium leading-snug tracking-tight text-ink">{r.title}</h3>
                   <p className="mb-5 mt-2 text-sm leading-relaxed text-ink/75">{r.description}</p>
@@ -137,10 +143,20 @@ export default async function ResourcesPage({
                     <Badge>{r.accessibilityNeed}</Badge>
                     <Badge>Complexidade {COMPLEXITY_LABELS[r.complexity] ?? r.complexity}</Badge>
                   </div>
-                  <div className="mt-5 flex items-center justify-between gap-3 border-t border-ink/10 pt-4">
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink/75">
-                      <span className="inline-flex items-center gap-1.5"><ListChecks size={13} aria-hidden /> {r._count.activities} atividades</span>
-                      <span>Aplicado {r.timesUsed}x na rede</span>
+                  <div className="mt-5 flex items-center gap-3 border-t border-ink/10 pt-4">
+                    {/* O anel repete o percentual escrito ao lado: fica fora do nome do link. */}
+                    <div aria-hidden className="shrink-0 rounded-full bg-white/80 p-1">
+                      <RingStat id={`boa-resposta-${r.id}`} value={successRate} label="Boa resposta" size={52} color={SIGNAL.lime}>
+                        <span aria-hidden className="text-[11px] font-medium tabular-nums text-ink">{successRate === null ? "—" : `${successRate}%`}</span>
+                      </RingStat>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-ink">{successRate === null ? "Sem aplicações registradas" : `${successRate}% de boa resposta`}<span className="font-normal text-ink/75">{successRate === null ? "" : ` · ${r.positiveOutcomes} de ${r.timesUsed}`}</span></p>
+                      <UsageMeter value={r.timesUsed} max={mostUsed} track="bg-white/70" className="mt-1.5" />
+                      <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink/75">
+                        <span>Aplicado {r.timesUsed}x na rede</span>
+                        <span className="inline-flex items-center gap-1.5"><ListChecks size={13} aria-hidden /> {r._count.activities} atividades</span>
+                      </p>
                     </div>
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/70 transition-colors group-hover:bg-white"><ArrowUpRight size={17} aria-hidden /></span>
                   </div>

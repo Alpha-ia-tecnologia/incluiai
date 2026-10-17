@@ -12,6 +12,12 @@ import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
 import { Trophy, ShieldCheck, Home, CircleCheck } from "lucide-react";
+import { DataBoard, StatTile } from "@/components/data-viz";
+import { SIGNAL } from "@/components/charts";
+import { percentOf } from "@/lib/series";
+import { RingTile } from "@/components/viz/ring-tile";
+import { SupportTrack } from "@/components/viz/support-track";
+import { Timeline } from "@/components/viz/timeline";
 
 const familyLabelCls = "mb-2 block text-sm font-medium text-ink";
 const familyInputCls = "min-h-11 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
@@ -47,6 +53,10 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   const objectives = student.plans.flatMap((p) => p.objectives);
   const addNote = createFamilyNote.bind(null, id);
   const firstName = student.name.split(" ")[0];
+  // Feita = a família avisou pela própria página (nota com o título da atividade).
+  const homeActivities = student.activities.map((activity) => ({ activity, doneAt: student.familyNotes.find((n) => n.note === homeActivityNote(activity.title))?.date }));
+  const homeDone = homeActivities.filter((item) => item.doneAt).length;
+  const lastNote = student.familyNotes[0];
 
   return (
     <>
@@ -56,6 +66,22 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       />
       {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />) : null}
 
+      <section aria-label={`Resumo do acompanhamento de ${firstName}`} className="mb-6">
+        <DataBoard className="sm:grid-cols-2">
+          <StatTile label="Objetivos em andamento" value={objectives.length} hint={objectives.length ? "No plano de ensino ativo." : "A escola ainda está montando o plano."} />
+          <RingTile
+            id="familia-casa"
+            pct={percentOf(homeDone, homeActivities.length)}
+            label="Atividades de casa feitas"
+            value={homeActivities.length ? `${homeDone} de ${homeActivities.length}` : "—"}
+            color={SIGNAL.lime}
+            hint={homeActivities.length ? "Das atividades mais recentes que a escola enviou." : "A escola ainda não enviou atividades para casa."}
+          />
+          <StatTile label="Conquistas recentes" value={student.timeline.length} hint={student.timeline[0] ? `A mais recente em ${formatDate(student.timeline[0].date)}.` : "As conquistas registradas pela escola aparecem aqui."} />
+          <StatTile label="Registros da família" value={student.familyNotes.length} hint={lastNote ? `O último em ${formatDate(lastNote.date)}.` : "Conte para a escola o que vocês observam em casa."} />
+        </DataBoard>
+      </section>
+
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <Card className="scroll-mt-24" id="plano">
@@ -63,10 +89,11 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             {objectives.length === 0 ? (
               <p className="text-sm text-ink-soft">A escola ainda está montando o plano de {firstName}.</p>
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {objectives.map((o) => (
-                  <li key={o.id} className="rounded-xl bg-brand-soft/50 px-3.5 py-2.5 text-sm leading-relaxed text-ink">
-                    {o.description}
+                  <li key={o.id} className="min-w-0 rounded-xl border border-line bg-paper px-3.5 py-3">
+                    <p className="text-sm leading-relaxed text-ink">{o.description}</p>
+                    <div className="mt-3"><SupportTrack current={o.currentSupport} target={o.targetSupport} /></div>
                   </li>
                 ))}
               </ul>
@@ -75,13 +102,12 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
 
           <Card className="scroll-mt-24" id="casa">
             <SectionTitle><span className="flex items-center gap-1.5"><Home size={13} aria-hidden /> Atividades para fazer em casa</span></SectionTitle>
-            {student.activities.length === 0 ? (
+            {homeActivities.length === 0 ? (
               <p className="text-sm text-ink-soft">A escola enviará sugestões de atividades para casa por aqui.</p>
             ) : (
               <ul className="space-y-3">
-                {student.activities.map((a) => {
+                {homeActivities.map(({ activity: a, doneAt }) => {
                   const steps = parseJson<string[]>(a.steps, []);
-                  const doneAt = student.familyNotes.find((n) => n.note === homeActivityNote(a.title))?.date;
                   return (
                     <li key={a.id} className="rounded-lg border border-line bg-paper px-3.5 py-2.5">
                       <p className="text-sm font-medium text-ink">{a.title}</p>
@@ -118,18 +144,17 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             {student.timeline.length === 0 ? (
               <p className="text-sm text-ink-soft">As conquistas registradas pela escola aparecerão aqui.</p>
             ) : (
-              <ul className="space-y-2">
-                {student.timeline.map((t) => (
-                  <li key={t.id} className="flex items-start gap-2 text-sm text-ink">
-                    <Trophy size={15} className="mt-0.5 shrink-0 text-amber-800" aria-hidden />
-                    <span>
-                      <strong>{t.title}</strong>
-                      {t.description ? ` — ${t.description}` : ""}
-                      <span className="block text-[11px] text-ink-soft">{formatDate(t.date)}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <Timeline
+                label={`Conquistas recentes de ${firstName}, da mais nova para a mais antiga`}
+                items={student.timeline.map((t) => ({
+                  key: t.id,
+                  date: formatDate(t.date),
+                  title: t.title,
+                  body: t.description || undefined,
+                  marker: <Trophy size={16} />,
+                  markerClassName: "bg-amber-soft text-amber-800",
+                }))}
+              />
             )}
           </Card>
 

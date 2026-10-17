@@ -7,6 +7,7 @@ import { ApplicationManager } from "./application-manager";
 import { EvidenceForm, type EvidenceDefaults } from "./evidence-form";
 import { EvidenceSummary, observationTone } from "./evidence-summary";
 import type { StudentOption } from "./participant-picker";
+import { ShareRing } from "@/components/viz/share-ring";
 
 const STATE_TONE: Record<ExecutionState, "neutral" | "brand" | "green" | "amber"> = {
   planejada: "neutral",
@@ -46,6 +47,12 @@ export function ApplicationCard({ planningId, application, students }: { plannin
   const criteria = application.content.criteria.map(({ id, description }) => ({ id, description }));
   const strategies = application.content.strategies.map(({ id, description }) => ({ id, description }));
   const headingId = `aplicacao-${application.id}`;
+  // Documentação: participantes visíveis com evidência registrada (observada ou
+  // "sem oportunidade"), como no indicador do painel. Mede registro, não aprendizagem.
+  const documented = application.participants.filter((person) => {
+    const observation = evidenceByStudent.get(person.id)?.observation;
+    return observation !== undefined && observation !== "nao_registrado";
+  }).length;
   const details = [
     { label: "Onde", value: APPLICATION_CONTEXT_LABEL[application.context] },
     { label: "Turma ou grupo", value: application.className ?? "" },
@@ -104,6 +111,17 @@ export function ApplicationCard({ planningId, application, students }: { plannin
 
         <h4 className="mt-5 text-sm font-medium text-ink">Participantes e evidências ({application.participants.length})</h4>
         {cancelled ? <p className="mt-1 text-sm text-ink-soft">Aplicação cancelada: não há evidência a registrar.</p> : null}
+        {!cancelled && application.participants.length ? (
+          <div className="mt-2 rounded-2xl bg-surface-muted/70 p-3">
+            <ShareRing
+              id={`documentacao-${application.id}`}
+              part={documented}
+              whole={application.participants.length}
+              label="Documentação desta aplicação"
+              caption={`${documented} de ${application.participants.length} ${application.participants.length === 1 ? "participante" : "participantes"} do seu acesso com evidência registrada (observada ou “sem oportunidade”). Mede o registro, não a aprendizagem.`}
+            />
+          </div>
+        ) : null}
         {application.participants.length ? (
           <ul className="mt-2 grid min-w-0 gap-2">
             {application.participants.map((person) => {

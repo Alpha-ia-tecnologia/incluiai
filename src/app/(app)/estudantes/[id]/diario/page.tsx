@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { createDiaryEntry } from "@/actions/diary";
 import { formatDate } from "@/lib/format";
-import { supportInfo, PARTICIPATION, CRITERION_MET, ROLES } from "@/lib/scale";
+import { PARTICIPATION, CRITERION_MET, ROLES } from "@/lib/scale";
+import { axisDate, supportSeries, supportTrend, TREND_TEXT, weeklyCounts } from "@/lib/series";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
+import { DataBoard, DataCard, MiniColumns, StatTile, StatusPill, SupportChart } from "@/components/data-viz";
+import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, TREND_TONE } from "@/components/viz/student-viz";
 import { DiaryForm } from "@/components/diary-form";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +35,15 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
   const initialObjectiveId = objectives.some((objective) => objective.id === selectedActivity?.objectiveId) ? selectedActivity?.objectiveId ?? "" : "";
   const create = createDiaryEntry.bind(null, id);
 
+  // Resumo do histórico: tudo sai dos registros que a página já lista.
+  const support = supportSeries(entries);
+  const trend = supportTrend(support.map((point) => point.value));
+  const weeks = weeklyCounts(entries.map((entry) => entry.date), 8);
+  const recentRecords = weeks.reduce((sum, week) => sum + week.value, 0);
+  const objectiveIds = new Set(entries.flatMap((entry) => (entry.objectiveId ? [entry.objectiveId] : [])));
+  // Com um único objetivo em todos os registros, o gráfico mostra também o início e a meta dele.
+  const singleObjective = objectiveIds.size === 1 && entries.every((entry) => entry.objectiveId) ? entries[0].objective : null;
+
   return (
     <>
       <PageHeader
@@ -48,6 +60,44 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
       <section id="historico-registros" className="max-w-3xl scroll-mt-6" aria-labelledby="history-title">
         <h2 id="history-title" className="mb-2 text-lg font-semibold text-ink">Registros anteriores</h2>
         <p className="mb-4 text-sm text-ink-soft">Os registros mais recentes aparecem primeiro. Observe a participação e o apoio necessário ao longo do tempo.</p>
+        {entries.length > 0 ? (
+          <DataBoard className="mb-5 sm:grid-cols-2">
+            <DataCard
+              title="Evolução do apoio"
+              hint={`${objectiveIds.size > 1 ? "Todos os registros, de todos os objetivos," : "Todos os registros,"} do mais antigo ao mais recente.`}
+              className="sm:col-span-2"
+            >
+              {trend.trend !== "sem_dados" ? (
+                <p className="mb-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                  <StatusPill tone={TREND_TONE[trend.trend]}>{TREND_TEXT[trend.trend]}</StatusPill>
+                  <span>Comparação entre a primeira e a segunda metade dos registros.</span>
+                </p>
+              ) : null}
+              <ChartFrame>
+                <SupportChart
+                  points={support.map((point) => ({ date: axisDate(point.date), value: point.value }))}
+                  start={singleObjective?.currentSupport}
+                  target={singleObjective?.targetSupport}
+                  label={`Nível de apoio em ${support.length} ${support.length === 1 ? "registro" : "registros"} de aula`}
+                />
+              </ChartFrame>
+            </DataCard>
+            <DataCard title="Participação">
+              <ParticipationDonut id="diario-participacao" entries={entries} size={112} />
+            </DataCard>
+            <DataCard title="Resultado esperado">
+              <CriterionBar entries={entries} />
+            </DataCard>
+            <div className="grid min-w-0 sm:col-span-2">
+              <StatTile
+                label="Registros nas últimas 8 semanas"
+                value={recentRecords}
+                hint={`Uma coluna por semana. Último registro em ${formatDate(entries[0].date)} · ${entries.length} no total.`}
+                chart={<MiniColumns points={weeks} label="Registros de aula por semana, nas últimas 8 semanas" />}
+              />
+            </div>
+          </DataBoard>
+        ) : null}
         {entries.length === 0 ? (
           <EmptyState title="O primeiro registro começa aqui" hint="Preencha o formulário acima depois de uma aula ou atendimento. O registro aparecerá neste espaço quando você salvar." />
         ) : (
@@ -68,7 +118,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
                     Resultado esperado: {CRITERION_MET[entry.criterionMet] ?? entry.criterionMet}
                   </Badge>
                 </div>
-                <p className="mt-2 text-sm text-ink-soft"><span className="font-medium">Apoio: </span>{supportInfo(entry.supportLevel).description}</p>
+                <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft"><span className="font-medium">Apoio:</span> <SupportMeter level={entry.supportLevel} /></p>
                 <div className="mt-3 space-y-2 text-sm leading-relaxed text-ink">
                   {entry.note ? <p><span className="font-medium">O que aconteceu: </span>{entry.note}</p> : null}
                   {entry.whatWorked ? <p><span className="font-medium">O que ajudou: </span>{entry.whatWorked}</p> : null}

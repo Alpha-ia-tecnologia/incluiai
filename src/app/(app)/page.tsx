@@ -8,7 +8,9 @@ import { studentAlerts } from "@/lib/insights";
 import { getStudentNextStep } from "@/lib/student-journey";
 import { loadJourney } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
-import { firstName, formatDate } from "@/lib/format";
+import { firstName, formatDate, formatDateShort } from "@/lib/format";
+import { PARTICIPATION_TEXT, PARTICIPATION_TONE, TREND_TEXT, supportTrend, weeklyCounts } from "@/lib/series";
+import { DotStrip, MiniColumns, Sparkline, StatTile, StatusPill, TONE_COLOR, type Tone } from "@/components/data-viz";
 import { CALENDAR_THEMES, MONTH_SHORT, monthParam, relativeLabel, todayInBrazil, upcomingEvents } from "@/lib/commemorative-dates";
 import { ArrowRight, BookOpen, CalendarDays, ClipboardList, HelpCircle, Plus, School, Users } from "lucide-react";
 
@@ -36,13 +38,25 @@ export default async function SchoolDashboard() {
     },
     orderBy: { name: "asc" },
   });
-  const weekStart = new Date();
+  const now = new Date();
+  const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - 6);
-  const recentRecords = await prisma.diaryEntry.count({
-    where: { studentId: { in: students.map((student) => student.id) }, date: { gte: weekStart, lte: new Date() } },
-  });
+  // Só a data dos registros das últimas 8 semanas: basta para as colunas por
+  // semana e para o número dos últimos 7 dias, com o mesmo recorte de estudantes.
+  const since = new Date(now);
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - 8 * 7);
+  const recordDates = (await prisma.diaryEntry.findMany({
+    where: { studentId: { in: students.map((student) => student.id) }, date: { gte: since, lte: now } },
+    select: { date: true },
+  })).map((entry) => entry.date);
+  const recentRecords = recordDates.filter((date) => date >= weekStart).length;
+  const weekly = weeklyCounts(recordDates, 8, now);
   const pendingSuggestions = students.reduce((total, student) => total + student.activities.filter((activity) => activity.status === "sugerida").length, 0);
+  const studentsWithSuggestions = students.filter((student) => student.activities.some((activity) => activity.status === "sugerida")).length;
+  const shownStudents = students.slice(0, 4);
+  const anyEntries = shownStudents.some((student) => student.diaryEntries.length > 0);
   const withAlerts = students.map((student) => ({
     student,
     alerts: studentAlerts({ plans: student.plans, entries: [...student.diaryEntries].reverse() }),
@@ -98,11 +112,18 @@ export default async function SchoolDashboard() {
             <h2 id="students-title" className="text-lg font-medium">Próximo passo por estudante</h2>
             <Link href="/estudantes" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Ver todos <ArrowRight size={16} aria-hidden /></Link>
           </div>
+          {anyEntries ? (
+            // Uma legenda para todos os cartões, em vez de repetir em cada um.
+            <ul className="-mt-2 mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft" aria-label="Como ler os minigráficos">
+              <li className="inline-flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 bg-ink" /> Linha: apoio nas últimas aulas (subir é precisar de menos apoio)</li>
+              {PARTICIPATION_LEGEND.map((item) => <li key={item.label} className="inline-flex items-center gap-1.5"><span aria-hidden className="hatch size-2.5 rounded-[3px]" style={{ backgroundColor: TONE_COLOR[item.tone] }} />{item.label}</li>)}
+            </ul>
+          ) : null}
           {students.length === 0 ? (
             <div><EmptyState title="Vamos começar pelo primeiro estudante?" hint="O cadastro permite reunir informações, preparar o plano de ensino e acompanhar as aulas." /><Link href="/estudantes/novo" className="task-action mt-4"><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link></div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {students.slice(0, 4).map((student) => {
+              {shownStudents.map((student) => {
                 const next = getStudentNextStep({
                   id: student.id, caseStudy: (student.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null, hasProfile: !!student.profile, hasPlan: !!student.plans.length,
                   hasObjective: !!student.plans[0]?.objectives.length,
@@ -114,6 +135,7 @@ export default async function SchoolDashboard() {
                     <h3 className="text-base font-medium"><Link href={`/estudantes/${student.id}`} className="inline-flex min-h-11 items-center hover:underline">{student.name}</Link></h3>
                     <p className="text-sm text-ink-soft">{student.gradeYear} · {student.className}</p>
                     <p className="mt-1 text-xs leading-relaxed text-ink-soft">{student.school.name}</p>
+                    <RecentLessons name={firstName(student.name)} entries={student.diaryEntries} />
                     <p className="mb-4 mt-4 text-sm leading-relaxed text-ink-soft">{next.description}</p>
                     <Link href={next.href} className="task-action task-action-secondary mt-auto">{next.label} <ArrowRight size={16} className="shrink-0" aria-hidden /></Link>
                     <p className="mt-3 text-xs leading-relaxed text-ink-soft">{student.diaryEntries[0] ? `Último registro: ${formatDate(student.diaryEntries[0].date)}` : "Ainda sem registros de aula"}</p>
@@ -127,15 +149,26 @@ export default async function SchoolDashboard() {
 
       <aside className="dashboard-side" aria-label="Resumo do acompanhamento">
         <JourneyProgress journey={journey} />
-        <section className="mt-6 rounded-[20px] bg-paper-raised p-5">
-          <h2 className="text-base font-medium">Seu acompanhamento</h2>
-          <p className="mt-2 text-xs leading-relaxed text-ink-soft">Resumo dos estudantes ativos aos quais você tem acesso.</p>
-          <dl className="mt-5 space-y-4">
-            {[[students.length, "estudantes"], [recentRecords, "registros nos últimos 7 dias"], [pendingSuggestions, "sugestões de atividade para avaliar"]].map(([value, label]) => (
-              <div key={label} className="flex items-center gap-3"><dd className="min-w-10 text-3xl font-medium tracking-tight">{value}</dd><dt className="text-sm leading-relaxed text-ink-soft">{label}</dt></div>
-            ))}
-          </dl>
-          <Link href="/painel" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Ver painel de indicadores <ArrowRight size={16} aria-hidden /></Link>
+        <section className="mt-6" aria-labelledby="acompanhamento-titulo">
+          <h2 id="acompanhamento-titulo" className="px-1 text-base font-medium">Seu acompanhamento</h2>
+          <p className="mt-1 px-1 text-xs leading-relaxed text-ink-soft">Resumo dos estudantes ativos aos quais você tem acesso.</p>
+          <div className="mt-3 grid min-w-0 gap-2.5">
+            <StatTile label="Estudantes" value={students.length} hint={withAlerts.length ? `${withAlerts.length} com aviso de acompanhamento.` : "Nenhum aviso de acompanhamento."} />
+            <StatTile
+              label="Registros nos últimos 7 dias"
+              value={recentRecords}
+              chart={recordDates.length ? <MiniColumns points={weekly} label="Registros de aula por semana, nas últimas 8 semanas" /> : undefined}
+              hint={recordDates.length ? "Colunas: registros por semana, nas últimas 8 semanas." : "Nenhum registro de aula nas últimas 8 semanas."}
+            />
+            <StatTile
+              label="Sugestões de atividade para avaliar"
+              value={pendingSuggestions}
+              tone={pendingSuggestions ? "mid" : "good"}
+              status={pendingSuggestions ? "Para avaliar" : "Em dia"}
+              hint={pendingSuggestions ? `De ${studentsWithSuggestions} ${studentsWithSuggestions === 1 ? "estudante" : "estudantes"}. Aceite ou recuse na aba Atividades.` : "Nenhuma sugestão esperando avaliação."}
+            />
+          </div>
+          <Link href="/painel" className="mt-2 inline-flex min-h-11 items-center gap-2 px-1 text-sm font-medium text-brand-strong">Ver painel de indicadores <ArrowRight size={16} aria-hidden /></Link>
         </section>
 
         <section className="mt-6" aria-labelledby="attention-title">
@@ -168,3 +201,36 @@ export default async function SchoolDashboard() {
     </div>
   );
 }
+
+const PARTICIPATION_LEGEND: { tone: Tone; label: string }[] = [{ tone: "good", label: "Toda a atividade" }, { tone: "mid", label: "Parte" }, { tone: "alert", label: "Recusou" }];
+
+// Apoio e participação das últimas aulas do estudante, em miniatura. Os
+// registros chegam do mais novo ao mais antigo; o gráfico lê em ordem de data.
+function RecentLessons({ name, entries }: { name: string; entries: ReadonlyArray<{ id: string; date: Date; supportLevel: number; participation: string }> }) {
+  if (!entries.length) return null;
+  const lessons = [...entries].reverse();
+  const levels = lessons.map((entry) => entry.supportLevel);
+  const { trend } = supportTrend(levels);
+  const count = lessons.length === 1 ? "na última aula" : `nas últimas ${lessons.length} aulas`;
+  return (
+    <div className="mt-4 grid min-w-0 gap-3 rounded-2xl bg-surface-muted/70 p-3">
+      <div className="min-w-0">
+        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-ink-soft">Apoio {count}</p>
+          {trend !== "sem_dados" ? <StatusPill tone={trend === "avancando" ? "good" : trend === "atencao" ? "alert" : "neutral"}>{TREND_TEXT[trend]}</StatusPill> : null}
+        </div>
+        {levels.length > 1
+          ? <Sparkline values={levels} domain={[0, 5]} invert height={32} label={`Nível de apoio de ${name} ${count}: ${levels.join(", ")} (0 é independente, 5 é apoio físico total)`} />
+          : <p className="text-xs text-ink-soft">Com dois registros, a linha do apoio aparece aqui.</p>}
+      </div>
+      <div className="min-w-0">
+        <p className="mb-1.5 text-xs text-ink-soft">Participação {count}</p>
+        <DotStrip
+          label={`Participação de ${name} ${count}, da mais antiga à mais recente`}
+          items={lessons.map((entry) => ({ key: entry.id, title: `${formatDateShort(entry.date)}: ${PARTICIPATION_TEXT[entry.participation] ?? entry.participation}`, tone: PARTICIPATION_TONE[entry.participation] ?? "neutral" }))}
+        />
+      </div>
+    </div>
+  );
+}
+

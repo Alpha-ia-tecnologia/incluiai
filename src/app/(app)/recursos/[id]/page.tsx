@@ -5,7 +5,11 @@ import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { registerResourceUse } from "@/actions/resources";
 import { CONTEXTS, STAGES } from "@/lib/scale";
 import { parseJson } from "@/lib/format";
-import { PageHeader, Card, SectionTitle, Badge, KpiCard } from "@/components/ui";
+import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
+import { DataBoard, DataCard, StatTile } from "@/components/data-viz";
+import { BarList, SIGNAL } from "@/components/charts";
+import { DonutSummary } from "@/components/viz/donut-summary";
+import { percentOf } from "@/lib/series";
 import { PrintButton } from "@/components/print-button";
 import {
   ArrowLeft, ThumbsUp, ThumbsDown, Repeat, Clock, Target,
@@ -36,7 +40,16 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   });
   if (!resource) notFound();
 
-  const successRate = resource.timesUsed > 0 ? Math.round((resource.positiveOutcomes / resource.timesUsed) * 100) : null;
+  const successRate = percentOf(resource.positiveOutcomes, resource.timesUsed);
+  // "Precisa de ajuste" em amarelo, não laranja: é sinal para adaptar, não fracasso.
+  const outcomes = [
+    { key: "boa_resposta", label: "Boa resposta", value: resource.positiveOutcomes, color: SIGNAL.lime },
+    { key: "precisa_ajuste", label: "Precisa de ajuste", value: Math.max(0, resource.timesUsed - resource.positiveOutcomes), color: SIGNAL.yellow },
+  ];
+  const activityRows = resource.activities.map((activity) => {
+    const rate = percentOf(activity.positiveOutcomes, activity.timesUsed);
+    return { key: activity.id, label: activity.title, value: activity.timesUsed, detail: rate === null ? "sem aplicações" : `${rate}% de boa resposta` };
+  });
 
   return (
     <>
@@ -54,19 +67,37 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         }
       />
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <KpiCard icon={Repeat} value={resource.timesUsed} label="Aplicações na rede" />
-        <KpiCard icon={ThumbsUp} tone="green" value={resource.positiveOutcomes} pct={successRate} label="Com boa resposta" sub={successRate === null ? "Sem aplicações registradas" : undefined} />
-        <Card>
-          <SectionTitle>Classificação</SectionTitle>
+      <DataBoard className="mb-6 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
+        <StatTile
+          label="Aplicações na rede"
+          value={resource.timesUsed}
+          hint={resource.activities.length > 1 ? `Vezes em que uma das ${resource.activities.length} atividades deste recurso foi aplicada e teve a resposta registrada.` : "Vezes em que este recurso foi aplicado e teve a resposta registrada."}
+        />
+        <DataCard title="Resposta observada" hint={successRate === null ? undefined : `${resource.positiveOutcomes} de ${resource.timesUsed} aplicações com boa resposta. Resposta do recurso na prática, não nota do estudante.`}>
+          <DonutSummary
+            id="rosca-resposta"
+            segments={outcomes}
+            label="Resposta observada nas aplicações"
+            center={successRate === null ? undefined : `${successRate}%`}
+            caption="boa resposta"
+            size={120}
+            empty="Sem aplicações registradas: ainda não há percentual de boa resposta."
+          />
+        </DataCard>
+        <DataCard title="Classificação" className="md:col-span-2 xl:col-span-1">
           <div className="flex flex-wrap gap-1.5">
             <Badge>{STAGES[resource.stage] ?? resource.stage}</Badge>
             <Badge>{resource.skillArea}</Badge>
             <Badge tone="amber">{resource.accessibilityNeed}</Badge>
             <Badge>Complexidade {COMPLEXITY_LABELS[resource.complexity] ?? resource.complexity}</Badge>
           </div>
-        </Card>
-      </div>
+        </DataCard>
+        {resource.activities.length > 1 ? (
+          <DataCard title="Atividades por aplicações" hint="Quantas vezes cada atividade foi aplicada, com a boa resposta entre essas aplicações." className="md:col-span-2 xl:col-span-3">
+            <BarList rows={activityRows} empty="Nenhuma atividade deste recurso foi aplicada ainda." />
+          </DataCard>
+        ) : null}
+      </DataBoard>
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <SectionTitle>Atividades correspondentes</SectionTitle>

@@ -350,6 +350,8 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       measurableObjectives: measurable.length,
       reducedSupportPct: percent(reduced, measurable.length),
       records: periodEntries.length,
+      // Registros do período anterior de mesmo tamanho (null em "todo o histórico").
+      previousRecords: range ? previousEntries.length : null,
       studentsWithRecord,
       fullParticipation: participation.get("total") ?? 0,
       fullParticipationPct: percent(participation.get("total") ?? 0, periodEntries.length),

@@ -5,6 +5,11 @@ import { AEE_SESSION_STATUSES, AEE_SESSION_STATUS_LABEL, type AeeSessionStatus }
 import { formatDate } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { AeeSessionForm } from "@/components/aee-session-form";
+import { DataBoard, DataCard, SEGMENT_COLORS } from "@/components/data-viz";
+import { Swatch } from "@/components/charts";
+import { percentOf, sessionsByMonth } from "@/lib/series";
+import { RingTile } from "@/components/viz/ring-tile";
+import { StackedColumns } from "@/components/viz/stacked-columns";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +32,10 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
 
   const { sessions, summary } = await listAeeSessions(user, id);
   const canRecord = canRecordAeeSession(user);
+  const total = AEE_SESSION_STATUSES.reduce((sum, status) => sum + summary[status], 0);
+  // Cores neutras do painel: realizado não é "bom" em aprendizagem, só diz que o encontro aconteceu.
+  const series = AEE_SESSION_STATUSES.map((status) => ({ key: status, label: AEE_SESSION_STATUS_LABEL[status], color: SEGMENT_COLORS[status] }));
+  const months = sessionsByMonth(sessions, 6).map((month) => ({ label: month.label, title: month.title, counts: { realizado: month.realizado, falta: month.falta, cancelamento: month.cancelamento } }));
 
   return (
     <>
@@ -43,14 +52,29 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
 
         <section aria-labelledby="aee-resumo" className="min-w-0">
           <h2 id="aee-resumo" className="mb-3 text-lg font-semibold text-ink">Resumo</h2>
-          <dl className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
-            {AEE_SESSION_STATUSES.map((status) => (
-              <div key={status} className="min-w-0 rounded-xl bg-surface-muted p-4">
-                <dt className="text-sm text-ink-soft">{AEE_SESSION_STATUS_LABEL[status]}</dt>
-                <dd className="mt-1 font-display text-3xl font-medium text-ink">{summary[status]}</dd>
-              </div>
-            ))}
-          </dl>
+          <DataBoard className="md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+            <RingTile
+              id="aee-frequencia"
+              pct={percentOf(summary.realizado, total)}
+              label="Atendimentos realizados"
+              value={total ? `${summary.realizado} de ${total}` : "Sem base"}
+              color={SEGMENT_COLORS.realizado}
+              hint={total ? "Entre os atendimentos registrados. Mostra que o encontro aconteceu, não o que foi aprendido." : "Ainda não há atendimento registrado para calcular."}
+            >
+              <dl className="grid gap-1.5 border-t border-line pt-3 text-sm">
+                {AEE_SESSION_STATUSES.map((status) => (
+                  <div key={status} className="flex min-w-0 items-center gap-2">
+                    <Swatch color={SEGMENT_COLORS[status]} />
+                    <dt className="min-w-0 flex-1 text-ink">{AEE_SESSION_STATUS_LABEL[status]}</dt>
+                    <dd className="font-medium tabular-nums text-ink">{summary[status]}</dd>
+                  </div>
+                ))}
+              </dl>
+            </RingTile>
+            <DataCard title="Atendimentos por mês" hint="Últimos 6 meses, separados por situação. O número acima da coluna é o total do mês.">
+              <StackedColumns rows={months} series={series} caption="Atendimentos AEE por mês e por situação, nos últimos 6 meses" empty="Nenhum atendimento registrado nos últimos 6 meses." />
+            </DataCard>
+          </DataBoard>
           <p className="mt-2 text-xs text-ink-soft">Contagem dos registros listados abaixo.</p>
         </section>
 

@@ -4,20 +4,37 @@ import { objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insig
 import { meetingQuestions } from "@/lib/materials";
 import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS, BARRIERS } from "@/lib/scale";
+import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
 import { logStudentAccess } from "@/actions/students";
 import { canSeePedagogicalDetail, getCurrentUser } from "@/lib/auth";
 import { parseCaseStudy } from "@/lib/case-study";
+import type { FunctionalProfile } from "@prisma/client";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
-import { TrendingDown, Minus, AlertTriangle, Sparkles, MessageCircleQuestion } from "lucide-react";
+import { DataBoard, DataCard, StatusPill, SupportBars, SupportChart } from "@/components/data-viz";
+import { BarList } from "@/components/charts";
+import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, SupportSteps, TextChips, TREND_TONE } from "@/components/viz/student-viz";
+import { TrendingDown, Minus, AlertTriangle, MessageCircleQuestion, ArrowRight, type LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-const TREND_META = {
-  avancando: { tone: "green" as const, label: "Avançando", icon: TrendingDown },
-  estavel: { tone: "brand" as const, label: "Estável", icon: Minus },
-  atencao: { tone: "coral" as const, label: "Atenção", icon: AlertTriangle },
-  sem_dados: { tone: "neutral" as const, label: "Sem registros", icon: Minus },
+const TREND_META: Record<Trend, { label: string; icon: LucideIcon }> = {
+  avancando: { label: "Avançando", icon: TrendingDown },
+  estavel: { label: "Estável", icon: Minus },
+  atencao: { label: "Atenção", icon: AlertTriangle },
+  sem_dados: { label: "Sem registros", icon: Minus },
 };
+
+// As 12 áreas de apoio de "Como aprende", na escala de 0 (IND) a 5 (FIS-T).
+const PROFILE_SUPPORT = [
+  { title: "Aprendizagem", fields: [["readingSupport", "Leitura"], ["writingSupport", "Escrita"], ["mathSupport", "Matemática"]] },
+  { title: "Interação", fields: [["peerInteraction", "Interação com colegas"], ["adultInteraction", "Interação com adultos"], ["groupWork", "Trabalho em grupo"]] },
+  { title: "Autonomia", fields: [["organization", "Organização"], ["feeding", "Alimentação"], ["hygiene", "Higiene"], ["mobility", "Locomoção"]] },
+  { title: "Movimento", fields: [["fineMotor", "Coordenação fina"], ["grossMotor", "Coordenação ampla"]] },
+] as const satisfies ReadonlyArray<{ title: string; fields: ReadonlyArray<readonly [keyof FunctionalProfile, string]> }>;
+
+// No computador este cartão fica na coluna estreita: as barras descem para a
+// linha de baixo, como no celular, para o nome da área e o nível caberem.
+const NARROW_BARS = "lg:[&_li]:grid-cols-[minmax(0,1fr)_auto] lg:[&_li>span:nth-child(2)]:col-span-2 lg:[&_li>span:nth-child(2)]:row-start-2";
 
 export default async function StudentOverview({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,7 +51,10 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   });
   const intersector = student.intersectorReports[0];
   const user = await getCurrentUser();
-  const showCaseStudy = Boolean(user && canSeePedagogicalDetail(user.role));
+  // Família e terapeuta também abrem o resumo: os gráficos que mostram mais do
+  // diário do que o resumo já mostrava (histórico completo, participação,
+  // contagens) ficam só com a equipe pedagógica.
+  const pedagogical = Boolean(user && canSeePedagogicalDetail(user.role));
   const caseSynthesis = parseCaseStudy(student.caseStudy?.content).sintese;
 
   await logStudentAccess(id, "Visão geral do prontuário");
@@ -43,6 +63,9 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   const objectives = activePlan?.objectives.filter((o) => o.status === "ativo") ?? [];
   const alerts = studentAlerts({ plans: student.plans, entries: student.diaryEntries });
   const worked = strategiesThatWorked(student.diaryEntries);
+  const workedCounts = pedagogical ? countItems(student.diaryEntries.map((entry) => entry.whatWorked), 8) : [];
+  const records = student.diaryEntries.length;
+  const profile = student.profile;
   const interests = parseJson<string[]>(student.profile?.interests ?? null, []);
   const barriers = parseJson<string[]>(student.profile?.barriers ?? null, []);
 
@@ -83,49 +106,84 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <DataBoard>
               {objectives.map((obj) => {
                 const insight = objectiveTrend(obj, student.diaryEntries);
                 const meta = TREND_META[insight.trend];
                 const Icon = meta.icon;
+                const points = pedagogical ? supportSeries(student.diaryEntries, obj.id).map((point) => ({ date: axisDate(point.date), value: point.value })) : [];
                 return (
-                  <Card key={obj.id}>
+                  <article key={obj.id} aria-label={`Objetivo: ${obj.action}`} className="dash-card min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="max-w-xl text-sm leading-relaxed text-ink">{obj.description}</p>
-                      <Badge tone={meta.tone}><Icon size={12} aria-hidden /> {meta.label}</Badge>
+                      <p className="min-w-0 max-w-xl text-sm leading-relaxed text-ink">{obj.description}</p>
+                      <StatusPill tone={TREND_TONE[insight.trend]}><Icon size={12} aria-hidden /> {meta.label}</StatusPill>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                       <span>Apoio atual:</span> <SupportPill level={obj.currentSupport} />
                       <span>→ apoio esperado:</span> <SupportPill level={obj.targetSupport} />
                       {obj.bnccCode ? <Badge>BNCC {obj.bnccCode}</Badge> : null}
-                      {insight.lastSupportLevels.length > 0 ? (
-                        <span className="ml-auto font-mono text-[11px]">
-                          últimos registros: {insight.lastSupportLevels.join(" → ")}
-                        </span>
-                      ) : null}
                     </div>
-                    <p className="mt-2 text-xs text-ink-soft">{insight.message}</p>
-                  </Card>
+                    {pedagogical ? (
+                      points.length >= 2 ? (
+                        <div className="mt-4">
+                          <ChartFrame>
+                            <SupportChart points={points} start={obj.currentSupport} target={obj.targetSupport} height={140} label={`Nível de apoio em ${points.length} registros de aula: ${obj.action}`} />
+                          </ChartFrame>
+                        </div>
+                      ) : points.length === 1 ? (
+                        <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                          <span>Primeiro registro ({points[0].date}):</span> <SupportMeter level={points[0].value} />
+                          <span>Com dois registros ou mais, a evolução do apoio aparece aqui.</span>
+                        </p>
+                      ) : null
+                    ) : insight.lastSupportLevels.length > 0 ? (
+                      // Família e terapeuta veem só os últimos registros, como antes.
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                        <span>Últimos registros:</span>
+                        <SupportSteps levels={insight.lastSupportLevels} label="Últimos níveis de apoio registrados, do mais antigo ao mais recente" />
+                      </div>
+                    ) : null}
+                    <p className="mt-3 text-xs text-ink-soft">{insight.message}</p>
+                  </article>
                 );
               })}
-            </div>
+            </DataBoard>
           )}
         </div>
 
-        {worked.length > 0 ? (
-          <Card>
-            <SectionTitle>Estratégias que funcionaram</SectionTitle>
-            <div className="flex flex-wrap gap-1.5">
-              {worked.map((w) => (
-                <Badge key={w} tone="green"><Sparkles size={11} aria-hidden /> {w}</Badge>
-              ))}
-            </div>
-          </Card>
+        {(pedagogical && records > 0) || worked.length > 0 ? (
+          <div>
+            <SectionTitle>Como foram as aulas</SectionTitle>
+            <DataBoard>
+              {pedagogical && records > 0 ? (
+                <DataCard title="Participação e resultado das aulas" hint={`${records} ${records === 1 ? "registro de aula" : "registros de aula"} desde o início do acompanhamento.`}>
+                  <div className="grid min-w-0 gap-6 md:grid-cols-2">
+                    <div className="min-w-0">
+                      <h4 className="mb-3 text-xs font-medium text-ink-soft">Participação</h4>
+                      <ParticipationDonut id="resumo-participacao" entries={student.diaryEntries} />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="mb-3 text-xs font-medium text-ink-soft">Resultado esperado</h4>
+                      <CriterionBar entries={student.diaryEntries} />
+                    </div>
+                  </div>
+                  <Link href={`/estudantes/${id}/diario#historico-registros`} className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
+                    Ver os registros de aula <ArrowRight size={15} aria-hidden />
+                  </Link>
+                </DataCard>
+              ) : null}
+              {worked.length > 0 ? (
+                <DataCard title="Estratégias que funcionaram" hint={pedagogical ? "Marcadas em “o que ajudou” no registro da aula. O número é quantas vezes cada uma foi marcada." : "Marcadas em “o que ajudou” no registro da aula."}>
+                  {pedagogical ? <BarList rows={workedCounts} /> : <TextChips items={worked} />}
+                </DataCard>
+              ) : null}
+            </DataBoard>
+          </div>
         ) : null}
       </div>
 
       <div className="space-y-5">
-        {showCaseStudy ? (
+        {pedagogical ? (
           <Card>
             <SectionTitle>Estudo de caso</SectionTitle>
             {student.caseStudy?.status === "concluido" ? (
@@ -175,6 +233,20 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               ) : null}
             </dl>
           )}
+          {profile ? (
+            <div className="mt-5 border-t border-line pt-4">
+              <h3 className="text-sm font-medium text-ink">Apoio de que precisa em cada área</h3>
+              <p className="mt-1 text-xs leading-relaxed text-ink-soft">De 0 (IND, faz com independência) a 5 (FIS-T, apoio físico total). Menos casas preenchidas, menos apoio.</p>
+              <div className={`mt-4 space-y-4 ${NARROW_BARS}`}>
+                {PROFILE_SUPPORT.map((group) => (
+                  <div key={group.title} className="min-w-0">
+                    <h4 className="mb-2 text-xs font-medium text-ink-soft">{group.title}</h4>
+                    <SupportBars rows={group.fields.map(([field, label]) => ({ label, level: profile[field] }))} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </Card>
 
         <Card>

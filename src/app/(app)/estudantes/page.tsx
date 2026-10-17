@@ -9,6 +9,10 @@ import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS } from "@/lib/form-options";
 import { PageHeader, Badge, EmptyState } from "@/components/ui";
 import { Character } from "@/components/character";
+import { BarList } from "@/components/charts";
+import { StepTrack } from "@/components/viz/step-track";
+import { JOURNEY_STEPS } from "@/lib/dashboard";
+import { percentOf } from "@/lib/series";
 import { ArrowLeft, ArrowRight, Check, Layers, Plus, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +51,30 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     (!query || normalized(student.name).includes(normalized(query))) &&
     (!selectedClass || `${student.schoolId}|${student.className}` === selectedClass)
   );
+  // Próximo passo de cada estudante, calculado uma vez para o resumo e os cartões.
+  const rows = students.map((student) => {
+    const progress = {
+      id: student.id, caseStudy: (student.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null, hasProfile: !!student.profile, hasPlan: !!student.plans.length,
+      hasObjective: !!student.plans[0]?.objectives.length,
+      hasPreparedActivity: !!student.activities.length, hasDiary: !!student.diaryEntries.length,
+    };
+    // Etapa feita é a que já tem registro; o próximo passo pode pular o estudo
+    // de caso quando o perfil já foi preenchido, e a linha mostra isso.
+    const steps = [
+      { label: JOURNEY_STEPS[0].label, done: progress.caseStudy === "concluido" },
+      { label: JOURNEY_STEPS[1].label, done: progress.hasProfile },
+      { label: JOURNEY_STEPS[2].label, done: progress.hasPlan && progress.hasObjective },
+      { label: JOURNEY_STEPS[3].label, done: progress.hasPreparedActivity },
+      { label: JOURNEY_STEPS[4].label, done: progress.hasDiary },
+    ];
+    return { student, next: getStudentNextStep(progress), steps };
+  });
+  const byStep = JOURNEY_STEPS.map((step) => {
+    const value = rows.filter((row) => row.next.step === step.step).length;
+    const pct = percentOf(value, rows.length);
+    return { key: step.key, label: `${step.step}. ${step.label}`, value, detail: pct === null ? undefined : `${pct}%` };
+  });
+  const inRoutine = rows.filter((row) => row.next.step === 5 && row.steps[4].done).length;
   const title = action === "registrar" ? "Para quem você quer registrar a aula?" : action === "preparar" ? "Para quem vamos preparar uma atividade?" : action === "acompanhar" ? "Quem você quer acompanhar?" : "Estudantes";
   const resetHref = action ? `/estudantes?acao=${action}` : "/estudantes";
 
@@ -79,14 +107,24 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
             </div>
           </form>
           <p role="status" className="mb-4 text-sm text-ink-soft">{students.length} {students.length === 1 ? "estudante encontrado" : "estudantes encontrados"}{query ? ` para “${query}”` : ""}{selectedClass ? " na turma selecionada" : ""}.</p>
+          {!action && students.length ? (
+            // Resumo da lista atual (respeita a busca e a turma escolhidas).
+            <section aria-labelledby="etapas-resumo" className="dash-board mb-6">
+              <div className="dash-card min-w-0">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                  <div className="min-w-0">
+                    <h2 id="etapas-resumo" className="text-[15px] font-medium tracking-tight text-ink">Em que etapa estão</h2>
+                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">Quantos estudantes desta lista estão em cada etapa do acompanhamento, pelo próximo passo sugerido.</p>
+                  </div>
+                  <p className="text-xs text-ink-soft"><span className="font-display text-2xl leading-none text-ink tabular-nums">{inRoutine}</span> de {rows.length} na rotina de registros</p>
+                </div>
+                <BarList rows={byStep} />
+              </div>
+            </section>
+          ) : null}
           {students.length ? (
             <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              {students.map((student) => {
-                const next = getStudentNextStep({
-                  id: student.id, caseStudy: (student.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null, hasProfile: !!student.profile, hasPlan: !!student.plans.length,
-                  hasObjective: !!student.plans[0]?.objectives.length,
-                  hasPreparedActivity: !!student.activities.length, hasDiary: !!student.diaryEntries.length,
-                });
+              {rows.map(({ student, next, steps }) => {
                 const base = `/estudantes/${student.id}`;
                 const selected = action === "registrar"
                   ? { href: `${base}/diario`, label: "Registrar aula", description: "Conte como foi a aula deste estudante." }
@@ -102,6 +140,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                       <div className="min-w-0"><h2 className="text-lg font-medium leading-snug">{student.name}</h2><p className="mt-1 text-sm text-ink-soft">{student.gradeYear} · {student.className} · {SHIFTS[student.shift] ?? student.shift}</p></div>
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-ink-soft">{student.school.name}</p>
+                    <div className="mt-3"><StepTrack steps={steps} current={next.step} note={next.step === 5 && steps[4].done ? "Na rotina de registros" : undefined} /></div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {student.status !== "ativo" ? <Badge>{student.status}</Badge> : null}
                       {!student.profile ? <Badge tone="amber">Falta preencher como aprende</Badge> : !student.plans.length ? <Badge tone="amber">Plano de ensino a criar</Badge> : !student.plans[0].objectives.length ? <Badge tone="amber">Objetivo a definir</Badge> : <Badge tone="brand">Plano de ensino ativo</Badge>}

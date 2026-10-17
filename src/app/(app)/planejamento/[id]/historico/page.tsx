@@ -3,13 +3,15 @@ import { ChevronDown, Lock } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { DuaError } from "@/lib/dua/shared";
 import { collaboratorOptions, loadPlanning, planningHistory } from "@/lib/dua/plannings";
-import { EXECUTION_STATE_LABEL, type ExecutionState, type ReviewState } from "@/lib/dua/domain";
+import { EXECUTION_STATE_LABEL, REVIEW_STATE_LABEL, type ExecutionState, type ReviewState } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { ROLES } from "@/lib/scale";
 import { Card, SectionTitle } from "@/components/ui";
 import { ReviewBadge } from "@/components/dua/dua-ui";
 import { VersionSummary } from "@/components/dua/history/version-summary";
 import { CollaboratorsForm } from "@/components/dua/history/collaborators-form";
+import { DataBoard, DataCard } from "@/components/data-viz";
+import { VersionSteps, type VersionStep } from "@/components/viz/version-steps";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,21 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
   }
   const { planning, access, history, options } = data;
 
+  // Linha do tempo: da versão mais antiga à atual (a lista abaixo vem da mais recente).
+  const latestVersion = history.versions[0]?.version ?? null;
+  const steps: VersionStep[] = [...history.versions].reverse().map((version) => ({
+    version: version.version,
+    href: `#versao-${version.version}`,
+    kind: version.state as ReviewState,
+    stateLabel: REVIEW_STATE_LABEL[version.state as ReviewState] ?? version.state,
+    dates: [
+      `Criada em ${formatDate(version.createdAt)}`,
+      version.validatedAt ? `Validada em ${formatDate(version.validatedAt)}` : version.submittedAt ? `Enviada para revisão em ${formatDate(version.submittedAt)}` : null,
+    ].filter((item): item is string => item !== null),
+    current: version.version === latestVersion,
+  }));
+  const validatedCount = history.versions.filter((version) => version.state === "validado").length;
+
   return (
     <div className="grid min-w-0 gap-8">
       <section aria-labelledby="versoes-titulo" className="min-w-0">
@@ -57,11 +74,21 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
         <p className="mb-4 max-w-3xl text-sm leading-relaxed text-ink-soft">
           Uma versão validada não muda mais. Editar depois da validação abre a versão seguinte, e cada aplicação e material continua ligado à versão de onde saiu.
         </p>
+        {steps.length ? (
+          <DataBoard className="mb-4">
+            <DataCard
+              title="Linha do tempo das versões"
+              hint={`${steps.length === 1 ? "1 versão" : `${steps.length} versões`}, ${validatedCount === 1 ? "1 validada" : `${validatedCount} validadas`}. Escolha uma versão para ver os detalhes abaixo.`}
+            >
+              <VersionSteps steps={steps} label="Versões do planejamento, da mais antiga à atual" />
+            </DataCard>
+          </DataBoard>
+        ) : null}
         <ol className="grid min-w-0 gap-3">
           {history.versions.map((version) => {
             const state = version.state as ReviewState;
             return (
-              <li key={version.id} className="min-w-0">
+              <li key={version.id} id={`versao-${version.version}`} className="min-w-0 scroll-mt-20">
                 <Card className="min-w-0">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <h3 className="text-base font-medium text-ink">Versão {version.version}</h3>

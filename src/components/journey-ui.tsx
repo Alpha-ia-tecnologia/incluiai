@@ -4,6 +4,8 @@ import { Character } from "@/components/character";
 import { PendingButton } from "@/components/pending-button";
 import { dismissWelcome, startJourney } from "@/actions/journey";
 import type { ChapterTone, Journey } from "@/lib/user-journey";
+import { percentOf } from "@/lib/series";
+import { RingStat } from "@/components/data-viz";
 
 // Cada capítulo tem a sua cor de categoria; o texto *-ink sobre o *-soft
 // correspondente passa de 4.5:1 (ver a paleta em globals.css).
@@ -88,10 +90,16 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
   }
   return (
     <section aria-labelledby="jornada-resumo-titulo" className="rounded-[20px] bg-paper-raised p-5">
-      <p className="flex items-center gap-2 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Minha jornada</p>
-      <h2 id="jornada-resumo-titulo" className="mt-1 text-base font-medium leading-snug">{journey.title}</h2>
-      <p className="mt-1 text-xs text-ink-soft">{summary}</p>
-      <div className="mt-3"><JourneyBar journey={journey} /></div>
+      <div className="flex min-w-0 items-center gap-4">
+        <RingStat id="jornada-resumo" value={percentOf(journey.completed, total)} label="Capítulos concluídos da jornada" size={76}>
+          <span className="font-display text-xl leading-none text-ink tabular-nums">{journey.completed}<span className="text-sm text-ink-soft">/{total}</span></span>
+        </RingStat>
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Minha jornada</p>
+          <h2 id="jornada-resumo-titulo" className="mt-1 text-base font-medium leading-snug">{journey.title}</h2>
+          <p className="mt-1 text-xs text-ink-soft">{summary} concluídos</p>
+        </div>
+      </div>
       {current ? (
         <>
           <p className="mt-4 text-xs text-ink-soft">Próximo capítulo</p>

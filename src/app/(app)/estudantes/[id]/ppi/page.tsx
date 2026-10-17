@@ -19,6 +19,10 @@ import { canPlanDua } from "@/lib/dua/access";
 import { DuaError } from "@/lib/dua/shared";
 import { listStudentSupports, type SupportView } from "@/lib/dua/supports";
 import { ReviewBadge } from "@/components/dua/dua-ui";
+import { percentOf } from "@/lib/series";
+import { DataBoard, DataCard, RingStat, StatusPill, TONE_COLOR, withSegmentColors, type Tone } from "@/components/data-viz";
+import { HatchedDonut, Legend } from "@/components/charts";
+import { ObjectiveScale } from "@/components/viz/student-viz";
 
 export const dynamic = "force-dynamic";
 
@@ -141,6 +145,21 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const duaByObjective = plan.objectives
     .map((objective) => ({ objective, supports: dua.supports.filter((support) => (support.data.planLinks ?? []).some((link) => link.planId === plan.id && link.objectiveId === objective.id)) }))
     .filter((group) => group.supports.length);
+  const latestSupport = await latestSupportByObjective(id, plan.objectives.map((objective) => objective.id));
+
+  // Prazo do plano: quanto do tempo entre a criação e a revisão já passou.
+  const today = new Date();
+  const elapsed = percentOf(today.getTime() - plan.createdAt.getTime(), new Date(plan.reviewDate).getTime() - plan.createdAt.getTime());
+  const elapsedPct = elapsed === null ? null : Math.min(100, Math.max(0, elapsed));
+  const daysLeft = daysUntil(new Date(plan.reviewDate), today);
+  const reviewTone: Tone = overdue || daysLeft < 0 ? "alert" : daysLeft <= 14 ? "mid" : "info";
+  const reviewStatus = daysLeft < 0 ? "Data de revisão passou" : daysLeft === 0 ? "Revisão hoje" : daysLeft <= 14 ? "Revisão próxima" : "No prazo";
+  const countStatus = (status: string) => plan.objectives.filter((objective) => objective.status === status).length;
+  const objectiveStatus = withSegmentColors([
+    { key: "ativo", label: "Ativos", value: countStatus("ativo") },
+    { key: "alcancado", label: "Alcançados", value: countStatus("alcancado") },
+    { key: "em_revisao", label: "Em revisão", value: countStatus("em_revisao") },
+  ]);
 
   return (
     <>
@@ -161,6 +180,39 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           {hasActiveObjectives ? "Preparar uma atividade" : "Definir o objetivo"} <ArrowRight size={16} aria-hidden />
         </Link>
       </Card>
+
+      <SectionTitle>Andamento do plano</SectionTitle>
+      <DataBoard className="mb-6 md:grid-cols-2">
+        <DataCard title="Até a revisão do plano">
+          <div className="flex min-w-0 flex-wrap items-center gap-4">
+            <RingStat id="ppi-prazo" value={elapsedPct} label="Tempo do plano já percorrido" size={96} color={TONE_COLOR[reviewTone]} />
+            <div className="min-w-0 flex-1 basis-40">
+              <p className="font-display text-[32px] leading-none tracking-tight text-ink tabular-nums">
+                {daysLeft === 0 ? "Hoje" : Math.abs(daysLeft)}
+                {daysLeft !== 0 ? <span className="ml-1 text-lg text-ink-soft">{Math.abs(daysLeft) === 1 ? "dia" : "dias"}</span> : null}
+              </p>
+              <p className="mt-2"><StatusPill tone={reviewTone}>{reviewStatus}</StatusPill></p>
+              <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+                {daysLeft > 0 ? `${daysLeft === 1 ? "Falta 1 dia" : `Faltam ${daysLeft} dias`} para a revisão, em ${formatDate(plan.reviewDate)}.` : daysLeft < 0 ? `A data de revisão (${formatDate(plan.reviewDate)}) passou há ${-daysLeft} ${daysLeft === -1 ? "dia" : "dias"}.` : `A revisão está marcada para hoje, ${formatDate(plan.reviewDate)}.`}
+                {" "}{elapsedPct === null ? "Sem base para calcular o tempo percorrido." : `O anel mostra o tempo já percorrido desde a criação do plano: ${elapsedPct}%.`}
+              </p>
+            </div>
+          </div>
+        </DataCard>
+        <DataCard title="Situação dos objetivos">
+          {plan.objectives.length ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-4">
+              <HatchedDonut id="ppi-objetivos" segments={objectiveStatus} size={96} thickness={13} label={`Objetivos do plano: ${objectiveStatus.map((segment) => `${segment.label.toLowerCase()} ${segment.value}`).join(", ")}`}>
+                <span className="font-display text-2xl leading-none text-ink tabular-nums">{plan.objectives.length}</span>
+                <span className="mt-0.5 text-[11px] text-ink-soft">{plan.objectives.length === 1 ? "objetivo" : "objetivos"}</span>
+              </HatchedDonut>
+              <div className="min-w-0 flex-1 basis-40"><Legend segments={objectiveStatus} /></div>
+            </div>
+          ) : (
+            <p className="text-sm text-ink-soft">Nenhum objetivo no plano ainda. Defina o primeiro logo abaixo.</p>
+          )}
+        </DataCard>
+      </DataBoard>
 
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
         <Card>
@@ -184,6 +236,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         {plan.objectives.map((obj) => {
           const markDone = markObjectiveStatus.bind(null, id, obj.id, "alcancado");
           const markReview = markObjectiveStatus.bind(null, id, obj.id, "em_revisao");
+          const latest = latestSupport?.get(obj.id);
           return (
             <Card key={obj.id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -194,9 +247,26 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
                 <Badge>{DIMENSIONS[obj.dimension] ?? obj.dimension}</Badge>
                 {obj.bnccCode ? <Badge>BNCC {obj.bnccCode}</Badge> : null}
-                <span>Apoio atual:</span> <SupportPill level={obj.currentSupport} />
-                <span>Apoio que queremos alcançar:</span> <SupportPill level={obj.targetSupport} />
+                {/* Com registro de aula, a escala abaixo mostra início, último registro e meta. */}
+                {latest ? null : (
+                  <>
+                    <span>Apoio atual:</span> <SupportPill level={obj.currentSupport} />
+                    <span>Apoio que queremos alcançar:</span> <SupportPill level={obj.targetSupport} />
+                  </>
+                )}
               </div>
+              {latest ? (
+                <div className="mt-4 max-w-xl">
+                  <ObjectiveScale
+                    initial={obj.currentSupport}
+                    latest={latest.level}
+                    target={obj.targetSupport}
+                    caption={`Último registro de aula em ${formatDate(latest.date)} · ${latest.count} ${latest.count === 1 ? "registro" : "registros"} para este objetivo. Ir para a direita é precisar de menos apoio.`}
+                  />
+                </div>
+              ) : latestSupport ? (
+                <p className="mt-3 text-xs text-ink-soft">Ainda sem registro de aula para este objetivo.</p>
+              ) : null}
               {obj.status === "ativo" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <form action={markDone}><button type="submit" className="min-h-11 rounded-lg bg-green-soft px-4 py-2.5 text-sm font-medium text-green hover:opacity-80">Marcar como alcançado</button></form>
@@ -282,6 +352,32 @@ async function linkedDuaSupports(studentId: string): Promise<{ supports: Support
     if (error instanceof DuaError) return { supports: [], canPlan: false };
     throw error;
   }
+}
+
+// Último nível de apoio do diário em cada objetivo do plano. Só para a equipe
+// pedagógica: hoje esta página não mostra o diário, e família e terapeuta
+// continuam vendo o plano como antes (null = sem esse recorte).
+async function latestSupportByObjective(studentId: string, objectiveIds: string[]): Promise<Map<string, { level: number; date: Date; count: number }> | null> {
+  const user = await getCurrentUser();
+  if (!user || !canSeePedagogicalDetail(user.role)) return null;
+  const latest = new Map<string, { level: number; date: Date; count: number }>();
+  if (!objectiveIds.length) return latest;
+  const entries = await prisma.diaryEntry.findMany({
+    where: { studentId, objectiveId: { in: objectiveIds } },
+    select: { objectiveId: true, supportLevel: true, date: true },
+    orderBy: { date: "asc" },
+  });
+  for (const entry of entries) {
+    if (!entry.objectiveId) continue;
+    latest.set(entry.objectiveId, { level: entry.supportLevel, date: entry.date, count: (latest.get(entry.objectiveId)?.count ?? 0) + 1 });
+  }
+  return latest;
+}
+
+// Dias de calendário de hoje até a data (negativo quando já passou).
+function daysUntil(date: Date, today: Date) {
+  const start = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  return Math.round((start(date) - start(today)) / 86_400_000);
 }
 
 function dateInput(weeks: number) {

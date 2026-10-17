@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Check, CircleHelp, Lightbulb, Lock, Quote, Route, Sparkles, Trophy } from "lucide-react";
+import { ArrowRight, Check, CircleHelp, Lightbulb, Lock, Route, Sparkles, Trophy } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { loadJourney, recordJourneyMark, type Chapter } from "@/lib/user-journey";
+import type { ReactNode } from "react";
+import { loadJourney, recordJourneyMark, type Chapter, type ImpactItem } from "@/lib/user-journey";
+import { TREND_TEXT } from "@/lib/series";
+import { CountChips, DataCard, DotStrip, MiniColumns, QuoteCard, RingStat, Sparkline, StatTile, StatusPill, TONE_COLOR } from "@/components/data-viz";
 import { formatDate } from "@/lib/format";
 import { Character } from "@/components/character";
 import { EmptyState } from "@/components/ui";
@@ -141,34 +144,16 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
 
           <aside className="space-y-5" aria-label="O que a jornada já construiu">
             {journey.impact.length || journey.strategies.length || journey.quote ? (
-              <section aria-labelledby="impacto-titulo" className="rounded-[22px] bg-surface-muted p-5">
-                <h2 id="impacto-titulo" className="text-base font-medium">{journey.impactTitle}</h2>
-                {journey.impact.length ? (
-                  <dl className="mt-4 space-y-4">
-                    {journey.impact.map((item) => (
-                      <div key={item.label}>
-                        <dt className="text-xs text-ink-soft">{item.label}</dt>
-                        <dd className="mt-0.5 font-display text-[28px] font-medium leading-none tracking-tight text-ink">{item.value}</dd>
-                        {item.hint ? <dd className="mt-1 text-xs leading-relaxed text-ink-soft">{item.hint}</dd> : null}
-                      </div>
-                    ))}
-                  </dl>
-                ) : <p className="mt-3 text-sm leading-relaxed text-ink-soft">Os números aparecem depois dos primeiros registros de aula.</p>}
+              <section aria-labelledby="impacto-titulo" className="dash-board !gap-3">
+                <h2 id="impacto-titulo" className="px-2 pt-2 text-base font-medium">{journey.impactTitle}</h2>
+                {journey.impact.length ? journey.impact.map((item, index) => <ImpactTile key={item.label} item={item} id={`impacto-${index}`} />)
+                  : <p className="px-2 pb-2 text-sm leading-relaxed text-ink-soft">Os números aparecem depois dos primeiros registros de aula.</p>}
                 {journey.strategies.length ? (
-                  <div className="mt-5">
-                    <p className="text-xs text-ink-soft">O que funcionou nas aulas</p>
-                    <ul className="mt-2 flex flex-wrap gap-1.5">
-                      {journey.strategies.map((strategy) => <li key={strategy} className="rounded-full bg-sage-soft px-2.5 py-1 text-xs font-medium text-sage-ink">{strategy}</li>)}
-                    </ul>
-                  </div>
+                  <DataCard title="O que funcionou nas aulas" hint="Marcado no registro da aula. O número é quantas vezes funcionou.">
+                    <CountChips items={journey.strategies} />
+                  </DataCard>
                 ) : null}
-                {journey.quote ? (
-                  <figure className="mt-5 rounded-2xl bg-paper-raised p-4">
-                    <Quote size={16} className="text-brand" aria-hidden />
-                    <blockquote className="mt-1 text-sm leading-relaxed text-ink">{journey.quote.text}</blockquote>
-                    <figcaption className="mt-2 text-xs text-ink-soft">{journey.quote.source}</figcaption>
-                  </figure>
-                ) : null}
+                {journey.quote ? <QuoteCard text={journey.quote.text} source={journey.quote.source} /> : null}
               </section>
             ) : null}
 
@@ -202,3 +187,32 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
     </div>
   );
 }
+
+// Um número da história com o gráfico que o explica (padrão do Painel de indicadores).
+function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
+  const viz = item.viz;
+  let chart: ReactNode = null;
+  let trend: ReactNode = null;
+  if (viz?.kind === "weekly") chart = <MiniColumns points={viz.points} label={`${item.label} por semana`} />;
+  if (viz?.kind === "dots") chart = <DotStrip items={viz.items} label={`${item.label}: uma marca por aula`} legend={PARTICIPATION_LEGEND} />;
+  if (viz?.kind === "support") {
+    chart = <Sparkline values={viz.values} domain={[0, 5]} invert label={`${item.label}: ${viz.values.join(", ")} (0 é independente, 5 é apoio físico total)`} />;
+    trend = <StatusPill tone={viz.trend === "avancando" ? "good" : viz.trend === "atencao" ? "alert" : "neutral"}>{TREND_TEXT[viz.trend]}</StatusPill>;
+  }
+  if (viz?.kind === "ring") {
+    return (
+      <article className="dash-card flex min-w-0 items-center gap-4 !p-4">
+        <RingStat id={id} value={viz.pct} label={item.label} size={84} color={TONE_COLOR[viz.tone]} />
+        <div className="min-w-0">
+          <h3 className="text-sm font-medium leading-snug text-ink">{item.label}</h3>
+          <p className="mt-1 font-display text-[28px] leading-none tracking-tight text-ink tabular-nums">{item.value}</p>
+          {item.hint ? <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{item.hint}</p> : null}
+        </div>
+      </article>
+    );
+  }
+  return <StatTile label={item.label} value={item.value} hint={item.hint} chart={chart} trend={trend} />;
+}
+
+const PARTICIPATION_LEGEND = [{ tone: "good" as const, label: "Toda a atividade" }, { tone: "mid" as const, label: "Parte" }, { tone: "alert" as const, label: "Recusou" }];
+

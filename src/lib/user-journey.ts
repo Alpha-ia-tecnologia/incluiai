@@ -1,6 +1,7 @@
+import { PARTICIPATION_TEXT, PARTICIPATION_TONE, countItems, percentOf, supportSeries, supportTrend, weeklyCounts, type SeriesPoint, type Trend, type VizTone } from "./series";
 import { prisma } from "./prisma";
 import { canAccessStudent, isNetworkRole, type SessionUser } from "./auth";
-import { objectiveTrend, strategiesThatWorked } from "./insights";
+import { objectiveTrend } from "./insights";
 import { getStudentNextStep } from "./student-journey";
 import { firstName, formatDate, parseJson } from "./format";
 import { CHANNELS } from "./scale";
@@ -35,7 +36,13 @@ export type Chapter = {
 };
 
 export type Milestone = { key: string; title: string; description: string; achieved: boolean; date: Date | null };
-export type ImpactItem = { label: string; value: string; hint?: string };
+// Gráfico que acompanha o número (desenhado com src/components/data-viz.tsx).
+export type ImpactViz =
+  | { kind: "weekly"; points: SeriesPoint[] }
+  | { kind: "ring"; pct: number | null; tone: VizTone }
+  | { kind: "support"; values: number[]; delta: number | null; trend: Trend }
+  | { kind: "dots"; items: { key: string; title: string; tone: VizTone }[] };
+export type ImpactItem = { label: string; value: string; hint?: string; viz?: ImpactViz };
 
 export type Journey = {
   kind: "professor" | "escola" | "rede" | "familia" | "terapeuta";
@@ -49,7 +56,7 @@ export type Journey = {
   completed: number;
   impactTitle: string;
   impact: ImpactItem[];
-  strategies: string[];
+  strategies: { label: string; value: number }[];
   quote: { text: string; source: string } | null;
   milestones: Milestone[];
   welcomed: boolean;
@@ -263,13 +270,18 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
   const impact: ImpactItem[] = [];
   if (entries.length) {
     const full = entries.filter((entry) => entry.participation === "total").length;
-    impact.push({ label: "Aulas registradas", value: String(entries.length), hint: `A última em ${formatDate(lastEntry!.date)}` });
-    impact.push({ label: "Participação plena", value: `${Math.round((full / entries.length) * 100)}%`, hint: `${full} de ${entries.length} aulas` });
+    impact.push({ label: "Aulas registradas", value: String(entries.length), hint: `A última em ${formatDate(lastEntry!.date)}. Colunas: aulas por semana, nas últimas 8.`, viz: { kind: "weekly", points: weeklyCounts(entries.map((entry) => entry.date), 8) } });
+    impact.push({
+      label: "Participação plena", value: `${Math.round((full / entries.length) * 100)}%`, hint: `${full} de ${entries.length} aulas. Cada marca é uma aula, da mais antiga à mais recente.`,
+      viz: { kind: "dots", items: entries.slice(-16).map((entry) => ({ key: entry.id, title: `${formatDate(entry.date)}: ${PARTICIPATION_TEXT[entry.participation] ?? entry.participation}`, tone: PARTICIPATION_TONE[entry.participation] ?? "neutral" })) },
+    });
   }
   if (withEntries.length) {
     const start = average(withEntries.map((objective) => objective.currentSupport));
     const now = average(withEntries.map((objective) => entries.findLast((entry) => entry.objectiveId === objective.id)!.supportLevel));
-    impact.push({ label: "Nível de apoio", value: `${decimal(start)} → ${decimal(now)}`, hint: "De 5 (apoio físico total) a 0 (independente). Menos é avanço." });
+    const levels = supportSeries(entries.filter((entry) => withEntries.some((objective) => objective.id === entry.objectiveId))).map((point) => point.value);
+    const { trend, delta } = supportTrend(levels);
+    impact.push({ label: "Nível de apoio", value: `${decimal(start)} → ${decimal(now)}`, hint: "De 5 (apoio físico total) a 0 (independente). Na linha, subir é precisar de menos apoio.", viz: { kind: "support", values: levels.slice(-20), delta, trend } });
   }
   const note = s.familyNotes[0];
 
@@ -280,7 +292,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     focus: { id: s.id, name: s.name, options: students.map((student) => ({ id: student.id, name: student.name })) },
     chapters,
     impact,
-    strategies: strategiesThatWorked(entries).slice(0, 4),
+    strategies: countItems(entries.map((entry) => entry.whatWorked), 6),
     quote: note ? { text: note.note, source: `${note.author}, ${formatDate(note.date)}` } : null,
     milestones,
   });
@@ -402,8 +414,8 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     impactTitle: "A escola em números",
     impact: [
       { label: "Estudantes acompanhados", value: String(total) },
-      { label: "Com plano e objetivo", value: total ? `${Math.round((withPlan / total) * 100)}%` : "—", hint: `${withPlan} de ${total}` },
-      { label: "Com aula registrada", value: String(recorded), hint: "nos últimos 30 dias" },
+      { label: "Com plano e objetivo", value: total ? `${Math.round((withPlan / total) * 100)}%` : "—", hint: `${withPlan} de ${total} estudantes`, viz: { kind: "ring", pct: percentOf(withPlan, total), tone: "good" } },
+      { label: "Com aula registrada", value: String(recorded), hint: `de ${total} estudantes, nos últimos 30 dias`, viz: { kind: "ring", pct: percentOf(recorded, total), tone: "info" } },
     ],
     strategies: [], quote: null,
     milestones: ids.length ? await teamMilestones(ids) : [],
@@ -497,7 +509,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
     impact: [
       { label: "Escolas", value: String(schools.length) },
       { label: "Estudantes acompanhados", value: String(total) },
-      { label: "Com plano e objetivo", value: total ? `${Math.round((withPlan / total) * 100)}%` : "—", hint: `${withPlan} de ${total}` },
+      { label: "Com plano e objetivo", value: total ? `${Math.round((withPlan / total) * 100)}%` : "—", hint: `${withPlan} de ${total} estudantes`, viz: { kind: "ring", pct: percentOf(withPlan, total), tone: "good" } },
     ],
     strategies: [], quote: null,
     milestones: total ? await teamMilestones(students.map((student) => student.id)) : [],

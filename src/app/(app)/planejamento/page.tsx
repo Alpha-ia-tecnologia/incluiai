@@ -4,14 +4,21 @@ import { ArrowRight, Search } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { canPlanDua, canSeeDuaIndicators } from "@/lib/dua/access";
 import { classOptions, listPlannings } from "@/lib/dua/plannings";
-import { SHARING_LABEL } from "@/lib/dua/domain";
+import { REVIEW_STATE_LABEL, SHARING_LABEL, type ReviewState } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { Character } from "@/components/character";
 import { NewPlanningForm } from "@/components/dua/new-planning-form";
 import { ReviewBadge, inputCls, labelCls, secondaryCls } from "@/components/dua/dua-ui";
+import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
+import { SIGNAL, StackedBar } from "@/components/charts";
+import { DonutSummary } from "@/components/viz/donut-summary";
+import { UsageMeter } from "@/components/viz/usage-meter";
 
 export const dynamic = "force-dynamic";
+
+const REVIEW_ORDER: ReviewState[] = ["rascunho", "em_revisao", "validado"];
+const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 
 const QUESTIONS = [
   "O que os estudantes precisam aprender?",
@@ -34,6 +41,17 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
     listPlannings(user),
   ]);
   const reusable = all.map((item) => ({ value: item.id, label: `${item.title}${item.validatedVersion ? ` (versão ${item.validatedVersion} validada)` : " (rascunho)"}` }));
+
+  // Resumo de uso, a partir da lista já carregada (todos os que a pessoa pode
+  // abrir, sem o filtro da busca). Conta uso e revisão; não avalia ninguém.
+  const reviewStates = withSegmentColors(REVIEW_ORDER.map((state) => ({ key: state, label: REVIEW_STATE_LABEL[state], value: all.filter((item) => item.state === state).length })));
+  const totalApplications = all.reduce((sum, item) => sum + item.applications, 0);
+  const applied = all.filter((item) => item.applications > 0).length;
+  const shared = all.filter((item) => item.sharing === "compartilhado").length;
+  const sharing = [
+    { key: "compartilhado", label: SHARING_LABEL.compartilhado, value: shared, color: SIGNAL.cyan },
+    { key: "privado", label: SHARING_LABEL.privado, value: all.length - shared, color: SIGNAL.track },
+  ];
 
   return (
     <>
@@ -60,6 +78,22 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
 
       <section aria-labelledby="lista-titulo">
         <h2 id="lista-titulo" className="mb-4 font-display text-xl font-medium text-ink">Atividades planejadas</h2>
+        {all.length ? (
+          <DataBoard className="mb-6 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+            <DataCard title="Situação da revisão" hint="Última versão de cada planejamento que você pode abrir, sem o filtro da busca." className="sm:col-span-2 xl:col-span-1">
+              <DonutSummary id="rosca-revisao" segments={reviewStates} label="Planejamentos por situação da revisão" caption={all.length === 1 ? "planejamento" : "planejamentos"} empty="Nenhum planejamento ainda." />
+            </DataCard>
+            <StatTile
+              label="Aplicações registradas"
+              value={totalApplications}
+              chart={<UsageMeter value={applied} max={all.length} color={SIGNAL.cyan} />}
+              hint={`${applied} de ${plural(all.length, "planejamento", "planejamentos")} já ${applied === 1 ? "foi aplicado" : "foram aplicados"} ao menos uma vez. Mede uso, não aprendizagem.`}
+            />
+            <DataCard title="Compartilhamento" hint="Quem pode ler cada planejamento.">
+              <StackedBar segments={sharing} empty="Nenhum planejamento ainda." />
+            </DataCard>
+          </DataBoard>
+        ) : null}
         <form method="get" className="mb-5 flex min-w-0 flex-wrap items-end gap-3" role="search">
           <div className="min-w-0 flex-1 basis-64">
             <label htmlFor="busca" className={labelCls}>Buscar por título, objetivo, barreira ou opção</label>

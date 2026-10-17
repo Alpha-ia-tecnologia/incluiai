@@ -6,12 +6,14 @@ import { DuaError } from "@/lib/dua/shared";
 import { listPlannings } from "@/lib/dua/plannings";
 import { listStudentSupports } from "@/lib/dua/supports";
 import { listStudentEvidence, studentFollowUp, type StudentEvidenceView } from "@/lib/dua/applications";
-import { APPLICATION_CONTEXT_LABEL, CRITERION_STATUS_LABEL, OBSERVATION_LABEL, REVIEW_STATE_LABEL, type CriterionStatus } from "@/lib/dua/domain";
+import { APPLICATION_CONTEXTS, APPLICATION_CONTEXT_LABEL, CRITERION_STATUS_LABEL, OBSERVATION_LABEL, REVIEW_STATE_LABEL, type CriterionStatus } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { ReviewBadge, linkCls } from "@/components/dua/dua-ui";
 import { SupportSummary } from "@/components/dua/supports/support-summary";
 import { ParticipationStart } from "@/components/dua/student/participation-start";
+import { DataBoard, DataCard, DotStrip, withSegmentColors, type Tone } from "@/components/data-viz";
+import { BarList, SIGNAL, StackedBar, Swatch } from "@/components/charts";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +69,8 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
       />
 
       <div className="grid min-w-0 gap-8">
+        <EvidenceSummary evidence={evidence} />
+
         <Card className="min-w-0 max-w-3xl">
           <SectionTitle>Planejar participação em atividade</SectionTitle>
           <ParticipationStart studentId={id} plannings={planningOptions} />
@@ -213,5 +217,81 @@ function EvidenceItem({ item }: { item: StudentEvidenceView }) {
         ) : null}
       </Card>
     </li>
+  );
+}
+
+const RESULT_TONE: Record<"sim" | "parcial" | "nao", Tone> = { sim: "good", parcial: "mid", nao: "alert" };
+const RESULT_SHORT: Record<"sim" | "parcial" | "nao", string> = { sim: "demonstrou", parcial: "demonstrou em parte", nao: "ainda não demonstrou" };
+const RESULT_LEGEND: { tone: Tone; label: string }[] = [
+  { tone: "good", label: "Demonstrou" },
+  { tone: "mid", label: "Em parte" },
+  { tone: "alert", label: "Ainda não demonstrou" },
+  { tone: "neutral", label: "Sem resultado (não conta)" },
+];
+const CONTEXT_SHORT: Record<string, string> = { sala_comum: "Sala comum", aee: "AEE" };
+const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
+
+// Resumo das evidências do estudante, a partir da mesma lista mostrada abaixo.
+// Só critério observado entra na barra; "sem oportunidade" e "não registrado"
+// ficam à parte e não contam como progresso nem como dificuldade.
+function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidenceView> }) {
+  if (!evidence.length) {
+    return (
+      <section aria-labelledby="dua-resumo" className="min-w-0 max-w-3xl">
+        <h2 id="dua-resumo" className="mb-1 text-lg font-semibold text-ink">Resumo das evidências</h2>
+        <p className="text-sm text-ink-soft">O resumo aparece depois da primeira evidência registrada na aplicação de uma atividade.</p>
+      </section>
+    );
+  }
+  const criteria = evidence.flatMap((item) => item.criteria);
+  const count = (status: CriterionStatus) => criteria.filter((criterion) => criterion.status === status).length;
+  const observed = withSegmentColors((["demonstrado", "parcial", "ainda_nao_demonstrado"] as const).map((status) => ({ key: status, label: CRITERION_STATUS_LABEL[status], value: count(status) })));
+  const notObserved = (["sem_oportunidade", "nao_registrado"] as const).map((status) => ({ status, label: CRITERION_STATUS_LABEL[status], value: count(status) }));
+  // Do registro mais antigo ao mais recente; os 30 últimos cabem sem rolagem.
+  const ordered = [...evidence].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(-30);
+  const results = { sim: 0, parcial: 0, nao: 0, none: 0 };
+  for (const item of ordered) results[item.result ?? "none"] += 1;
+  const contexts = APPLICATION_CONTEXTS.map((context) => ({ key: context, label: APPLICATION_CONTEXT_LABEL[context], value: evidence.filter((item) => item.context === context).length }));
+
+  return (
+    <section aria-labelledby="dua-resumo" className="min-w-0 max-w-3xl">
+      <h2 id="dua-resumo" className="mb-1 text-lg font-semibold text-ink">Resumo das evidências</h2>
+      <p className="mb-4 text-sm text-ink-soft">{plural(evidence.length, "evidência registrada", "evidências registradas")}, com {plural(criteria.length, "critério", "critérios")} no total. Os detalhes estão na lista de evidências.</p>
+      <DataBoard className="sm:grid-cols-2">
+        <DataCard title="Critérios observados" hint="Como cada critério observado ficou, somando todas as evidências." className="sm:col-span-2">
+          <StackedBar segments={observed} empty="Nenhum critério foi observado ainda." />
+          <div className="mt-4 rounded-xl border border-dashed border-line p-3">
+            <p className="text-xs font-medium text-ink">Fora da conta</p>
+            <ul className="mt-2 grid gap-1.5 text-sm">
+              {notObserved.map((item) => (
+                <li key={item.status} className="flex min-w-0 items-center gap-2.5">
+                  <Swatch color={SIGNAL.track} />
+                  <span className="min-w-0 flex-1 text-ink">{item.label}</span>
+                  <span className="text-xs tabular-nums text-ink-soft">{item.value}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">Esses critérios não foram observados: não contam como progresso nem como dificuldade.</p>
+          </div>
+        </DataCard>
+        <DataCard title="Resultado de cada registro" hint={ordered.length < evidence.length ? `Os ${ordered.length} registros mais recentes, do mais antigo ao mais novo.` : "Uma marca por evidência, da mais antiga à mais nova."}>
+          <DotStrip
+            label="Resultado de cada evidência, da mais antiga à mais nova"
+            legend={RESULT_LEGEND}
+            items={ordered.map((item) => ({
+              key: item.id,
+              title: `${formatDate(item.date)}, ${CONTEXT_SHORT[item.context] ?? item.context}, ${item.planningTitle}: ${item.result ? RESULT_SHORT[item.result] : "sem resultado, nenhum critério observado"}`,
+              tone: item.result ? RESULT_TONE[item.result] : "neutral",
+            }))}
+          />
+          <p className="mt-3 text-xs leading-relaxed text-ink-soft">
+            {results.sim} demonstrou, {results.parcial} em parte, {results.nao} ainda não{results.none ? `; ${results.none} sem resultado, que não entra como progresso` : ""}.
+          </p>
+        </DataCard>
+        <DataCard title="Onde a atividade foi aplicada" hint="Evidências na sala comum e no AEE.">
+          <BarList rows={contexts} color={SIGNAL.cyan} />
+        </DataCard>
+      </DataBoard>
+    </section>
   );
 }

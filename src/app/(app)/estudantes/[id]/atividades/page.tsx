@@ -12,6 +12,8 @@ import { isAIEnabled } from "@/lib/agents/model";
 import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { generateActivityImage, removeActivityImage } from "@/actions/activity-images";
 import { ActivityImageForm } from "@/components/activity-image-form";
+import { DataBoard, DataCard, withSegmentColors } from "@/components/data-viz";
+import { BarList, StackedBar } from "@/components/charts";
 
 const WIDE_IMAGE_KINDS = new Set(["sequencia", "cartoes"]);
 
@@ -25,6 +27,8 @@ export const dynamic = "force-dynamic";
 const inputCls = "min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
 const labelCls = "mb-2 block text-sm font-medium text-ink";
 const linkCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-strong";
+
+const STATUS_PLURAL = { sugerida: "Sugeridas", aceita: "Aceitas", aplicada: "Aplicadas", rejeitada: "Rejeitadas" } as const;
 
 const CONTEXT_TONES: Record<string, "brand" | "amber" | "green"> = {
   sala_comum: "brand",
@@ -184,6 +188,11 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
   const imagesOn = isImageGenerationEnabled();
   const suggested = activities.filter((a) => a.status === "sugerida");
   const others = activities.filter((a) => a.status !== "sugerida");
+  // Resumo das atividades já listadas abaixo: situação e onde acontecem.
+  const statusSplit = withSegmentColors((["sugerida", "aceita", "aplicada", "rejeitada"] as const).map((key) => ({
+    key, label: STATUS_PLURAL[key], value: activities.filter((a) => a.status === key).length,
+  })));
+  const contextRows = Object.entries(CONTEXTS).map(([key, label]) => ({ key, label, value: activities.filter((a) => a.context === key).length }));
 
   return (
     <>
@@ -192,6 +201,20 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
         lede="Escolha o objetivo e o conteúdo da aula. Depois, avalie as sugestões para a sala comum, o AEE e a rotina de casa."
         actions={<div className="[&_button]:min-h-11 [&_button]:text-sm"><PrintButton label="Imprimir atividades" /></div>}
       />
+
+      {activities.length > 0 ? (
+        <section aria-labelledby="resumo-atividades" className="mb-6 max-w-3xl print:hidden">
+          <h2 id="resumo-atividades" className="sr-only">Resumo das atividades</h2>
+          <DataBoard className="sm:grid-cols-2">
+            <DataCard title="Situação das atividades" hint={`${activities.length} ${activities.length === 1 ? "atividade preparada" : "atividades preparadas"} para este estudante.`}>
+              <StackedBar segments={statusSplit} />
+            </DataCard>
+            <DataCard title="Onde acontecem">
+              <BarList rows={contextRows} />
+            </DataCard>
+          </DataBoard>
+        </section>
+      ) : null}
 
       <Card className="mb-6 max-w-3xl border-brand/30">
         <SectionTitle>O que vamos trabalhar?</SectionTitle>

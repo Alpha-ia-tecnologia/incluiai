@@ -16,8 +16,11 @@ import { canPlanDua } from "@/lib/dua/access";
 import { AI_BLOCK_DECISION_LABEL } from "@/lib/dua/domain";
 import { EmptyState } from "@/components/ui";
 import {
-  BarList, ColumnChart, HatchedDonut, HatchedGauge, Legend, MonthGrid, SIGNAL, StackedBar, SupportScale, Swatch, type ChartSegment,
+  BarList, ColumnChart, HatchedDonut, HatchedGauge, Legend, MonthGrid, SIGNAL, StackedBar, SupportScale, type ChartSegment,
 } from "@/components/charts";
+import { RingStat, StatTile, StatusPill, TrendBadge, withSegmentColors, type Tone } from "@/components/data-viz";
+import { ShareRing } from "@/components/viz/share-ring";
+import { UsageMeter } from "@/components/viz/usage-meter";
 import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
@@ -26,34 +29,25 @@ export const dynamic = "force-dynamic";
 // degradê, cartões brancos sobre quadro cinza, pílulas de situação (lima =
 // bom, amarelo = intermediário, laranja = atenção) e botões pretos.
 
-const SEGMENT_COLORS: Record<string, string> = {
-  total: SIGNAL.lime, sim: SIGNAL.lime, avancando: SIGNAL.lime, aplicada: SIGNAL.lime,
-  parcial: SIGNAL.yellow, sugerida: SIGNAL.yellow,
-  recusou: SIGNAL.orange, nao: SIGNAL.orange, atencao: SIGNAL.orange, rejeitada: SIGNAL.orange,
-  estavel: SIGNAL.cyan, aceita: SIGNAL.cyan, sem_dados: SIGNAL.track,
-};
 const ROLE_LABELS: Record<string, string> = { ...ROLES, terapeuta: "Terapeuta" };
 const ACCESS_LABELS: Record<string, string> = { visualizou: "Consultas", criou: "Inclusões", editou: "Alterações", enviou: "Envios à IA de reserva (DeepSeek)" };
 const SHORT_ALERTS: Record<string, string> = { sem_registro: "Sem registro há 7+ dias", plano_vencido: "Revisão vencida", sem_plano: "Sem plano", queda_participacao: "Queda de participação" };
 
-type Tone = "good" | "mid" | "alert" | "neutral";
+// Cores dos contadores; as mesmas da pílula de situação (src/components/data-viz.tsx).
 const TONE_CLASSES: Record<Tone, string> = {
   good: "bg-signal-lime text-ink-strong",
   mid: "bg-signal-yellow text-ink-strong",
   alert: "bg-signal-orange text-ink-strong",
   neutral: "bg-signal-track text-ink-soft",
+  info: "bg-sky-soft text-sky-ink",
 };
-
-const withColors = (rows: { key: string; label: string; value: number }[]): ChartSegment[] =>
-  rows.map((row) => ({ ...row, color: SEGMENT_COLORS[row.key] ?? SIGNAL.lime }));
 const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
+// Diferença em pontos percentuais contra o período anterior; sem um dos dois, não há comparação.
+const pointsDelta = (gauge: { value: number | null; previous: number | null }) => (gauge.value !== null && gauge.previous !== null ? gauge.value - gauge.previous : null);
+const pointsText = (delta: number) => `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)} ${Math.abs(delta) === 1 ? "ponto" : "pontos"}`;
 const shortDate = (date: Date) => date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit" });
-
-function StatusPill({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${TONE_CLASSES[tone]}`}>{children}</span>;
-}
 
 function CardHeader({ title, hint, href, linkLabel }: { title: string; hint?: string; href?: string; linkLabel?: string }) {
   return (
@@ -79,9 +73,14 @@ function Section({ id, title, description, children }: { id: string; title: stri
   );
 }
 
-function FactorCard({ title, value, tone, status, text, href }: { title: string; value: ReactNode; tone: Tone; status: string; text: string; href: string }) {
+// Comparação com o período anterior, escrita por extenso ao lado da pílula
+// (a seta e a cor só reforçam o texto).
+type FactorTrend = { delta: number | null; better: "up" | "down"; caption: string };
+type Factor = { title: string; value: ReactNode; tone: Tone; status: string; text: string; href: string; trend?: FactorTrend };
+
+function FactorCard({ title, value, tone, status, text, href, trend }: Factor) {
   return (
-    <article className="dash-card flex flex-col !p-4">
+    <article className="dash-card flex min-w-0 flex-col !p-4">
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-medium leading-snug text-ink">{title}</h3>
         <Link href={href} className="circle-link !size-8" aria-label={`Ver detalhes: ${title}`}><ArrowUpRight size={15} aria-hidden /></Link>
@@ -91,33 +90,50 @@ function FactorCard({ title, value, tone, status, text, href }: { title: string;
         <StatusPill tone={tone}>{status}</StatusPill>
       </div>
       <p className="mt-2.5 text-xs leading-relaxed text-ink-soft">{text}</p>
+      {trend && trend.delta !== null ? (
+        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-snug text-ink-soft">
+          <TrendBadge delta={trend.delta} better={trend.better} text={pointsText(trend.delta)} />
+          <span className="min-w-0">{trend.caption}</span>
+        </p>
+      ) : null}
     </article>
   );
 }
 
-function Stat({ value, label, hint }: { value: ReactNode; label: string; hint?: string }) {
+// Número da IA em bloco compacto, dentro da lista de definições do cartão.
+function AiStat({ label, value, detail, wide = false, children }: { label: string; value: ReactNode; detail?: string; wide?: boolean; children?: ReactNode }) {
   return (
-    <div className="dash-card">
-      <p className="font-display text-[32px] font-normal leading-none tracking-tight text-ink">{value}</p>
-      <p className="mt-2 text-sm font-medium leading-snug text-ink">{label}</p>
-      {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+    <div className={`min-w-0 rounded-2xl bg-surface-muted/70 p-3.5 ${wide ? "col-span-2" : ""}`}>
+      <dt className="text-xs leading-snug text-ink-soft">{label}</dt>
+      <dd className="mt-1.5 font-display text-[26px] font-normal leading-none tracking-tight text-ink tabular-nums">{value}</dd>
+      {detail ? <dd className="mt-1 text-[11px] leading-snug text-ink-soft">{detail}</dd> : null}
+      {children ? <dd className="mt-2">{children}</dd> : null}
     </div>
   );
 }
 
 // Indicador de uso do DUA: sem pílula de "bom" ou "atenção", porque não é nota.
 // Sem denominador, mostra "sem base" (nunca 0%).
-function DuaIndicatorCard({ label, definition, unit, numerator, denominator, value, noBaseText, footer }: {
-  label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null; noBaseText: string; footer: string;
+// O anel é azul-claro (informação) e fica fora da leitura de tela: o valor,
+// ou "sem base", já está escrito ao lado. Sem base, o anel fica sem arco.
+function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denominator, value, noBaseText, footer }: {
+  ringId: string; label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null; noBaseText: string; footer: string;
 }) {
   return (
     <article className="dash-card flex min-w-0 flex-col">
       <CardHeader title={label} />
-      {value === null
-        ? <p className="text-sm font-medium leading-snug text-ink-soft">{noBaseText}</p>
-        : <p className="font-display text-[32px] font-normal leading-none tracking-tight text-ink">{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</p>}
-      <p className="mt-2 text-sm text-ink">{numerator} de {denominator} {unit}</p>
-      <p className="mt-2 text-xs leading-relaxed text-ink-soft">{definition}</p>
+      <div className="flex min-w-0 items-center gap-4">
+        <div aria-hidden className="shrink-0">
+          <RingStat id={ringId} value={value} label={label} size={64} color={SIGNAL.cyan}><span /></RingStat>
+        </div>
+        <div className="min-w-0">
+          {value === null
+            ? <p className="text-sm font-medium leading-snug text-ink-soft">{noBaseText}</p>
+            : <p className="font-display text-[32px] font-normal leading-none tracking-tight text-ink">{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</p>}
+          <p className="mt-2 text-sm text-ink">{numerator} de {denominator} {unit}</p>
+        </div>
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-ink-soft">{definition}</p>
       <p className="mt-auto pt-3 text-[11px] leading-relaxed text-ink-soft">{footer}</p>
     </article>
   );
@@ -181,7 +197,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   // ---------- Cartões de situação ----------
   const recordShare = o.students ? o.studentsWithRecord / o.students : 0;
-  const factors: { title: string; value: ReactNode; tone: Tone; status: string; text: string; href: string }[] = [
+  // Só participação e critério têm o período anterior calculado (gauges); os
+  // demais fatores ficam sem comparação, em vez de uma comparação inventada.
+  const factors: Factor[] = [
     {
       title: "Plano individual", value: `${o.planCoverage ?? 0}%`,
       tone: (o.planCoverage ?? 0) >= 80 ? "good" : "alert", status: (o.planCoverage ?? 0) >= 80 ? "Em dia" : "Atenção",
@@ -197,11 +215,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       title: "Registros de aula", value: o.records,
       tone: recordShare === 1 ? "good" : recordShare >= 0.5 ? "mid" : "alert", status: recordShare === 1 ? "Em dia" : recordShare >= 0.5 ? "Parcial" : "Atenção",
       text: `${o.studentsWithRecord} de ${o.students} estudantes com registro · ${periodText}`, href: "#aulas",
+      trend: { delta: o.previousRecords === null ? null : o.records - o.previousRecords, better: "up", caption: "registros vs. período anterior" },
     },
     {
       title: "Objetivos", value: o.activeObjectives,
       tone: o.achievedObjectives > 0 ? "good" : "neutral", status: o.achievedObjectives > 0 ? `${o.achievedObjectives} alcançados` : "Em andamento",
       text: `em acompanhamento · ${o.objectivesInReview} em revisão`, href: "#objetivos",
+      trend: { delta: pointsDelta(g.criterio), better: "up", caption: "critério atingido vs. período anterior" },
     },
     {
       title: "Atividades", value: o.preparedActivities,
@@ -240,10 +260,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const support = l.support;
   const supportDrop = support.initial !== null && support.latest !== null ? oneDecimal(oneDecimal(support.initial) - oneDecimal(support.latest)) : null;
-  const participation = withColors(r.participation);
+  const participation = withSegmentColors(r.participation);
   const participationTotal = participation.reduce((sum, segment) => sum + segment.value, 0);
-  const statusSegments = withColors(act.byStatus);
+  const statusSegments = withSegmentColors(act.byStatus);
   const tableRows = a.students.slice(0, 8);
+  const strategyMax = Math.max(1, ...r.strategies.map((item) => item.value));
+  const strategyHalf = Math.ceil(r.strategies.length / 2);
+  const topUses = Math.max(1, ...res.top.map((item) => item.uses));
 
   return (
     <>
@@ -332,22 +355,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </div>
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-lime-soft text-ink-strong"><ShieldCheck size={17} aria-hidden /></span>
                 </div>
-                <dl className="divide-y divide-line text-sm">
+                <dl className="grid gap-1.5 text-sm">
                   {([
-                    ["Claude (planos e atividades)", ai.providers.claude ? "Ativo" : "Não configurado"],
-                    ["DeepSeek (reserva)", ai.providers.deepseek ? "Ativo" : "Não configurado"],
-                    ["OpenAI (imagens de apoio)", ai.providers.openai ? "Ativo" : "Não configurado"],
-                    ["Planos propostos pela IA", `${ai.planProposals.ia} · regras: ${ai.planProposals.regras}`],
-                    ["Propostas aguardando revisão", String(ai.draftsPending)],
-                    ["Atividades criadas pela IA", ai.activities.adhesion === null ? String(ai.activities.total) : `${ai.activities.total} · adesão ${ai.activities.adhesion}%`],
-                    ["Imagens geradas", String(ai.images)],
-                    ["Envios à IA de reserva", String(ai.deepseekSends)],
-                  ] as const).map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between gap-3 py-2.5">
-                      <dt className="text-ink-soft">{label}</dt>
-                      <dd className="text-right font-medium text-ink">{value === "Ativo" ? <StatusPill tone="good">Ativo</StatusPill> : value === "Não configurado" ? <StatusPill tone="neutral">Não configurado</StatusPill> : value}</dd>
+                    ["Claude", "planos e atividades", ai.providers.claude],
+                    ["DeepSeek", "reserva", ai.providers.deepseek],
+                    ["OpenAI", "imagens de apoio", ai.providers.openai],
+                  ] as const).map(([name, purpose, active]) => (
+                    <div key={name} className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl bg-surface-muted/70 px-3.5 py-2">
+                      <dt className="min-w-0"><span className="font-medium text-ink">{name}</span> <span className="text-ink-soft">· {purpose}</span></dt>
+                      <dd>{active ? <StatusPill tone="good"><Check size={12} strokeWidth={3} aria-hidden /> Ativo</StatusPill> : <StatusPill tone="neutral">Não configurado</StatusPill>}</dd>
                     </div>
                   ))}
+                </dl>
+                <dl className="mt-3 grid grid-cols-2 gap-1.5">
+                  <AiStat label="Planos propostos pela IA" value={ai.planProposals.ia} detail={`${plural(ai.planProposals.regras, "proposto", "propostos")} pelo motor de regras`} />
+                  <AiStat label="Propostas aguardando revisão" value={ai.draftsPending} detail={ai.draftsPending ? "o professor decide" : "nenhuma pendente"} />
+                  <AiStat label="Atividades criadas pela IA" value={ai.activities.total} wide detail={ai.activities.adhesion === null ? "Adesão: sem atividades avaliadas para calcular." : `Adesão de ${ai.activities.adhesion}%: ${ai.activities.used} de ${plural(ai.activities.decided, "avaliada foi aceita ou aplicada", "avaliadas foram aceitas ou aplicadas")}.`}>
+                    {ai.activities.adhesion !== null ? <UsageMeter value={ai.activities.adhesion} max={100} color={SIGNAL.cyan} /> : null}
+                  </AiStat>
+                  <AiStat label="Imagens geradas" value={ai.images} />
+                  <AiStat label="Envios à IA de reserva" value={ai.deepseekSends} />
                 </dl>
                 <p className="mt-2 text-[11px] leading-relaxed text-ink-soft">Números de {periodText}. Cada envio à IA de reserva fica no histórico de acessos que a família consulta.</p>
                 <Link href="/estudantes?acao=preparar" className="pill-dark mt-4"><Sparkles size={16} aria-hidden /> Preparar uma atividade</Link>
@@ -361,7 +388,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <h2 id="jornada-titulo" className="text-[15px] font-medium tracking-tight">Jornada do acompanhamento</h2>
                   <p className="text-xs text-ink-soft">{j.completion ?? 0}% concluída{j.caseStudyDrafts ? ` · ${plural(j.caseStudyDrafts, "estudo de caso em andamento", "estudos de caso em andamento")}` : ""}</p>
                 </div>
-                <div className="-mx-1 overflow-x-auto scrollbar-none">
+                <div className="-mx-1 overflow-x-auto scrollbar-none" tabIndex={0} role="region" aria-label="Etapas da jornada do acompanhamento (role para o lado no celular)">
                   <ol className="stepper">
                     {j.steps.map((step) => {
                       const complete = step.done === o.students;
@@ -446,19 +473,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
               <div className="order-3 grid min-w-0 gap-3.5 md:grid-cols-2 xl:order-none">
                 <section aria-labelledby="apoio-titulo" className="dash-card">
-                  <h2 id="apoio-titulo" className="text-[15px] font-medium tracking-tight">Nível de apoio</h2>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h2 id="apoio-titulo" className="text-[15px] font-medium tracking-tight">Nível de apoio</h2>
+                    {supportDrop !== null && support.target !== null ? <TrendBadge delta={-supportDrop} better="down" text={supportDrop === 0 ? "Sem mudança desde o início" : `${supportDrop > 0 ? "−" : "+"}${decimal(Math.abs(supportDrop))} desde o início`} /> : null}
+                  </div>
                   {support.initial !== null && support.latest !== null && support.target !== null ? (
                     <>
                       <p className="mt-1 text-xs leading-relaxed text-ink-soft">
                         {supportDrop !== null && supportDrop > 0 ? `Em média, os estudantes já precisam de ${decimal(supportDrop)} ${supportDrop >= 2 ? "níveis" : "nível"} de apoio a menos do que no início.` : "O nível de apoio médio ainda não diminuiu em relação ao início."} Média de {plural(support.objectives, "objetivo", "objetivos")} com registro.
                       </p>
                       <SupportScale initial={support.initial} latest={support.latest} target={support.target} />
-                      <dl className="mt-4 grid grid-cols-3 gap-2">
-                        {([["No início", support.initial, "rounded-full border-2 border-ink-strong bg-white"], ["Agora", support.latest, "rounded-full bg-ink-strong"], ["Meta", support.target, "rotate-45 rounded-[2px] border-2 border-ink-strong bg-white"]] as const).map(([label, value, marker], index) => (
-                          <div key={label} className={index === 1 ? "text-center" : index === 2 ? "text-right" : ""}>
-                            <dt className={`flex items-center gap-1.5 text-xs text-ink-soft ${index === 1 ? "justify-center" : index === 2 ? "justify-end" : ""}`}><span aria-hidden className={`inline-block size-2.5 ${marker}`} />{label}</dt>
-                            <dd className="mt-1 font-display text-[28px] leading-none tracking-tight">{decimal(value)}</dd>
-                            <dd className="mt-1 text-[11px] text-ink-soft">{supportInfo(Math.round(value)).label}</dd>
+                      {/* Legenda compacta: o marcador é o mesmo da escala, e o número e o nome vêm em texto. */}
+                      <dl className="mt-4 flex min-w-0 flex-wrap gap-1.5">
+                        {([["No início", support.initial, "rounded-full border-2 border-ink-strong bg-white"], ["Agora", support.latest, "rounded-full bg-ink-strong"], ["Meta", support.target, "rotate-45 rounded-[2px] border-2 border-ink-strong bg-white"]] as const).map(([label, value, marker]) => (
+                          <div key={label} className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-1.5 rounded-full bg-surface-muted/70 py-1.5 pl-2.5 pr-3 text-xs">
+                            <dt className="inline-flex items-center gap-1.5 self-center text-ink-soft"><span aria-hidden className={`inline-block size-2.5 shrink-0 ${marker}`} />{label}</dt>
+                            <dd className="font-display text-base leading-none tracking-tight text-ink tabular-nums">{decimal(value)}</dd>
+                            <dd className="text-ink-soft">{supportInfo(Math.round(value)).label}</dd>
                           </div>
                         ))}
                       </dl>
@@ -508,7 +539,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
               <div className="dash-card">
                 <CardHeader title="Como estão os objetivos" hint="Tendência dos últimos registros de cada objetivo em acompanhamento." />
-                <StackedBar segments={withColors(l.trends)} empty="Nenhum objetivo em acompanhamento." />
+                <StackedBar segments={withSegmentColors(l.trends)} empty="Nenhum objetivo em acompanhamento." />
               </div>
               <div className="dash-card">
                 <CardHeader title="Objetivos por área" />
@@ -516,7 +547,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
               <div className="dash-card">
                 <CardHeader title="Critério de sucesso" hint={`Registros de aula · ${periodText}.`} />
-                <StackedBar segments={withColors(l.criterion)} />
+                <StackedBar segments={withSegmentColors(l.criterion)} />
               </div>
             </div>
           </Section>
@@ -532,17 +563,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <BarList rows={r.byAuthor.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} />
               </div>
               <div className="dash-card xl:col-span-3">
-                <CardHeader title="Estratégias que mais funcionaram" hint={`Marcadas como “o que funcionou” nos registros · ${periodText}.`} />
+                <CardHeader title="Estratégias que mais funcionaram" hint={`Marcadas como “o que funcionou” nos registros · ${periodText}. O número é quantas vezes cada uma foi marcada.`} />
                 {r.strategies.length ? (
-                  <ol className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                    {r.strategies.map((item, index) => (
-                      <li key={item.label} className="flex items-center gap-3 text-sm">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-signal-lime text-xs font-semibold text-ink-strong">{index + 1}</span>
-                        <span className="flex-1 leading-snug">{item.label}</span>
-                        <span className="shrink-0 text-xs tabular-nums text-ink-soft">{item.value}x</span>
-                      </li>
-                    ))}
-                  </ol>
+                  // Duas colunas com a mesma escala, na ordem do ranking (de cima para baixo).
+                  <div className="grid min-w-0 gap-x-8 gap-y-3 md:grid-cols-2">
+                    <BarList rows={r.strategies.slice(0, strategyHalf)} max={strategyMax} />
+                    {r.strategies.length > strategyHalf ? <BarList rows={r.strategies.slice(strategyHalf)} max={strategyMax} /> : null}
+                  </div>
                 ) : <p className="text-sm text-ink-soft">Sem estratégias registradas no período.</p>}
               </div>
             </div>
@@ -594,13 +621,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
               <div className="dash-card">
                 <CardHeader title="Por que as sugestões são rejeitadas" hint="Rejeição é dado para melhorar as sugestões, não reclamação." />
-                {act.rejectReasons.length ? (
-                  <ul className="space-y-2.5 text-sm">
-                    {act.rejectReasons.map((reason) => (
-                      <li key={reason.label} className="flex items-start justify-between gap-3"><span>“{reason.label}”</span><StatusPill tone="alert">{reason.value}x</StatusPill></li>
-                    ))}
-                  </ul>
-                ) : <p className="text-sm text-ink-soft">Nenhuma sugestão rejeitada no período.</p>}
+                {/* Amarelo, não laranja: rejeitar é decisão do professor, não alarme. */}
+                <BarList rows={act.rejectReasons.map((reason) => ({ label: `“${reason.label}”`, value: reason.value }))} color={SIGNAL.yellow} empty="Nenhuma sugestão rejeitada no período." />
               </div>
             </div>
           </Section>
@@ -613,7 +635,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </p>
               <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                 {dua.indicators.map(({ key, ...indicator }) => (
-                  <DuaIndicatorCard key={key} {...indicator} noBaseText={dua.noBaseText} footer={`${duaPeriod} · ${dua.scopeLabel}`} />
+                  <DuaIndicatorCard key={key} ringId={`anel-dua-${key}`} {...indicator} noBaseText={dua.noBaseText} footer={`${duaPeriod} · ${dua.scopeLabel}`} />
                 ))}
                 <div className="dash-card min-w-0">
                   <CardHeader title="Decisões sobre as sugestões" hint={`Blocos de sugestão (IA ou regras) revisados pela equipe · ${duaPeriod} · ${dua.scopeLabel}.`} />
@@ -652,11 +674,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         <h4 className="text-sm font-medium text-ink">{cluster.label}</h4>
                         <StatusPill tone="good">{plural(cluster.records, "registro", "registros")}</StatusPill>
                       </div>
-                      <ul className="space-y-2 text-sm text-ink">
-                        {cluster.top.map((item) => (
-                          <li key={item.label} className="flex items-center gap-2.5"><Swatch color={SIGNAL.lime} /><span className="flex-1">{item.label}</span><span className="shrink-0 text-xs tabular-nums text-ink-soft">{item.value}x</span></li>
-                        ))}
-                      </ul>
+                      <BarList rows={cluster.top} empty="Sem estratégias marcadas para este perfil." />
                     </div>
                   ))}
                 </div>
@@ -667,10 +685,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <Section id="familia" title="Família e rede de apoio" description="Participação da família e articulação com saúde e assistência social.">
             <div className="grid gap-3.5 lg:grid-cols-3">
               <div className="grid gap-3.5 sm:grid-cols-2 lg:col-span-2">
-                <Stat value={f.notes} label="Conquistas registradas pela família" hint={PERIODS[period]} />
-                <Stat value={f.records} label="Registros de aula feitos em casa" hint={PERIODS[period]} />
-                <Stat value={`${f.withAccess} de ${o.students}`} label="Famílias com acesso à plataforma" hint="Acompanham o plano e as conquistas pelo celular." />
-                <Stat value={f.reports} label="Relatórios intersetoriais" hint={`${plural(f.studentsWithReport, "estudante com orientações", "estudantes com orientações")} da rede de apoio · ${f.reportsInPeriod} no período`} />
+                <StatTile label="Conquistas registradas pela família" value={f.notes} hint={PERIODS[period]} />
+                <StatTile
+                  label="Registros de aula feitos em casa" value={f.records} hint={PERIODS[period]}
+                  chart={<ShareRing id="anel-familia-registros" part={f.records} whole={o.records} label="Registros de aula feitos em casa" caption={`dos ${plural(o.records, "registro", "registros")} de aula do período foram feitos em casa.`} />}
+                />
+                <StatTile
+                  label="Famílias com acesso à plataforma" value={`${f.withAccess} de ${o.students}`} hint="Acompanham o plano e as conquistas pelo celular."
+                  chart={<ShareRing id="anel-familia-acesso" part={f.withAccess} whole={o.students} label="Famílias com acesso à plataforma" caption="dos estudantes têm a família com acesso." />}
+                />
+                <StatTile
+                  label="Relatórios intersetoriais" value={f.reports} hint={`${f.reportsInPeriod} no período`}
+                  chart={<ShareRing id="anel-familia-relatorios" part={f.studentsWithReport} whole={o.students} label="Estudantes com orientações da rede de apoio" caption={`dos estudantes (${f.studentsWithReport}) têm orientações da rede de apoio.`} />}
+                />
               </div>
               <div className="dash-card">
                 <CardHeader title="Materiais acessíveis" hint={`${f.materialsInPeriod} produzidos no período.`} />
@@ -684,12 +711,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="dash-card">
                 <CardHeader title="Recursos mais usados" hint={`Banco municipal, igual para toda a rede: ${plural(res.total, "recurso", "recursos")}, ${plural(res.activities, "proposta prática", "propostas práticas")} e ${plural(res.uses, "uso registrado", "usos registrados")}.`} href="/recursos" linkLabel="Abrir o banco de recursos" />
                 {res.top.length ? (
+                  // A barra compara o uso com o recurso mais usado; o número vem escrito ao lado.
                   <ol className="divide-y divide-line">
                     {res.top.map((item) => (
                       <li key={item.id}>
-                        <Link href={`/recursos/${item.id}`} className="flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2 text-sm hover:underline">
-                          <span>{item.title}</span>
-                          <span className="ml-auto flex shrink-0 items-center gap-2 text-xs tabular-nums text-ink-soft">{plural(item.uses, "uso", "usos")}{item.positive !== null ? <StatusPill tone={item.positive >= 70 ? "good" : item.positive >= 40 ? "mid" : "alert"}>{item.positive}% bom resultado</StatusPill> : null}</span>
+                        <Link href={`/recursos/${item.id}`} className="group block min-h-12 py-2.5 text-sm">
+                          <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                            <span className="min-w-0 group-hover:underline">{item.title}</span>
+                            <span className="ml-auto flex shrink-0 items-center gap-2 text-xs tabular-nums text-ink-soft">{plural(item.uses, "uso", "usos")}{item.positive !== null ? <StatusPill tone={item.positive >= 70 ? "good" : item.positive >= 40 ? "mid" : "alert"}>{item.positive}% bom resultado</StatusPill> : null}</span>
+                          </span>
+                          <UsageMeter value={item.uses} max={topUses} className="mt-2" />
                         </Link>
                       </li>
                     ))}
