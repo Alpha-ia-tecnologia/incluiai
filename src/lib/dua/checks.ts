@@ -2,7 +2,7 @@
 // contexto, sugestões por regras (sem IA) e verificações automáticas da resposta.
 // Sem banco e sem servidor, para rodar com node --test (src/lib/dua/checks.test.mjs).
 import { randomUUID } from "node:crypto";
-import { PATTERNS, escape, nameTokens, type Anonymizer } from "../agents/anonymize-core.ts";
+import { PATTERNS, escape, isYearRange, nameTokens, type Anonymizer } from "../agents/anonymize-core.ts";
 import {
   BARRIER_CATEGORY_LABEL, DUA_PRINCIPLES,
   type AiBlock, type AiCheck, type AiPurpose, type BarrierCategory, type BarrierStatus, type DuaPrinciple,
@@ -42,7 +42,8 @@ export function remainingIdentifiers(text: string, people: string[], schools: st
   const found = new Set<string>();
   for (const pattern of PATTERNS) {
     const matches = text.match(new RegExp(pattern.regex.source, pattern.regex.flags)) ?? [];
-    if (matches.some((match) => pattern.replacement !== "[TELEFONE]" || match.replace(/\D/g, "").length >= 8)) found.add(pattern.label);
+    // Mesma exceção do anonimizador: "2025-2026" (ano letivo) não é telefone.
+    if (matches.some((match) => pattern.replacement !== "[TELEFONE]" || (match.replace(/\D/g, "").length >= 8 && !isYearRange(match)))) found.add(pattern.label);
   }
   for (const name of [...people, ...schools]) {
     const full = name.trim();
@@ -101,7 +102,8 @@ export function rulesBlocks(context: DuaAiContext): RawBlocks {
 // ------------------------------------------------------------- 6.3 verificações automáticas
 
 const normalize = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-const DIAGNOSIS = /\b(diagnostic\w*|laudo|cid[- ]?\d*|tea\b|tdah|autis\w*|sindrome|transtorno|deficiencia intelectual|medica\w*|terapia|tratamento)/;
+// Palavras inteiras: "cidade", "cidadania", "medição" ou "tratamento da informação" não são diagnóstico.
+const DIAGNOSIS = /\b(diagnos\w*|laudo\w*|cid\b|cid[- ]?\d{1,2}\b|cid[- ]?[a-z]\d|tea\b|tdah\b|autis\w*|sindrome\w*|transtorno\w*|deficiencia intelectual|medicament\w*|medicacao|medicad[oa]s?\b|terapia\w*)/;
 const REDUCTION = /\b(simplifi\w*|reduzi\w*|diminui\w*|facilit\w*)\b[^.]{0,60}\b(por causa|devido|em razao|por ser|por ter)\b[^.]{0,40}\b(deficien\w*|condic\w*|diagnost\w*|transtorno)/;
 const INVENTED = /\b(o estudante|a estudante|o aluno|a aluna|a turma)\s+(demonstrou|apresentou|conseguiu|realizou|respondeu|disse|falou|mostrou)\b|\bobservou-se\b|\bfoi observad\w*|\bna ultima aula\b|\bno ultimo atendimento\b/;
 const ATTENDANCE_AS_EVIDENCE = /\b(frequencia|presenca|assiduidade)\b[^.]{0,60}\b(comprova|demonstra|evidencia|indica)\b[^.]{0,40}\b(aprend\w*|evolu\w*|progress\w*)/;
@@ -129,7 +131,9 @@ export function checkBlocks(raw: RawBlocks, context: DuaAiContext, people: strin
       barrierId = null;
       hypothesis = hypothesis || "Barreira citada pela sugestão, ainda não registrada no planejamento.";
     }
-    const text = normalize(blockText(item));
+    const changesObjective = Boolean(item.objectiveConsidered?.trim()) && normalize(item.objectiveConsidered) !== objective;
+    // O objetivo repetido é texto do professor, não da sugestão: as regras de conteúdo olham só o que a sugestão trouxe.
+    const text = normalize(blockText(changesObjective ? item : { ...item, objectiveConsidered: "" }));
     if (remainingIdentifiers(blockText(item), people, schools).length) {
       counts.identifiers += 1;
       blocked = true;
@@ -145,7 +149,6 @@ export function checkBlocks(raw: RawBlocks, context: DuaAiContext, people: strin
       blocked = true;
       problems.push("Apresentava observação, resultado ou frequência como se fosse evidência registrada.");
     }
-    const changesObjective = Boolean(item.objectiveConsidered?.trim()) && normalize(item.objectiveConsidered) !== objective;
     if (changesObjective) counts.objective += 1;
     const changesCriterion = Boolean(item.criterionProposal?.trim());
     if (changesCriterion) counts.criterion += 1;

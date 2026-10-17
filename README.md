@@ -47,18 +47,33 @@ Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 | `/estudantes/[id]` | Visão geral: evolução, estratégias, **perguntas para reunião**, articulação intersetorial | 6, 9 |
 | `/estudantes/[id]/estudo-de-caso` | **Estudo de caso** (diagnóstico pedagógico): motivo, histórico escolar, entrevista com a família, escuta do estudante, observação, avaliação pedagógica e síntese; rascunho, conclusão e relatório imprimível. Não exige laudo | — |
 | `/estudantes/[id]/perfil` | Perfil funcional codificado (escala 0–5, interesses âncora) | 3, 17.2 |
-| `/estudantes/[id]/ppi` | Plano individual + gerador de objetivo observável | 4, 17.3-B |
+| `/estudantes/[id]/ppi` | Plano individual + gerador de objetivo observável. Só com o **estudo de caso concluído**, também na proposta da IA ou das regras | 4, 17.3-B |
 | `/estudantes/[id]/atividades` | Motor de 3 cartões + **versão imprimível** | 17.3–17.8 |
 | `/estudantes/[id]/materiais` | **Rotinas visuais, histórias sociais e pranchas de CAA** (imprimíveis) | 17.10 |
 | `/estudantes/[id]/diario` | Registro em 3 toques + **entrada por voz** | 5, 17.6 |
+| `/estudantes/[id]/dua` | **Atividades com DUA** do estudante: planejar a participação numa atividade, apoios, evidências e próximos passos | DUA |
+| `/estudantes/[id]/atendimentos-aee` | **Atendimentos AEE**: frequência (realizado, falta, cancelamento), separada da aprendizagem | DUA |
 | `/estudantes/[id]/linha-do-tempo` | Linha do tempo do estudante | 6 |
 | `/terapeuta` | **Relatório de Articulação Intersetorial** (perfil terapeuta) | 8 |
-| `/assistente` (+ popup em todas as telas) | **Assistente com agente**: tira dúvidas sobre a plataforma e o acompanhamento, consulta estudantes, propõe planos e atividades (agentes), cria materiais, registra aulas, decide atividades, marca objetivos, consulta recursos, painel e calendário; família conta conquistas e terapeuta envia orientações. Tudo o que altera o acompanhamento passa por um **cartão de confirmação**. Os dados chegam ao modelo com pseudônimos ([ESTUDANTE 1], [ESCOLA 1]) e os nomes voltam só na tela | 17.9 |
+| `/assistente` (+ popup em todas as telas) | **Assistente com agente**: tira dúvidas sobre a plataforma e o acompanhamento, consulta estudantes, propõe planos e atividades (agentes), traz os próximos passos das atividades com DUA, cria materiais, registra aulas, decide atividades, marca objetivos, consulta recursos, painel e calendário; família conta conquistas e terapeuta envia orientações. Tudo o que altera o acompanhamento passa por um **cartão de confirmação**. Os dados chegam ao modelo com pseudônimos ([ESTUDANTE 1], [ESCOLA 1]) e os nomes voltam só na tela | 17.9 |
+| `/planejamento` · `/planejamento/[id]` | **Planejamento com DUA**: atividade da turma em quatro etapas (objetivo e evidência, contexto e barreiras, opções e apoios, revisão para aplicação), com salvamento automático, sugestões para revisão (IA ou regras), validação para aplicação, versões, apoios individuais, aplicação e evidências, materiais e histórico. Detalhes em [`docs/dua.md`](./docs/dua.md) | DUA |
 | `/jornada` | **Minha jornada**: a história de cada perfil em capítulos (professora: a história de um estudante; coordenação e gestão: a da escola; Secretaria: a da rede; família e terapeuta: a própria contribuição), marcados a partir dos dados reais, com evidências, próximo passo, impacto e conquistas com data. Boas-vindas no primeiro acesso | HU01–HU10 |
-| `/painel` | **Painel de indicadores**: medidor em destaque com abas (jornada, participação e critério de sucesso, com a variação em pontos sobre o período anterior), cartões de situação, etapas da jornada, tabela de estudantes por avisos, nível de apoio, participação, meses com registro, uso da IA, objetivos, aulas, atividades e adesão, perfil agregado, **banco de práticas por perfil**, família, recursos e acessos (LGPD). Filtros de período e de escola; o endereço antigo `/painel-municipal` redireciona | 10, 11, 17.6, 17.9 |
+| `/painel` | **Painel de indicadores**: medidor em destaque com abas (jornada, participação e critério de sucesso, com a variação em pontos sobre o período anterior), cartões de situação, etapas da jornada, tabela de estudantes por avisos, nível de apoio, participação, meses com registro, uso da IA, objetivos, aulas, atividades e adesão, perfil agregado, **banco de práticas por perfil**, **uso e documentação do planejamento com DUA** (sem nota), família, recursos e acessos (LGPD). Filtros de período e de escola; o endereço antigo `/painel-municipal` redireciona | 10, 11, 17.6, 17.9 |
 | `/recursos` | Banco municipal com recursos, atividades correspondentes, filtros e evidências de aplicação | 13 |
 | `/calendario` | **Calendário inclusivo**: datas comemorativas do público do AEE (autismo, Libras, braille…), com referência legal e ideia de atividade para a turma | — |
 | `/familia/[id]` | Portal da família + **atividades de casa** + log de acessos | 12, 14 |
+
+## Planejamento com DUA
+
+Planejamento da atividade **da turma** com o Desenho Universal para a Aprendizagem (engajamento, representação e ação e expressão). Não exige estudo de caso, diagnóstico nem laudo; os apoios individuais entram depois, com acesso restrito ao recorte do estudante.
+
+- Quem planeja: professores, profissional de apoio (não valida), coordenação e gestão. A secretaria vê só os indicadores. Família e terapeuta não acessam.
+- A versão validada não muda: editar abre a versão seguinte. Aceitar uma sugestão não valida o planejamento.
+- Sugestões com IA (Claude e DeepSeek) saem com o contexto anonimizado e conferido de novo; sem chave, as regras da plataforma sugerem, com a mesma revisão por bloco.
+- Banco existente: `npx prisma db push` (só tabelas novas) e reinicie o `npm run dev`.
+- Testes: `npm run test:unit` (regras puras) e `npm run test:e2e` (seção 8).
+
+O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](./docs/dua.md).
 
 ## Controle de acesso (necessidade de saber — item 7)
 
@@ -81,6 +96,7 @@ Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
   - `anonymize.ts` — **anonimização** de tudo o que vai para Claude, DeepSeek e OpenAI: nomes do estudante, de colegas, familiares, profissionais e da escola citados nos textos livres viram papéis ([ESTUDANTE], [COLEGA]…); e-mail, telefone, CPF, CEP, datas e links viram marcadores. Os marcadores que voltarem nas respostas viram linguagem natural, e a trilha da proposta informa o que foi substituído. Limite: nomes que não estão cadastrados na plataforma não são reconhecidos
   - `plan-rules.ts` — proposta de plano pelo motor de regras (sem IA)
 - `images/` — imagens de apoio das atividades pela OpenAI (sequência visual dos passos, ilustração ou cartões de escolha), geradas sob pedido ou junto com as atividades. O pedido não leva nome nem dados pessoais; a imagem fica no banco e é servida por `/api/atividades/[id]/imagem` só para quem tem acesso ao estudante
+- `dua/` — planejamento com DUA: `domain.ts` (modelo, validação, evidências, próximos passos, materiais), `access.ts` (quem lê, edita, valida e compartilha), `checks.ts` (preparação do contexto, sugestões por regras e verificações), e a camada de dados (`plannings.ts`, `suggestions.ts`, `supports.ts`, `applications.ts`, `materials.ts`, `indicators.ts`). Testes com `node --test` ao lado (`*.test.mjs`)
 - `materials.ts` — perguntas para reunião + geradores de materiais acessíveis
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
 - `auth.ts` — sessão, hash e controle de acesso por perfil

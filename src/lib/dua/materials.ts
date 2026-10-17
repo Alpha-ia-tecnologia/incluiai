@@ -122,9 +122,21 @@ export type MaterialView = {
   validatedByName: string | null;
   validatedAt: Date | null;
   createdAt: Date;
+  // Quem está lendo pode validar? (o servidor confere de novo ao validar)
+  canValidate: boolean;
 };
 
-const viewOf = (row: Awaited<ReturnType<typeof loadMaterialFor>>["material"]): MaterialView => ({
+type MaterialRow = Awaited<ReturnType<typeof loadMaterialFor>>["material"];
+
+// Mesma regra de validateMaterial: quem valida o planejamento, ou o responsável pelo apoio (com papel de validação).
+async function canValidateMaterial(user: SessionUser, row: MaterialRow) {
+  if (planningAccess(user, row.planning).validate) return true;
+  if (!row.supportId || !VALIDATORS.has(user.role)) return false;
+  const support = await prisma.duaSupport.findUnique({ where: { id: row.supportId }, select: { responsibleId: true } });
+  return support?.responsibleId === user.id;
+}
+
+const viewOf = (row: MaterialRow, canValidate: boolean): MaterialView => ({
   id: row.id,
   planningId: row.planningId,
   planningTitle: row.planning.title,
@@ -143,17 +155,19 @@ const viewOf = (row: Awaited<ReturnType<typeof loadMaterialFor>>["material"]): M
   validatedByName: row.validatedByName,
   validatedAt: row.validatedAt,
   createdAt: row.createdAt,
+  canValidate,
 });
 
 export async function listMaterials(user: SessionUser, planningId: string): Promise<MaterialView[]> {
   await loadPlanningFor(user, planningId, "read");
   const rows = await prisma.duaMaterial.findMany({ where: { planningId }, include: { planning: true, student: { select: { id: true, name: true, schoolId: true } } }, orderBy: { createdAt: "desc" } });
-  return rows.filter((row) => !row.student || canWorkWithStudent(user, row.student)).map(viewOf);
+  const visible = rows.filter((row) => !row.student || canWorkWithStudent(user, row.student));
+  return Promise.all(visible.map(async (row) => viewOf(row, await canValidateMaterial(user, row))));
 }
 
 export async function getMaterial(user: SessionUser, materialId: string): Promise<MaterialView> {
   const { material } = await loadMaterialFor(user, materialId);
-  return viewOf(material);
+  return viewOf(material, await canValidateMaterial(user, material));
 }
 
 // Materiais da biblioteca municipal que podem ser anexados.

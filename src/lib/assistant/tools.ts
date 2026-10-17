@@ -17,6 +17,7 @@ import { CALENDAR_THEMES, dateRangeLabel, relativeLabel, todayInBrazil, upcoming
 import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, SHIFTS, STAGES, supportInfo } from "../scale";
 import { ageFrom, formatDate, parseJson } from "../format";
 import { isHomeActivityNote } from "../user-journey";
+import { studentFollowUp } from "../dua/applications";
 import type { Pseudonymizer } from "./privacy";
 import { toActionView } from "./store";
 import { TOOL_LABELS } from "./labels";
@@ -231,6 +232,31 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       ].filter(Boolean).join("\n")).join("\n\n") + `\n\nPágina: /estudantes/${id}/atividades`;
     });
 
+  // Próximos passos do DUA (RF08), só leitura: saem das evidências registradas nas
+  // atividades com DUA. São recomendações; a decisão e o resultado ficam com a equipe.
+  const proximosPassosDua = define(ctx, "proximos_passos_dua",
+    "Próximos passos sugeridos para um estudante a partir das evidências das atividades planejadas com DUA. Cada sugestão traz a base usada e o que ainda precisa ser observado. São recomendações para a equipe revisar: não são decisão profissional nem resultado observado.",
+    z.object({ estudante: studentRef }),
+    async (args) => {
+      const id = await resolveStudentId(ctx, args.estudante);
+      await assertStudentTeam(ctx.user, id);
+      // studentFollowUp confere de novo o recorte do estudante (equipe pedagógica com acesso).
+      const suggestions = await studentFollowUp(ctx.user, id);
+      await logAccess(ctx, id, "Assistente: próximos passos das atividades com DUA");
+      const label = ctx.privacy.studentLabel(id);
+      const notice = "Recomendações para a equipe revisar. Recomendação não é decisão profissional, e decisão não é resultado observado: a equipe decide o que fazer, e o resultado só existe quando for observado e registrado.";
+      const page = `Página: /estudantes/${id}/dua (atividades com DUA do estudante)`;
+      if (!suggestions.length) {
+        return `Nenhum próximo passo sugerido para ${label} nas atividades com DUA: ainda não há evidência registrada, ou os registros não apontam o que retomar. Não conclua nada sobre a aprendizagem a partir disso.\n${notice}\n${page}`;
+      }
+      return [
+        `# Próximos passos sugeridos para ${label} (atividades com DUA)`,
+        notice,
+        ...suggestions.map((item, index) => `${index + 1}. ${item.text}\n   Base usada: ${item.basis}\n   O que ainda precisa ser observado: ${item.pending}`),
+        page,
+      ].join("\n");
+    });
+
   const proporPlano = define(ctx, "propor_plano",
     "Pede aos agentes de IA uma proposta de plano (PPI) para o estudante, a partir do estudo de caso e de como aprende. Demora de 1 a 3 minutos e tem custo; chame só quando a pessoa pedir claramente. A proposta fica aguardando revisão em /estudantes/ID/ppi#proposta.",
     z.object({ estudante: studentRef }),
@@ -417,7 +443,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
     });
 
   return [
-    buscarEstudantes, verEstudante, verAtividades, proporPlano, gerarAtividades, criarMaterial,
+    buscarEstudantes, verEstudante, verAtividades, proximosPassosDua, proporPlano, gerarAtividades, criarMaterial,
     registrarAula, decidirAtividade, marcarObjetivo, buscarRecursos, indicadores, datasInclusivas(ctx),
   ];
 }

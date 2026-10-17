@@ -14,6 +14,11 @@ import { PendingButton } from "@/components/pending-button";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ObjectiveFields } from "@/components/objective-fields";
 import { ArrowRight, Bot, Sparkles, Trash2 } from "lucide-react";
+import { canSeePedagogicalDetail, getCurrentUser } from "@/lib/auth";
+import { canPlanDua } from "@/lib/dua/access";
+import { DuaError } from "@/lib/dua/shared";
+import { listStudentSupports, type SupportView } from "@/lib/dua/supports";
+import { ReviewBadge } from "@/components/dua/dua-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -131,6 +136,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
   const addObjective = createObjective.bind(null, id, plan.id);
   const hasActiveObjectives = plan.objectives.some((objective) => objective.status === "ativo");
+  // Apoios de atividades com DUA ligados aos objetivos deste plano, agrupados por objetivo.
+  const dua = await linkedDuaSupports(id);
+  const duaByObjective = plan.objectives
+    .map((objective) => ({ objective, supports: dua.supports.filter((support) => (support.data.planLinks ?? []).some((link) => link.planId === plan.id && link.objectiveId === objective.id)) }))
+    .filter((group) => group.supports.length);
 
   return (
     <>
@@ -198,6 +208,39 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         })}
       </div>
 
+      {duaByObjective.length || dua.canPlan ? (
+        <Card className="mb-6 min-w-0 max-w-3xl">
+          <SectionTitle>Atividades com DUA ligadas a este plano</SectionTitle>
+          {duaByObjective.length ? (
+            <ul className="space-y-4">
+              {duaByObjective.map(({ objective, supports }) => (
+                <li key={objective.id} className="min-w-0">
+                  <p className="break-words text-sm font-medium text-ink">{objective.description}</p>
+                  <ul className="mt-1 space-y-1">
+                    {supports.map((support) => (
+                      <li key={support.id} className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+                        {support.canOpenPlanning ? (
+                          <Link href={`/planejamento/${support.planningId}/apoios#apoio-${support.id}`} className="inline-flex min-h-11 min-w-0 items-center break-words font-medium text-brand-strong underline underline-offset-4">{support.planningTitle}</Link>
+                        ) : (
+                          <span className="min-w-0 break-words py-2 text-ink">{support.planningTitle}</span>
+                        )}
+                        <ReviewBadge state={support.state} />
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm leading-relaxed text-ink-soft">
+              Nenhum apoio de atividade com DUA está ligado aos objetivos deste plano.{" "}
+              <Link href={`/estudantes/${id}/dua`} className="font-medium text-brand-strong underline underline-offset-4">Planejar a participação em uma atividade</Link>
+            </p>
+          )}
+          <p className="mt-3 text-xs leading-relaxed text-ink-soft">O apoio de uma atividade não muda este plano: os objetivos continuam sendo revistos aqui, pela equipe.</p>
+        </Card>
+      ) : null}
+
       <div id="novo-objetivo" className="max-w-3xl scroll-mt-6">
         <Card>
           <SectionTitle>Definir um objetivo de aprendizagem</SectionTitle>
@@ -227,6 +270,18 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       </div>
     </>
   );
+}
+
+// Só quem tem o recorte pedagógico do estudante vê os apoios (família e terapeuta não).
+async function linkedDuaSupports(studentId: string): Promise<{ supports: SupportView[]; canPlan: boolean }> {
+  const user = await getCurrentUser();
+  if (!user || !canSeePedagogicalDetail(user.role)) return { supports: [], canPlan: false };
+  try {
+    return { supports: await listStudentSupports(user, studentId), canPlan: canPlanDua(user) };
+  } catch (error) {
+    if (error instanceof DuaError) return { supports: [], canPlan: false };
+    throw error;
+  }
 }
 
 function dateInput(weeks: number) {

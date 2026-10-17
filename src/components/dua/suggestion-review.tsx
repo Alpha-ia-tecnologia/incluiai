@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Check, Pencil, ShieldAlert, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui";
@@ -142,13 +142,25 @@ function BlockCard({ index, planningId, suggestionId, block, stale, canDecide, b
   const [pending, start] = useTransition();
   const [result, setResult] = useState<DuaResult | null>(null);
   const base = `bloco-${block.id}`;
+  // Decidido aqui, os botões somem: o foco vai para a decisão registrada (teclado e leitor de tela).
+  const decisionRef = useRef<HTMLParagraphElement>(null);
+  const justDecided = useRef(false);
+  useEffect(() => {
+    if (block.decision !== "pendente" && justDecided.current) {
+      justDecided.current = false;
+      decisionRef.current?.focus();
+    }
+  }, [block.decision]);
 
   function decide(decision: "aceito" | "editado" | "recusado") {
     start(async () => {
       await beforeChange?.();
       const outcome = await decideDuaBlock({ planningId, suggestionId, blockId: block.id, decision, strategy: decision === "editado" ? strategy : undefined, principles: decision === "editado" ? principles : undefined, includeCriterion, reason, confirmStale });
       setResult(outcome);
-      if (outcome.ok) router.refresh();
+      if (outcome.ok) {
+        justDecided.current = true;
+        router.refresh();
+      }
     });
   }
 
@@ -181,7 +193,7 @@ function BlockCard({ index, planningId, suggestionId, block, stale, canDecide, b
       </dl>
 
       {decided ? (
-        <p className="mt-3 text-sm text-ink">
+        <p ref={decisionRef} tabIndex={-1} className="mt-3 text-sm text-ink outline-none">
           <Badge tone={block.decision === "recusado" ? "neutral" : "green"}>{AI_BLOCK_DECISION_LABEL[block.decision]}</Badge>{" "}
           <span className="text-ink-soft">por {block.decidedBy?.name} em {block.decidedAt ? new Date(block.decidedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : ""}{block.reason ? ` · motivo: ${block.reason}` : ""}</span>
         </p>

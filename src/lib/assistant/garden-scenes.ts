@@ -74,7 +74,7 @@ export const FINALE_MIN_SECONDS = 20;
 
 export const TOOL_FAMILY: Readonly<Record<string, GardenFamily>> = {
   buscar_estudantes: "raizes", ver_estudante: "raizes", ver_atividades: "raizes", meu_estudante: "raizes",
-  buscar_recursos: "raizes", indicadores: "raizes", datas_inclusivas: "raizes",
+  buscar_recursos: "raizes", indicadores: "raizes", datas_inclusivas: "raizes", proximos_passos_dua: "raizes",
   propor_plano: "trelica", gerar_atividades: "botoes", criar_material: "folha",
   registrar_aula: "vasinho", decidir_atividade: "vasinho", marcar_objetivo: "vasinho",
   contar_conquista: "vasinho", enviar_orientacoes: "vasinho",
@@ -90,6 +90,7 @@ export const WAIT_LABELS: Readonly<Record<string, string>> = {
   buscar_recursos: "Consultando o banco de recursos…",
   indicadores: "Consultando o painel…",
   datas_inclusivas: "Consultando o calendário…",
+  proximos_passos_dua: "Consultando os próximos passos do DUA…",
   criar_material: "Montando o material acessível…",
   registrar_aula: "Preparando o registro da aula…",
   decidir_atividade: "Preparando a decisão sobre a atividade…",
@@ -109,13 +110,15 @@ export const TOOL_HINTS: Readonly<Record<string, string>> = {
   buscar_recursos: "Práticas já usadas na rede, com resultados.",
   indicadores: "Números do painel, sem nomes.",
   datas_inclusivas: "Datas com ideias para a turma toda.",
+  // Próximos passos são recomendações: a decisão e o resultado ficam com a equipe.
+  proximos_passos_dua: "Recomendações para a equipe revisar.",
   criar_material: "Fica em Materiais, pronto para imprimir.",
   registrar_aula: SAVE_GATE, decidir_atividade: SAVE_GATE, marcar_objetivo: SAVE_GATE,
   contar_conquista: SEND_GATE, enviar_orientacoes: SEND_GATE,
 };
 export const PEBBLE: Readonly<Record<string, Palette>> = {
   buscar_estudantes: "sky", ver_estudante: "teal", meu_estudante: "teal", ver_atividades: "peach",
-  buscar_recursos: "sage", indicadores: "lime", datas_inclusivas: "rose",
+  buscar_recursos: "sage", indicadores: "lime", datas_inclusivas: "rose", proximos_passos_dua: "sage",
 };
 
 // Nomes exatos dos agentes (plan-graph.ts, activity-graph.ts, generate.ts e tools.ts).

@@ -679,6 +679,102 @@ if (danteHref && PAID) {
   await ctx.close();
 }
 
+// ---------- 8. Planejamento com DUA ----------
+// Cria uma atividade da turma a cada execução e a leva até "validada para aplicação".
+// Sem IA: as opções vêm dos exemplos da tela. Depois, família fora do planejamento e
+// Plano de ensino barrado sem estudo de caso concluído (CA02).
+const textOf = (page) => page.evaluate(() => document.body.innerText);
+// Botão pelo texto exato (o chip "Fala" não pode colidir com outros botões).
+async function clickExact(page, text) {
+  const ok = await page.evaluate((t) => {
+    const btn = [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === t);
+    btn?.click();
+    return Boolean(btn);
+  }, text);
+  if (!ok) throw new Error(`botão não encontrado: ${text}`);
+}
+const hasButton = (page, text, exact = false) => page.waitForFunction((t, e) => [...document.querySelectorAll("button")].some((b) => (e ? b.textContent.trim() === t : b.textContent.includes(t))), { timeout: 10000 }, text, exact).then(() => true, () => false);
+
+if (!ONLY_WAIT) {
+  {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "professor@escola.edu.br");
+    await page.goto(`${BASE}/planejamento`, { waitUntil: "networkidle2" });
+    await settle(page);
+    const h1 = await page.evaluate(() => [...document.querySelectorAll("h1")].map((title) => title.textContent).join(" | "));
+    check("DUA: professor abre o Planejamento com DUA", h1.includes("Planejamento com DUA"), `h1=${h1}`);
+
+    // 8a. Nova atividade: abre o editor na etapa 1.
+    await page.type("#novo-titulo", `Teste E2E DUA ${Date.now()}`);
+    await clickByText(page, "Começar o planejamento");
+    const editor = await page.waitForSelector("#dua-objetivo", { timeout: 30000 }).catch(() => null);
+    check("DUA: cria a atividade e abre a etapa 1", Boolean(editor) && /\/planejamento\/[^/]+/.test(new URL(page.url()).pathname), page.url());
+
+    if (editor) {
+      // 8b. Objetivo e um critério observável; o salvamento automático confirma.
+      await page.type("#dua-objetivo", "Identificar dois personagens principais e ordenar três acontecimentos da história.");
+      await clickByText(page, "Adicionar critério observável");
+      const criterion = await page.waitForFunction(() => [...document.querySelectorAll("label")].find((label) => label.textContent.trim() === "Critério 1")?.control ?? null, { timeout: 5000 }).catch(() => null);
+      if (criterion) await criterion.asElement().type("Diz ou aponta os dois personagens principais.");
+      // Logo depois de digitar a tela mostra "Alterações ainda não salvas"; "Tudo salvo" só volta depois da gravação.
+      const saved = await page.waitForFunction(() => document.body.innerText.includes("Tudo salvo"), { timeout: 20000 }).then(() => true, () => false);
+      check("DUA: objetivo e critério com salvamento automático", Boolean(criterion) && saved, criterion ? "sem “Tudo salvo”" : "campo Critério 1 não apareceu");
+
+      // 8c. Etapa 2: barreira pela sugestão de barreira comum.
+      await clickByText(page, "Contexto e barreiras");
+      const barrierChip = "Exigência de uma única forma de resposta";
+      if (await hasButton(page, barrierChip)) await clickByText(page, barrierChip);
+      const barrier = await page.waitForFunction((t) => [...document.querySelectorAll("textarea")].some((area) => area.value.includes(t)), { timeout: 5000 }, barrierChip).then(() => true, () => false);
+      check("DUA: etapa 2 registra a barreira da tarefa", barrier);
+
+      // 8d. Etapa 3: opção pelo exemplo "Fala" (ação e expressão).
+      await clickByText(page, "Opções e apoios");
+      if (await hasButton(page, "Fala", true)) await clickExact(page, "Fala");
+      const option = await page.waitForFunction(() => [...document.querySelectorAll("textarea")].some((area) => area.id.startsWith("opcao-") && area.value === "Fala"), { timeout: 5000 }).then(() => true, () => false);
+      check("DUA: etapa 3 adiciona a opção “Fala”", option);
+
+      // 8e. Etapa 4: validar para aplicação (decisão registrada; a versão deixa de mudar).
+      await clickByText(page, "Revisão para aplicação");
+      if (await hasButton(page, "Validar para aplicação")) {
+        await clickByText(page, "Validar para aplicação");
+        const validated = await page.waitForFunction(() => document.body.innerText.includes("validada para aplicação"), { timeout: 20000 }).then(() => true, () => false);
+        check("DUA: versão validada para aplicação", validated, validated ? "" : (await textOf(page)).match(/Para validar, ainda falta:[\s\S]{0,300}|Não foi possível[^\n]*/)?.[0] ?? "");
+      } else {
+        check("DUA: botão Validar para aplicação na etapa 4", false);
+      }
+    }
+
+    // 8f. Plano de ensino (PPI) sem estudo de caso concluído. No seed, só Dante tem o
+    // estudo concluído; o aviso só aparece para estudante ainda sem plano ativo.
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    const others = await page.evaluate(() => [...document.querySelectorAll("article")]
+      .map((card) => ({ name: card.querySelector("h2")?.textContent ?? "", href: [...card.querySelectorAll("a")].find((link) => link.textContent.trim() === "Ver acompanhamento")?.getAttribute("href") ?? "" }))
+      .filter((item) => !item.name.includes("Dante") && /^\/estudantes\/[^/]+$/.test(item.href)));
+    let gate = null;
+    for (const student of others) {
+      await page.goto(`${BASE}${student.href}/ppi`, { waitUntil: "networkidle2" });
+      const body = await textOf(page);
+      if (body.includes("Conclua o estudo de caso")) { gate = { ...student, ok: true }; break; }
+      // Formulário de plano aberto sem estudo de caso concluído: a regra falhou.
+      if (body.includes("Comece o plano do estudante") || body.includes("Preencher o plano do zero")) { gate = { ...student, ok: false }; break; }
+    }
+    if (gate) check("DUA: Plano de ensino pede o estudo de caso concluído", gate.ok, `${gate.name} (${gate.href}/ppi) mostra o formulário do plano`);
+    else console.log(`SKIP  Plano de ensino sem estudo de caso: ${others.length ? "os estudantes sem estudo de caso concluído já têm plano ativo" : "nenhum estudante além de Dante na lista"}`);
+    check("DUA: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  }
+
+  // 8g. Família não entra no planejamento com DUA.
+  {
+    const { ctx, page } = await newSession();
+    await login(page, "familia@email.com");
+    await page.goto(`${BASE}/planejamento`, { waitUntil: "networkidle2" });
+    await settle(page);
+    check("DUA: família não abre /planejamento", !new URL(page.url()).pathname.startsWith("/planejamento"), `url=${page.url()}`);
+    await ctx.close();
+  }
+}
+
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(`\n===== ${results.length - failed.length}/${results.length} testes passaram =====`);

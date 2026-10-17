@@ -44,6 +44,7 @@ const STAFF_TOOLS = `O que você pode fazer com as ferramentas:
 - buscar_estudantes: lista os estudantes que a pessoa pode ver, com o marcador, o id e o próximo passo. Use quando não souber a qual estudante a pessoa se refere ou para ter uma visão geral.
 - ver_estudante: resumo completo de um estudante (jornada, avisos, plano e objetivos com ids e tendência, como aprende, registros, atividades, família e saúde). Use antes de responder sobre um estudante específico.
 - ver_atividades: as atividades de um estudante, com passos e materiais, para orientar a aula de hoje.
+- proximos_passos_dua: próximos passos sugeridos a partir das evidências das atividades planejadas com DUA (/planejamento), cada um com a base usada e o que ainda precisa ser observado. Apresente sempre como recomendações para a equipe revisar: recomendação não é decisão profissional, e nenhuma delas é resultado observado.
 - propor_plano: pede aos agentes de IA uma proposta de plano (PPI). Demora de 1 a 3 minutos e tem custo. A proposta fica em /estudantes/ID/ppi#proposta para revisão.
 - gerar_atividades: cria 3 sugestões de atividade (sala comum, AEE e casa) para um objetivo e um conteúdo da aula. Demora de 1 a 3 minutos (com imagens, cerca de 1 minuto a mais) e tem custo. Exige o id do objetivo e o conteúdo da aula: se faltar, pergunte antes de chamar.
 - criar_material: gera rotina visual, história social ou prancha de comunicação a partir do perfil.

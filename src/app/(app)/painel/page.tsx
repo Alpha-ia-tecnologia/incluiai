@@ -11,6 +11,9 @@ import {
 import { ROLES, supportInfo } from "@/lib/scale";
 import { firstName, formatDate, formatDateShort } from "@/lib/format";
 import { CALENDAR_THEMES, MONTH_SHORT, monthParam, relativeLabel, todayInBrazil, upcomingEvents } from "@/lib/commemorative-dates";
+import { duaIndicators } from "@/lib/dua/indicators";
+import { canPlanDua } from "@/lib/dua/access";
+import { AI_BLOCK_DECISION_LABEL } from "@/lib/dua/domain";
 import { EmptyState } from "@/components/ui";
 import {
   BarList, ColumnChart, HatchedDonut, HatchedGauge, Legend, MonthGrid, SIGNAL, StackedBar, SupportScale, Swatch, type ChartSegment,
@@ -102,6 +105,24 @@ function Stat({ value, label, hint }: { value: ReactNode; label: string; hint?: 
   );
 }
 
+// Indicador de uso do DUA: sem pílula de "bom" ou "atenção", porque não é nota.
+// Sem denominador, mostra "sem base" (nunca 0%).
+function DuaIndicatorCard({ label, definition, unit, numerator, denominator, value, noBaseText, footer }: {
+  label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null; noBaseText: string; footer: string;
+}) {
+  return (
+    <article className="dash-card flex min-w-0 flex-col">
+      <CardHeader title={label} />
+      {value === null
+        ? <p className="text-sm font-medium leading-snug text-ink-soft">{noBaseText}</p>
+        : <p className="font-display text-[32px] font-normal leading-none tracking-tight text-ink">{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</p>}
+      <p className="mt-2 text-sm text-ink">{numerator} de {denominator} {unit}</p>
+      <p className="mt-2 text-xs leading-relaxed text-ink-soft">{definition}</p>
+      <p className="mt-auto pt-3 text-[11px] leading-relaxed text-ink-soft">{footer}</p>
+    </article>
+  );
+}
+
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periodo?: string; escola?: string; indicador?: string }> }) {
   const filters = await searchParams;
   const user = await getCurrentUser();
@@ -113,6 +134,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const gaugeKey = parseGauge(filters.indicador);
   const data = await loadDashboard(user, { period, school: filters.escola });
   const { scope, overview: o, attention: a, journey: j, gauges: g, calendar: cal, learning: l, records: r, activities: act, ai, profile: p, family: f, resources: res, team } = data;
+  // Mesmo recorte e período do painel; null para quem não vê os indicadores do DUA.
+  const dua = await duaIndicators(user, { start: scope.start, now: scope.now, schoolId: scope.schoolId, schoolName: scope.schoolName });
   const periodText = PERIODS[period].toLowerCase();
   const today = todayInBrazil(scope.now);
   const upcomingDates = upcomingEvents(today).slice(0, 4);
@@ -201,9 +224,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const sections: [string, string][] = [
     ["visao-geral", "Visão geral"], ["atencao", "Estudantes"], ["objetivos", "Objetivos"], ["aulas", "Aulas"], ["atividades", "Atividades"],
+    ...(dua ? [["dua", "DUA"] as [string, string]] : []),
     ["ia", "IA"], ["perfil", "Perfil"], ["familia", "Família"], ["recursos", "Recursos e datas"],
     ...(scope.network ? [["equipe", "Equipe"] as [string, string]] : []),
   ];
+
+  // ---------- Planejamento com DUA (uso e documentação) ----------
+  const duaPeriod = dua ? `${PERIODS[period]}${dua.period.start ? ` (de ${formatDate(dua.period.start)} a ${formatDate(dua.period.end)})` : ` (até ${formatDate(dua.period.end)})`}` : "";
+  const duaDecisions: ChartSegment[] = dua ? [
+    { key: "aceito", label: AI_BLOCK_DECISION_LABEL.aceito, value: dua.decisions.aceito, color: SIGNAL.lime },
+    { key: "editado", label: AI_BLOCK_DECISION_LABEL.editado, value: dua.decisions.editado, color: SIGNAL.cyan },
+    // Recusar também é decisão profissional: sem a cor de alerta.
+    { key: "recusado", label: AI_BLOCK_DECISION_LABEL.recusado, value: dua.decisions.recusado, color: SIGNAL.yellow },
+  ] : [];
 
   const support = l.support;
   const supportDrop = support.initial !== null && support.latest !== null ? oneDecimal(oneDecimal(support.initial) - oneDecimal(support.latest)) : null;
@@ -571,6 +604,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
             </div>
           </Section>
+
+          {dua ? (
+            <Section id="dua" title="Planejamento com DUA — uso e documentação" description={`Como a equipe está usando o planejamento com Desenho Universal para a Aprendizagem · ${duaPeriod} · ${dua.scopeLabel}.`}>
+              <p className="mb-3.5 max-w-3xl rounded-[22px] bg-surface-muted px-4 py-3 text-sm leading-relaxed text-ink">
+                <strong className="font-medium">Estes números medem uso e documentação, não aprendizagem.</strong> Não existe nota, selo nem “conformidade DUA”: nenhum número aqui avalia professor, escola ou estudante. Quando não há o que contar no período, aparece “{dua.noBaseText.toLowerCase()}”, e não 0%.
+                {canPlanDua(user) ? <> <Link href="/planejamento" className="font-medium text-ink underline">Abrir o planejamento</Link></> : null}
+              </p>
+              <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+                {dua.indicators.map(({ key, ...indicator }) => (
+                  <DuaIndicatorCard key={key} {...indicator} noBaseText={dua.noBaseText} footer={`${duaPeriod} · ${dua.scopeLabel}`} />
+                ))}
+                <div className="dash-card min-w-0">
+                  <CardHeader title="Decisões sobre as sugestões" hint={`Blocos de sugestão (IA ou regras) revisados pela equipe · ${duaPeriod} · ${dua.scopeLabel}.`} />
+                  <StackedBar segments={duaDecisions} empty={`${dua.noBaseText}: nenhum bloco de sugestão revisado.`} />
+                  {dua.decisions.total ? <p className="mt-3 text-xs text-ink-soft">{dua.decisions.aceito} aceitos sem alteração, {dua.decisions.editado} aceitos com edição e {dua.decisions.recusado} recusados, de {plural(dua.decisions.total, "bloco revisado", "blocos revisados")}.</p> : null}
+                </div>
+              </div>
+            </Section>
+          ) : null}
 
           <Section id="perfil" title="Perfil dos estudantes" description="Dados agregados, sem identificar ninguém: orientam formação, compra de recursos e adaptação dos ambientes.">
             {p.caa.withoutResources > 0 ? (

@@ -12,6 +12,17 @@ const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 const daysAhead = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
 
 async function main() {
+  // Planejamento com DUA e frequência do AEE: tudo cai em cascata com o
+  // planejamento ou o estudante, mas apagamos na ordem das chaves, antes dos estudantes.
+  await prisma.duaEvidence.deleteMany();
+  await prisma.duaApplication.deleteMany();
+  await prisma.duaSuggestion.deleteMany();
+  await prisma.duaMaterial.deleteMany();
+  await prisma.duaSupport.deleteMany();
+  await prisma.duaAuditEvent.deleteMany();
+  await prisma.duaPlanningVersion.deleteMany();
+  await prisma.duaPlanning.deleteMany();
+  await prisma.aeeSession.deleteMany();
   await prisma.user.deleteMany();
   await prisma.material.deleteMany();
   await prisma.intersectorReport.deleteMany();

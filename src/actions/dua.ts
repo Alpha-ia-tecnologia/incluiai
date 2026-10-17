@@ -237,7 +237,7 @@ export async function createDuaApplication(input: { planningId: string; versionN
 
 export async function updateDuaApplication(input: { planningId: string; applicationId: string; revision: number; state: string; notes?: string; addParticipantIds?: string[]; removeParticipantIds?: string[] }): Promise<DuaResult> {
   return run(async (user) => {
-    const data = z.object({ planningId: id, applicationId: id, revision: intNumber, state: z.string().max(20), notes: text(2000), addParticipantIds: z.array(id).max(60).default([]), removeParticipantIds: z.array(id).max(60).default([]) }).parse(input);
+    const data = z.object({ planningId: id, applicationId: id, revision: intNumber, state: z.string().max(20), notes: z.string().max(4000).optional(), addParticipantIds: z.array(id).max(60).default([]), removeParticipantIds: z.array(id).max(60).default([]) }).parse(input);
     await updateApplication(user, data.applicationId, data.revision, data);
     refreshPlanning(data.planningId);
     return undefined;

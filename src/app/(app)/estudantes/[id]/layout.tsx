@@ -9,6 +9,7 @@ import { STAGES, SHIFTS } from "@/lib/scale";
 import { Badge } from "@/components/ui";
 import { StudentTabs } from "@/components/student-tabs";
 import { StudentJourney } from "@/components/student-journey";
+import { canPlanDua } from "@/lib/dua/access";
 
 export default async function StudentLayout({
   children,
@@ -85,7 +86,7 @@ export default async function StudentLayout({
       ) : null}
 
       <div className="mb-6">
-        <StudentTabs studentId={student.id} showCaseStudy={showJourney} />
+        <StudentTabs studentId={student.id} showCaseStudy={showJourney} showDua={showJourney && canPlanDua(user)} />
       </div>
 
       {children}

@@ -458,7 +458,7 @@ model DuaPlanning {
 }
 
 // Versão do planejamento. Validada, não muda mais: editar abre a versão seguinte
-// (gravação condicional em src/lib/dua/service.ts). `revision` avisa edição simultânea.
+// (gravação condicional em src/lib/dua/plannings.ts). `revision` avisa edição simultânea.
 model DuaPlanningVersion {
   id              String      @id @default(cuid())
   planningId      String

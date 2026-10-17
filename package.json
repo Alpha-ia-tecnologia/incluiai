@@ -11,7 +11,7 @@
     "db:setup": "prisma db push && node prisma/seed.mjs",
     "db:resources": "prisma db push && node prisma/seed-resources.mjs",
     "test:e2e": "node e2e-test.mjs",
-    "test:unit": "node --test src/lib/assistant/garden-scenes.test.mjs"
+    "test:unit": "node --test \"src/lib/**/*.test.mjs\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

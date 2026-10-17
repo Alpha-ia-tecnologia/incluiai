@@ -5,6 +5,7 @@ export const TOOL_LABELS: Record<string, string> = {
   buscar_estudantes: "Consultando os estudantes",
   ver_estudante: "Lendo o acompanhamento do estudante",
   ver_atividades: "Consultando as atividades",
+  proximos_passos_dua: "Consultando os próximos passos do DUA",
   // Sem duração: a faixa de espera dá o tempo certo (com imagens, até 4 minutos).
   propor_plano: "Preparando a proposta de plano com os agentes",
   gerar_atividades: "Criando as 3 sugestões de atividade com os agentes",
@@ -24,6 +25,7 @@ export const STEP_DONE_LABELS: Record<string, string> = {
   buscar_estudantes: "Consultou os estudantes",
   ver_estudante: "Leu o acompanhamento do estudante",
   ver_atividades: "Consultou as atividades",
+  proximos_passos_dua: "Consultou os próximos passos do DUA",
   propor_plano: "Preparou a proposta de plano",
   gerar_atividades: "Criou as sugestões de atividade",
   criar_material: "Montou o material acessível",

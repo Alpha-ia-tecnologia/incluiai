@@ -76,7 +76,7 @@ async function loadApplicationFor(user: SessionUser, applicationId: string) {
 }
 
 // Situação de execução e participantes. Quem não vê um participante não o remove.
-export async function updateApplication(user: SessionUser, applicationId: string, revision: number, input: { state: string; notes: string; addParticipantIds: string[]; removeParticipantIds: string[] }) {
+export async function updateApplication(user: SessionUser, applicationId: string, revision: number, input: { state: string; notes?: string; addParticipantIds: string[]; removeParticipantIds: string[] }) {
   const { application, canManage } = await loadApplicationFor(user, applicationId);
   if (!canManage) throw new DuaError("Só quem responde pela aplicação ou edita o planejamento altera a aplicação.", "sem_permissao");
   if (!EXECUTION_STATES.includes(input.state as ExecutionState)) throw new DuaError("Situação de execução inválida.");
@@ -86,7 +86,8 @@ export async function updateApplication(user: SessionUser, applicationId: string
   const next = [...new Set([...current.filter((id) => !removable.includes(id)), ...added])];
   const updated = await prisma.duaApplication.updateMany({
     where: { id: applicationId, revision },
-    data: { state: input.state, notes: clip(input.notes, 2000) || null, participantIds: JSON.stringify(next), revision: { increment: 1 } },
+    // Observações só mudam quando vierem na chamada (omitidas, ficam como estão).
+    data: { state: input.state, ...(input.notes !== undefined ? { notes: clip(input.notes, 2000) || null } : {}), participantIds: JSON.stringify(next), revision: { increment: 1 } },
   });
   if (!updated.count) throw new DuaError("Outro profissional alterou esta aplicação agora há pouco. Atualize a página.", "conflito");
   if (input.state !== application.state) await audit(user, application.planningId, "mudou a situação da aplicação", "aplicacao", { objectId: applicationId, versionNumber: application.versionNumber, detail: input.state });
@@ -154,6 +155,8 @@ export type EvidenceView = {
   versionNumber: number;
   criteria: Array<{ criterionId: string; description: string; status: CriterionStatus }>;
   optionsOffered: string[];
+  // Ids das opções oferecidas (para preencher o formulário sem depender do texto).
+  optionIds: string[];
   participationForm: string;
   studentChoice: string;
   supportProvided: string;
@@ -177,6 +180,7 @@ const evidenceView = (row: { id: string; studentId: string; date: Date; context:
     versionNumber: row.versionNumber,
     criteria: parseJson<Array<{ criterionId: string; status: CriterionStatus }>>(row.criteria, []).map((item) => ({ ...item, description: descriptions.get(item.criterionId) ?? "Critério da versão aplicada" })),
     optionsOffered: parseJson<string[]>(row.optionsOffered, []).map((id) => strategies.get(id) ?? "").filter(Boolean),
+    optionIds: parseJson<string[]>(row.optionsOffered, []).filter((id) => strategies.has(id)),
     participationForm: row.participationForm,
     studentChoice: row.studentChoice,
     supportProvided: row.supportProvided,

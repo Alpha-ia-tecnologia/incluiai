@@ -11,17 +11,23 @@ const TABS = [
   { slug: "perfil", label: "Como aprende" },
   { slug: "ppi", label: "Plano de ensino" },
   { slug: "atividades", label: "Atividades" },
+  { slug: "dua", label: "Atividades com DUA" },
   { slug: "diario", label: "Registrar aula" },
+  { slug: "atendimentos-aee", label: "Atendimentos AEE" },
   { slug: "linha-do-tempo", label: "Evolução" },
   { slug: "materiais", label: "Materiais de apoio" },
 ];
 
-// O estudo de caso fica oculto para quem não acessa o detalhe pedagógico.
-export function StudentTabs({ studentId, showCaseStudy }: { studentId: string; showCaseStudy: boolean }) {
+// Seções que ficam ocultas para quem não acessa o detalhe pedagógico (família e terapeuta).
+const PEDAGOGICAL_ONLY = new Set(["estudo-de-caso", "dua", "atendimentos-aee"]);
+
+// showCaseStudy = pode ver o detalhe pedagógico (estudo de caso, DUA e frequência do AEE).
+// showDua, quando informado, esconde só a aba do DUA de quem vê o detalhe mas não planeja (secretaria).
+export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy }: { studentId: string; showCaseStudy: boolean; showDua?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const base = `/estudantes/${studentId}`;
-  const tabs = TABS.filter((tab) => showCaseStudy || tab.slug !== "estudo-de-caso").map((tab) => ({
+  const tabs = TABS.filter((tab) => (showCaseStudy || !PEDAGOGICAL_ONLY.has(tab.slug)) && (showDua || tab.slug !== "dua")).map((tab) => ({
     ...tab,
     href: tab.slug ? `${base}/${tab.slug}` : base,
   }));
