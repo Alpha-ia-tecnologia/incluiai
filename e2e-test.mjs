@@ -228,13 +228,18 @@ if (!ONLY_WAIT) {
       check("registro da aula salvo no histórico", await page.evaluate((note) => Boolean(document.querySelector("#historico-registros")?.textContent.includes(note)), diaryNote));
     }
 
-    // 5d. Criar material de apoio: verifica o cartão salvo, não a opção do seletor.
+    // 5d. Criar material de apoio (IA ou regras): conta os materiais salvos, não o texto do título.
     await page.goto(`${BASE}${danteHref}/materiais`, { waitUntil: "networkidle2" });
-    const materialsBefore = await page.$$eval("h3", (headings) => headings.filter((heading) => heading.textContent.startsWith("História social:")).length);
-    await page.select("#kind", "historia_social");
+    const materialsBefore = await page.$$eval("article[id^='material-']", (items) => items.length);
+    await page.$eval("input[name=kind][value=historia_social]", (radio) => radio.click());
     await clickByText(page, "Criar material");
-    await page.waitForFunction((before) => [...document.querySelectorAll("h3")].filter((heading) => heading.textContent.startsWith("História social:")).length === before + 1, { timeout: 20000 }, materialsBefore).catch(() => {});
-    check("criar material de apoio (história social)", await page.evaluate((before) => [...document.querySelectorAll("h3")].filter((heading) => heading.textContent.startsWith("História social:")).length === before + 1, materialsBefore));
+    await page.waitForFunction((before) => document.querySelectorAll("article[id^='material-']").length === before + 1, { timeout: 180000 }, materialsBefore).catch(() => {});
+    const created = await page.evaluate((before) => {
+      const items = document.querySelectorAll("article[id^='material-']");
+      const first = items[0];
+      return items.length === before + 1 && Boolean(first?.textContent?.includes("História social")) && Boolean(first?.textContent?.includes("Atividades para aplicar"));
+    }, materialsBefore);
+    check("criar material de apoio (história social, com atividades para aplicar)", created);
     check("fluxos sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }

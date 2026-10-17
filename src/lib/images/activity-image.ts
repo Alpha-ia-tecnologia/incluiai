@@ -12,7 +12,7 @@ export const IMAGE_KINDS = [
   { value: "cartoes", label: "Cartões de escolha (pictogramas)" },
 ] as const;
 
-const STYLE = [
+export const STYLE = [
   "Estilo: pictograma de comunicação alternativa e aumentativa, ilustração plana para crianças.",
   "Contornos pretos simples, poucas cores suaves e bem contrastantes, fundo branco liso, sem sombras nem texturas.",
   "Sem nenhum texto, letra, palavra ou número escrito na imagem, exceto quando pedido.",

@@ -9,7 +9,7 @@ export const TOOL_LABELS: Record<string, string> = {
   // Sem duração: a faixa de espera dá o tempo certo (com imagens, até 4 minutos).
   propor_plano: "Preparando a proposta de plano com os agentes",
   gerar_atividades: "Criando as 3 sugestões de atividade com os agentes",
-  criar_material: "Montando o material acessível",
+  criar_material: "Montando o material de apoio",
   registrar_aula: "Preparando o registro da aula",
   decidir_atividade: "Preparando a decisão sobre a atividade",
   marcar_objetivo: "Preparando a mudança do objetivo",
@@ -28,7 +28,7 @@ export const STEP_DONE_LABELS: Record<string, string> = {
   proximos_passos_dua: "Consultou os próximos passos do DUA",
   propor_plano: "Preparou a proposta de plano",
   gerar_atividades: "Criou as sugestões de atividade",
-  criar_material: "Montou o material acessível",
+  criar_material: "Montou o material de apoio",
   registrar_aula: "Preparou o registro da aula",
   decidir_atividade: "Preparou a decisão sobre a atividade",
   marcar_objetivo: "Preparou a mudança do objetivo",

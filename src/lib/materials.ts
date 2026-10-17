@@ -1,7 +1,3 @@
-import type { FunctionalProfile, Student } from "@prisma/client";
-import { parseJson } from "./format";
-import { supportInfo } from "./scale";
-
 // Perguntas para reunião (item 9) — aponta o que a equipe precisa discutir,
 // sem conclusões automáticas. Determinístico e auditável.
 export function meetingQuestions(input: {
@@ -29,67 +25,6 @@ export function meetingQuestions(input: {
   return q;
 }
 
-// Materiais acessíveis (item 17.10) — estruturas geradas a partir do perfil.
-export type MaterialKind = "rotina_visual" | "historia_social" | "prancha_caa";
-
-export const MATERIAL_KINDS: { kind: MaterialKind; label: string; description: string }[] = [
-  { kind: "rotina_visual", label: "Rotina visual", description: "Sequência de passos com apoio visual e aviso de transição." },
-  { kind: "historia_social", label: "História social", description: "Narrativa curta em 1ª pessoa que prepara para uma situação." },
-  { kind: "prancha_caa", label: "Prancha de comunicação", description: "Cartões de comunicação alternativa por temas da rotina." },
-];
-
-export interface MaterialContent {
-  intro: string;
-  cards: { label: string; hint?: string }[];
-}
-
-export function buildMaterial(kind: MaterialKind, student: Student, profile: FunctionalProfile): { title: string; content: MaterialContent } {
-  const first = student.name.split(" ")[0];
-  const interests = parseJson<string[]>(profile.interests, []);
-  const theme = interests[0] ?? "tema preferido";
-  const support = supportInfo(profile.organization);
-
-  if (kind === "rotina_visual") {
-    return {
-      title: `Rotina visual de ${first}`,
-      content: {
-        intro: `Rotina com aviso de transição 2 minutos antes de cada troca (${support.label.toLowerCase()}). Ilustre cada passo com o tema "${theme}".`,
-        cards: [
-          { label: "Chegar e guardar a mochila", hint: "Foto do armário" },
-          { label: "Sentar no lugar marcado", hint: "Cartão com o nome" },
-          { label: "Primeira atividade", hint: `Ícone do tema ${theme}` },
-          { label: "Pausa combinada", hint: "Ampulheta / relógio visual" },
-          { label: "Segunda atividade", hint: "Ícone da tarefa" },
-          { label: "Guardar materiais e sair", hint: "Foto da porta" },
-        ],
-      },
-    };
-  }
-  if (kind === "historia_social") {
-    return {
-      title: `História social: um dia na escola — ${first}`,
-      content: {
-        intro: "Leia com o estudante antes da situação. Frases curtas, em 1ª pessoa, tom tranquilo.",
-        cards: [
-          { label: `Eu sou o(a) ${first} e vou para a escola.` },
-          { label: "Na escola tem barulho às vezes. Se ficar alto, eu posso usar meu fone." },
-          { label: "Quando a atividade muda, a professora me avisa antes." },
-          { label: `Eu gosto de ${theme}. Às vezes a atividade tem ${theme}.` },
-          { label: "Se eu precisar de ajuda, eu mostro na minha prancha ou peço." },
-          { label: "No fim do dia eu guardo meus materiais e vou para casa. Foi um bom dia." },
-        ],
-      },
-    };
-  }
-  return {
-    title: `Prancha de comunicação de ${first}`,
-    content: {
-      intro: `Cartões de comunicação alternativa (${profile.expressiveChannel}). Imprima, plastifique e organize por temas.`,
-      cards: [
-        { label: "Sim" }, { label: "Não" }, { label: "Quero" }, { label: "Acabou" },
-        { label: "Ajuda" }, { label: "Pausa" }, { label: "Banheiro" }, { label: "Água" },
-        { label: "Dói" }, { label: "Mais" }, { label: `${theme}`, hint: "Interesse âncora" }, { label: "Casa" },
-      ],
-    },
-  };
-}
+// Materiais de apoio (item 17.10): tipos, conteúdo e regras em material-content.ts;
+// geração (IA ou regras) em material-generate.ts.
+export { MATERIAL_KINDS, type MaterialContent, type MaterialKind } from "./material-content";

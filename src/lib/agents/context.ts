@@ -47,7 +47,7 @@ export function profileText(profile: FunctionalProfile) {
   ].filter(Boolean).join("\n");
 }
 
-function caseStudyText(content: string | null | undefined) {
+export function caseStudyText(content: string | null | undefined) {
   const study = parseCaseStudy(content);
   return CASE_STUDY_FIELDS
     .filter((field) => !EXCLUDED_CASE_FIELDS.has(field.key) && study[field.key])

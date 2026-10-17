@@ -184,16 +184,42 @@ model IntersectorReport {
   createdAt       DateTime @default(now())
 }
 
-// Material acessível produzido — item 17.10 (fase 3)
+// Material acessível produzido — item 17.10 (fase 3). A IA (ou as regras) propõe;
+// o material fica como "sugerido" até um profissional aprovar para uso.
 model Material {
-  id        String   @id @default(cuid())
-  studentId String
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  kind      String // rotina_visual | historia_social | prancha_caa
-  title     String
-  content   String // JSON estruturado
-  source    String   @default("regras") // regras | ia
-  createdAt DateTime @default(now())
+  id          String          @id @default(cuid())
+  studentId   String
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  kind        String // rotina_visual | historia_social | prancha_caa | sequencia_tarefa | quadro_escolhas | regulacao
+  title       String
+  content     String // JSON estruturado (src/lib/materials.ts: MaterialContent)
+  source      String          @default("regras") // regras | ia
+  topic       String? // situação ou conteúdo pedido
+  context     String? // sala_comum | aee | casa
+  objectiveId String? // objetivo do plano trabalhado (conferido no servidor)
+  status      String          @default("sugerido") // sugerido | aprovado
+  approvedBy  String?
+  approvedAt  DateTime?
+  trace       String? // JSON: etapas da geração (anonimização, agentes, regras)
+  createdAt   DateTime        @default(now())
+  images      MaterialImage[]
+}
+
+// Imagem de um cartão do material (pictograma gerado pela OpenAI). O pedido
+// não leva dado pessoal: só a descrição visual do cartão e o estilo.
+model MaterialImage {
+  id         String   @id @default(cuid())
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  cardIndex  Int
+  prompt     String
+  altText    String
+  mimeType   String
+  data       Bytes
+  model      String
+  createdAt  DateTime @default(now())
+
+  @@unique([materialId, cardIndex])
 }
 
 // Perfil funcional estruturado — item 17.2 da proposta.

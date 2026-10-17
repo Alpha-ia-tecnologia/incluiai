@@ -11,7 +11,7 @@ export type GardenPhase = "pensando" | "ferramenta" | "organizando" | "escrevend
 // continua e fica salvo, então não é falha.
 export type GardenOutcome = "pronto" | "erro" | "interrompida";
 export type LongKind = "plano" | "atividades";
-export type InlineScene = LongKind | "imagem";
+export type InlineScene = LongKind | "imagem" | "material";
 export type LongStage = "inicio" | "analista" | "planejador" | "revisor" | "ajustes" | "especialistas" | "imagens" | "regras";
 export type RungState = "espera" | "ativo" | "feito";
 export type BudState = "fechado" | "aberto";
@@ -91,7 +91,7 @@ export const WAIT_LABELS: Readonly<Record<string, string>> = {
   indicadores: "Consultando o painel…",
   datas_inclusivas: "Consultando o calendário…",
   proximos_passos_dua: "Consultando os próximos passos do DUA…",
-  criar_material: "Montando o material acessível…",
+  criar_material: "Montando o material de apoio…",
   registrar_aula: "Preparando o registro da aula…",
   decidir_atividade: "Preparando a decisão sobre a atividade…",
   marcar_objetivo: "Preparando a mudança do objetivo…",
@@ -112,7 +112,7 @@ export const TOOL_HINTS: Readonly<Record<string, string>> = {
   datas_inclusivas: "Datas com ideias para a turma toda.",
   // Próximos passos são recomendações: a decisão e o resultado ficam com a equipe.
   proximos_passos_dua: "Recomendações para a equipe revisar.",
-  criar_material: "Fica em Materiais, pronto para imprimir.",
+  criar_material: "Fica em Materiais de apoio para revisar e aprovar.",
   registrar_aula: SAVE_GATE, decidir_atividade: SAVE_GATE, marcar_objetivo: SAVE_GATE,
   contar_conquista: SEND_GATE, enviar_orientacoes: SEND_GATE,
 };
@@ -388,10 +388,12 @@ export function endingCaption(outcome: GardenOutcome, awaiting: number): Caption
 
 export function inlineThresholds(scene: InlineScene, withImages: boolean): readonly number[] {
   if (scene === "imagem") return INLINE_IMAGE_THRESHOLDS;
+  if (scene === "material") return withImages ? INLINE_LONG_THRESHOLDS : INLINE_IMAGE_THRESHOLDS;
   return scene === "atividades" && withImages ? INLINE_LONG_IMAGES_THRESHOLDS : INLINE_LONG_THRESHOLDS;
 }
 
 export function inlineTypical(scene: InlineScene, withImages: boolean): number {
+  if (scene === "material") return withImages ? 150 : 60;
   return scene === "imagem" ? 60 : scene === "atividades" && withImages ? 240 : 180;
 }
 
@@ -405,6 +407,21 @@ export function inlineCaption(scene: InlineScene, bucket: number, withImages: bo
       explain: "Estilo pictograma, sem nenhum dado pessoal.",
       time: bucket >= 60 ? late : bucket >= 20 ? "Ainda desenhando. Pode levar até 1 minuto." : "Costuma levar de 10 a 30 segundos.",
       late: bucket >= 60 ? late : "",
+    };
+  }
+  if (scene === "material") {
+    const lateAt = withImages ? 180 : 60;
+    return {
+      title: "Criando o material de apoio…",
+      explain: withImages
+        ? "Um agente de IA monta os cartões e as atividades a partir do perfil; depois, um pictograma por cartão. Sem nenhum dado pessoal."
+        : "Um agente de IA monta os cartões e as atividades a partir do perfil, sem nenhum dado pessoal.",
+      time: bucket >= lateAt ? late
+        : bucket >= 120 ? "Já são 2 minutos. Com imagens, costuma levar até 3 minutos."
+        : bucket >= 60 ? "Já passou 1 minuto. Ainda desenhando os pictogramas."
+        : bucket >= 20 ? "Mantenha esta página aberta até o material aparecer."
+        : withImages ? "Costuma levar de 1 a 3 minutos, com as imagens." : "Costuma levar de 20 a 60 segundos.",
+      late: bucket >= lateAt ? late : "",
     };
   }
   const images = scene === "atividades" && withImages;
@@ -457,7 +474,7 @@ export function inlineArt(scene: InlineScene, sun: number): ArtState {
     grown: 0, ties: 2, stem: scene === "atividades" ? 2 : 0, roots: NO_ROOTS, stones: 0,
     trellis: scene === "plano", rungs: IDLE_RUNGS,
     buds: scene === "atividades" ? CLOSED_BUDS : null,
-    side: scene === "imagem" ? "folha" : null,
+    side: scene === "imagem" || scene === "material" ? "folha" : null,
     crown: "nenhum", stake: true, cloud: false, sun,
   };
 }

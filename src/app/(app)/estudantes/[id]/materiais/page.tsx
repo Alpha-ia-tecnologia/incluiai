@@ -1,96 +1,86 @@
 ﻿import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { generateMaterial, deleteMaterial } from "@/actions/materials";
-import { parseJson, formatDate } from "@/lib/format";
-import { MATERIAL_KINDS, type MaterialContent } from "@/lib/materials";
-import { PrintButton } from "@/components/print-button";
-import { PageHeader, Card, SectionTitle, Badge, EmptyState, AIDisclaimer } from "@/components/ui";
-import { Wand2, Trash2 } from "lucide-react";
+import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { isAIEnabled } from "@/lib/agents/model";
+import { isImageGenerationEnabled } from "@/lib/images/openai-images";
+import { PageHeader, Card, SectionTitle, EmptyState } from "@/components/ui";
+import { MaterialForm } from "@/components/materials/material-form";
+import { MaterialView } from "@/components/materials/material-view";
 
 export const dynamic = "force-dynamic";
 
-const KIND_LABELS = Object.fromEntries(MATERIAL_KINDS.map((k) => [k.kind, k.label]));
-
+// Materiais de apoio do estudante: a IA (ou as regras) cria a partir do perfil
+// um material completo — cartões com pictogramas, como usar e atividades para
+// aplicar — que fica como sugestão até a equipe aprovar.
 export default async function MaterialsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [profile, materials] = await Promise.all([
-    prisma.functionalProfile.findUnique({ where: { studentId: id } }),
-    prisma.material.findMany({ where: { studentId: id }, orderBy: { createdAt: "desc" } }),
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const team = isStaffOrNetwork(user.role) && canSeePedagogicalDetail(user.role);
+  const [profile, materials, objectives] = await Promise.all([
+    prisma.functionalProfile.findUnique({ where: { studentId: id }, select: { id: true } }),
+    prisma.material.findMany({
+      where: { studentId: id },
+      orderBy: { createdAt: "desc" },
+      include: { images: { select: { cardIndex: true, altText: true, createdAt: true } } },
+    }),
+    prisma.objective.findMany({ where: { plan: { studentId: id, status: "ativo" } }, select: { id: true, description: true, status: true }, orderBy: { createdAt: "asc" } }),
   ]);
-  const generate = generateMaterial.bind(null, id);
+  const objectiveText = new Map(objectives.map((objective) => [objective.id, objective.description]));
+  const linkedIds = materials.map((material) => material.objectiveId).filter((value): value is string => Boolean(value) && !objectiveText.has(value!));
+  if (linkedIds.length) {
+    for (const objective of await prisma.objective.findMany({ where: { id: { in: linkedIds }, plan: { studentId: id } }, select: { id: true, description: true } })) objectiveText.set(objective.id, objective.description);
+  }
+  const imagesOn = isImageGenerationEnabled();
+  const defaultContext = user.role === "professor_sala" ? "sala_comum" : "aee";
 
   return (
     <>
       <PageHeader
         title="Materiais de apoio"
-        lede="Crie materiais para apoiar a rotina, a comunicação e a participação do estudante. Revise o conteúdo antes de imprimir e usar."
+        lede="Materiais feitos para este estudante, a partir de como ele aprende: cartões com pictogramas, orientações e atividades para aplicar na sala, no AEE e em casa."
       />
 
-      <Card className="mb-8 max-w-3xl print:hidden">
-        <SectionTitle>Criar um material</SectionTitle>
-        {!profile ? (
-          <p className="text-sm leading-relaxed text-ink-soft">
-            Primeiro, conte como o estudante aprende. Essas informações ajudam a preparar os materiais.{" "}
-            <Link href={`/estudantes/${id}/perfil`} className="font-medium text-brand-strong underline underline-offset-4">
-              Preencher Como aprende
-            </Link>
-          </p>
-        ) : (
-          <form action={generate} className="flex flex-wrap items-end gap-4">
-            <div className="min-w-0 basis-full sm:basis-56 sm:flex-1">
-              <label htmlFor="kind" className="mb-1 block text-xs font-medium text-ink-soft">Tipo de material</label>
-              <select id="kind" name="kind" className="min-h-11 w-full rounded-md border border-line bg-paper px-3 py-2 text-base text-ink sm:text-sm">
-                {MATERIAL_KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label} — {k.description}</option>)}
-              </select>
-            </div>
-            <button type="submit" className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-e1 transition-all hover:bg-brand-strong hover:shadow-e2 active:translate-y-px">
-              <Wand2 size={15} aria-hidden /> Criar material
-            </button>
-          </form>
-        )}
-        <AIDisclaimer />
-      </Card>
+      {team ? (
+        <Card className="mb-8 max-w-4xl print:hidden">
+          <SectionTitle>Criar um material</SectionTitle>
+          {!profile ? (
+            <p className="text-sm leading-relaxed text-ink-soft">
+              Primeiro, conte como o estudante aprende. É dali que saem os cartões, as adaptações e as atividades.{" "}
+              <Link href={`/estudantes/${id}/perfil`} className="font-medium text-brand-strong underline underline-offset-4">Preencher Como aprende</Link>
+            </p>
+          ) : (
+            <MaterialForm
+              studentId={id}
+              objectives={objectives.filter((objective) => objective.status === "ativo").map(({ id: objectiveId, description }) => ({ id: objectiveId, description }))}
+              defaultContext={defaultContext}
+              aiOn={isAIEnabled()}
+              imagesOn={imagesOn}
+            />
+          )}
+        </Card>
+      ) : null}
 
       {materials.length === 0 ? (
-        <EmptyState title="Seus materiais aparecerão aqui" hint={profile ? "Escolha um tipo de material acima e toque em Criar material." : "Preencha Como aprende para começar a criar materiais para este estudante."} />
+        <EmptyState title="Os materiais aparecerão aqui" hint={profile ? "Escolha o tipo e a situação acima e toque em Criar material." : "Preencha Como aprende para começar a criar materiais para este estudante."} />
       ) : (
-        <div className="space-y-5">
-          {materials.map((m) => {
-            const content = parseJson<MaterialContent>(m.content, { intro: "", cards: [] });
-            const remove = deleteMaterial.bind(null, id, m.id);
-            return (
-              <div key={m.id} className="rounded-xl border border-line bg-paper-raised p-5 shadow-e1 print:break-inside-avoid">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge tone="brand">{KIND_LABELS[m.kind] ?? m.kind}</Badge>
-                    <h3 className="font-display text-lg font-semibold text-ink">{m.title}</h3>
-                  </div>
-                  <div className="flex items-center gap-2 print:hidden">
-                    <PrintButton />
-                    <form action={remove}>
-                      <button type="submit" aria-label={`Excluir material: ${m.title}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 py-2 text-sm text-ink-soft hover:bg-coral-soft hover:text-coral">
-                        <Trash2 size={15} aria-hidden /> Excluir
-                      </button>
-                    </form>
-                  </div>
-                </div>
-                <p className="mb-4 text-sm text-ink-soft">{content.intro}</p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                  {content.cards.map((c, i) => (
-                    <div key={i} className="flex flex-col items-center justify-center rounded-lg border border-line bg-paper px-3 py-5 text-center">
-                      <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft font-display text-lg font-semibold text-brand-strong" aria-hidden>{i + 1}</span>
-                      <span className="mt-2 text-sm font-medium text-ink">{c.label}</span>
-                      {c.hint ? <span className="mt-0.5 text-[11px] text-ink-soft">{c.hint}</span> : null}
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-3 text-[11px] text-ink-soft print:hidden">Gerado em {formatDate(m.createdAt)}</p>
-              </div>
-            );
-          })}
-        </div>
+        <section aria-labelledby="materiais-lista" className="min-w-0">
+          <h2 id="materiais-lista" className="mb-4 font-display text-xl font-medium text-ink print:hidden">Materiais deste estudante ({materials.length})</h2>
+          <div className="grid min-w-0 gap-6">
+            {materials.map((material) => (
+              <MaterialView
+                key={material.id}
+                studentId={id}
+                material={material}
+                objective={material.objectiveId ? objectiveText.get(material.objectiveId) ?? null : null}
+                imagesOn={imagesOn}
+                canEdit={team}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </>
   );
 }
-

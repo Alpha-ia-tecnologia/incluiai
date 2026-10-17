@@ -97,7 +97,8 @@ O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](
   - `plan-rules.ts` — proposta de plano pelo motor de regras (sem IA)
 - `images/` — imagens de apoio das atividades pela OpenAI (sequência visual dos passos, ilustração ou cartões de escolha), geradas sob pedido ou junto com as atividades. O pedido não leva nome nem dados pessoais; a imagem fica no banco e é servida por `/api/atividades/[id]/imagem` só para quem tem acesso ao estudante
 - `dua/` — planejamento com DUA: `domain.ts` (modelo, validação, evidências, próximos passos, materiais), `access.ts` (quem lê, edita, valida e compartilha), `checks.ts` (preparação do contexto, sugestões por regras e verificações), e a camada de dados (`plannings.ts`, `suggestions.ts`, `supports.ts`, `applications.ts`, `materials.ts`, `indicators.ts`). Testes com `node --test` ao lado (`*.test.mjs`)
-- `materials.ts` — perguntas para reunião + geradores de materiais acessíveis
+- `materials.ts` — perguntas para reunião
+- `material-content.ts` (puro, com testes) — os 6 tipos de material de apoio, o conteúdo (cartões com descrição do pictograma, como usar, atividades para aplicar, porquê de cada adaptação), as verificações e o motor de regras; `material-generate.ts` — geração pela IA (`agents/material-agent.ts`) ou pelas regras, aprovação, imagens por cartão (`images/material-images.ts`) e "levar para Atividades"
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
 - `auth.ts` — sessão, hash e controle de acesso por perfil
 

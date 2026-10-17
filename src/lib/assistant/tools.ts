@@ -9,7 +9,8 @@ import { buildActivityCards, createPlanDraft, saveSuggestedActivities } from "..
 import { objectiveTrend, studentAlerts } from "../insights";
 import { getStudentNextStep } from "../student-journey";
 import { assertStudentTeam } from "../records";
-import { buildMaterial, MATERIAL_KINDS, type MaterialKind } from "../materials";
+import { MATERIAL_KINDS } from "../materials";
+import { createStudentMaterial } from "../material-generate";
 import { isImageGenerationEnabled } from "../images/openai-images";
 import { createActivityImage } from "../images/save";
 import { ALERT_LABELS, TREND_LABELS, loadDashboard } from "../dashboard";
@@ -318,20 +319,30 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
     });
 
   const criarMaterial = define(ctx, "criar_material",
-    "Gera um material acessível a partir do perfil do estudante: rotina visual, história social ou prancha de comunicação. Fica em /estudantes/ID/materiais, pronto para imprimir.",
-    z.object({ estudante: studentRef, tipo: z.enum(["rotina_visual", "historia_social", "prancha_caa"]) }),
+    "Cria um material de apoio a partir do perfil do estudante, com cartões, orientações e 2 a 3 atividades para aplicar: rotina visual, passo a passo de uma tarefa, história social, prancha de comunicação, quadro de escolhas ou cartões de autorregulação. Com imagens=true, desenha um pictograma por cartão (leva até 1 minuto). O material fica como sugestão em /estudantes/ID/materiais até a equipe aprovar.",
+    z.object({
+      estudante: studentRef,
+      tipo: z.enum(["rotina_visual", "sequencia_tarefa", "historia_social", "prancha_caa", "quadro_escolhas", "regulacao"]),
+      tema: z.string().optional().describe("Situação ou conteúdo do material. Ex.: hora do lanche, troca de sala, leitura compartilhada"),
+      contexto: z.enum(["sala_comum", "aee", "casa"]).optional().describe("Onde o material será mais usado"),
+      imagens: z.boolean().optional().describe("Gerar um pictograma para cada cartão. Use quando a pessoa pedir imagem ou figura."),
+    }),
     async (args) => {
       const id = await resolveStudentId(ctx, args.estudante);
-      await assertStudentTeam(ctx.user, id);
-      const student = await prisma.student.findUniqueOrThrow({ where: { id } });
-      const profile = await prisma.functionalProfile.findUnique({ where: { studentId: id } });
-      if (!profile) throw new Error(`Preencha Como aprende antes de gerar materiais: /estudantes/${id}/perfil`);
-      const { title, content } = buildMaterial(args.tipo as MaterialKind, student, profile);
-      await prisma.material.create({ data: { studentId: id, kind: args.tipo, title, content: JSON.stringify(content), source: "regras" } });
-      await prisma.timelineEvent.create({ data: { studentId: id, type: "recurso", title: `Material acessível gerado: ${title}` } });
+      const { material, content, source, images } = await createStudentMaterial(ctx.user, id, {
+        kind: args.tipo, topic: args.tema ?? "", context: args.contexto ?? "aee", withImages: Boolean(args.imagens),
+      });
       revalidatePath(`/estudantes/${id}/materiais`);
       const kind = MATERIAL_KINDS.find((item) => item.kind === args.tipo);
-      return `${kind?.label ?? args.tipo} criado: "${title}". ${content.intro} Cartões: ${content.cards.map((card) => card.label).join(", ")}. Imprimível em /estudantes/${id}/materiais.`;
+      return [
+        `${kind?.label ?? args.tipo} criado ${source === "ia" ? "pelos agentes de IA" : "pelas regras da plataforma"}: "${material.title}". Fica como sugestão até a equipe aprovar.`,
+        `Para que serve: ${content.purpose}`,
+        `Cartões: ${content.cards.map((card) => card.label).join("; ")}.`,
+        `Atividades para aplicar: ${content.activities.map((activity) => `${activity.title} (${activity.durationMinutes} min)`).join("; ")}.`,
+        images.requested ? `Imagens: ${images.created} pictograma(s) prontos${images.errors.length ? `; ${images.errors[0]}` : ""}.` : "Sem imagens: podem ser geradas na página do material.",
+        content.reviewNotes.length ? `Pontos para a equipe conferir: ${content.reviewNotes.join("; ")}` : "",
+        `Ver, aprovar e imprimir: /estudantes/${id}/materiais.`,
+      ].filter(Boolean).join("\n");
     });
 
   const registrarAula = define(ctx, "registrar_aula",

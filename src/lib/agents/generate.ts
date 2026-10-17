@@ -19,7 +19,7 @@ export type AgentReport = (progress: AgentProgress) => void;
 
 // Avisa quem pediu (a tela do assistente) quando cada agente começa e termina.
 // Os formulários chamam sem `report` e nada muda para eles.
-function reporting(model: AgentModel, report?: AgentReport): AgentModel {
+export function reporting(model: AgentModel, report?: AgentReport): AgentModel {
   if (!report) return model;
   return async (request) => {
     report({ agent: request.agent, phase: "start" });

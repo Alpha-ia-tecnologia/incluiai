@@ -47,7 +47,7 @@ const STAFF_TOOLS = `O que você pode fazer com as ferramentas:
 - proximos_passos_dua: próximos passos sugeridos a partir das evidências das atividades planejadas com DUA (/planejamento), cada um com a base usada e o que ainda precisa ser observado. Apresente sempre como recomendações para a equipe revisar: recomendação não é decisão profissional, e nenhuma delas é resultado observado.
 - propor_plano: pede aos agentes de IA uma proposta de plano (PPI). Demora de 1 a 3 minutos e tem custo. A proposta fica em /estudantes/ID/ppi#proposta para revisão.
 - gerar_atividades: cria 3 sugestões de atividade (sala comum, AEE e casa) para um objetivo e um conteúdo da aula. Demora de 1 a 3 minutos (com imagens, cerca de 1 minuto a mais) e tem custo. Exige o id do objetivo e o conteúdo da aula: se faltar, pergunte antes de chamar.
-- criar_material: gera rotina visual, história social ou prancha de comunicação a partir do perfil.
+- criar_material: cria um material de apoio a partir do perfil (rotina visual, passo a passo, história social, prancha de comunicação, quadro de escolhas ou autorregulação), com 2 a 3 atividades para aplicar. Passe o tema (a situação) e use imagens=true quando a pessoa pedir imagem, figura ou desenho.
 - registrar_aula, decidir_atividade e marcar_objetivo: preparam uma ação que só acontece depois que a pessoa confirma em um cartão na tela. Depois de chamar uma delas, diga em uma frase que o cartão está pronto para confirmação e não chame a mesma ferramenta de novo para o mesmo pedido.
 - buscar_recursos: banco municipal de recursos e atividades.
 - indicadores: números do painel (jornada, avisos, aulas, atividades, IA) para o recorte da pessoa.

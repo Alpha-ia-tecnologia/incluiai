@@ -287,7 +287,7 @@ function InlineWait({ scene, withImages, announce }: Omit<InlineProps, "variant"
   const caption = inlineCaption(scene, bucket, withImages);
   const paused = usePaused();
   const entering = useEntrance(1);
-  const watering = useWatering(scene === "imagem" ? "pratica" : scene, "formulario");
+  const watering = useWatering(scene === "imagem" || scene === "material" ? "pratica" : scene, "formulario");
   const rootRef = useRef<HTMLDivElement>(null);
   useOffscreen(rootRef);
   useEffect(() => { if (caption.late) announce(caption.late); }, [caption.late, announce]);
