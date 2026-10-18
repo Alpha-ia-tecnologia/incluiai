@@ -110,6 +110,37 @@ if (!ONLY_WAIT) {
     await ctx.close();
   }
 
+  // ---------- 1b. Sessão no servidor: sair revoga; muitas tentativas bloqueiam ----------
+  {
+    const { ctx, page } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    const [session] = (await page.cookies()).filter((cookie) => cookie.name === "incluiedu_session");
+    check("sessão: cookie httpOnly com código aleatório", Boolean(session?.httpOnly) && !String(session?.value ?? "").includes("."), JSON.stringify({ httpOnly: session?.httpOnly }));
+    await clickByText(page, "Sair da plataforma");
+    await page.waitForFunction(() => location.pathname.startsWith("/login"), { timeout: 15000 }).catch(() => {});
+    // O mesmo cookie, copiado antes de sair, não abre mais a plataforma.
+    const other = await newSession();
+    if (session) await other.page.setCookie({ name: session.name, value: session.value, domain: session.domain, path: session.path });
+    await other.page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+    check("sessão: depois de sair, o cookie antigo não vale", other.page.url().includes("/login"), `url=${other.page.url()}`);
+    await other.ctx.close();
+
+    // E-mail sem conta: o bloqueio não trava as contas de demonstração.
+    await page.goto(`${BASE}/login`, { waitUntil: "networkidle2" });
+    let message = "";
+    for (let attempt = 1; attempt <= 6; attempt++) {
+      await page.$eval("#email", (input) => { input.value = ""; });
+      await page.$eval("#password", (input) => { input.value = ""; });
+      await page.type("#email", "bloqueio@teste.edu.br");
+      await page.type("#password", `errada-${attempt}`);
+      await clickByText(page, "Entrar");
+      await sleep(900);
+      message = await page.evaluate(() => document.body.innerText);
+    }
+    check("login: 6ª tentativa errada seguida é bloqueada", message.includes("Muitas tentativas"), message.slice(0, 200));
+    await ctx.close();
+  }
+
   // ---------- 2. Login e roteamento por perfil ----------
   for (const [email, path, h1part] of [
     ["secretaria@municipio.gov.br", "/", "O que vamos fazer hoje?"],

@@ -9,7 +9,7 @@ Plataforma de acompanhamento do Atendimento Educacional Especializado (AEE) e ge
 - **Next.js 16** (App Router, Server Components e Server Actions) + TypeScript
 - **Tailwind CSS 4** com o **tema visual IncluiEdu** (lilás para marca e ações, superfícies em neutros quentes, cores semânticas para estado — verde, âmbar, coral — e cinco cores suaves para categorias — céu, verde-água, pêssego, sálvia, rosa —, todas com contraste ≥ 4.5:1; tipografia Inter + JetBrains Mono, navegação lateral compacta e adaptação para celular) — tokens em `src/app/globals.css`
 - **Prisma 6 + SQLite** (troque o datasource para PostgreSQL em produção)
-- **Autenticação** própria: sessão em cookie httpOnly assinado (HMAC) e senha com scrypt
+- **Autenticação** própria: sessão guardada no servidor (o cookie httpOnly leva só um código aleatório; vale 8 h, cai após 2 h sem uso e é apagada ao sair), senha com scrypt e limite de 5 tentativas erradas por e-mail em 15 minutos
 - **Agentes de IA opcionais** orquestrados com **LangGraph** (`@langchain/langgraph`), chamando o Claude pelo SDK oficial (`@anthropic-ai/sdk`) com saída estruturada (Zod) — geram propostas de plano (PPI) e atividades. Sem chave, o motor de regras determinísticas + templates assume
 
 ## Como rodar
@@ -23,6 +23,7 @@ npm run dev              # http://localhost:3000
 
 Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 - `ANTHROPIC_API_KEY` liga os agentes de IA (modelo padrão `claude-opus-5-5`; troque com `ANTHROPIC_MODEL`).
+- `SESSION_COOKIE_SECURE`: em produção o cookie da sessão só trafega por HTTPS. Para testar o build de produção em `http://` fora do `localhost`/`127.0.0.1`, use `SESSION_COOKIE_SECURE=0`.
 - `DEEPSEEK_API_KEY` liga o DeepSeek como fallback quando o Claude falha (modelo padrão `deepseek-flash`; troque com `DEEPSEEK_MODEL`). **LGPD:** a DeepSeek processa e armazena dados na China; cada uso fica registrado no histórico de acessos visto pela família.
 - `OPENAI_API_KEY` liga as imagens de apoio das atividades (pictogramas), pela OpenAI (modelo padrão `gpt-image-2.5-flare`; troque com `OPENAI_IMAGE_MODEL`).
 
@@ -77,7 +78,7 @@ O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](
 
 ## Controle de acesso (necessidade de saber — item 7)
 
-`src/lib/auth.ts` centraliza sessão e permissões. Cada rota valida o perfil: a família e o terapeuta só alcançam o estudante vinculado (`canAccessStudent`), o painel de indicadores mostra a rede inteira só a perfis de rede (a equipe escolar vê a própria escola, e as listas com nomes trazem apenas estudantes que a pessoa já acessa), e o terapeuta não vê diário pedagógico nem dados administrativos. Toda consulta/alteração é registrada em `AccessLog` e exposta à família.
+`src/lib/auth.ts` centraliza sessão e permissões (as regras puras da sessão ficam em `src/lib/session-core.ts`). Cada rota valida o perfil: a família e o terapeuta só alcançam o estudante vinculado (`canAccessStudent`) e não abrem a ficha da equipe (`/estudantes/[id]`): cada um usa o seu portal (`/familia/[id]` e `/terapeuta`), o painel de indicadores mostra a rede inteira só a perfis de rede (a equipe escolar vê a própria escola, e as listas com nomes trazem apenas estudantes que a pessoa já acessa), e o terapeuta não vê diário pedagógico nem dados administrativos. Ficam registradas em `AccessLog`, e expostas à família, as consultas ao resumo e ao estudo de caso e as ações feitas pelo assistente; o registro completo de leituras e alterações por aba ainda é uma evolução pendente.
 
 ## Arquitetura de domínio (`src/lib`)
 

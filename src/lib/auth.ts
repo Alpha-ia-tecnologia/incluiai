@@ -1,14 +1,19 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma";
+import { LOGIN_WINDOW_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
 
-// Autenticação da demonstração — item 7 (perfis de acesso) e 14 (LGPD).
-// Sessão em cookie httpOnly assinado por HMAC; senha com scrypt + sal.
-// Em produção: usar provedor de identidade, criptografia em repouso e rotação.
+// Autenticação — item 7 (perfis de acesso) e 14 (LGPD). Senha com scrypt + sal.
+// A sessão fica no servidor (tabela Session): o cookie leva só um código
+// aleatório, que expira (8 h, ou 2 h sem uso) e é apagado ao sair. Regras puras
+// em session-core.ts. Em produção: HTTPS (cookie seguro) e duas etapas.
 
 const SESSION_COOKIE = "incluiedu_session";
-const SECRET = process.env.SESSION_SECRET ?? "incluiedu-dev-secret-troque-em-producao";
+// Cookie só por HTTPS em produção; SESSION_COOKIE_SECURE=0 libera o teste local
+// do build de produção em http://127.0.0.1.
+const SECURE_COOKIE = process.env.SESSION_COOKIE_SECURE ? process.env.SESSION_COOKIE_SECURE === "1" : process.env.NODE_ENV === "production";
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -24,33 +29,49 @@ export function verifyPassword(password: string, stored: string): boolean {
   return derived.length === expected.length && timingSafeEqual(derived, expected);
 }
 
-function sign(userId: string): string {
-  const mac = createHmac("sha256", SECRET).update(userId).digest("hex");
-  return `${userId}.${mac}`;
+// E-mail sem conta também passa pelo scrypt: o tempo de resposta não revela
+// quais e-mails existem.
+let dummyHash: string | null = null;
+export function verifyPasswordOrDummy(password: string, stored: string | null): boolean {
+  if (stored) return verifyPassword(password, stored);
+  dummyHash ??= hashPassword("incluiedu-conta-inexistente");
+  verifyPassword(password, dummyHash);
+  return false;
 }
 
-function unsign(token: string): string | null {
-  const [userId, mac] = token.split(".");
-  if (!userId || !mac) return null;
-  const expected = createHmac("sha256", SECRET).update(userId).digest("hex");
-  const a = Buffer.from(mac);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-  return userId;
+// Limite de tentativas por e-mail (seção 14). Tentativas com mais de um dia são descartadas.
+export async function loginAllowed(email: string): Promise<boolean> {
+  const since = new Date(Date.now() - LOGIN_WINDOW_MS);
+  const attempts = await prisma.loginAttempt.findMany({ where: { email, createdAt: { gte: since } }, select: { success: true, createdAt: true } });
+  return !loginBlocked(attempts);
+}
+
+export async function recordLoginAttempt(email: string, success: boolean): Promise<void> {
+  await prisma.loginAttempt.create({ data: { email, success } });
+  await prisma.loginAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
 }
 
 export async function createSession(userId: string): Promise<void> {
+  const token = newSessionToken();
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_MS);
+  await prisma.session.create({ data: { tokenHash: hashSessionToken(token), userId, expiresAt } });
+  // Sessões vencidas de qualquer pessoa saem do banco a cada nova entrada.
+  await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
   const store = await cookies();
-  store.set(SESSION_COOKIE, sign(userId), {
+  store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
+    secure: SECURE_COOKIE,
     path: "/",
-    maxAge: 60 * 60 * 8,
+    expires: expiresAt,
   });
 }
 
+// Sair apaga a sessão no banco: o mesmo cookie, se copiado, não vale mais.
 export async function destroySession(): Promise<void> {
   const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (token) await prisma.session.deleteMany({ where: { tokenHash: hashSessionToken(token) } });
   store.delete(SESSION_COOKIE);
 }
 
@@ -63,19 +84,25 @@ export type SessionUser = {
   studentId: string | null;
 };
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+// Uma consulta por requisição, mesmo com layout, página e ação pedindo o usuário.
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const userId = unsign(token);
-  if (!userId) return null;
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return null;
+  const session = await prisma.session.findUnique({ where: { tokenHash: hashSessionToken(token) }, include: { user: true } });
+  if (!session) return null;
+  const now = new Date();
+  if (sessionState(session, now) !== "valida") {
+    await prisma.session.deleteMany({ where: { id: session.id } });
+    return null;
+  }
+  if (shouldTouchSession(session.lastSeenAt, now)) await prisma.session.update({ where: { id: session.id }, data: { lastSeenAt: now } });
+  const user = session.user;
   return {
     id: user.id, name: user.name, email: user.email,
     role: user.role, schoolId: user.schoolId, studentId: user.studentId,
   };
-}
+});
 
 // Perfis com visão de gestão da rede inteira.
 const NETWORK_ROLES = new Set(["secretaria", "gestao", "coordenacao"]);

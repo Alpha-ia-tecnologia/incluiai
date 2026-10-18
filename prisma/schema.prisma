@@ -109,6 +109,32 @@ model User {
 
   journeyMarks  JourneyMark[]
   conversations AssistantConversation[]
+  sessions      Session[]
+}
+
+// Sessão no servidor (seção 14): o cookie leva só um código aleatório; aqui fica
+// o resumo (hash) dele, a validade e o último uso. Sair apaga a linha, e a sessão
+// deixa de valer na hora, sem depender de segredo fixo para assinar.
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([userId])
+}
+
+// Tentativas de entrada por e-mail: limita a adivinhação de senha (seção 14).
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
 }
 
 // Assistente (chat com agente): uma conversa por assunto. O histórico enviado
