@@ -29,6 +29,10 @@ export default async function StudentLayout({
   if (!student) notFound();
   // Necessidade de saber (item 7): bloqueia acesso fora do escopo do perfil.
   if (!canAccessStudent(user, student.schoolId, student.id)) redirect("/");
+  // A ficha é da equipe. Família e terapeuta têm o portal deles (seções 8 e 12
+  // da proposta): pelo endereço, as abas mostravam notas e o diário pedagógico.
+  if (user.role === "familia") redirect(`/familia/${student.id}`);
+  if (user.role === "terapeuta") redirect("/terapeuta");
 
   const showJourney = canSeePedagogicalDetail(user.role);
   const progress = showJourney ? await prisma.student.findUniqueOrThrow({

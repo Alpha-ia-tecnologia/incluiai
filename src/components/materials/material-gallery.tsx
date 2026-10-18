@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { ArrowRight, CircleCheck } from "lucide-react";
 import { Badge, ButtonLink } from "@/components/ui";
-import { formatDate } from "@/lib/format";
-import type { PictogramKey } from "@/lib/pictograms";
+import { formatDate, parseJson } from "@/lib/format";
+import { MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialKind } from "@/lib/material-content";
+import { cardPictogram, type PictogramKey } from "@/lib/pictograms";
 import { Pictogram } from "./pictogram";
 import { materialImageUrl } from "./material-view";
 
@@ -25,7 +26,25 @@ export type MaterialSummary = {
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
-export function MaterialGalleryCard({ studentId, material }: { studentId: string; material: MaterialSummary }) {
+// O que a galeria precisa de cada material: só o resumo, nunca o conteúdo inteiro.
+export function materialSummary(material: { id: string; title: string; kind: string; status: string; content: string; createdAt: Date; images: { createdAt: Date }[] }): MaterialSummary {
+  const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
+  const first = content.cards[0];
+  return {
+    id: material.id,
+    title: material.title,
+    kindLabel: MATERIAL_KIND_LABEL[material.kind as MaterialKind] ?? material.kind,
+    approved: material.status === "aprovado",
+    createdAt: material.createdAt,
+    cards: content.cards.length,
+    activities: content.activities.length,
+    thumb: material.images[0] ? { at: material.images[0].createdAt } : null,
+    pictogram: first ? cardPictogram(first) : "estrela",
+  };
+}
+
+// href: a página do material (equipe) ou a leitura do portal da família.
+export function MaterialGalleryCard({ studentId, material, href }: { studentId: string; material: MaterialSummary; href?: string }) {
   const titleId = `material-${material.id}-cartao`;
   return (
     <article id={`material-${material.id}`} aria-labelledby={titleId} className="flex w-full min-w-0 scroll-mt-24 flex-col rounded-2xl border border-line bg-paper-raised p-4 shadow-e1">
@@ -46,7 +65,7 @@ export function MaterialGalleryCard({ studentId, material }: { studentId: string
         Criado em {formatDate(material.createdAt)} · {plural(material.cards, "cartão", "cartões")} · {plural(material.activities, "atividade", "atividades")}
       </p>
       <div className="mt-auto pt-4">
-        <ButtonLink href={`/estudantes/${studentId}/materiais/${material.id}`} variant="secondary">
+        <ButtonLink href={href ?? `/estudantes/${studentId}/materiais/${material.id}`} variant="secondary">
           Abrir material<span className="sr-only">: {material.title}</span> <ArrowRight size={16} aria-hidden />
         </ButtonLink>
       </div>

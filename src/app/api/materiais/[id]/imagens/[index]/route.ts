@@ -12,9 +12,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const image = await prisma.materialImage.findUnique({
     where: { materialId_cardIndex: { materialId: id, cardIndex } },
-    include: { material: { select: { studentId: true, student: { select: { schoolId: true } } } } },
+    include: { material: { select: { studentId: true, status: true, student: { select: { schoolId: true } } } } },
   });
   if (!image || !canAccessStudent(user, image.material.student.schoolId, image.material.studentId)) {
+    return new Response("Imagem não encontrada", { status: 404 });
+  }
+  // A família só vê material aprovado pela equipe; o terapeuta não usa materiais.
+  if (user.role === "terapeuta" || (user.role === "familia" && image.material.status !== "aprovado")) {
     return new Response("Imagem não encontrada", { status: 404 });
   }
   return new Response(new Uint8Array(image.data), {

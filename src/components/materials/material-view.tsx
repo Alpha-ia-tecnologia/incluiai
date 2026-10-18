@@ -82,7 +82,9 @@ function ActivityCard({ activity, index, studentId, materialId, printMode, canEd
   );
 }
 
-export function MaterialView({ studentId, material, objective, imagesOn, printMode = false, canEdit = true }: { studentId: string; material: MaterialRow; objective: string | null; imagesOn: boolean; printMode?: boolean; canEdit?: boolean }) {
+// printHref: onde fica a versão para imprimir (null = a página já imprime por conta
+// própria, como a leitura do portal da família).
+export function MaterialView({ studentId, material, objective, imagesOn, printMode = false, canEdit = true, printHref }: { studentId: string; material: MaterialRow; objective: string | null; imagesOn: boolean; printMode?: boolean; canEdit?: boolean; printHref?: string | null }) {
   // Ações só para a equipe pedagógica; o servidor confere de novo em cada uma.
   const actions = canEdit && !printMode;
   const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
@@ -129,9 +131,11 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
                 </button>
               </form>
             ) : null}
-            <Link href={`/estudantes/${studentId}/materiais/${material.id}/imprimir`} className={quietButtonCls}>
-              <Printer size={16} aria-hidden /> Imprimir<span className="sr-only">: {material.title}</span>
-            </Link>
+            {printHref === null ? null : (
+              <Link href={printHref ?? `/estudantes/${studentId}/materiais/${material.id}/imprimir`} className={quietButtonCls}>
+                <Printer size={16} aria-hidden /> Imprimir<span className="sr-only">: {material.title}</span>
+              </Link>
+            )}
             {actions ? <form action={remove}>
               <button type="submit" aria-label={`Excluir material: ${material.title}`} className={dangerButtonCls}>
                 <Trash2 size={16} aria-hidden /> Excluir
@@ -215,7 +219,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
         ) : null}
       </div>
 
-      {!printMode && trace.length ? (
+      {!printMode && canEdit && trace.length ? (
         <details className="mt-4 print:hidden">
           <summary className="min-h-11 cursor-pointer py-2 text-xs font-medium text-brand-strong">Como este material foi feito</summary>
           <ul className="mt-1 grid gap-1 text-xs text-ink-soft">{trace.map((step, index) => <li key={index}><span className="font-medium text-ink">{step.agent}:</span> {step.summary}</li>)}</ul>

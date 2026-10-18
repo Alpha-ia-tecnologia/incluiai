@@ -12,7 +12,8 @@ import { ROLES } from "@/lib/scale";
 import { PageHero, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
-import { Trophy, ShieldCheck, Home, CircleCheck } from "lucide-react";
+import { Trophy, ShieldCheck, Home, CircleCheck, BookOpen } from "lucide-react";
+import { MaterialGalleryCard, materialSummary } from "@/components/materials/material-gallery";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { SIGNAL } from "@/components/charts";
 import { percentOf } from "@/lib/series";
@@ -42,10 +43,19 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
         take: 5,
         include: { image: { select: { altText: true, kind: true, createdAt: true } } },
       },
+      // Só material aprovado pela equipe chega à família.
+      materials: {
+        where: { status: "aprovado" },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+        select: { id: true, title: true, kind: true, status: true, content: true, createdAt: true, images: { where: { cardIndex: 0 }, select: { createdAt: true } } },
+      },
     },
   });
   if (!student) notFound();
   if (!canAccessStudent(user, student.schoolId, student.id)) redirect("/");
+  // O portal guarda o que a família registra: o terapeuta tem o espaço dele.
+  if (user.role === "terapeuta") redirect("/terapeuta");
 
   const isFamily = user.role === "familia";
   if (isFamily) await recordJourneyMark(user.id, "familia_inicio");
@@ -142,6 +152,19 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                   );
                 })}
               </ul>
+            )}
+          </Card>
+
+          <Card className="scroll-mt-24" id="materiais">
+            <SectionTitle><span className="flex items-center gap-1.5"><BookOpen size={13} aria-hidden /> Materiais para usar em casa</span></SectionTitle>
+            {student.materials.length === 0 ? (
+              <p className="text-sm text-ink-soft">Quando a escola aprovar um material de apoio para {firstName}, ele aparece aqui, com os cartões e a dica para casa.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {student.materials.map((material) => (
+                  <MaterialGalleryCard key={material.id} studentId={id} material={materialSummary(material)} href={`/familia/${id}/materiais/${material.id}`} />
+                ))}
+              </div>
             )}
           </Card>
 

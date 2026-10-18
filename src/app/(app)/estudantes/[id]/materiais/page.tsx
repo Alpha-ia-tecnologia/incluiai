@@ -4,13 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { canAccessStudent, canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { isAIEnabled } from "@/lib/agents/model";
 import { isImageGenerationEnabled } from "@/lib/images/openai-images";
-import { parseJson } from "@/lib/format";
-import { MATERIAL_KINDS, MATERIAL_KIND_LABEL, isMaterialKind, normalizeMaterialContent, type MaterialKind } from "@/lib/material-content";
-import { cardPictogram } from "@/lib/pictograms";
+import { MATERIAL_KINDS, isMaterialKind } from "@/lib/material-content";
 import { PageHeader, Card, SectionTitle, EmptyState, ButtonLink } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
 import { MaterialForm } from "@/components/materials/material-form";
-import { MaterialGalleryCard, type MaterialSummary } from "@/components/materials/material-gallery";
+import { MaterialGalleryCard, materialSummary, type MaterialSummary } from "@/components/materials/material-gallery";
 
 export const dynamic = "force-dynamic";
 
@@ -47,23 +45,11 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
   ]);
 
   // Só o resumo vai para a galeria: o conteúdo inteiro fica na página do material.
-  const summaries: (MaterialSummary & { kind: string; status: Status })[] = materials.map((material) => {
-    const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
-    const first = content.cards[0];
-    return {
-      id: material.id,
-      title: material.title,
-      kind: material.kind,
-      kindLabel: MATERIAL_KIND_LABEL[material.kind as MaterialKind] ?? material.kind,
-      status: material.status === "aprovado" ? "aprovado" : "sugerido",
-      approved: material.status === "aprovado",
-      createdAt: material.createdAt,
-      cards: content.cards.length,
-      activities: content.activities.length,
-      thumb: material.images[0] ? { at: material.images[0].createdAt } : null,
-      pictogram: first ? cardPictogram(first) : "estrela",
-    };
-  });
+  const summaries: (MaterialSummary & { kind: string; status: Status })[] = materials.map((material) => ({
+    ...materialSummary(material),
+    kind: material.kind,
+    status: material.status === "aprovado" ? "aprovado" : "sugerido",
+  }));
 
   // Filtro pela URL (?situacao=&tipo=): links simples, sem JavaScript.
   const statusFilter = STATUS_FILTERS.find((item) => item.value === one(query.situacao))?.value ?? null;

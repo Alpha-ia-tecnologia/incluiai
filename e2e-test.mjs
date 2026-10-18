@@ -138,13 +138,27 @@ if (!ONLY_WAIT) {
   }
   {
     const { ctx, page } = await newSession();
-    await login(page, "familia@email.com");
-    for (const path of ["/estudantes", "/recursos", "/painel"]) {
+    const familyHome = await login(page, "familia@email.com");
+    const childId = new URL(familyHome).pathname.split("/").pop();
+    // A ficha é da equipe: pelo endereço, a família volta para o portal dela.
+    for (const path of ["/estudantes", "/recursos", "/painel", `/estudantes/${childId}`, `/estudantes/${childId}/diario`, `/estudantes/${childId}/perfil`, `/estudantes/${childId}/atividades`]) {
       await page.goto(`${BASE}${path}`, { waitUntil: "networkidle2" });
       await settle(page);
-      check(`família bloqueada de ${path}`, page.url().includes("/familia/"), `url=${page.url()}`);
+      check(`família bloqueada de ${path.replace(childId, ":id")}`, page.url().includes("/familia/"), `url=${page.url()}`);
     }
+    await page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
+    check("família vê os materiais aprovados no portal", await page.evaluate(() => document.body.innerText.includes("Materiais para usar em casa")));
     await ctx.close();
+
+    // Terapeuta: só o espaço de orientações (sem diário, notas da família ou ficha).
+    const therapist = await newSession();
+    await login(therapist.page, "terapeuta@clinica.com.br");
+    for (const path of [`/estudantes/${childId}/diario`, `/estudantes/${childId}`, `/familia/${childId}`]) {
+      await therapist.page.goto(`${BASE}${path}`, { waitUntil: "networkidle2" });
+      await settle(therapist.page);
+      check(`terapeuta bloqueado de ${path.replace(childId, ":id")}`, new URL(therapist.page.url()).pathname === "/terapeuta", `url=${therapist.page.url()}`);
+    }
+    await therapist.ctx.close();
   }
 }
 
