@@ -233,7 +233,16 @@ let danteHref = "";
     }
   }
   check("prontuário sem erros de cliente", errors.length === 0, errors.join("; "));
+  // Dados clínicos do estudo de caso: o AEE vê; a sala comum, não (só AEE e coordenação).
+  await page.goto(`${BASE}${danteHref}/estudo-de-caso`, { waitUntil: "networkidle2" });
+  check("estudo de caso: AEE vê os campos clínicos", await page.evaluate(() => document.body.innerText.includes("Diagnóstico informado pela família")));
   await ctx.close();
+  const roomTeacher = await newSession();
+  await login(roomTeacher.page, "professor@escola.edu.br");
+  await roomTeacher.page.goto(`${BASE}${danteHref}/estudo-de-caso`, { waitUntil: "networkidle2" });
+  const roomText = await roomTeacher.page.evaluate(() => document.body.innerText);
+  check("estudo de caso: sala comum não vê os campos clínicos", !roomText.includes("Diagnóstico informado pela família") && roomText.includes("ficam visíveis só para o AEE e a coordenação"));
+  await roomTeacher.ctx.close();
 }
 
 if (!ONLY_WAIT) {

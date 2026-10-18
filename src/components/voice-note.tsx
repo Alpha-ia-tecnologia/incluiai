@@ -58,7 +58,7 @@ export function VoiceNote({ name, label, placeholder }: { name: string; label: s
           type="button"
           onClick={toggle}
           aria-pressed={listening}
-          className={`flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          className={`flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
             listening ? "bg-coral-soft text-coral" : "bg-brand-soft text-brand-strong hover:opacity-80"
           }`}
         >
@@ -73,12 +73,15 @@ export function VoiceNote({ name, label, placeholder }: { name: string; label: s
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
-        className="w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink"
+        className="w-full min-w-0 rounded-xl border border-line bg-paper px-3.5 py-2 text-sm text-ink"
       />
       {!supported ? (
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">Reconhecimento de voz não disponível neste navegador — digite o registro.</p>
       ) : (
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft">Quando disponível, seu navegador transforma a fala em texto. Confira o texto antes de salvar.</p>
+        // LGPD: o reconhecimento de fala do navegador manda o áudio para fora (no Chrome, ao Google).
+        <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+          <strong className="font-medium text-ink">Antes de ditar:</strong> o navegador envia o áudio para o serviço de voz dele (no Chrome, o Google). Não diga nomes nem informações de saúde. Confira o texto antes de salvar.
+        </p>
       )}
     </div>
   );

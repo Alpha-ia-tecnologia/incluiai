@@ -4,7 +4,7 @@ import { objectiveTrend, studentAlerts, type StudentAlert, type Trend } from "./
 import { getStudentNextStep } from "./student-journey";
 import { splitItems } from "./form-options";
 import { parseJson } from "./format";
-import { hasApiKey } from "./env";
+import { hasApiKey, isDeepSeekEnabled } from "./env";
 import { MATERIAL_KINDS } from "./materials";
 import { MONTH_NAMES, MONTH_SHORT, todayInBrazil } from "./commemorative-dates";
 import { BARRIERS, CHANNELS, CONTEXTS, CRITERION_MET, DIMENSIONS, PARTICIPATION, SENSORY_AREAS, SENSORY_LABELS, STAGES } from "./scale";
@@ -441,7 +441,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     ai: {
       providers: {
         claude: hasApiKey("ANTHROPIC_API_KEY"),
-        deepseek: hasApiKey("DEEPSEEK_API_KEY"),
+        deepseek: isDeepSeekEnabled(),
         openai: hasApiKey("OPENAI_API_KEY"),
       },
       planProposals: { ia: proposalCount("Proposta de plano (agentes de IA)"), regras: proposalCount("Proposta de plano (regras)") },

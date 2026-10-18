@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { canAccessStudent, canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
-import { CASE_STUDY_FIELDS, missingToConclude, type CaseStudyContent } from "@/lib/case-study";
+import { canAccessStudent, canSeeClinicalDetail, canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
 
 const MAX_LENGTH = 3000;
 
@@ -22,8 +22,15 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
     throw new Error("Você não tem permissão para editar o estudo de caso deste estudante.");
   }
 
+  const clinical = canSeeClinicalDetail(user.role);
+  const stored = clinical ? null : parseCaseStudy((await prisma.caseStudy.findUnique({ where: { studentId }, select: { content: true } }))?.content);
   const content: CaseStudyContent = {};
   for (const field of CASE_STUDY_FIELDS) {
+    // Sem permissão para dado clínico, o campo continua como estava (o formulário nem o mostra).
+    if (!clinical && CLINICAL_CASE_FIELDS.has(field.key)) {
+      if (stored?.[field.key]) content[field.key] = stored[field.key];
+      continue;
+    }
     const value = String(formData.get(field.key) ?? "").trim().slice(0, MAX_LENGTH);
     if (value) content[field.key] = value;
   }

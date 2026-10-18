@@ -223,6 +223,10 @@ export function sectionProgress(section: CaseStudySection, content: CaseStudyCon
   return { filled, total: section.fields.length };
 }
 
+// Campos clínicos: visíveis e editáveis só por quem pode ver dado clínico
+// (canSeeClinicalDetail); também ficam fora do que vai para a IA (agents/context.ts).
+export const CLINICAL_CASE_FIELDS: ReadonlySet<string> = new Set(["diagnostico", "saude", "acompanhamentos", "moraCom"]);
+
 export function missingToConclude(content: CaseStudyContent): CaseStudyField[] {
   return CASE_STUDY_FIELDS.filter((field) => field.requiredToConclude && !content[field.key]?.trim());
 }

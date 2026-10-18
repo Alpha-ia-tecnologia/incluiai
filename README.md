@@ -24,7 +24,7 @@ npm run dev              # http://localhost:3000
 Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 - `ANTHROPIC_API_KEY` liga os agentes de IA (modelo padrão `claude-opus-5-5`; troque com `ANTHROPIC_MODEL`).
 - `SESSION_COOKIE_SECURE`: em produção o cookie da sessão só trafega por HTTPS. Para testar o build de produção em `http://` fora do `localhost`/`127.0.0.1`, use `SESSION_COOKIE_SECURE=0`.
-- `DEEPSEEK_API_KEY` liga o DeepSeek como fallback quando o Claude falha (modelo padrão `deepseek-flash`; troque com `DEEPSEEK_MODEL`). **LGPD:** a DeepSeek processa e armazena dados na China; cada uso fica registrado no histórico de acessos visto pela família.
+- `DEEPSEEK_API_KEY` **com** `DEEPSEEK_ENABLED=1` liga o DeepSeek como fallback quando o Claude falha (sem a ligação explícita, a chave sozinha não basta) (modelo padrão `deepseek-flash`; troque com `DEEPSEEK_MODEL`). **LGPD:** a DeepSeek processa e armazena dados na China; cada uso fica registrado no histórico de acessos visto pela família.
 - `OPENAI_API_KEY` liga as imagens de apoio das atividades (pictogramas), pela OpenAI (modelo padrão `gpt-image-2.5-flare`; troque com `OPENAI_IMAGE_MODEL`).
 
 ### Contas de demonstração (senha `demo123`)

@@ -2,9 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
+import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage, canSeeClinicalDetail } from "@/lib/auth";
 import { saveCaseStudy } from "@/actions/case-study";
-import { CASE_STUDY_SECTIONS, parseCaseStudy, sectionProgress, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
+import { CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, parseCaseStudy, sectionProgress, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
 import { splitItems } from "@/lib/form-options";
 import { formatDate } from "@/lib/format";
 import { Badge, ButtonLink, Card, PageHeader } from "@/components/ui";
@@ -72,13 +72,20 @@ export default async function CaseStudyPage({
   ]);
 
   const content: CaseStudyContent = parseCaseStudy(caseStudy?.content);
+  // Sem permissão para dado clínico, esses campos nem chegam à página.
+  const clinical = canSeeClinicalDetail(user.role);
+  if (!clinical) for (const key of CLINICAL_CASE_FIELDS) delete content[key];
+  const sections = CASE_STUDY_SECTIONS.map((section) => ({ ...section, fields: section.fields.filter((field) => clinical || !CLINICAL_CASE_FIELDS.has(field.key)) }));
+  const clinicalNote = clinical ? null : (
+    <p className="mb-6 rounded-xl bg-surface-muted px-4 py-3 text-sm leading-relaxed text-ink-soft">Os campos de saúde, diagnóstico informado, acompanhamentos fora da escola e com quem o estudante mora ficam visíveis só para o AEE e a coordenação.</p>
+  );
   const concluded = caseStudy?.status === "concluido";
   const canEdit = isStaffOrNetwork(user.role);
   const firstName = student.name.split(" ")[0];
 
   if (concluded && (editar !== "1" || !canEdit)) {
     // A síntese aparece em destaque no topo; na parte 7 ficam só os encaminhamentos.
-    const parts = CASE_STUDY_SECTIONS.map((section, index) => {
+    const parts = sections.map((section, index) => {
       const fields = section.fields.filter((field) => field.key !== "sintese");
       return { section, number: index + 1, fields, answered: fields.filter((field) => content[field.key]?.trim()) };
     });
@@ -129,6 +136,7 @@ export default async function CaseStudyPage({
 
           <div id="partes-estudo" className="min-w-0 space-y-4">
             <OpenDetailsOnPrint selector="#partes-estudo details" />
+            {clinicalNote}
             {parts.map(({ section, number, fields, answered }) => (
               // Aberta por padrão: quem chega lê tudo; recolher é escolha de quem lê.
               <details key={section.id} id={`parte-${section.id}`} open className="group min-w-0 scroll-mt-4 rounded-2xl border border-line bg-paper-raised">
@@ -179,6 +187,7 @@ export default async function CaseStudyPage({
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
+        {clinicalNote}
         <form action={save} className="min-w-0 space-y-5">
           {!caseStudy ? (
             <Card className="bg-surface-muted">
@@ -196,7 +205,7 @@ export default async function CaseStudyPage({
             </p>
           )}
 
-          {CASE_STUDY_SECTIONS.map((section, index) => {
+          {sections.map((section, index) => {
             const progress = sectionProgress(section, content);
             return (
               <section key={section.id} id={`secao-${section.id}`} aria-labelledby={`titulo-${section.id}`} className="ui-card scroll-mt-6">
@@ -243,7 +252,7 @@ export default async function CaseStudyPage({
         <nav aria-label="Partes do estudo de caso" className="hidden self-start xl:sticky xl:top-[calc(var(--sticky-offset,0px)_+_16px)] xl:block">
           <p className="mb-3 text-sm font-medium">Partes do estudo</p>
           <ol className="space-y-1">
-            {CASE_STUDY_SECTIONS.map((section, index) => {
+            {sections.map((section, index) => {
               const progress = sectionProgress(section, content);
               const complete = progress.filled === progress.total;
               return (

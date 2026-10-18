@@ -2,8 +2,9 @@ import { z } from "zod/v4";
 import { AgentOutputError, type AgentModel, type AgentRequest } from "./types";
 
 // Provedor de reserva: DeepSeek, pela API HTTP no formato OpenAI
-// (https://api-docs.deepseek.com). Só é usado quando DEEPSEEK_API_KEY está
-// definida. Atenção (LGPD): a DeepSeek processa e armazena dados na China.
+// (https://api-docs.deepseek.com). Só é usado com DEEPSEEK_API_KEY e a ligação
+// explícita DEEPSEEK_ENABLED=1 (env.ts). Atenção (LGPD): a DeepSeek processa e
+// armazena dados na China.
 //
 // O modo JSON da DeepSeek garante JSON válido, mas não segue um esquema: o
 // esquema vai no prompt e a resposta é validada com o mesmo Zod do Claude.

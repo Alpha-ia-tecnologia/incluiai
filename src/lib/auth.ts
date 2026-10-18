@@ -121,6 +121,12 @@ export async function requireStudentPage(studentId: string, section?: string): P
   return user;
 }
 
+// Dados clínicos do estudo de caso (diagnóstico informado, saúde, acompanhamentos
+// externos e com quem mora): só o AEE e a coordenação (seções 7 e 14, necessidade de saber).
+export function canSeeClinicalDetail(role: string): boolean {
+  return role === "professor_aee" || role === "coordenacao";
+}
+
 // Perfis com visão de gestão da rede inteira.
 const NETWORK_ROLES = new Set(["secretaria", "gestao", "coordenacao"]);
 // Perfis que atuam diretamente sobre o estudante na escola.

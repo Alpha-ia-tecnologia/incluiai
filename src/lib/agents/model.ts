@@ -1,7 +1,7 @@
 import { claudeAgentModel } from "./claude";
 import { deepseekAgentModel } from "./deepseek";
 import type { AgentModel } from "./types";
-import { hasApiKey } from "../env";
+import { hasApiKey, isDeepSeekEnabled } from "../env";
 import { withAnonymization, type Anonymizer } from "./anonymize";
 
 // Cadeia de provedores dos agentes: Claude → DeepSeek (se configurado) →
@@ -13,12 +13,10 @@ export { DEEPSEEK_MODEL, deepseekAgentModel } from "./deepseek";
 export { AgentOutputError, type AgentModel, type AgentRequest } from "./types";
 
 export function isAIEnabled(): boolean {
-  return hasApiKey("ANTHROPIC_API_KEY") || hasApiKey("DEEPSEEK_API_KEY");
+  return hasApiKey("ANTHROPIC_API_KEY") || isDeepSeekEnabled();
 }
 
-export function isDeepSeekEnabled(): boolean {
-  return hasApiKey("DEEPSEEK_API_KEY");
-}
+export { isDeepSeekEnabled };
 
 type Provider = { name: "Claude" | "DeepSeek"; call: AgentModel };
 
@@ -27,7 +25,7 @@ type Provider = { name: "Claude" | "DeepSeek"; call: AgentModel };
 export function createAgentModel(anonymizer: Anonymizer) {
   const providers: Provider[] = [];
   if (hasApiKey("ANTHROPIC_API_KEY")) providers.push({ name: "Claude", call: claudeAgentModel });
-  if (hasApiKey("DEEPSEEK_API_KEY")) providers.push({ name: "DeepSeek", call: deepseekAgentModel });
+  if (isDeepSeekEnabled()) providers.push({ name: "DeepSeek", call: deepseekAgentModel });
 
   const usedBy = new Map<string, Provider["name"]>();
   const model: AgentModel = async (request) => {
