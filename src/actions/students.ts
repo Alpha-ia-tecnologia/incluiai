@@ -96,19 +96,3 @@ export async function createStudent(formData: FormData) {
   revalidatePath("/");
   redirect(`/estudantes/${student.id}`);
 }
-
-export async function logStudentAccess(studentId: string, detail: string) {
-  const user = await getCurrentUser();
-  if (!user) return;
-
-  await prisma.accessLog.create({
-    data: {
-      studentId,
-      actor: user.name,
-      role: user.role,
-      action: "visualizou",
-      detail,
-    },
-  });
-}
-

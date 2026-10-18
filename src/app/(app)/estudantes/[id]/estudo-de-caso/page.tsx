@@ -59,7 +59,7 @@ export default async function CaseStudyPage({
   searchParams: Promise<{ editar?: string; salvo?: string }>;
 }) {
   const { id } = await params;
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Estudo de caso");
   const { editar, salvo } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -70,9 +70,6 @@ export default async function CaseStudyPage({
     prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true } }),
     prisma.caseStudy.findUnique({ where: { studentId: id } }),
   ]);
-  if (caseStudy) {
-    await prisma.accessLog.create({ data: { studentId: id, actor: user.name, role: user.role, action: "visualizou", detail: "Estudo de caso" } });
-  }
 
   const content: CaseStudyContent = parseCaseStudy(caseStudy?.content);
   const concluded = caseStudy?.status === "concluido";

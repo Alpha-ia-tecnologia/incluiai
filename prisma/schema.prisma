@@ -386,6 +386,8 @@ model Activity {
   classParticipation String? // como a turma participa junto (DUA)
   reviewNotes        String? // JSON: pontos que o agente revisor pediu para o professor conferir
   status             String     @default("sugerida") // sugerida | aceita | aplicada | rejeitada
+  decidedBy          String? // quem aceitou ou recusou
+  decidedAt          DateTime?
   rejectReason       String?
   source             String     @default("regras") // regras | ia | professor
   createdAt          DateTime   @default(now())
@@ -426,7 +428,9 @@ model DiaryEntry {
   note           String?
   whatWorked     String?
   recommendation String?
-  authorRole     String // professor_sala | professor_aee | apoio | familia
+  authorRole     String // papel declarado de quem conduziu (professor_sala, professor_aee, apoio ou outro)
+  authorId       String? // quem registrou de fato (usuário da sessão)
+  authorName     String?
   createdAt      DateTime   @default(now())
 }
 
@@ -492,11 +496,14 @@ model AccessLog {
   id        String   @id @default(cuid())
   studentId String
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  actorId   String? // usuário que agiu (para não repetir leituras seguidas)
   actor     String
   role      String
-  action    String // visualizou | criou | editou
+  action    String // visualizou | criou | editou | aceitou | recusou | alterou | revisou | encerrou
   detail    String?
   createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
 }
 
 // ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@ const CRITERION_TONES = { sim: "green", parcial: "amber", nao: "coral" } as cons
 
 export default async function DiaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ activityId?: string | string[] }> }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Registrar aula (histórico)");
   const [entries, objectives, acceptedActivities] = await Promise.all([
     prisma.diaryEntry.findMany({
       where: { studentId: id },

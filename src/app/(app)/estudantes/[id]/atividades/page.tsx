@@ -168,7 +168,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
 
 export default async function ActivitiesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Atividades");
   const [profile, objectives, activities] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id } }),
     prisma.objective.findMany({

@@ -38,7 +38,7 @@ export default async function ProfilePage({
   searchParams: Promise<{ modo?: string }>;
 }) {
   const { id } = await params;
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Como aprende");
   const { modo } = await searchParams;
   const [student, profile, caseStudy] = await Promise.all([
     prisma.student.findUniqueOrThrow({ where: { id } }),

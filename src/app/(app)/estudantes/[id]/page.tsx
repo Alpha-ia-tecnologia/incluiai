@@ -5,7 +5,6 @@ import { meetingQuestions } from "@/lib/materials";
 import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS, BARRIERS } from "@/lib/scale";
 import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
-import { logStudentAccess } from "@/actions/students";
 import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { parseCaseStudy } from "@/lib/case-study";
 import type { FunctionalProfile } from "@prisma/client";
@@ -38,7 +37,7 @@ const NARROW_BARS = "lg:[&_li]:grid-cols-[minmax(0,1fr)_auto] lg:[&_li>span:nth-
 
 export default async function StudentOverview({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Resumo");
   const student = await prisma.student.findUniqueOrThrow({
     where: { id },
     include: {
@@ -58,7 +57,6 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   const pedagogical = Boolean(user && canSeePedagogicalDetail(user.role));
   const caseSynthesis = parseCaseStudy(student.caseStudy?.content).sintese;
 
-  await logStudentAccess(id, "Visão geral do prontuário");
 
   const activePlan = student.plans.find((p) => p.status === "ativo");
   const objectives = activePlan?.objectives.filter((o) => o.status === "ativo") ?? [];

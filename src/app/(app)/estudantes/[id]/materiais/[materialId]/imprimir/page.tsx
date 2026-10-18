@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // O acesso ao estudante já foi conferido no layout do estudante.
 export default async function PrintMaterialPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const { id, materialId } = await params;
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Impressão de material");
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const material = await prisma.material.findFirst({

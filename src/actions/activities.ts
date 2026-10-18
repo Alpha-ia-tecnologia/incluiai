@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser, isStaffOrNetwork, requireStudentTeam } from "@/lib/auth";
+import { decideActivity } from "@/lib/records";
 import { buildActivityCards, saveSuggestedActivities } from "@/lib/agents/generate";
 import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { createActivityImage } from "@/lib/images/save";
@@ -40,21 +41,19 @@ export async function generateActivities(studentId: string, formData: FormData) 
   revalidatePath("/");
 }
 
+// Aceitar e recusar passam pelo mesmo registro do assistente: quem decidiu fica
+// na atividade e no histórico de acessos.
 export async function acceptActivity(studentId: string, activityId: string) {
-  await requireStudentTeam(studentId);
-  await prisma.activity.update({ where: { id: activityId, studentId }, data: { status: "aceita" } });
+  const user = await requireStudentTeam(studentId);
+  await decideActivity(user, studentId, activityId, "aceita");
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");
 }
 
 export async function rejectActivity(studentId: string, activityId: string, formData: FormData) {
-  await requireStudentTeam(studentId);
-  const reason = String(formData.get("reason") ?? "").trim() || "Sem motivo informado";
-  await prisma.activity.update({
-    where: { id: activityId, studentId },
-    data: { status: "rejeitada", rejectReason: reason },
-  });
+  const user = await requireStudentTeam(studentId);
+  await decideActivity(user, studentId, activityId, "rejeitada", String(formData.get("reason") ?? ""));
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");

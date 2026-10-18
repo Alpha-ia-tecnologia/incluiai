@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { canAccessStudent, canSeePedagogicalDetail, isStaffOrNetwork, type SessionUser } from "./auth";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
+import { recordChange } from "./access-log";
 
 // Gravações do acompanhamento usadas pelos formulários e pelo assistente.
 // Cada uma confere a permissão de quem grava; nada aqui é ação pública.
@@ -47,6 +48,10 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
     const activity = await prisma.activity.findFirst({ where: { id: activityId, studentId }, select: { id: true } });
     if (!activity) throw new Error("Atividade não encontrada para este estudante.");
   }
+  // O papel é declarado por quem conduziu (pode ser "intérprete de Libras");
+  // família e terapeuta não registram aula da escola. O autor real vem da sessão.
+  const authorRole = input.authorRole.trim().slice(0, 60);
+  if (!authorRole || ["familia", "terapeuta"].includes(authorRole)) throw new Error("Escolha o seu papel neste registro.");
   const entry = await prisma.diaryEntry.create({
     data: {
       studentId,
@@ -58,12 +63,15 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
       note: input.note?.trim() || null,
       whatWorked: input.whatWorked?.trim() || null,
       recommendation: input.recommendation?.trim() || null,
-      authorRole: input.authorRole,
+      authorRole,
+      authorId: user.id,
+      authorName: user.name,
     },
   });
   if (activityId) {
     await prisma.activity.update({ where: { id: activityId }, data: { status: "aplicada" } });
   }
+  await recordChange(user, studentId, "registrou", "Registro de aula");
   return entry;
 }
 
@@ -108,6 +116,7 @@ export async function setObjectiveStatus(user: SessionUser, studentId: string, o
   const objective = await prisma.objective.findFirst({ where: { id: objectiveId, plan: { studentId } } });
   if (!objective) throw new Error("Objetivo não encontrado para este estudante.");
   await prisma.objective.update({ where: { id: objectiveId }, data: { status } });
+  await recordChange(user, studentId, "alterou", `Objetivo: ${status === "alcancado" ? "alcançado" : status === "em_revisao" ? "em revisão" : "ativo"}`);
   if (status === "alcancado") {
     await prisma.timelineEvent.create({ data: { studentId, type: "conquista", title: "Objetivo alcançado", description: objective.description } });
   }
@@ -118,10 +127,14 @@ export async function decideActivity(user: SessionUser, studentId: string, activ
   await assertStudentTeam(user, studentId);
   const activity = await prisma.activity.findFirst({ where: { id: activityId, studentId } });
   if (!activity) throw new Error("Atividade não encontrada para este estudante.");
-  return prisma.activity.update({
+  // Quem decidiu fica na atividade e no histórico de acessos (seção 17.7: a decisão é humana).
+  const decided = { decidedBy: user.name, decidedAt: new Date() };
+  const updated = await prisma.activity.update({
     where: { id: activityId },
-    data: decision === "aceita" ? { status: "aceita", rejectReason: null } : { status: "rejeitada", rejectReason: reason?.trim() || "Sem motivo informado" },
+    data: decision === "aceita" ? { status: "aceita", rejectReason: null, ...decided } : { status: "rejeitada", rejectReason: reason?.trim() || "Sem motivo informado", ...decided },
   });
+  await recordChange(user, studentId, decision === "aceita" ? "aceitou" : "recusou", `Atividade: ${activity.title}`);
+  return updated;
 }
 
 // Um plano ativo por vez: para começar outro, a equipe encerra o atual (com

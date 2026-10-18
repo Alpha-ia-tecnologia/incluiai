@@ -346,6 +346,8 @@ if (!ONLY_WAIT) {
     await page.waitForFunction(() => document.body.innerText.includes("pediu água pela prancha no jantar"), { timeout: 20000 }).catch(() => {});
     check("família registra conquista de casa", await page.evaluate(() => document.body.innerText.includes("pediu água pela prancha no jantar")));
     check("família vê log de acessos (LGPD)", await page.evaluate(() => document.body.innerText.toLowerCase().includes("quem acessou os dados")));
+    // Seção 12: com nome de quem acessou (a professora do AEE abriu a ficha nesta mesma execução).
+    check("família vê o nome de quem acessou a ficha", await page.evaluate(() => /Beatriz[\s\S]{0,120}visualizou/.test(document.body.innerText)));
     check("família sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }

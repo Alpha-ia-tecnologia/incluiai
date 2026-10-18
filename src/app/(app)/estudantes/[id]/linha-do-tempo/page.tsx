@@ -86,7 +86,7 @@ async function withinReach<T>(work: () => Promise<T>, fallback: T): Promise<T> {
 
 export default async function TimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Evolução");
   const user = await getCurrentUser();
   // Atividades com DUA e frequência do AEE são da equipe pedagógica: família e
   // terapeuta continuam vendo a linha do tempo como antes.

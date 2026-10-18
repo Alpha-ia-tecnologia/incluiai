@@ -28,7 +28,7 @@ const one = (value: string | string[] | undefined) => (Array.isArray(value) ? va
 // cada material abre na página própria (materiais/[materialId]).
 export default async function MaterialsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Materiais de apoio");
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // O layout do estudante já confere o acesso; a página confere de novo, perto dos dados.

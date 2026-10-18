@@ -37,7 +37,7 @@ const RESULT_TEXT: Record<"sim" | "parcial" | "nao", string> = {
 // estudante e ver apoios, evidências e próximos passos de todas as atividades.
 export default async function StudentDuaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Atividades com DUA");
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // Família e terapeuta não acessam o DUA. O layout já conferiu o acesso ao estudante.

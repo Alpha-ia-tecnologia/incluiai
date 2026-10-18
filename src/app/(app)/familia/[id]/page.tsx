@@ -9,7 +9,7 @@ import { PendingButton } from "@/components/pending-button";
 import { Character } from "@/components/character";
 import { parseJson, formatDate } from "@/lib/format";
 import { ROLES } from "@/lib/scale";
-import { PageHero, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
+import { PageHero, Card, SectionTitle, EmptyState } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
 import { Trophy, ShieldCheck, Home, CircleCheck, BookOpen } from "lucide-react";
@@ -35,7 +35,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       school: true,
       plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" } } } },
       familyNotes: { orderBy: { date: "desc" } },
-      accessLogs: { orderBy: { createdAt: "desc" }, take: 8 },
+      accessLogs: { orderBy: { createdAt: "desc" }, take: 200 },
       timeline: { where: { type: "conquista" }, orderBy: { date: "desc" }, take: 5 },
       activities: {
         where: { context: "casa", status: { in: ["aceita", "aplicada"] } },
@@ -198,18 +198,19 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             <SectionTitle>
               <span className="flex items-center gap-1.5"><ShieldCheck size={13} aria-hidden /> Quem acessou os dados</span>
             </SectionTitle>
+            {/* Seção 12: a família entende quem acessou os dados, com nome, papel e o que fez. */}
             {student.accessLogs.length === 0 ? (
               <p className="text-sm text-ink-soft">Nenhum acesso registrado.</p>
             ) : (
-              <ul className="space-y-1.5 text-xs text-ink-soft">
-                {student.accessLogs.map((l) => (
-                  <li key={l.id} className="flex flex-wrap items-center gap-1.5">
-                    <Badge>{ROLES[l.role] ?? l.role}</Badge>
-                    <span>{l.action} {l.detail ? `· ${l.detail}` : ""}</span>
-                    <span className="ml-auto">{formatDate(l.createdAt)}</span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <AccessList logs={student.accessLogs.slice(0, 8)} />
+                {student.accessLogs.length > 8 ? (
+                  <details className="mt-3">
+                    <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-brand-strong">Ver o histórico completo ({student.accessLogs.length} registros{student.accessLogs.length === 200 ? ", os mais recentes" : ""})</summary>
+                    <AccessList logs={student.accessLogs.slice(8)} />
+                  </details>
+                ) : null}
+              </>
             )}
           </Card>
         </div>
@@ -247,5 +248,22 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
         </div>
       </div>
     </>
+  );
+}
+
+// Cada acesso: quem (nome e papel), o que fez e quando.
+function AccessList({ logs }: { logs: { id: string; actor: string; role: string; action: string; detail: string | null; createdAt: Date }[] }) {
+  return (
+    <ul className="divide-y divide-line text-sm">
+      {logs.map((log) => (
+        <li key={log.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2">
+          <span className="min-w-0">
+            <span className="font-medium text-ink">{log.actor}</span> <span className="text-xs text-ink-soft">({ROLES[log.role] ?? log.role})</span>
+            <span className="block text-xs text-ink-soft">{log.action}{log.detail ? ` · ${log.detail}` : ""}</span>
+          </span>
+          <span className="shrink-0 text-xs tabular-nums text-ink-soft">{formatDate(log.createdAt)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

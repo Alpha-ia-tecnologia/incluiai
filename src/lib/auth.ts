@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma";
+import { recordView } from "./access-log";
 import { LOGIN_WINDOW_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
 
 // Autenticação — item 7 (perfis de acesso) e 14 (LGPD). Senha com scrypt + sal.
@@ -108,7 +109,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
 // Cada página da ficha confere, perto dos dados, quem está abrindo (o layout
 // sozinho não basta: em navegação parcial ele não roda de novo). A ficha é da
 // equipe; família e terapeuta vão para os portais deles.
-export async function requireStudentPage(studentId: string): Promise<SessionUser> {
+export async function requireStudentPage(studentId: string, section?: string): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
@@ -116,6 +117,7 @@ export async function requireStudentPage(studentId: string): Promise<SessionUser
   if (!canAccessStudent(user, student.schoolId, studentId)) redirect("/");
   if (user.role === "familia") redirect(`/familia/${studentId}`);
   if (user.role === "terapeuta") redirect("/terapeuta");
+  if (section) await recordView(user, studentId, section);
   return user;
 }
 

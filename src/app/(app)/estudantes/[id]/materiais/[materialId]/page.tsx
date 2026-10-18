@@ -18,7 +18,7 @@ const one = (value: string | string[] | undefined) => (Array.isArray(value) ? va
 // galeria: a equipe pedagógica edita; família e terapeuta só leem.
 export default async function MaterialPage({ params, searchParams }: { params: Promise<{ id: string; materialId: string }>; searchParams: Promise<Query> }) {
   const [{ id, materialId }, query] = await Promise.all([params, searchParams]);
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Material de apoio");
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // Só material DESTE estudante: o id do material sozinho não basta.

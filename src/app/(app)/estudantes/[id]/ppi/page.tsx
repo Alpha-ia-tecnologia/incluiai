@@ -33,7 +33,7 @@ const multiStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id);
+  await requireStudentPage(id, "Plano de ensino");
   const plans = await prisma.plan.findMany({
     where: { studentId: id },
     include: { objectives: { orderBy: { createdAt: "asc" } }, reviews: { orderBy: { reviewedAt: "desc" } } },
