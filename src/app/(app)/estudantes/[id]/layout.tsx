@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, canAccessStudent, canSeePedagogicalDetail } from "@/lib/auth";
+import { getCurrentUser, canAccessStudent, canEditStudentRecord, canSeePedagogicalDetail, hasNominalAccess, needsNominalJustification } from "@/lib/auth";
 import { ageFrom } from "@/lib/format";
 import { STAGES, SHIFTS } from "@/lib/scale";
 import { Badge } from "@/components/ui";
@@ -33,8 +33,15 @@ export default async function StudentLayout({
   // da proposta): pelo endereço, as abas mostravam notas e o diário pedagógico.
   if (user.role === "familia") redirect(`/familia/${student.id}`);
   if (user.role === "terapeuta") redirect("/terapeuta");
+  // A Secretaria abre a ficha com nome só depois de informar o motivo.
+  if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
 
   const showJourney = canSeePedagogicalDetail(user.role);
+  // Secretaria com motivo registrado: leitura, sem as abas de trabalho.
+  const readOnly = !canEditStudentRecord(user.role);
+  const grant = needsNominalJustification(user.role)
+    ? await prisma.accessGrant.findFirst({ where: { userId: user.id, studentId: student.id, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: "desc" }, select: { expiresAt: true } })
+    : null;
   const progress = showJourney ? await prisma.student.findUniqueOrThrow({
     where: { id },
     select: {
@@ -91,12 +98,17 @@ export default async function StudentLayout({
               </div>
             ) : null}
           </div>
-          {journey ? <StudentNextStepLink progress={journey} /> : null}
+          {journey && !readOnly ? <StudentNextStepLink progress={journey} /> : null}
         </div>
-        <StudentTabs studentId={student.id} showCaseStudy={showJourney} showDua={showJourney && canPlanDua(user)} />
+        <StudentTabs studentId={student.id} showCaseStudy={showJourney} showDua={showJourney && canPlanDua(user)} readOnly={readOnly} />
       </StudentHead>
 
-      {journey ? <StudentJourney progress={journey} /> : null}
+      {grant ? (
+        <p role="status" className="mb-6 rounded-2xl bg-amber-soft px-4 py-3 text-sm leading-relaxed text-amber">
+          Acesso de leitura com motivo registrado, válido até {grant.expiresAt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}. A família vê este acesso; a Secretaria não altera a ficha.
+        </p>
+      ) : null}
+      {journey && !readOnly ? <StudentJourney progress={journey} /> : null}
 
       {children}
     </>

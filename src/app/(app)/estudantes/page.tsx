@@ -75,6 +75,11 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     return { key: step.key, label: `${step.step}. ${step.label}`, value, detail: pct === null ? undefined : `${pct}%` };
   });
   const inRoutine = rows.filter((row) => row.next.step === 5 && row.steps[4].done).length;
+  // A Secretaria vê a rede em números (seção 10): aqui, só encontra um estudante
+  // pela busca (3 letras ou mais) e abre a ficha informando o motivo.
+  const nominal = user.role !== "secretaria";
+  const searching = query.length >= 3;
+  const listed = nominal || searching ? rows : [];
   const title = action === "registrar" ? "Para quem você quer registrar a aula?" : action === "preparar" ? "Para quem vamos preparar uma atividade?" : action === "acompanhar" ? "Quem você quer acompanhar?" : "Estudantes";
   const resetHref = action ? `/estudantes?acao=${action}` : "/estudantes";
 
@@ -110,8 +115,13 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
               {query || selectedClass ? <Link href={resetHref} className="task-action task-action-secondary">Limpar filtros</Link> : null}
             </div>
           </form>
-          <p role="status" className="mb-4 text-sm text-ink-soft">{students.length} {students.length === 1 ? "estudante encontrado" : "estudantes encontrados"}{query ? ` para “${query}”` : ""}{selectedClass ? " na turma selecionada" : ""}.</p>
-          {!action && students.length ? (
+          {nominal || searching ? <p role="status" className="mb-4 text-sm text-ink-soft">{students.length} {students.length === 1 ? "estudante encontrado" : "estudantes encontrados"}{query ? ` para “${query}”` : ""}{selectedClass ? " na turma selecionada" : ""}.</p> : null}
+          {!nominal && !searching ? (
+            <p role="status" className="mb-6 rounded-2xl bg-surface-muted px-5 py-4 text-sm leading-relaxed text-ink-soft">
+              A Secretaria acompanha a rede pelos números do <Link href="/painel" className="font-medium text-brand-strong underline underline-offset-4">Painel</Link>. Para abrir a ficha de um estudante, digite pelo menos 3 letras do nome: ao abrir, você informa o motivo, que fica registrado e a família vê.
+            </p>
+          ) : null}
+          {nominal && !action && students.length ? (
             // Resumo da lista atual (respeita a busca e a turma escolhidas).
             // Trilha das cinco etapas com quantos estudantes estão em cada uma: compacta,
             // para os cartões dos estudantes aparecerem logo abaixo.
@@ -138,9 +148,9 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
               </div>
             </section>
           ) : null}
-          {students.length ? (
+          {listed.length ? (
             <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              {rows.map(({ student, next, steps }) => {
+              {listed.map(({ student, next, steps }) => {
                 const base = `/estudantes/${student.id}`;
                 const selected = action === "registrar"
                   ? { href: `${base}/diario`, label: "Registrar aula", description: "Conte como foi a aula deste estudante." }
@@ -168,11 +178,11 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                 );
               })}
             </div>
-          ) : <EmptyState character="learning" title="Nenhum estudante encontrado" hint="Confira o nome digitado ou use “Limpar filtros” para ver todos os estudantes disponíveis." action={<Link href={resetHref} className={quietButtonCls}>Limpar filtros</Link>} />}
+          ) : !nominal && !searching ? null : <EmptyState character="learning" title="Nenhum estudante encontrado" hint="Confira o nome digitado ou use “Limpar filtros” para ver todos os estudantes disponíveis." action={<Link href={resetHref} className={quietButtonCls}>Limpar filtros</Link>} />}
         </>
       ) : <EmptyState character="learning" title="Cadastre o primeiro estudante" hint="Comece com nome, escola e turma. Depois, você poderá completar as informações de aprendizagem." action={<Link href="/estudantes/novo" className={primaryButtonCls}><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link>} />}
 
-      {classes.length ? (
+      {nominal && classes.length ? (
         <details id="planejar-turma" className="mt-8 rounded-2xl border border-line bg-teal-soft/60">
           <summary className="min-h-14 cursor-pointer px-5 py-5 text-base font-medium sm:px-6">Preparar atividades para uma turma inteira</summary>
           <div className="px-5 pb-6 sm:px-6">

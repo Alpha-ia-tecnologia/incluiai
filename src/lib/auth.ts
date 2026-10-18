@@ -117,6 +117,7 @@ export async function requireStudentPage(studentId: string, section?: string): P
   if (!canAccessStudent(user, student.schoolId, studentId)) redirect("/");
   if (user.role === "familia") redirect(`/familia/${studentId}`);
   if (user.role === "terapeuta") redirect("/terapeuta");
+  if (!(await hasNominalAccess(user, studentId))) redirect(`/acesso-nominal/${studentId}`);
   if (section) await recordView(user, studentId, section);
   return user;
 }
@@ -125,6 +126,25 @@ export async function requireStudentPage(studentId: string, section?: string): P
 // externos e com quem mora): só o AEE e a coordenação (seções 7 e 14, necessidade de saber).
 export function canSeeClinicalDetail(role: string): boolean {
   return role === "professor_aee" || role === "coordenacao";
+}
+
+// Quem escreve na ficha do estudante (registro, plano, perfil, atividades): a
+// equipe pedagógica. A Secretaria acompanha a rede pelos números e, quando
+// precisa, lê uma ficha com motivo registrado, mas não altera.
+export function canEditStudentRecord(role: string): boolean {
+  return isStaffOrNetwork(role) && canSeePedagogicalDetail(role) && role !== "secretaria";
+}
+
+// A Secretaria vê a rede em números (seção 10): para abrir a ficha de um
+// estudante com nome, informa o motivo (AccessGrant, 8 h, visível à família).
+export const NOMINAL_ACCESS_HOURS = 8;
+export function needsNominalJustification(role: string): boolean {
+  return role === "secretaria";
+}
+export async function hasNominalAccess(user: SessionUser, studentId: string): Promise<boolean> {
+  if (!needsNominalJustification(user.role)) return true;
+  const grant = await prisma.accessGrant.findFirst({ where: { userId: user.id, studentId, expiresAt: { gt: new Date() } }, select: { id: true } });
+  return Boolean(grant);
 }
 
 // Perfis com visão de gestão da rede inteira.
@@ -165,7 +185,7 @@ export function canSeePedagogicalDetail(role: string): boolean {
 export async function requireStudentTeam(studentId: string): Promise<SessionUser> {
   const user = await getCurrentUser();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });
-  if (!user || !student || !isStaffOrNetwork(user.role) || !canSeePedagogicalDetail(user.role) || !canAccessStudent(user, student.schoolId, student.id)) {
+  if (!user || !student || !canEditStudentRecord(user.role) || !canAccessStudent(user, student.schoolId, student.id)) {
     throw new Error("Você não tem permissão para esta ação com este estudante.");
   }
   return user;

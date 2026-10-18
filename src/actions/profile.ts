@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import {
   canAccessStudent,
   getCurrentUser,
-  isStaffOrNetwork,
+  canEditStudentRecord,
 } from "@/lib/auth";
 
 const SUPPORT_FIELDS = [
@@ -41,7 +41,7 @@ export async function upsertProfile(studentId: string, formData: FormData) {
   if (
     !user ||
     !student ||
-    !isStaffOrNetwork(user.role) ||
+    !canEditStudentRecord(user.role) ||
     !canAccessStudent(user, student.schoolId, student.id)
   ) {
     throw new Error("Você não tem permissão para editar este perfil.");

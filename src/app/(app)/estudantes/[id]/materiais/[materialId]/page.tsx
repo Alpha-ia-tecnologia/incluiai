@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { canAccessStudent, canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
+import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { MaterialView } from "@/components/materials/material-view";
 import { CreatedNotice } from "@/components/materials/created-notice";
@@ -29,7 +29,7 @@ export default async function MaterialPage({ params, searchParams }: { params: P
   if (!material) notFound();
   // O layout do estudante já confere o acesso; a página confere de novo, perto dos dados.
   if (!canAccessStudent(user, material.student.schoolId, id)) redirect("/");
-  const team = isStaffOrNetwork(user.role) && canSeePedagogicalDetail(user.role);
+  const team = canEditStudentRecord(user.role);
   const imagesOn = isImageGenerationEnabled();
   const objective = material.objectiveId
     ? await prisma.objective.findFirst({ where: { id: material.objectiveId, plan: { studentId: id } }, select: { description: true } })

@@ -371,6 +371,32 @@ if (!ONLY_WAIT) {
     const body = await page.evaluate(() => document.body.innerText);
     check("painel: indicadores da rede", body.includes("Jornada do acompanhamento") && body.includes("Toda a rede") && Boolean(await page.$('nav[aria-label="Indicador do medidor"]')));
     check("painel: banco de práticas agregado", body.toLowerCase().includes("banco de práticas por perfil"));
+    // Secretaria vê a rede em números (seção 10): sem nomes no painel nem na lista;
+    // a ficha com nome pede motivo, é só leitura e a família vê o acesso.
+    check("secretaria: painel sem nomes, com avisos por escola", body.includes("Avisos por escola") && !body.includes("Dante Oliveira"));
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    check("secretaria: lista de estudantes só com busca", !(await page.evaluate(() => document.body.innerText.includes("Dante Oliveira"))));
+    await page.goto(`${BASE}/estudantes?q=Dan`, { waitUntil: "networkidle2" });
+    check("secretaria: busca com 3 letras encontra o estudante", await page.evaluate(() => document.body.innerText.includes("Dante Oliveira")));
+    await page.goto(`${BASE}${danteHref}`, { waitUntil: "networkidle2" });
+    check("secretaria: ficha com nome pede o motivo", page.url().includes("/acesso-nominal/"), `url=${page.url()}`);
+    if (page.url().includes("/acesso-nominal/")) {
+      await choose(page, "Motivo do acesso", "Transferência entre escolas");
+      await page.type("#access-detail", "Teste E2E: conferir o plano antes da transferência.");
+      await clickByText(page, "Registrar o motivo e abrir a ficha");
+      await page.waitForFunction(() => /\/estudantes\/[^/]+$/.test(location.pathname), { timeout: 20000 }).catch(() => {});
+      const record = await page.evaluate(() => ({
+        banner: document.body.innerText.includes("Acesso de leitura com motivo registrado"),
+        tabs: [...document.querySelectorAll('nav[aria-label="Seções do estudante"] a')].map((link) => link.textContent.trim()),
+      }));
+      check("secretaria: ficha aberta só para leitura", record.banner && !record.tabs.includes("Registrar aula") && record.tabs.includes("Plano de ensino"), JSON.stringify(record));
+      await page.goto(`${BASE}${danteHref}/diario`, { waitUntil: "networkidle2" });
+      check("secretaria: aba de registro volta ao resumo", new URL(page.url()).pathname === danteHref, `url=${page.url()}`);
+      const family = await newSession();
+      await login(family.page, "familia@email.com");
+      check("família vê o acesso justificado da Secretaria", await family.page.evaluate(() => document.body.innerText.includes("acesso justificado")));
+      await family.ctx.close();
+    }
     check("assistente: botão flutuante em todas as telas", Boolean(await page.$(".assistant-fab")));
     await page.goto(`${BASE}/assistente`, { waitUntil: "networkidle2" });
     check("assistente: página própria", (await page.evaluate(() => document.querySelector("h1")?.textContent)) === "Converse com o assistente");

@@ -20,19 +20,21 @@ const TABS = [
 
 // Seções que ficam ocultas para quem não acessa o detalhe pedagógico (família e terapeuta).
 const PEDAGOGICAL_ONLY = new Set(["estudo-de-caso", "dua", "atendimentos-aee"]);
+// Leitura sem edição (Secretaria com motivo registrado): as abas de consulta.
+const READ_ONLY_TABS = new Set(["", "estudo-de-caso", "ppi", "atendimentos-aee", "linha-do-tempo", "materiais"]);
 
 type Fade = "start" | "end" | "both" | undefined;
 
 // showCaseStudy = pode ver o detalhe pedagógico (estudo de caso, DUA e frequência do AEE).
 // showDua, quando informado, esconde só a aba do DUA de quem vê o detalhe mas não planeja (secretaria).
 // As abas ficam numa linha que rola de lado (computador e celular); a aberta fica à vista.
-export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy }: { studentId: string; showCaseStudy: boolean; showDua?: boolean }) {
+export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy, readOnly = false }: { studentId: string; showCaseStudy: boolean; showDua?: boolean; readOnly?: boolean }) {
   const pathname = usePathname();
   const stripRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLAnchorElement>(null);
   const [fade, setFade] = useState<Fade>(undefined);
   const base = `/estudantes/${studentId}`;
-  const tabs = TABS.filter((tab) => (showCaseStudy || !PEDAGOGICAL_ONLY.has(tab.slug)) && (showDua || tab.slug !== "dua")).map((tab) => ({
+  const tabs = TABS.filter((tab) => (showCaseStudy || !PEDAGOGICAL_ONLY.has(tab.slug)) && (showDua || tab.slug !== "dua") && (!readOnly || READ_ONLY_TABS.has(tab.slug))).map((tab) => ({
     ...tab,
     href: tab.slug ? `${base}/${tab.slug}` : base,
   }));

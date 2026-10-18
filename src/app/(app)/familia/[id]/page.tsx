@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, canAccessStudent } from "@/lib/auth";
+import { getCurrentUser, canAccessStudent, hasNominalAccess } from "@/lib/auth";
 import { createFamilyNote, markHomeActivityDone } from "@/actions/diary";
 import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
@@ -56,6 +56,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   if (!canAccessStudent(user, student.schoolId, student.id)) redirect("/");
   // O portal guarda o que a família registra: o terapeuta tem o espaço dele.
   if (user.role === "terapeuta") redirect("/terapeuta");
+  if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
 
   const isFamily = user.role === "familia";
   if (isFamily) await recordJourneyMark(user.id, "familia_inicio");

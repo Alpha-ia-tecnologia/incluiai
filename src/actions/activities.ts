@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { canAccessStudent, getCurrentUser, isStaffOrNetwork, requireStudentTeam } from "@/lib/auth";
+import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentTeam } from "@/lib/auth";
 import { decideActivity } from "@/lib/records";
 import { buildActivityCards, saveSuggestedActivities } from "@/lib/agents/generate";
 import { isImageGenerationEnabled } from "@/lib/images/openai-images";
@@ -67,7 +67,7 @@ export async function generateBatchForClass(formData: FormData) {
   const lessonTopic = String(formData.get("lessonTopic") ?? "").trim();
   if (!schoolId || !className) throw new Error("Selecione a turma.");
   const user = await getCurrentUser();
-  if (!user || !isStaffOrNetwork(user.role) || !canAccessStudent(user, schoolId, "")) {
+  if (!user || !canEditStudentRecord(user.role) || !canAccessStudent(user, schoolId, "")) {
     throw new Error("Você não tem permissão para planejar com esta turma.");
   }
 

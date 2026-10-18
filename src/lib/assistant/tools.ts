@@ -451,10 +451,12 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
         `- IA: Claude ${d.ai.providers.claude ? "ativo" : "não configurado"}, DeepSeek ${d.ai.providers.deepseek ? "ativo" : "não configurado"}, OpenAI ${d.ai.providers.openai ? "ativo" : "não configurado"}; planos propostos pela IA: ${d.ai.planProposals.ia}; atividades da IA: ${d.ai.activities.total}; imagens: ${d.ai.images}.`,
         network ? `- Escolas da rede: ${d.scope.schools.map((school) => `${ctx.privacy.schoolLabel(school.id)} (id ${school.id})`).join(", ")}.` : "",
         d.profile.caa.withoutResources ? `- Leitura para a gestão: ${d.profile.caa.withoutResources} de ${d.profile.caa.total} estudantes com comunicação alternativa ainda sem recursos de acessibilidade registrados.` : "",
-        d.attention.students.length ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERT_LABELS[kind].toLowerCase()).join(", ")}`).join("; ")}.` : "",
+        d.attention.students.length && ctx.user.role !== "secretaria" ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERT_LABELS[kind].toLowerCase()).join(", ")}`).join("; ")}.` : "",
       ].filter(Boolean).join("\n");
     });
 
+  // A Secretaria vê a rede em números (seção 10): sem ferramentas por estudante.
+  if (ctx.user.role === "secretaria") return [indicadores, buscarRecursos, datasInclusivas(ctx)];
   return [
     buscarEstudantes, verEstudante, verAtividades, proximosPassosDua, proporPlano, gerarAtividades, criarMaterial,
     registrarAula, decidirAtividade, marcarObjetivo, buscarRecursos, indicadores, datasInclusivas(ctx),

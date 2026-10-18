@@ -14,7 +14,7 @@ import { PendingButton } from "@/components/pending-button";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ObjectiveFields } from "@/components/objective-fields";
 import { Archive, ArrowRight, CalendarCheck, Sparkles, Trash2 } from "lucide-react";
-import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
+import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canEditStudentRecord } from "@/lib/auth";
 import { canPlanDua } from "@/lib/dua/access";
 import { DuaError } from "@/lib/dua/shared";
 import { listStudentSupports, type SupportView } from "@/lib/dua/supports";
@@ -33,7 +33,9 @@ const multiStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id, "Plano de ensino");
+  const viewer = await requireStudentPage(id, "Plano de ensino");
+  // Quem só lê a ficha (Secretaria com motivo) vê o plano sem os formulários.
+  const editable = canEditStudentRecord(viewer.role);
   const plans = await prisma.plan.findMany({
     where: { studentId: id },
     include: { objectives: { orderBy: { createdAt: "asc" } }, reviews: { orderBy: { reviewedAt: "desc" } } },
@@ -43,6 +45,15 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   // Planos encerrados continuam à vista: o acompanhamento não recomeça do zero.
   const pastPlans = plans.filter((p) => p.status === "encerrado");
   const overdue = plan && new Date(plan.reviewDate).getTime() < new Date().getTime();
+
+  if (!plan && !editable) {
+    return (
+      <>
+        <PageHeader level={2} title="Plano de ensino (PPI)" lede="Este estudante não tem plano ativo no momento." />
+        <PastPlans plans={pastPlans} />
+      </>
+    );
+  }
 
   if (!plan) {
     const create = createPlan.bind(null, id);
@@ -178,7 +189,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
       {/* O próximo passo segue a regra da jornada (botão no cabeçalho da ficha). Só
           quando o passo é aqui mesmo (plano sem objetivo ativo) o cartão leva ao formulário. */}
-      {!hasActiveObjectives ? (
+      {editable && !hasActiveObjectives ? (
         <Card className="mb-6 border-brand/30 bg-brand-soft/50">
           <SectionTitle>Próximo passo: definir um objetivo</SectionTitle>
           <p className="mb-3 text-sm leading-relaxed text-ink-soft">O plano foi criado. Agora, descreva abaixo uma aprendizagem que você poderá observar nas próximas aulas.</p>
@@ -229,7 +240,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             ? `${reviews.total} ${reviews.total === 1 ? "revisão registrada" : "revisões registradas"}, ${reviews.onTime} no prazo. A próxima está marcada para ${formatDate(plan.reviewDate)}.`
             : `Ainda sem revisão registrada. A primeira está marcada para ${formatDate(plan.reviewDate)}.`}
         </p>
-        <details open={daysLeft <= 14} className="rounded-2xl bg-surface-muted p-4">
+        {editable ? <details open={daysLeft <= 14} className="rounded-2xl bg-surface-muted p-4">
           <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-brand-strong"><CalendarCheck size={16} aria-hidden /> Registrar a revisão feita com a equipe</summary>
           <form action={review} className="mt-3 grid gap-4">
             <div>
@@ -243,7 +254,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             </div>
             <div><PendingButton className={buttonCls} pendingText="Registrando a revisão…"><CalendarCheck size={16} aria-hidden /> Registrar revisão</PendingButton></div>
           </form>
-        </details>
+        </details> : null}
         {plan.reviews.length ? (
           <ol aria-label="Revisões registradas" className="mt-4 grid gap-3">
             {plan.reviews.map((item) => (
@@ -313,10 +324,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               ) : latestSupport ? (
                 <p className="mt-3 text-xs text-ink-soft">Ainda sem registro de aula para este objetivo.</p>
               ) : null}
-              {obj.status === "ativo" ? (
+              {editable && obj.status === "ativo" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <form action={markDone}><button type="submit" className="min-h-11 rounded-lg bg-green-soft px-4 py-2.5 text-sm font-medium text-green hover:opacity-80">Marcar como alcançado</button></form>
-                  <form action={markReview}><button type="submit" className="min-h-11 rounded-lg bg-amber-soft px-4 py-2.5 text-sm font-medium text-amber-900 hover:opacity-80">Marcar para revisão</button></form>
+                  <form action={markDone}><button type="submit" className="inline-flex min-h-11 items-center rounded-full bg-green-soft px-4 text-sm font-medium text-green hover:opacity-80">Marcar como alcançado</button></form>
+                  <form action={markReview}><button type="submit" className="inline-flex min-h-11 items-center rounded-full bg-amber-soft px-4 text-sm font-medium text-amber hover:opacity-80">Marcar para revisão</button></form>
                 </div>
               ) : null}
             </Card>
@@ -357,6 +368,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         </Card>
       ) : null}
 
+      {editable ? (
       <div id="novo-objetivo" className="max-w-3xl scroll-mt-6">
         <Card>
           <SectionTitle>Definir um objetivo de aprendizagem</SectionTitle>
@@ -384,15 +396,16 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           </form>
         </Card>
       </div>
+      ) : null}
 
-      <details className="mt-8 max-w-3xl rounded-2xl border border-line p-4">
+      {editable ? <details className="mt-8 max-w-3xl rounded-2xl border border-line p-4">
         <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-ink">Encerrar este plano</summary>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">O plano, os objetivos e as revisões ficam no histórico do estudante. Depois de encerrar, a equipe pode elaborar um novo plano.</p>
         <form action={close} className="mt-4 grid gap-4">
           <ChoiceField name="reason" label="Por que o plano está sendo encerrado? (obrigatório)" options={[...CLOSE_REASONS]} required otherPlaceholder="Descreva o motivo" {...fieldStyle} />
           <div><button type="submit" className={dangerButtonCls}><Archive size={16} aria-hidden /> Encerrar o plano</button></div>
         </form>
-      </details>
+      </details> : null}
 
       <PastPlans plans={pastPlans} />
     </>

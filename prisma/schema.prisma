@@ -56,6 +56,7 @@ model Student {
   timeline           TimelineEvent[]
   familyNotes        FamilyNote[]
   accessLogs         AccessLog[]
+  accessGrants          AccessGrant[]
   intersectorReports IntersectorReport[]
   materials          Material[]
   caseStudy          CaseStudy?
@@ -125,6 +126,21 @@ model Session {
   expiresAt  DateTime
 
   @@index([userId])
+}
+
+// Acesso nominal da Secretaria (seções 10 e 14): a rede vê números; para abrir a
+// ficha de um estudante com nome, a pessoa informa o motivo. Vale 8 horas e fica
+// no histórico de acessos que a família consulta.
+model AccessGrant {
+  id        String   @id @default(cuid())
+  userId    String
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reason    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId, studentId, expiresAt])
 }
 
 // Tentativas de entrada por e-mail: limita a adivinhação de senha (seção 14).

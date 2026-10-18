@@ -11,7 +11,7 @@ export default async function FamilyPortalIndex() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role === "familia" && user.studentId) redirect(`/familia/${user.studentId}`);
-  if (!isStaffOrNetwork(user.role)) redirect("/");
+  if (!isStaffOrNetwork(user.role) || user.role === "secretaria") redirect("/");
   const students = await prisma.student.findMany({
     where: { status: "ativo" },
     include: { school: true },

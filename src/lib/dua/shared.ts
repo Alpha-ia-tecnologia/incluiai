@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { prisma } from "../prisma";
-import { canAccessStudent, canSeePedagogicalDetail, isStaffOrNetwork, type SessionUser } from "../auth";
+import { canAccessStudent, canEditStudentRecord, type SessionUser } from "../auth";
 import { parseJson } from "../format";
 import { normalizeContent, suggestionBasis, type DuaContent } from "./domain";
 import { planningAccess, type PlanningAccess } from "./access";
@@ -43,7 +43,7 @@ export const contentOf = (version: { content: string }): DuaContent => normalize
 
 // Recorte do estudante: equipe pedagógica com acesso (família e terapeuta não entram no DUA).
 export function canWorkWithStudent(user: SessionUser, student: { id: string; schoolId: string }) {
-  return isStaffOrNetwork(user.role) && canSeePedagogicalDetail(user.role) && canAccessStudent(user, student.schoolId, student.id);
+  return canEditStudentRecord(user.role) && canAccessStudent(user, student.schoolId, student.id);
 }
 
 export async function studentInReach(user: SessionUser, studentId: string) {

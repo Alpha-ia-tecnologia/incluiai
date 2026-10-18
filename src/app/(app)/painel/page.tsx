@@ -265,6 +265,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const participationTotal = participation.reduce((sum, segment) => sum + segment.value, 0);
   const statusSegments = withSegmentColors(act.byStatus);
   const tableRows = a.students.slice(0, 8);
+  // Secretaria: a rede em números (seção 10). No lugar da lista com nomes, os
+  // avisos agrupados por escola.
+  const nominal = user.role !== "secretaria";
+  const schoolRows = nominal ? [] : [...a.students.reduce((map, student) => {
+    const row = map.get(student.school) ?? { school: student.school, students: 0, withAlerts: 0, noPlan: 0, overdue: 0 };
+    row.students += 1;
+    if (student.alerts.length) row.withAlerts += 1;
+    if (student.plan === "sem_plano") row.noPlan += 1;
+    if (student.plan === "vencido") row.overdue += 1;
+    return map.set(student.school, row);
+  }, new Map<string, { school: string; students: number; withAlerts: number; noPlan: number; overdue: number }>()).values()].sort((x, y) => y.withAlerts - x.withAlerts || x.school.localeCompare(y.school, "pt-BR"));
   const strategyMax = Math.max(1, ...r.strategies.map((item) => item.value));
   const strategyHalf = Math.ceil(r.strategies.length / 2);
   const topUses = Math.max(1, ...res.top.map((item) => item.uses));
@@ -389,12 +400,38 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <section id="atencao" aria-labelledby="atencao-titulo" className="dash-card order-3 min-w-0 scroll-mt-20 xl:order-none">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 id="atencao-titulo" className="text-base font-medium tracking-tight">Estudantes</h2>
-                    <p className="mt-1 text-xs text-ink-soft">Ordenados por avisos. Só aparecem estudantes aos quais você tem acesso.</p>
+                    <h2 id="atencao-titulo" className="text-base font-medium tracking-tight">{nominal ? "Estudantes" : "Avisos por escola"}</h2>
+                    <p className="mt-1 text-xs text-ink-soft">{nominal ? "Ordenados por avisos. Só aparecem estudantes aos quais você tem acesso." : "Números por escola, sem nomes. Para abrir a ficha de um estudante, busque em Estudantes e informe o motivo."}</p>
                   </div>
-                  <Link href="/estudantes" className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line px-3.5 text-sm text-ink transition-colors hover:border-ink-strong">Ver todos <ArrowRight size={15} aria-hidden /></Link>
+                  {nominal ? <Link href="/estudantes" className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line px-3.5 text-sm text-ink transition-colors hover:border-ink-strong">Ver todos <ArrowRight size={15} aria-hidden /></Link> : null}
                 </div>
-                {tableRows.length ? (
+                {!nominal ? (
+                  <div className="-mx-1 overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <caption className="sr-only">Avisos de acompanhamento por escola</caption>
+                      <thead>
+                        <tr className="text-left text-xs text-ink-soft">
+                          <th scope="col" className="px-1 py-2.5 font-normal">Escola</th>
+                          <th scope="col" className="px-1 py-2.5 text-right font-normal">Estudantes</th>
+                          <th scope="col" className="px-1 py-2.5 text-right font-normal">Com aviso</th>
+                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">Sem plano</th>
+                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">Revisão vencida</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line border-t border-line tabular-nums">
+                        {schoolRows.map((row) => (
+                          <tr key={row.school}>
+                            <th scope="row" className="px-1 py-3 text-left font-medium text-ink">{row.school}</th>
+                            <td className="px-1 py-3 text-right">{row.students}</td>
+                            <td className="px-1 py-3 text-right">{row.withAlerts ? <StatusPill tone="alert">{row.withAlerts}</StatusPill> : <StatusPill tone="good">0</StatusPill>}</td>
+                            <td className="hidden px-1 py-3 text-right sm:table-cell">{row.noPlan}</td>
+                            <td className="hidden px-1 py-3 text-right sm:table-cell">{row.overdue}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : tableRows.length ? (
                   <div className="-mx-1">
                     <table className="w-full text-sm">
                       <caption className="sr-only">Estudantes, situação do plano, último registro e avisos</caption>
@@ -433,10 +470,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     </table>
                   </div>
                 ) : <p className="text-sm text-ink-soft">Nenhum estudante deste recorte está vinculado ao seu acesso.</p>}
-                {a.students.length > tableRows.length ? <p className="mt-2 text-xs text-ink-soft">Mostrando {tableRows.length} de {a.students.length}. <Link href="/estudantes" className="font-medium text-ink underline">Ver todos os estudantes</Link></p> : null}
+                {nominal && a.students.length > tableRows.length ? <p className="mt-2 text-xs text-ink-soft">Mostrando {tableRows.length} de {a.students.length}. <Link href="/estudantes" className="font-medium text-ink underline">Ver todos os estudantes</Link></p> : null}
                 <p className="mt-3 rounded-2xl bg-surface-muted/70 px-3.5 py-2.5 text-xs leading-relaxed text-ink-soft">
                   <span className="font-medium text-ink">Avisos em {scope.schoolName ?? "toda a rede"}:</span>{" "}
-                  {a.byKind.map((kind) => `${kind.value} ${ALERT_LABELS[kind.key].charAt(0).toLowerCase()}${ALERT_LABELS[kind.key].slice(1)}`).join(" · ")}. O botão ↗ leva ao próximo passo de cada estudante.
+                  {a.byKind.map((kind) => `${kind.value} ${ALERT_LABELS[kind.key].charAt(0).toLowerCase()}${ALERT_LABELS[kind.key].slice(1)}`).join(" · ")}.{nominal ? " O botão ↗ leva ao próximo passo de cada estudante." : ""}
                 </p>
               </section>
 

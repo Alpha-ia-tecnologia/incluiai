@@ -1,7 +1,7 @@
 ﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { canAccessStudent, canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
+import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { isAIEnabled } from "@/lib/agents/model";
 import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { MATERIAL_KINDS, isMaterialKind } from "@/lib/material-content";
@@ -34,7 +34,7 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
   // O layout do estudante já confere o acesso; a página confere de novo, perto dos dados.
   const student = await prisma.student.findUnique({ where: { id }, select: { schoolId: true } });
   if (!student || !canAccessStudent(user, student.schoolId, id)) redirect("/");
-  const team = isStaffOrNetwork(user.role) && canSeePedagogicalDetail(user.role);
+  const team = canEditStudentRecord(user.role);
   const [profile, materials, objectives] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id }, select: { id: true } }),
     prisma.material.findMany({

@@ -161,5 +161,6 @@ export async function loadPseudonymizer(user: SessionUser, map: PseudonymMap): P
       ...students.flatMap((student) => student.intersectorReports.map((report) => report.authorName)),
     ],
   });
-  return { ...pseudonymizer, studentIds: students.map((student) => student.id) };
+  // A Secretaria não consulta estudantes pelo assistente (os nomes ainda são mascarados no que ela digitar).
+  return { ...pseudonymizer, studentIds: user.role === "secretaria" ? [] : students.map((student) => student.id) };
 }

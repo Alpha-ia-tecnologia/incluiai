@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { canAccessStudent, canSeePedagogicalDetail, isStaffOrNetwork, type SessionUser } from "./auth";
+import { canAccessStudent, canEditStudentRecord, type SessionUser } from "./auth";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
 import { recordChange } from "./access-log";
@@ -9,7 +9,7 @@ import { recordChange } from "./access-log";
 
 export async function assertStudentTeam(user: SessionUser, studentId: string) {
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true, name: true } });
-  if (!student || !isStaffOrNetwork(user.role) || !canSeePedagogicalDetail(user.role) || !canAccessStudent(user, student.schoolId, student.id)) {
+  if (!student || !canEditStudentRecord(user.role) || !canAccessStudent(user, student.schoolId, student.id)) {
     throw new Error("Você não tem permissão para esta ação com este estudante.");
   }
   return student;

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage, canSeeClinicalDetail } from "@/lib/auth";
+import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canSeeClinicalDetail, canEditStudentRecord } from "@/lib/auth";
 import { saveCaseStudy } from "@/actions/case-study";
 import { CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, parseCaseStudy, sectionProgress, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
 import { splitItems } from "@/lib/form-options";
@@ -80,7 +80,7 @@ export default async function CaseStudyPage({
     <p className="mb-6 rounded-xl bg-surface-muted px-4 py-3 text-sm leading-relaxed text-ink-soft">Os campos de saúde, diagnóstico informado, acompanhamentos fora da escola e com quem o estudante mora ficam visíveis só para o AEE e a coordenação.</p>
   );
   const concluded = caseStudy?.status === "concluido";
-  const canEdit = isStaffOrNetwork(user.role);
+  const canEdit = canEditStudentRecord(user.role);
   const firstName = student.name.split(" ")[0];
 
   if (concluded && (editar !== "1" || !canEdit)) {

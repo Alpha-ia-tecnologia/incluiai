@@ -64,11 +64,13 @@ export default async function SchoolDashboard() {
   const today = todayInBrazil();
   const upcomingDates = upcomingEvents(today).slice(0, 3);
   const managing = ["secretaria", "gestao"].includes(user.role);
+  // A Secretaria vê a rede em números: nomes só pela busca, com motivo registrado.
+  const nominal = user.role !== "secretaria";
   // Cada tipo de tarefa tem sua cor: registro (azul), atividades e recursos
   // (verde-água), acompanhamento (pêssego), cadastros (sálvia).
   const tasks = managing ? [
     { title: "Acompanhar a rede", description: "Veja os indicadores das escolas e as necessidades de atenção.", href: "/painel", icon: School, color: "bg-sky-soft", accent: "text-sky-ink" },
-    { title: "Consultar um estudante", description: "Encontre o plano, os registros e a evolução de cada estudante.", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
+    { title: "Consultar um estudante", description: user.role === "secretaria" ? "Busque pelo nome e informe o motivo para abrir a ficha, só para leitura." : "Encontre o plano, os registros e a evolução de cada estudante.", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
     { title: "Organizar escolas e turmas", description: "Consulte e cadastre escolas e turmas da rede.", href: "/cadastros", icon: ClipboardList, color: "bg-sage-soft", accent: "text-sage-ink" },
   ] : [
     { title: "Registrar uma aula", description: "Conte como foi a participação e qual apoio foi necessário.", href: "/estudantes?acao=registrar", icon: ClipboardList, color: "bg-sky-soft", accent: "text-sky-ink" },
@@ -109,7 +111,7 @@ export default async function SchoolDashboard() {
               value={pendingSuggestions}
               tone={pendingSuggestions ? "mid" : "good"}
               status={pendingSuggestions ? "Para avaliar" : "Em dia"}
-              hint={pendingSuggestions ? `De ${studentsWithSuggestions} ${studentsWithSuggestions === 1 ? "estudante" : "estudantes"}. Aceite ou recuse na aba Atividades.` : "Nenhuma sugestão de atividade esperando avaliação."}
+              hint={pendingSuggestions ? `De ${studentsWithSuggestions} ${studentsWithSuggestions === 1 ? "estudante" : "estudantes"}. ${nominal ? "Aceite ou recuse na aba Atividades." : "A equipe da escola decide cada uma."}` : "Nenhuma sugestão de atividade esperando avaliação."}
             />
           </div>
         </section>
@@ -132,6 +134,7 @@ export default async function SchoolDashboard() {
           </div>
         </details>
 
+        {nominal ? (
         <section className="mt-8" aria-labelledby="students-title">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 id="students-title" className="text-xl font-medium">Próximo passo por estudante</h2>
@@ -170,6 +173,16 @@ export default async function SchoolDashboard() {
             </div>
           )}
         </section>
+        ) : (
+          <section className="mt-8 rounded-2xl border border-line bg-paper-raised p-5" aria-labelledby="students-title">
+            <h2 id="students-title" className="text-xl font-medium">Estudantes da rede</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">A Secretaria acompanha os {students.length} estudantes pelos números do Painel. Para abrir a ficha de um estudante, busque pelo nome em Estudantes e informe o motivo: o acesso fica registrado e a família vê.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/painel" className="task-action">Ver o painel da rede <ArrowRight size={16} aria-hidden /></Link>
+              <Link href="/estudantes" className="task-action task-action-secondary">Buscar um estudante</Link>
+            </div>
+          </section>
+        )}
       </div>
 
       <aside className="dashboard-side" aria-label="Resumo do acompanhamento">
@@ -177,10 +190,14 @@ export default async function SchoolDashboard() {
 
         <section className="mt-6" aria-labelledby="attention-title">
           <h2 id="attention-title" className="mb-3 text-base font-medium">Precisa de atenção</h2>
-          {withAlerts.length ? <ul className="space-y-3">{withAlerts.slice(0, 3).map(({ student, alerts }) => (
+          {!nominal ? (
+            <Link href="/painel#atencao" className="block rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft transition-colors hover:bg-brand-soft">
+              <span className="font-display text-2xl text-ink tabular-nums">{withAlerts.length}</span> {withAlerts.length === 1 ? "estudante com aviso" : "estudantes com aviso"} de acompanhamento na rede. Veja por escola no painel.
+            </Link>
+          ) : withAlerts.length ? <ul className="space-y-3">{withAlerts.slice(0, 3).map(({ student, alerts }) => (
             <li key={student.id}><Link href={`/estudantes/${student.id}`} className="block rounded-2xl bg-paper-raised p-4 transition-colors hover:bg-brand-soft"><span className="flex items-center justify-between gap-2 text-sm font-medium">{student.name}<ArrowRight size={16} className="shrink-0" aria-hidden /></span><span className="mt-2 block text-sm leading-relaxed text-ink-soft">{!student.diaryEntries.length && alerts[0].kind === "sem_registro" ? "Ainda sem registro de aula." : alerts[0].message}</span></Link></li>
           ))}</ul> : <p className="rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft">Nenhum aviso de acompanhamento no momento.</p>}
-          {withAlerts.length > 3 ? <Link href="/estudantes" className="mt-2 inline-flex min-h-11 items-center text-sm text-brand-strong">Ver os demais estudantes <ArrowRight size={16} className="ml-2" aria-hidden /></Link> : null}
+          {nominal && withAlerts.length > 3 ? <Link href="/estudantes" className="mt-2 inline-flex min-h-11 items-center text-sm text-brand-strong">Ver os demais estudantes <ArrowRight size={16} className="ml-2" aria-hidden /></Link> : null}
         </section>
 
         <section className="mt-6" aria-labelledby="dates-title">

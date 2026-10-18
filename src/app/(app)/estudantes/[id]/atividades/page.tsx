@@ -1,8 +1,9 @@
 ﻿import Link from "next/link";
 import Image from "next/image";
 import type { Activity } from "@prisma/client";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireStudentPage } from "@/lib/auth";
+import { requireStudentPage, canEditStudentRecord } from "@/lib/auth";
 import { generateActivities, acceptActivity, rejectActivity } from "@/actions/activities";
 import { parseJson, formatDate } from "@/lib/format";
 import { CONTEXTS, ACTIVITY_STATUS } from "@/lib/scale";
@@ -168,7 +169,9 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
 
 export default async function ActivitiesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id, "Atividades");
+  const viewer = await requireStudentPage(id, "Atividades");
+  // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.
+  if (!canEditStudentRecord(viewer.role)) redirect(`/estudantes/${id}`);
   const [profile, objectives, activities] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id } }),
     prisma.objective.findMany({

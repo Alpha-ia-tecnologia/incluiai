@@ -64,7 +64,15 @@ export function suggestionsFor(role: string): string[] {
       "Como transformo uma observação clínica em orientação para a sala?",
     ];
   }
-  if (["secretaria", "gestao", "coordenacao"].includes(role)) {
+  // A Secretaria vê a rede em números: perguntas sobre escolas, não sobre estudantes.
+  if (role === "secretaria") {
+    return [
+      "Quais escolas têm mais estudantes com aviso?",
+      "Como está o acompanhamento da rede este ano?",
+      "Que estratégias mais funcionaram na rede?",
+    ];
+  }
+  if (["gestao", "coordenacao"].includes(role)) {
     return [
       "Quais estudantes precisam de atenção?",
       "Como está o acompanhamento este ano?",
