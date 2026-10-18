@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
 import { saveCaseStudy } from "@/actions/case-study";
 import { CASE_STUDY_SECTIONS, parseCaseStudy, sectionProgress, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
 import { splitItems } from "@/lib/form-options";
@@ -59,6 +59,7 @@ export default async function CaseStudyPage({
   searchParams: Promise<{ editar?: string; salvo?: string }>;
 }) {
   const { id } = await params;
+  await requireStudentPage(id);
   const { editar, salvo } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");

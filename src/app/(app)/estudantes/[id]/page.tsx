@@ -6,7 +6,7 @@ import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS, BARRIERS } from "@/lib/scale";
 import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
 import { logStudentAccess } from "@/actions/students";
-import { canSeePedagogicalDetail, getCurrentUser } from "@/lib/auth";
+import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { parseCaseStudy } from "@/lib/case-study";
 import type { FunctionalProfile } from "@prisma/client";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
@@ -38,6 +38,7 @@ const NARROW_BARS = "lg:[&_li]:grid-cols-[minmax(0,1fr)_auto] lg:[&_li>span:nth-
 
 export default async function StudentOverview({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStudentPage(id);
   const student = await prisma.student.findUniqueOrThrow({
     where: { id },
     include: {

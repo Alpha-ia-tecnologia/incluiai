@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStudentTeam } from "@/lib/auth";
 import { buildObjectiveDescription } from "@/lib/objective";
 import { createPlanDraft } from "@/lib/agents/generate";
-import { assertCaseStudyConcluded } from "@/lib/records";
+import { assertCaseStudyConcluded, assertNoActivePlan } from "@/lib/records";
 import { PlanProposalSchema } from "@/lib/agents/schemas";
 
 const requireTeam = requireStudentTeam;
@@ -24,6 +24,7 @@ export async function generatePlanDraft(studentId: string) {
 export async function activatePlanDraft(studentId: string, formData: FormData) {
   const user = await requireTeam(studentId);
   await assertCaseStudyConcluded(studentId);
+  await assertNoActivePlan(studentId);
   const draft = await prisma.planDraft.findUnique({ where: { studentId } });
   if (!draft) throw new Error("A proposta não foi encontrada. Gere uma nova proposta.");
   const proposal = PlanProposalSchema.parse(JSON.parse(draft.content));

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { PrintButton } from "@/components/print-button";
 import { MaterialView } from "@/components/materials/material-view";
 
@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 // O acesso ao estudante já foi conferido no layout do estudante.
 export default async function PrintMaterialPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const { id, materialId } = await params;
+  await requireStudentPage(id);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const material = await prisma.material.findFirst({

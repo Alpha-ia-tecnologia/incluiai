@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { requireStudentPage } from "@/lib/auth";
 import { createDiaryEntry } from "@/actions/diary";
 import { formatDate } from "@/lib/format";
 import { PARTICIPATION, CRITERION_MET, ROLES } from "@/lib/scale";
@@ -15,6 +16,7 @@ const CRITERION_TONES = { sim: "green", parcial: "amber", nao: "coral" } as cons
 
 export default async function DiaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ activityId?: string | string[] }> }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
+  await requireStudentPage(id);
   const [entries, objectives, acceptedActivities] = await Promise.all([
     prisma.diaryEntry.findMany({
       where: { studentId: id },

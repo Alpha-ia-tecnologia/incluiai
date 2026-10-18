@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, canSeePedagogicalDetail } from "@/lib/auth";
+import { getCurrentUser, canSeePedagogicalDetail, requireStudentPage } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { TIMELINE_TYPES } from "@/lib/scale";
 import { DuaError } from "@/lib/dua/shared";
@@ -86,6 +86,7 @@ async function withinReach<T>(work: () => Promise<T>, fallback: T): Promise<T> {
 
 export default async function TimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStudentPage(id);
   const user = await getCurrentUser();
   // Atividades com DUA e frequência do AEE são da equipe pedagógica: família e
   // terapeuta continuam vendo a linha do tempo como antes.

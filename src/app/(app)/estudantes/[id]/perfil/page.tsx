@@ -1,4 +1,5 @@
 ﻿import { prisma } from "@/lib/prisma";
+import { requireStudentPage } from "@/lib/auth";
 import { upsertProfile } from "@/actions/profile";
 import { parseJson } from "@/lib/format";
 import { SUPPORT_LEVELS, CHANNELS, BARRIERS, SENSORY_AREAS, SENSORY_LABELS, SENSORY_VALUES } from "@/lib/scale";
@@ -37,6 +38,7 @@ export default async function ProfilePage({
   searchParams: Promise<{ modo?: string }>;
 }) {
   const { id } = await params;
+  await requireStudentPage(id);
   const { modo } = await searchParams;
   const [student, profile, caseStudy] = await Promise.all([
     prisma.student.findUniqueOrThrow({ where: { id } }),

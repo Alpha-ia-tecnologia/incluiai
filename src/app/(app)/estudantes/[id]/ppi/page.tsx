@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { createPlan, createObjective, markObjectiveStatus } from "@/actions/plan";
+import { createPlan, createObjective, markObjectiveStatus, reviewPlan, closePlan } from "@/actions/plan";
 import { activatePlanDraft, discardPlanDraft, generatePlanDraft } from "@/actions/plan-ai";
 import { formatDate } from "@/lib/format";
 import { SUPPORT_LEVELS, DIMENSIONS } from "@/lib/scale";
@@ -13,17 +13,18 @@ import { PageHeader, Card, SectionTitle, Badge, SupportPill, AIDisclaimer } from
 import { PendingButton } from "@/components/pending-button";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ObjectiveFields } from "@/components/objective-fields";
-import { ArrowRight, Sparkles, Trash2 } from "lucide-react";
-import { canSeePedagogicalDetail, getCurrentUser } from "@/lib/auth";
+import { Archive, ArrowRight, CalendarCheck, Sparkles, Trash2 } from "lucide-react";
+import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { canPlanDua } from "@/lib/dua/access";
 import { DuaError } from "@/lib/dua/shared";
 import { listStudentSupports, type SupportView } from "@/lib/dua/supports";
 import { ReviewBadge } from "@/components/dua/dua-ui";
 import { percentOf } from "@/lib/series";
+import { CLOSE_REASONS, reviewSummary, suggestedNextReview } from "@/lib/plan-lifecycle";
 import { DataBoard, DataCard, RingStat, StatusPill, TONE_COLOR, withSegmentColors, type Tone } from "@/components/data-viz";
 import { HatchedDonut, Legend } from "@/components/charts";
 import { ObjectiveScale } from "@/components/viz/student-viz";
-import { inputCls, labelCls, primaryButtonCls as buttonCls } from "@/components/form-styles";
+import { dangerButtonCls, hintCls, inputCls, labelCls, primaryButtonCls as buttonCls, textareaCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +33,15 @@ const multiStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStudentPage(id);
   const plans = await prisma.plan.findMany({
     where: { studentId: id },
-    include: { objectives: { orderBy: { createdAt: "asc" } } },
+    include: { objectives: { orderBy: { createdAt: "asc" } }, reviews: { orderBy: { reviewedAt: "desc" } } },
     orderBy: { createdAt: "desc" },
   });
   const plan = plans.find((p) => p.status === "ativo");
+  // Planos encerrados continuam à vista: o acompanhamento não recomeça do zero.
+  const pastPlans = plans.filter((p) => p.status === "encerrado");
   const overdue = plan && new Date(plan.reviewDate).getTime() < new Date().getTime();
 
   if (!plan) {
@@ -104,6 +108,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-brand-strong">Prefere preencher o plano do zero?</summary>
             <div className="mt-3">{manualForm}</div>
           </details>
+          <PastPlans plans={pastPlans} />
         </>
       );
     }
@@ -132,11 +137,15 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           )}
         </Card>
         {manualForm}
+        <PastPlans plans={pastPlans} />
       </>
     );
   }
 
   const addObjective = createObjective.bind(null, id, plan.id);
+  const review = reviewPlan.bind(null, id, plan.id);
+  const close = closePlan.bind(null, id, plan.id);
+  const reviews = reviewSummary(plan.reviews);
   const hasActiveObjectives = plan.objectives.some((objective) => objective.status === "ativo");
   // Apoios de atividades com DUA ligados aos objetivos deste plano, agrupados por objetivo.
   const dua = await linkedDuaSupports(id);
@@ -211,6 +220,45 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           )}
         </DataCard>
       </DataBoard>
+
+      {/* Revisão com a equipe: aberta quando a data está perto ou já passou. */}
+      <Card id="revisao" className="mb-6 max-w-3xl scroll-mt-6">
+        <SectionTitle>Revisão do plano</SectionTitle>
+        <p className="mb-4 text-sm leading-relaxed text-ink-soft">
+          {reviews.total
+            ? `${reviews.total} ${reviews.total === 1 ? "revisão registrada" : "revisões registradas"}, ${reviews.onTime} no prazo. A próxima está marcada para ${formatDate(plan.reviewDate)}.`
+            : `Ainda sem revisão registrada. A primeira está marcada para ${formatDate(plan.reviewDate)}.`}
+        </p>
+        <details open={daysLeft <= 14} className="rounded-2xl bg-surface-muted p-4">
+          <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-brand-strong"><CalendarCheck size={16} aria-hidden /> Registrar a revisão feita com a equipe</summary>
+          <form action={review} className="mt-3 grid gap-4">
+            <div>
+              <label htmlFor="review-summary" className={labelCls}>O que a equipe decidiu? (obrigatório)</label>
+              <p id="review-summary-hint" className={hintCls}>Por exemplo: objetivos mantidos, apoio reduzido, nova estratégia na sala comum.</p>
+              <textarea id="review-summary" name="summary" required maxLength={600} rows={4} aria-describedby="review-summary-hint" className={textareaCls} />
+            </div>
+            <div className="max-w-xs">
+              <label htmlFor="next-review" className={labelCls}>Próxima revisão (obrigatório)</label>
+              <input id="next-review" name="nextReviewDate" type="date" required defaultValue={suggestedNextReview()} className={inputCls} />
+            </div>
+            <div><PendingButton className={buttonCls} pendingText="Registrando a revisão…"><CalendarCheck size={16} aria-hidden /> Registrar revisão</PendingButton></div>
+          </form>
+        </details>
+        {plan.reviews.length ? (
+          <ol aria-label="Revisões registradas" className="mt-4 grid gap-3">
+            {plan.reviews.map((item) => (
+              <li key={item.id} className="rounded-xl border border-line p-3.5">
+                <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
+                  {formatDate(item.reviewedAt)}
+                  {item.onTime ? <Badge tone="green">No prazo</Badge> : <Badge tone="amber">Fora do prazo (marcada para {formatDate(item.dueDate)})</Badge>}
+                </p>
+                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink">{item.summary}</p>
+                <p className="mt-1.5 text-xs text-ink-soft">{item.reviewerName} · próxima: {formatDate(item.nextReviewDate)}</p>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </Card>
 
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
         <Card>
@@ -336,6 +384,17 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           </form>
         </Card>
       </div>
+
+      <details className="mt-8 max-w-3xl rounded-2xl border border-line p-4">
+        <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-ink">Encerrar este plano</summary>
+        <p className="mt-2 text-sm leading-relaxed text-ink-soft">O plano, os objetivos e as revisões ficam no histórico do estudante. Depois de encerrar, a equipe pode elaborar um novo plano.</p>
+        <form action={close} className="mt-4 grid gap-4">
+          <ChoiceField name="reason" label="Por que o plano está sendo encerrado? (obrigatório)" options={[...CLOSE_REASONS]} required otherPlaceholder="Descreva o motivo" {...fieldStyle} />
+          <div><button type="submit" className={dangerButtonCls}><Archive size={16} aria-hidden /> Encerrar o plano</button></div>
+        </form>
+      </details>
+
+      <PastPlans plans={pastPlans} />
     </>
   );
 }
@@ -474,5 +533,30 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
         </form>
       </div>
     </Card>
+  );
+}
+
+// Planos encerrados: período, motivo, objetivos alcançados e revisões no prazo.
+function PastPlans({ plans }: { plans: { id: string; createdAt: Date; closedAt: Date | null; closedReason: string | null; objectives: { status: string }[]; reviews: { onTime: boolean }[] }[] }) {
+  if (!plans.length) return null;
+  return (
+    <section aria-labelledby="planos-anteriores" className="mt-8 max-w-3xl">
+      <h2 id="planos-anteriores" className="mb-3 text-sm font-medium tracking-tight text-ink">Planos anteriores</h2>
+      <ol className="grid gap-3">
+        {plans.map((past) => {
+          const reached = past.objectives.filter((objective) => objective.status === "alcancado").length;
+          const reviews = reviewSummary(past.reviews);
+          return (
+            <li key={past.id} className="rounded-2xl border border-line bg-paper-raised p-4">
+              <p className="text-sm font-medium text-ink">De {formatDate(past.createdAt)} a {past.closedAt ? formatDate(past.closedAt) : "data não registrada"}</p>
+              <p className="mt-1 text-sm text-ink-soft">{past.closedReason ?? "Encerrado"}</p>
+              <p className="mt-2 text-xs tabular-nums text-ink-soft">
+                {reached} de {past.objectives.length} {past.objectives.length === 1 ? "objetivo alcançado" : "objetivos alcançados"} · {reviews.total} {reviews.total === 1 ? "revisão" : "revisões"}{reviews.total ? `, ${reviews.onTime} no prazo` : ""}
+              </p>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }

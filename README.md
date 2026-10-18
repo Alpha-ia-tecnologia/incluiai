@@ -48,7 +48,7 @@ Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 | `/estudantes/[id]` | Visão geral: evolução, estratégias, **perguntas para reunião**, articulação intersetorial | 6, 9 |
 | `/estudantes/[id]/estudo-de-caso` | **Estudo de caso** (diagnóstico pedagógico): motivo, histórico escolar, entrevista com a família, escuta do estudante, observação, avaliação pedagógica e síntese; rascunho, conclusão e relatório imprimível. Não exige laudo | — |
 | `/estudantes/[id]/perfil` | Perfil funcional codificado (escala 0–5, interesses âncora) | 3, 17.2 |
-| `/estudantes/[id]/ppi` | Plano individual + gerador de objetivo observável. Só com o **estudo de caso concluído**, também na proposta da IA ou das regras | 4, 17.3-B |
+| `/estudantes/[id]/ppi` | Plano individual + gerador de objetivo observável. Só com o **estudo de caso concluído**, também na proposta da IA ou das regras. **Revisão do plano** (decisão da equipe, próxima data e se saiu no prazo), **encerramento com motivo** e **planos anteriores**; um plano ativo por vez | 4, 6, 17.3-B, 17.9 |
 | `/estudantes/[id]/atividades` | Motor de 3 cartões + **versão imprimível** | 17.3–17.8 |
 | `/estudantes/[id]/materiais` | **Rotinas visuais, histórias sociais e pranchas de CAA** (imprimíveis) | 17.10 |
 | `/estudantes/[id]/diario` | Registro em 3 toques + **entrada por voz** | 5, 17.6 |

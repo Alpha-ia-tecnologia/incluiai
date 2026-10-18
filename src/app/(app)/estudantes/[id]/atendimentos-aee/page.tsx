@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
 import { canRecordAeeSession, listAeeSessions } from "@/lib/aee-sessions";
 import { AEE_SESSION_STATUSES, AEE_SESSION_STATUS_LABEL, type AeeSessionStatus } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
@@ -25,6 +25,7 @@ function todayInput() {
 // equipe pedagógica vê; registram o professor do AEE e a coordenação.
 export default async function AeeSessionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStudentPage(id);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // Família e terapeuta voltam ao resumo. O layout já conferiu o acesso ao estudante.

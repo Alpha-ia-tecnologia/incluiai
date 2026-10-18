@@ -219,6 +219,19 @@ let danteHref = "";
     const hasHeading = await page.evaluate((expected) => [...document.querySelectorAll("h1, h2")].some((title) => title.textContent.includes(expected)), heading);
     check(`seção ${tab || "/resumo"} renderiza`, hasHeading);
   }
+  // Revisão do plano com a equipe: entra no histórico com a próxima data.
+  {
+    await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
+    const opened = await page.evaluate(() => { const details = document.querySelector("#revisao details"); if (details) details.open = true; return Boolean(details); });
+    if (!opened) check("plano: formulário de revisão presente", false);
+    else {
+      const note = `Teste E2E: objetivos mantidos, apoio reduzido. ${Date.now()}`;
+      await page.type("#review-summary", note);
+      await clickByText(page, "Registrar revisão");
+      await page.waitForFunction((text) => document.querySelector("#revisao")?.textContent.includes(text), { timeout: 20000 }, note).catch(() => {});
+      check("plano: revisão registrada no histórico", await page.evaluate((text) => Boolean(document.querySelector("#revisao")?.textContent.includes(text)), note));
+    }
+  }
   check("prontuário sem erros de cliente", errors.length === 0, errors.join("; "));
   await ctx.close();
 }

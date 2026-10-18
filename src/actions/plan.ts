@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { buildObjectiveDescription } from "@/lib/objective";
 import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
-import { assertCaseStudyConcluded, setObjectiveStatus } from "@/lib/records";
+import { assertCaseStudyConcluded, assertNoActivePlan, closeStudentPlan, reviewStudentPlan, setObjectiveStatus } from "@/lib/records";
 
 // Plano de ensino: equipe com acesso ao estudante e estudo de caso concluído (CA02).
 export async function createPlan(studentId: string, formData: FormData) {
   const user = await requireStudentTeam(studentId);
   await assertCaseStudyConcluded(studentId);
+  await assertNoActivePlan(studentId);
   const reviewDate = new Date(`${String(formData.get("reviewDate") ?? "")}T12:00:00`);
   if (Number.isNaN(reviewDate.getTime())) throw new Error("Informe quando a equipe vai revisar o plano.");
   await prisma.plan.create({
@@ -74,6 +75,28 @@ export async function markObjectiveStatus(studentId: string, objectiveId: string
   if (!user) throw new Error("Faça login para alterar o objetivo.");
   if (status !== "ativo" && status !== "alcancado" && status !== "em_revisao") throw new Error("Situação inválida.");
   await setObjectiveStatus(user, studentId, objectiveId, status);
+  revalidatePath("/estudantes/[id]", "layout");
+  revalidatePath("/estudantes");
+  revalidatePath("/");
+}
+
+// Revisão do plano com a equipe: decisão, se saiu no prazo e a próxima data.
+export async function reviewPlan(studentId: string, planId: string, formData: FormData) {
+  const user = await requireStudentTeam(studentId);
+  await reviewStudentPlan(user, studentId, planId, {
+    summary: String(formData.get("summary") ?? ""),
+    nextReviewDate: new Date(`${String(formData.get("nextReviewDate") ?? "")}T12:00:00`),
+  });
+  revalidatePath("/estudantes/[id]", "layout");
+  revalidatePath("/estudantes");
+  revalidatePath("/");
+}
+
+// Encerrar o plano (com motivo). Depois disso, a equipe pode elaborar um novo.
+export async function closePlan(studentId: string, planId: string, formData: FormData) {
+  const user = await requireStudentTeam(studentId);
+  // O campo de escolha envia o texto final (opção da lista ou o que foi escrito em "Outro").
+  await closeStudentPlan(user, studentId, planId, String(formData.get("reason") ?? ""));
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");

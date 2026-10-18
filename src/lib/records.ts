@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { canAccessStudent, canSeePedagogicalDetail, isStaffOrNetwork, type SessionUser } from "./auth";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
+import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
 
 // Gravações do acompanhamento usadas pelos formulários e pelo assistente.
 // Cada uma confere a permissão de quem grava; nada aqui é ação pública.
@@ -121,4 +122,48 @@ export async function decideActivity(user: SessionUser, studentId: string, activ
     where: { id: activityId },
     data: decision === "aceita" ? { status: "aceita", rejectReason: null } : { status: "rejeitada", rejectReason: reason?.trim() || "Sem motivo informado" },
   });
+}
+
+// Um plano ativo por vez: para começar outro, a equipe encerra o atual (com
+// motivo) e o histórico fica guardado.
+export const ACTIVE_PLAN_EXISTS_MESSAGE = "Já existe um plano ativo para este estudante. Revise ou encerre o plano atual antes de criar outro.";
+export async function assertNoActivePlan(studentId: string) {
+  const active = await prisma.plan.findFirst({ where: { studentId, status: "ativo" }, select: { id: true } });
+  if (active) throw new Error(ACTIVE_PLAN_EXISTS_MESSAGE);
+}
+
+// Revisão do plano: guarda a decisão da equipe, a data que estava marcada e se
+// saiu no prazo; a data de revisão do plano passa a ser a próxima.
+export async function reviewStudentPlan(user: SessionUser, studentId: string, planId: string, input: { summary: string; nextReviewDate: Date }) {
+  await assertStudentTeam(user, studentId);
+  const plan = await prisma.plan.findFirst({ where: { id: planId, studentId, status: "ativo" }, select: { id: true, reviewDate: true } });
+  if (!plan) throw new Error("Plano ativo não encontrado para este estudante.");
+  const summary = input.summary.trim();
+  if (!summary) throw new Error("Conte o que a equipe decidiu na revisão.");
+  const problem = nextReviewProblem(input.nextReviewDate);
+  if (problem) throw new Error(problem);
+  const now = new Date();
+  const onTime = reviewOnTime(now, plan.reviewDate);
+  await prisma.$transaction([
+    prisma.planReview.create({ data: { planId, reviewedAt: now, dueDate: plan.reviewDate, onTime, summary, nextReviewDate: input.nextReviewDate, reviewerName: user.name, reviewerRole: user.role } }),
+    prisma.plan.update({ where: { id: planId }, data: { reviewDate: input.nextReviewDate, reviewedAt: now } }),
+    prisma.timelineEvent.create({ data: { studentId, type: "plano", title: "Plano revisado", description: `${onTime ? "Revisão no prazo" : "Revisão fora do prazo"}. ${summary}`.slice(0, 600) } }),
+    prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "revisou", detail: "Plano individual" } }),
+  ]);
+}
+
+// Encerrar o plano: o plano e as revisões ficam no histórico; os objetivos
+// ainda ativos saem do acompanhamento junto com ele.
+export async function closeStudentPlan(user: SessionUser, studentId: string, planId: string, reason: string) {
+  await assertStudentTeam(user, studentId);
+  const text = reason.trim();
+  if (!text) throw new Error("Diga por que o plano está sendo encerrado.");
+  const plan = await prisma.plan.findFirst({ where: { id: planId, studentId, status: "ativo" }, select: { id: true } });
+  if (!plan) throw new Error("Plano ativo não encontrado para este estudante.");
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.plan.update({ where: { id: planId }, data: { status: "encerrado", closedAt: now, closedReason: text.slice(0, 300) } }),
+    prisma.timelineEvent.create({ data: { studentId, type: "plano", title: "Plano encerrado", description: text.slice(0, 600) } }),
+    prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "encerrou", detail: "Plano individual" } }),
+  ]);
 }

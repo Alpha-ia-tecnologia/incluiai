@@ -318,7 +318,29 @@ model Plan {
   reviewDate             DateTime
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
+  reviewedAt             DateTime? // última revisão registrada
+  closedAt               DateTime?
+  closedReason           String?
   objectives             Objective[]
+  reviews                PlanReview[]
+}
+
+// Revisão do plano (seções 4, 6 e 17.9): o que a equipe decidiu, a data que
+// estava marcada, se saiu no prazo e a próxima data. O plano não recomeça do
+// zero: o histórico mostra cada passagem.
+model PlanReview {
+  id             String   @id @default(cuid())
+  planId         String
+  plan           Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  reviewedAt     DateTime @default(now())
+  dueDate        DateTime // a data de revisão que estava marcada
+  onTime         Boolean
+  summary        String
+  nextReviewDate DateTime
+  reviewerName   String
+  reviewerRole   String
+
+  @@index([planId, reviewedAt])
 }
 
 // Objetivo observável: [Quem] + [ação] + [condição/apoio] + [critério] + [prazo]

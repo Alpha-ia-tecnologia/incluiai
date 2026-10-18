@@ -59,7 +59,7 @@ Os nomes acompanham a navegação implementada. As rotas existentes continuam v�
 
 **Regras de experiência:** manter o nome do estudante visível; oferecer volta para a lista; apresentar uma ação principal por bloco; acompanhar cores e ícones com texto; explicar o que falta em estados vazios; permitir voltar e consultar etapas sem reiniciar o trabalho. Materiais e histórico são apoio ao ciclo, não pré-requisitos para registrar.
 
-O próximo passo implementado usa dados salvos: sem perfil, conhecer; sem plano ou objetivo ativo, planejar; sem atividade aceita ou aplicada, preparar; com atividade preparada, registrar. Quando já há registros, continua oferecendo registrar a próxima aula. Acompanhar e revisar ficam disponíveis no resumo e nas seções do estudante; não há decisão automática de encerrar um ciclo. A pessoa pode registrar uma observação mesmo sem atividade gerada. No celular, as seções aparecem em uma seleção com o botão Abrir; em telas maiores, em links com o nome da seção.
+O próximo passo implementado usa dados salvos: sem perfil, conhecer; sem plano ou objetivo ativo, planejar; sem atividade aceita ou aplicada, preparar; com atividade preparada, registrar. Quando já há registros, continua oferecendo registrar a próxima aula. Acompanhar e revisar ficam disponíveis no resumo e nas seções do estudante; não há decisão automática de encerrar um ciclo. A pessoa pode registrar uma observação mesmo sem atividade gerada. As seções ficam numa linha de abas que rola de lado, no celular e no computador.
 
 ### Entradas por perfil e tarefa
 
@@ -110,7 +110,7 @@ Nos dias seguintes, Maria e a professora do AEE consultam os registros e o resum
 
 A família pode registrar uma observação de casa, que aparece no acompanhamento. O terapeuta vinculado pode enviar orientações funcionais para a escola no espaço próprio. Nenhum deles precisa navegar no diário completo do professor para contribuir.
 
-Na revisão, a equipe usa as evidências para manter uma estratégia, marcar um objetivo como alcançado ou colocá-lo em revisão e formular um próximo passo. A data ajuda a lembrar a revisão; editar e versionar integralmente um plano ativo é uma evolução a definir. O ciclo recomeça a partir do que Dante já realizou, preservando a memória do acompanhamento.
+Na revisão, a equipe usa as evidências para manter uma estratégia, marcar um objetivo como alcançado ou colocá-lo em revisão e formular um próximo passo. A data ajuda a lembrar a revisão. Em Revisão do plano, a equipe registra o que decidiu e a próxima data, e a plataforma guarda se a revisão saiu no prazo. Para recomeçar, a equipe encerra o plano com um motivo: ele fica em Planos anteriores, e só então um novo plano pode ser criado. Editar integralmente um plano ativo continua sendo uma evolução a definir. O ciclo recomeça a partir do que Dante já realizou, preservando a memória do acompanhamento.
 
 ## 5. Histórias de usuário e critérios de aceitação
 

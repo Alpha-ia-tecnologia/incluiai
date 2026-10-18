@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma";
 import { LOGIN_WINDOW_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
@@ -103,6 +104,20 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     role: user.role, schoolId: user.schoolId, studentId: user.studentId,
   };
 });
+
+// Cada página da ficha confere, perto dos dados, quem está abrindo (o layout
+// sozinho não basta: em navegação parcial ele não roda de novo). A ficha é da
+// equipe; família e terapeuta vão para os portais deles.
+export async function requireStudentPage(studentId: string): Promise<SessionUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
+  if (!student) notFound();
+  if (!canAccessStudent(user, student.schoolId, studentId)) redirect("/");
+  if (user.role === "familia") redirect(`/familia/${studentId}`);
+  if (user.role === "terapeuta") redirect("/terapeuta");
+  return user;
+}
 
 // Perfis com visão de gestão da rede inteira.
 const NETWORK_ROLES = new Set(["secretaria", "gestao", "coordenacao"]);

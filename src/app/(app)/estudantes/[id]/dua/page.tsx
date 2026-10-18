@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { canSeePedagogicalDetail, getCurrentUser } from "@/lib/auth";
+import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { canPlanDua } from "@/lib/dua/access";
 import { DuaError } from "@/lib/dua/shared";
 import { listPlannings } from "@/lib/dua/plannings";
@@ -37,6 +37,7 @@ const RESULT_TEXT: Record<"sim" | "parcial" | "nao", string> = {
 // estudante e ver apoios, evidências e próximos passos de todas as atividades.
 export default async function StudentDuaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStudentPage(id);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // Família e terapeuta não acessam o DUA. O layout já conferiu o acesso ao estudante.

@@ -2,6 +2,7 @@
 import Image from "next/image";
 import type { Activity } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireStudentPage } from "@/lib/auth";
 import { generateActivities, acceptActivity, rejectActivity } from "@/actions/activities";
 import { parseJson, formatDate } from "@/lib/format";
 import { CONTEXTS, ACTIVITY_STATUS } from "@/lib/scale";
@@ -167,6 +168,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
 
 export default async function ActivitiesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStudentPage(id);
   const [profile, objectives, activities] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id } }),
     prisma.objective.findMany({

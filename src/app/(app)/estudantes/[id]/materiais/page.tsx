@@ -1,7 +1,7 @@
 ﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { canAccessStudent, canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { canAccessStudent, canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
 import { isAIEnabled } from "@/lib/agents/model";
 import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { MATERIAL_KINDS, isMaterialKind } from "@/lib/material-content";
@@ -28,6 +28,7 @@ const one = (value: string | string[] | undefined) => (Array.isArray(value) ? va
 // cada material abre na página própria (materiais/[materialId]).
 export default async function MaterialsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
+  await requireStudentPage(id);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // O layout do estudante já confere o acesso; a página confere de novo, perto dos dados.
