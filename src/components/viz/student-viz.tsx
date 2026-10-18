@@ -31,7 +31,7 @@ export function SupportMeter({ level, showName = true }: { level: number; showNa
     <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1">
       <span aria-hidden className="flex w-14 shrink-0 gap-0.5">
         {[1, 2, 3, 4, 5].map((cell) => (
-          <span key={cell} className={`h-2.5 flex-1 rounded-full ${cell <= value ? "hatch" : ""}`} style={{ backgroundColor: cell <= value ? supportColor(value) : SIGNAL.track }} />
+          <span key={cell} className={`h-2.5 flex-1 rounded-full ${cell <= value ? "hatch viz-grow-x" : ""}`} style={{ backgroundColor: cell <= value ? supportColor(value) : SIGNAL.track }} />
         ))}
       </span>
       <span className="min-w-0 text-xs text-ink">
@@ -75,8 +75,8 @@ export function ParticipationDonut({ id, entries, size = 120 }: { id: string; en
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-5">
       <HatchedDonut id={id} segments={segments} size={size} thickness={Math.round(size / 7.5)} label={`Participação em ${total} ${total === 1 ? "registro" : "registros"}: ${segments.map((segment) => `${segment.label.toLowerCase()} ${segment.value}`).join(", ")}`}>
-        <span className="font-display text-[26px] leading-none tracking-tight text-ink tabular-nums">{full === null ? "—" : `${full}%`}</span>
-        <span className="mt-1 text-[11px] leading-tight text-ink-soft">toda a<br />atividade</span>
+        <span className="font-display text-2xl leading-none tracking-tight text-ink tabular-nums">{full === null ? "—" : `${full}%`}</span>
+        <span className="mt-1 text-xs leading-tight text-ink-soft">toda a<br />atividade</span>
       </HatchedDonut>
       <div className="min-w-0 flex-1 basis-40"><Legend segments={segments} /></div>
     </div>
@@ -108,7 +108,7 @@ export function ObjectiveScale({ initial, latest, target, caption }: { initial: 
             <div key={item.label} className={`min-w-0 ${item.align}`}>
               <dt className={`flex items-center gap-1.5 text-xs text-ink-soft ${item.align}`}><span aria-hidden className={`inline-block size-2.5 shrink-0 ${item.marker}`} />{item.label}</dt>
               <dd className="mt-1 font-display text-xl leading-none tracking-tight text-ink">{info.code}</dd>
-              <dd className="mt-1 text-[11px] leading-tight text-ink-soft">{info.label}</dd>
+              <dd className="mt-1 text-xs leading-tight text-ink-soft">{info.label}</dd>
             </div>
           );
         })}

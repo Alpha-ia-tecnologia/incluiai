@@ -20,7 +20,7 @@ export default async function SchoolDashboard() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (["familia", "terapeuta"].includes(user.role) && !user.studentId) {
-    return <><h1 className="mb-6 text-3xl">Boas-vindas, {firstName(user.name)}</h1><EmptyState title="Seu acesso ainda precisa ser vinculado a um estudante" hint="Peça à equipe da escola para conferir seu cadastro. Depois disso, o acompanhamento aparecerá aqui." /><Link className="task-action mt-4" href="/ajuda">Consultar a ajuda</Link></>;
+    return <><h1 className="mb-6 font-display text-3xl tracking-tight">Boas-vindas, {firstName(user.name)}</h1><EmptyState character="care" title="Seu acesso ainda precisa ser vinculado a um estudante" hint="Peça à equipe da escola para conferir seu cadastro. Depois disso, o acompanhamento aparecerá aqui." action={<Link className="task-action" href="/ajuda">Consultar a ajuda</Link>} /></>;
   }
   if (user.role === "familia") redirect(`/familia/${user.studentId}`);
   if (user.role === "terapeuta") redirect("/terapeuta");
@@ -83,17 +83,42 @@ export default async function SchoolDashboard() {
         <section className="mb-7 flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="mb-3 text-sm text-ink-soft">Olá, {firstName(user.name)}.</p>
-            <h1 className="max-w-xl font-display text-[34px] leading-[1.12] tracking-tight sm:text-[44px]">O que vamos fazer hoje?</h1>
+            <h1 className="max-w-xl font-display text-3xl leading-[1.12] tracking-tight sm:text-4xl">O que vamos fazer hoje?</h1>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-soft">Escolha uma tarefa para começar. Vamos orientar você em cada etapa.</p>
           </div>
           {journey.welcomed ? <Character variant="learning" className="hidden w-32 shrink-0 sm:block xl:w-36" preload /> : null}
         </section>
 
+        {/* Os números do acompanhamento ficam numa faixa no topo; a coluna lateral
+            guarda o que é de consulta (jornada, avisos, datas e ideias). */}
+        <section aria-labelledby="acompanhamento-titulo" className="dash-board mb-7">
+          <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-2 pt-1">
+            <h2 id="acompanhamento-titulo" className="text-base font-medium">Seu acompanhamento</h2>
+            <Link href="/painel" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Ver painel de indicadores <ArrowRight size={16} aria-hidden /></Link>
+          </div>
+          <div className="grid min-w-0 gap-2.5 sm:grid-cols-3">
+            <StatTile label="Estudantes" value={students.length} hint={withAlerts.length ? `${withAlerts.length} com aviso de acompanhamento.` : "Nenhum aviso de acompanhamento."} />
+            <StatTile
+              label="Registros nos últimos 7 dias"
+              value={recentRecords}
+              chart={recordDates.length ? <MiniColumns points={weekly} label="Registros de aula por semana, nas últimas 8 semanas" /> : undefined}
+              hint={recordDates.length ? "Colunas: registros por semana, nas últimas 8 semanas." : "Nenhum registro de aula nas últimas 8 semanas."}
+            />
+            <StatTile
+              label="Sugestões para avaliar"
+              value={pendingSuggestions}
+              tone={pendingSuggestions ? "mid" : "good"}
+              status={pendingSuggestions ? "Para avaliar" : "Em dia"}
+              hint={pendingSuggestions ? `De ${studentsWithSuggestions} ${studentsWithSuggestions === 1 ? "estudante" : "estudantes"}. Aceite ou recuse na aba Atividades.` : "Nenhuma sugestão de atividade esperando avaliação."}
+            />
+          </div>
+        </section>
+
         <section aria-label="Tarefas do dia" className="grid gap-3">
           {tasks.map(({ title, description, href, icon: Icon, color, accent }) => (
-            <Link key={href} href={href} className={`pastel-card group flex min-h-24 items-center gap-4 rounded-[22px] p-5 ${color}`}>
+            <Link key={href} href={href} className={`pastel-card group flex min-h-24 items-center gap-4 rounded-2xl p-5 ${color}`}>
               <span className={`flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/75 ${accent}`}><Icon size={22} strokeWidth={1.7} aria-hidden /></span>
-              <div className="min-w-0 flex-1"><h2 className="text-base font-medium sm:text-lg">{title}</h2><p className="mt-1 text-sm leading-relaxed text-ink/80">{description}</p></div>
+              <div className="min-w-0 flex-1"><h2 className="text-base font-medium sm:text-xl">{title}</h2><p className="mt-1 text-sm leading-relaxed text-ink/80">{description}</p></div>
               <ArrowRight size={20} aria-hidden className={`shrink-0 transition-transform group-hover:translate-x-1 ${accent}`} />
             </Link>
           ))}
@@ -109,7 +134,7 @@ export default async function SchoolDashboard() {
 
         <section className="mt-8" aria-labelledby="students-title">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 id="students-title" className="text-lg font-medium">Próximo passo por estudante</h2>
+            <h2 id="students-title" className="text-xl font-medium">Próximo passo por estudante</h2>
             <Link href="/estudantes" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Ver todos <ArrowRight size={16} aria-hidden /></Link>
           </div>
           {anyEntries ? (
@@ -120,7 +145,7 @@ export default async function SchoolDashboard() {
             </ul>
           ) : null}
           {students.length === 0 ? (
-            <div><EmptyState title="Vamos começar pelo primeiro estudante?" hint="O cadastro permite reunir informações, preparar o plano de ensino e acompanhar as aulas." /><Link href="/estudantes/novo" className="task-action mt-4"><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link></div>
+            <EmptyState character="learning" title="Vamos começar pelo primeiro estudante?" hint="O cadastro permite reunir informações, preparar o plano de ensino e acompanhar as aulas." action={<Link href="/estudantes/novo" className="task-action"><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link>} />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {shownStudents.map((student) => {
@@ -131,7 +156,7 @@ export default async function SchoolDashboard() {
                   hasDiary: !!student.diaryEntries.length,
                 });
                 return (
-                  <article key={student.id} className="flex flex-col rounded-[22px] border border-line bg-paper-raised p-5">
+                  <article key={student.id} className="flex flex-col rounded-2xl border border-line bg-paper-raised p-5">
                     <h3 className="text-base font-medium"><Link href={`/estudantes/${student.id}`} className="inline-flex min-h-11 items-center hover:underline">{student.name}</Link></h3>
                     <p className="text-sm text-ink-soft">{student.gradeYear} · {student.className}</p>
                     <p className="mt-1 text-xs leading-relaxed text-ink-soft">{student.school.name}</p>
@@ -149,27 +174,6 @@ export default async function SchoolDashboard() {
 
       <aside className="dashboard-side" aria-label="Resumo do acompanhamento">
         <JourneyProgress journey={journey} />
-        <section className="mt-6" aria-labelledby="acompanhamento-titulo">
-          <h2 id="acompanhamento-titulo" className="px-1 text-base font-medium">Seu acompanhamento</h2>
-          <p className="mt-1 px-1 text-xs leading-relaxed text-ink-soft">Resumo dos estudantes ativos aos quais você tem acesso.</p>
-          <div className="mt-3 grid min-w-0 gap-2.5">
-            <StatTile label="Estudantes" value={students.length} hint={withAlerts.length ? `${withAlerts.length} com aviso de acompanhamento.` : "Nenhum aviso de acompanhamento."} />
-            <StatTile
-              label="Registros nos últimos 7 dias"
-              value={recentRecords}
-              chart={recordDates.length ? <MiniColumns points={weekly} label="Registros de aula por semana, nas últimas 8 semanas" /> : undefined}
-              hint={recordDates.length ? "Colunas: registros por semana, nas últimas 8 semanas." : "Nenhum registro de aula nas últimas 8 semanas."}
-            />
-            <StatTile
-              label="Sugestões de atividade para avaliar"
-              value={pendingSuggestions}
-              tone={pendingSuggestions ? "mid" : "good"}
-              status={pendingSuggestions ? "Para avaliar" : "Em dia"}
-              hint={pendingSuggestions ? `De ${studentsWithSuggestions} ${studentsWithSuggestions === 1 ? "estudante" : "estudantes"}. Aceite ou recuse na aba Atividades.` : "Nenhuma sugestão esperando avaliação."}
-            />
-          </div>
-          <Link href="/painel" className="mt-2 inline-flex min-h-11 items-center gap-2 px-1 text-sm font-medium text-brand-strong">Ver painel de indicadores <ArrowRight size={16} aria-hidden /></Link>
-        </section>
 
         <section className="mt-6" aria-labelledby="attention-title">
           <h2 id="attention-title" className="mb-3 text-base font-medium">Precisa de atenção</h2>
@@ -183,15 +187,15 @@ export default async function SchoolDashboard() {
           <h2 id="dates-title" className="mb-3 text-base font-medium">Próximas datas inclusivas</h2>
           {upcomingDates.length ? <ul className="space-y-2">{upcomingDates.map((event) => (
             <li key={event.key}><Link href={`/calendario?mes=${monthParam(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl bg-paper-raised p-3 transition-colors hover:bg-brand-soft">
-              <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-[11px]">{MONTH_SHORT[event.start.month - 1]}</span></span>
+              <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-xs">{MONTH_SHORT[event.start.month - 1]}</span></span>
               <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-xs text-ink-soft">{relativeLabel(event, today)}</span></span>
             </Link></li>
           ))}</ul> : <p className="rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft">Nenhuma data comemorativa nas próximas semanas.</p>}
           <Link href="/calendario" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong"><CalendarDays size={16} aria-hidden /> Ver calendário inclusivo</Link>
         </section>
 
-        <Link href="/recursos" className="mt-6 block rounded-[20px] bg-teal-soft p-5">
-          <Character variant="resources" className="mb-2 w-24" />
+        <Link href="/recursos" className="mt-6 block rounded-2xl bg-teal-soft p-5">
+          <Character variant="ideas" className="mb-2 w-24" />
           <h2 className="text-base font-medium">Ideias para sua aula</h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">Encontre atividades e materiais para apoiar a aprendizagem.</p>
           <span className="mt-4 flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Explorar recursos <ArrowRight size={16} aria-hidden /></span>

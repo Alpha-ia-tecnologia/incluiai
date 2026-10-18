@@ -44,7 +44,8 @@ export default async function MaterialPrintPage({ params }: { params: Promise<{ 
 
       {draft ? <div role="note" aria-label="Aviso de rascunho" className="mb-6">{notice}</div> : null}
 
-      <h1 className="break-words font-display text-2xl font-medium leading-tight text-ink sm:text-3xl">{material.title}</h1>
+      {/* O h1 da página é o título do planejamento (layout); o material é a seção. */}
+      <h2 className="break-words font-display text-2xl font-medium leading-tight text-ink sm:text-3xl">{material.title}</h2>
 
       <section aria-label="Dados do material" className="mt-4 rounded-xl border border-line p-4 print:break-inside-avoid">
         <MaterialMetaList items={materialMeta(material, { withActivity: true })} />

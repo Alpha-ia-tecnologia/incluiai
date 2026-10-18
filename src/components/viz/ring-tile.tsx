@@ -19,7 +19,7 @@ export function RingTile({ id, pct, label, value, hint, color = SIGNAL.lime, chi
       <RingStat id={id} value={pct} label={label} size={84} color={color} />
       <div className="min-w-[8rem] flex-1">
         <h3 className="text-sm font-medium leading-snug text-ink">{label}</h3>
-        <p className="mt-1 font-display text-[28px] leading-none tracking-tight text-ink tabular-nums">{value}</p>
+        <p className="mt-1 font-display text-3xl leading-none tracking-tight text-ink tabular-nums">{value}</p>
         {hint ? <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
       </div>
       {children ? <div className="w-full min-w-0">{children}</div> : null}

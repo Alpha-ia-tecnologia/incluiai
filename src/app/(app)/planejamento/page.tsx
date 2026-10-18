@@ -6,8 +6,7 @@ import { canPlanDua, canSeeDuaIndicators } from "@/lib/dua/access";
 import { classOptions, listPlannings } from "@/lib/dua/plannings";
 import { REVIEW_STATE_LABEL, SHARING_LABEL, type ReviewState } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
-import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
-import { Character } from "@/components/character";
+import { Badge, Card, EmptyState, PageHero, SectionTitle } from "@/components/ui";
 import { NewPlanningForm } from "@/components/dua/new-planning-form";
 import { ReviewBadge, inputCls, labelCls, secondaryCls } from "@/components/dua/dua-ui";
 import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
@@ -55,7 +54,8 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        character="planning"
         title="Planejamento com DUA"
         lede="Desenho Universal para a Aprendizagem: planeje a atividade da turma considerando, desde o início, as diferentes formas de acessar, participar e mostrar o que aprendeu."
       />
@@ -67,7 +67,6 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
           <NewPlanningForm classes={classes} reusable={reusable} defaultReuse={params.reaproveitar} />
         </Card>
         <Card className="min-w-0 bg-surface-muted/60">
-          <Character variant="planning" className="mb-3 w-24" />
           <h2 className="text-sm font-medium text-ink">As cinco perguntas do planejamento</h2>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-relaxed text-ink-soft">
             {QUESTIONS.map((question) => <li key={question}>{question}</li>)}
@@ -106,7 +105,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
         </form>
         <p className="mb-3 text-sm text-ink-soft" role="status">{plannings.length} planejamento(s){query ? ` para “${query}”` : ""}.</p>
         {plannings.length === 0 ? (
-          <EmptyState title={query || mine ? "Nenhum planejamento encontrado." : "Nenhum planejamento ainda."} hint={query || mine ? "Tente outra busca." : "Comece por “Planejar atividade com DUA”."} />
+          <EmptyState character="planning" title={query || mine ? "Nenhum planejamento encontrado." : "Nenhum planejamento ainda."} hint={query || mine ? "Tente outra busca." : "Comece pela atividade da turma, em “Planejar atividade com DUA”. Os apoios individuais entram depois."} />
         ) : (
           <ul className="grid min-w-0 gap-3 md:grid-cols-2">
             {plannings.map((item) => (
@@ -117,7 +116,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
                     <Badge tone="neutral">Versão {item.version}</Badge>
                     {item.sharing === "compartilhado" ? <Badge tone="brand">{SHARING_LABEL.compartilhado}</Badge> : null}
                   </span>
-                  <span className="font-display text-lg font-medium text-ink">{item.title}</span>
+                  <span className="font-display text-xl font-medium text-ink">{item.title}</span>
                   {item.objective ? <span className="line-clamp-2 text-sm text-ink-soft">{item.objective}</span> : null}
                   <span className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2 text-xs text-ink-soft">
                     <span>{item.ownerName}{item.className ? ` · ${item.className}` : ""} · atualizado em {formatDate(item.updatedAt)} · {item.applications} aplicação(ões)</span>

@@ -52,7 +52,7 @@ export function BarRow({ label, value, max, detail, color = SIGNAL.lime }: {
         <span className="shrink-0 text-xs tabular-nums text-ink-soft">{value}{detail ? ` · ${detail}` : ""}</span>
       </div>
       <div className="h-2.5 overflow-hidden rounded-full bg-signal-track" aria-hidden>
-        <div className="hatch h-full rounded-full transition-[width] duration-500" style={{ width: `${width}%`, backgroundColor: color }} />
+        <div className="hatch viz-grow-x h-full rounded-full transition-[width] duration-500" style={{ width: `${width}%`, backgroundColor: color }} />
       </div>
     </div>
   );
@@ -96,7 +96,7 @@ export function StackedBar({ segments, empty = "Sem registros no período." }: {
     <div>
       <div className="flex h-3.5 gap-1" aria-hidden>
         {segments.map((segment) => segment.value > 0 ? (
-          <div key={segment.key} className="hatch h-full rounded-full" style={{ width: `${(segment.value / total) * 100}%`, backgroundColor: segment.color }} />
+          <div key={segment.key} className="hatch viz-grow-x h-full rounded-full" style={{ width: `${(segment.value / total) * 100}%`, backgroundColor: segment.color }} />
         ) : null)}
       </div>
       <div className="mt-4"><Legend segments={segments} /></div>
@@ -114,6 +114,9 @@ function HatchPattern({ id, color }: { id: string; color: string }) {
 }
 
 // Rosca listrada: trilho cinza e um arco por segmento, com o conteúdo no centro.
+// Cada arco se preenche a partir do próprio início (viz-ring anima só o
+// stroke-dasharray; o stroke-dashoffset que posiciona a parte fica parado). O
+// giro de -90° está no <svg>, não nos arcos.
 export function HatchedDonut({ id, segments, label, size = 152, thickness = 20, children }: {
   id: string;
   segments: ChartSegment[];
@@ -147,6 +150,7 @@ export function HatchedDonut({ id, segments, label, size = 152, thickness = 20, 
             stroke={`url(#${id}-${segment.key})`} strokeWidth={thickness}
             strokeDasharray={`${Math.max(length - gap, 0.5)} ${circumference}`}
             strokeDashoffset={-start}
+            className="viz-ring"
           />
         ))}
       </svg>
@@ -157,7 +161,7 @@ export function HatchedDonut({ id, segments, label, size = 152, thickness = 20, 
 
 // Medidor em meia-lua feito de listras em degradê (laranja → lima). As
 // listras até o valor ficam cheias; as demais, apagadas. Os vãos marcam as
-// faixas de 50% e 80%.
+// faixas de 50% e 80%. Fica parado: não é um arco com traço, são listras soltas.
 export function HatchedGauge({ value, label, zones = [50, 80] }: { value: number | null; label: string; zones?: number[] }) {
   const steps = 60;
   const [cx, cy, outer, inner, labelRadius] = [180, 180, 150, 114, 166];
@@ -183,7 +187,7 @@ export function HatchedGauge({ value, label, zones = [50, 80] }: { value: number
       })}
       {[0, ...zones, 100].map((pct) => {
         const { x, y } = point(pct, labelRadius);
-        return <text key={pct} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-[var(--ink-soft)] text-[12px]">{pct}</text>;
+        return <text key={pct} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-[var(--ink-soft)] text-xs">{pct}</text>;
       })}
     </svg>
   );
@@ -202,7 +206,7 @@ export function SupportScale({ initial, latest, target }: { initial: number; lat
         <span className="absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white bg-ink-strong shadow-e1" style={{ left: position(latest) }} />
         <span className="absolute top-[calc(100%+4px)] size-3 -translate-x-1/2 rotate-45 rounded-[2px] border-2 border-ink-strong bg-white" style={{ left: position(target) }} />
       </div>
-      <div className="mt-6 flex justify-between text-[11px] text-ink-soft"><span>Mais apoio (5)</span><span>Independente (0)</span></div>
+      <div className="mt-6 flex justify-between text-xs text-ink-soft"><span>Mais apoio (5)</span><span>Independente (0)</span></div>
     </div>
   );
 }
@@ -212,7 +216,8 @@ export function SupportScale({ initial, latest, target }: { initial: number; lat
 // gráfico (13 semanas cabem a 320 px sem rolagem lateral). Para não se
 // sobreporem, só uma coluna a cada passo mostra valor e rótulo: no máximo 6
 // no celular e 13 a partir de sm (24 meses viram 6 e 12), contando a partir da
-// mais recente. Todas as colunas têm o valor no title e no aria-label.
+// mais recente. Todas as colunas têm o valor no title e no aria-label. Só a
+// coluna cresce ao abrir; valor e rótulo já aparecem no lugar.
 export function ColumnChart({ rows, caption }: { rows: { label: string; title: string; value: number }[]; caption: string }) {
   const max = Math.max(1, ...rows.map((row) => row.value));
   const narrowStep = Math.ceil(rows.length / 6);
@@ -226,10 +231,10 @@ export function ColumnChart({ rows, caption }: { rows: { label: string; title: s
       {rows.map((row, index) => (
         <div key={`${row.label}-${index}`} className="relative flex h-full min-w-0 flex-1 flex-col items-center justify-end pb-[18px]" title={`${row.title}: ${row.value}`}>
           <div className="relative w-full max-w-10 transition-[height] duration-500" style={{ height: `${Math.max(row.value > 0 ? 6 : 2, (row.value / max) * 76)}%` }}>
-            <span className={`absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap text-[10px] tabular-nums text-ink-soft ${hidden(index)}`}>{row.value}</span>
-            <div className="hatch h-full w-full rounded-t-lg rounded-b-sm" style={{ backgroundColor: row.value > 0 ? SIGNAL.lime : SIGNAL.track }} />
+            <span className={`absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap text-xs tabular-nums text-ink-soft ${hidden(index)}`}>{row.value}</span>
+            <div className="hatch viz-grow-y h-full w-full rounded-t-lg rounded-b-sm" style={{ backgroundColor: row.value > 0 ? SIGNAL.lime : SIGNAL.track }} />
           </div>
-          <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] leading-tight text-ink-soft ${hidden(index)}`}>{row.label}</span>
+          <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs leading-tight text-ink-soft ${hidden(index)}`}>{row.label}</span>
         </div>
       ))}
     </div>

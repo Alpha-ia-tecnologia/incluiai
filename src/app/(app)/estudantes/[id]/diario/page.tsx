@@ -46,7 +46,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
 
   return (
     <>
-      <PageHeader
+      <PageHeader level={2}
         title="Registrar aula ou atendimento"
         lede="Um registro de cada vez ajuda a entender o que funciona para este estudante. Preencha as três partes abaixo e salve no diário de acompanhamento."
         actions={entries.length > 0 ? <a href="#historico-registros" className="inline-flex min-h-11 items-center rounded-full border border-line bg-paper px-4 py-2 text-sm font-medium text-brand-strong hover:bg-brand-soft">Ver registros anteriores</a> : undefined}
@@ -58,7 +58,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
       </Card>
 
       <section id="historico-registros" className="max-w-3xl scroll-mt-6" aria-labelledby="history-title">
-        <h2 id="history-title" className="mb-2 text-lg font-semibold text-ink">Registros anteriores</h2>
+        <h2 id="history-title" className="mb-2 text-xl font-semibold text-ink">Registros anteriores</h2>
         <p className="mb-4 text-sm text-ink-soft">Os registros mais recentes aparecem primeiro. Observe a participação e o apoio necessário ao longo do tempo.</p>
         {entries.length > 0 ? (
           <DataBoard className="mb-5 sm:grid-cols-2">
@@ -99,7 +99,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
           </DataBoard>
         ) : null}
         {entries.length === 0 ? (
-          <EmptyState title="O primeiro registro começa aqui" hint="Preencha o formulário acima depois de uma aula ou atendimento. O registro aparecerá neste espaço quando você salvar." />
+          <EmptyState character="learning" title="O primeiro registro começa aqui" hint="Preencha o formulário acima depois de uma aula ou atendimento. O registro aparecerá neste espaço quando você salvar." />
         ) : (
           <div className="space-y-3">
             {entries.map((entry) => (

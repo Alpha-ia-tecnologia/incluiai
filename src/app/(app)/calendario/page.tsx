@@ -75,8 +75,8 @@ export default async function CalendarPage({
 
   return (
     <>
-      <section aria-labelledby="calendar-title" className="mb-8 grid grid-cols-[minmax(0,1fr)_80px] items-center gap-x-4 gap-y-3 rounded-[1.75rem] bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-x-7 sm:p-7 lg:grid-cols-[minmax(0,1fr)_176px] print:bg-transparent print:p-0">
-        <h1 id="calendar-title" className="min-w-0 font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-[40px]">Calendário inclusivo.</h1>
+      <section aria-labelledby="calendar-title" className="mb-8 grid grid-cols-[minmax(0,1fr)_80px] items-center gap-x-4 gap-y-3 rounded-3xl bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-x-7 sm:p-7 lg:grid-cols-[minmax(0,1fr)_176px] print:bg-transparent print:p-0">
+        <h1 id="calendar-title" className="min-w-0 font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-4xl">Calendário inclusivo.</h1>
         <Character variant="planning" className="w-20 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-40 lg:w-44" preload />
         <p className="col-span-2 max-w-2xl text-sm leading-relaxed text-ink-soft sm:col-span-1">Datas comemorativas da educação especial e inclusiva — como o Dia do Autismo e o Dia das Línguas de Sinais — com ideias para celebrar com toda a turma.</p>
       </section>
@@ -84,7 +84,7 @@ export default async function CalendarPage({
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Link href={calendarHref(monthParam(prev.year, prev.month), tema)} aria-label={`Mês anterior: ${MONTH_NAMES[prev.month - 1]} de ${prev.year}`} className="flex size-11 items-center justify-center rounded-full border border-line bg-paper-raised transition-colors hover:bg-brand-soft print:hidden"><ChevronLeft size={20} aria-hidden /></Link>
-          <h2 className="min-w-48 text-center text-xl font-medium tracking-tight">{monthTitle}</h2>
+          <h2 className="min-w-0 text-center text-xl font-medium tracking-tight sm:min-w-48">{monthTitle}</h2>
           <Link href={calendarHref(monthParam(next.year, next.month), tema)} aria-label={`Próximo mês: ${MONTH_NAMES[next.month - 1]} de ${next.year}`} className="flex size-11 items-center justify-center rounded-full border border-line bg-paper-raised transition-colors hover:bg-brand-soft print:hidden"><ChevronRight size={20} aria-hidden /></Link>
         </div>
         <div className="flex items-center gap-2 print:hidden">
@@ -137,9 +137,9 @@ export default async function CalendarPage({
                           )}
                           <ul aria-hidden className="mt-1 hidden min-w-0 space-y-0.5 sm:block">
                             {dayEvents.slice(0, 2).map((event) => (
-                              <li key={event.key} className={`line-clamp-2 break-words rounded-md px-1.5 py-0.5 text-[11px] leading-4 ${CALENDAR_THEMES[event.entry.theme].chip}`}>{event.entry.short}</li>
+                              <li key={event.key} className={`line-clamp-2 break-words rounded-md px-1.5 py-0.5 text-xs leading-4 ${CALENDAR_THEMES[event.entry.theme].chip}`}>{event.entry.short}</li>
                             ))}
-                            {dayEvents.length > 2 ? <li className="px-1.5 text-[11px] text-ink-soft">+{dayEvents.length - 2}</li> : null}
+                            {dayEvents.length > 2 ? <li className="px-1.5 text-xs text-ink-soft">+{dayEvents.length - 2}</li> : null}
                           </ul>
                           <span aria-hidden className="mt-auto flex flex-wrap gap-0.5 px-1 pb-0.5 sm:hidden">
                             {dayEvents.map((event) => <span key={event.key} className={`size-1.5 rounded-full ${CALENDAR_THEMES[event.entry.theme].dot}`} />)}
@@ -160,7 +160,7 @@ export default async function CalendarPage({
             <span className="text-xs text-ink-soft">{events.length} {events.length === 1 ? "data" : "datas"}</span>
           </div>
           {events.length === 0 ? (
-            <div className="rounded-[22px] border border-dashed border-line bg-surface-muted/40 px-5 py-10 text-center">
+            <div className="rounded-2xl border border-dashed border-line bg-surface-muted/40 px-5 py-10 text-center">
               <p className="font-medium">Nenhuma data comemorativa neste mês{tema ? " para o tema escolhido" : ""}.</p>
               <p className="mt-1 text-sm text-ink-soft">Avance para o próximo mês{tema ? " ou veja todos os temas" : ""}.</p>
               {tema ? <Link href={calendarHref(current)} className="task-action task-action-secondary mx-auto mt-4 w-fit">Ver todos os temas</Link> : null}
@@ -189,7 +189,7 @@ function EventCard({ event, today }: { event: CalendarEvent; today: YMD }) {
   const soon = ongoing || (daysAway > 0 && daysAway <= 7);
   const singleDay = dayIndex(event.start) === dayIndex(event.end);
   return (
-    <li id={`evento-${event.key}`} className="scroll-mt-6 rounded-[22px] border border-line bg-paper-raised p-5 target:ring-2 target:ring-brand print:break-inside-avoid">
+    <li id={`evento-${event.key}`} className="scroll-mt-6 rounded-2xl border border-line bg-paper-raised p-5 target:ring-2 target:ring-brand print:break-inside-avoid">
       <div className="flex items-start gap-4">
         <div className={`flex w-14 shrink-0 flex-col items-center rounded-2xl py-2 ${theme.chip}`}>
           <span className="text-2xl font-medium leading-none">{event.start.day}</span>
@@ -199,8 +199,8 @@ function EventCard({ event, today }: { event: CalendarEvent; today: YMD }) {
           <h3 className="text-base font-medium leading-snug">{entry.title}</h3>
           <p className="mt-1 text-xs text-ink-soft">{singleDay ? `${WEEKDAYS[weekdayOf(event.start)][1]}, ` : ""}{dateRangeLabel(event)}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${theme.chip}`}>{theme.label}</span>
-            {soon ? <span className="rounded-full bg-brand px-2.5 py-1 text-[11px] font-medium text-white">{relativeLabel(event, today)}</span> : null}
+            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${theme.chip}`}>{theme.label}</span>
+            {soon ? <span className="rounded-full bg-brand px-2.5 py-1 text-xs font-medium text-white">{relativeLabel(event, today)}</span> : null}
           </div>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">{entry.about}</p>
           <div className="mt-3 rounded-2xl bg-surface-muted p-3">

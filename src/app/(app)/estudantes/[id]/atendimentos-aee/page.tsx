@@ -39,7 +39,7 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
 
   return (
     <>
-      <PageHeader title="Atendimentos AEE" lede="Frequência do atendimento educacional especializado: se o atendimento foi realizado, se houve falta ou cancelamento." />
+      <PageHeader level={2} title="Atendimentos AEE" lede="Frequência do atendimento educacional especializado: se o atendimento foi realizado, se houve falta ou cancelamento." />
 
       <div className="grid min-w-0 max-w-3xl gap-6">
         <Card className="min-w-0 bg-sky-soft/60">
@@ -51,7 +51,7 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
         </Card>
 
         <section aria-labelledby="aee-resumo" className="min-w-0">
-          <h2 id="aee-resumo" className="mb-3 text-lg font-semibold text-ink">Resumo</h2>
+          <h2 id="aee-resumo" className="mb-3 text-xl font-semibold text-ink">Resumo</h2>
           <DataBoard className="md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
             <RingTile
               id="aee-frequencia"
@@ -88,7 +88,7 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
         )}
 
         <section aria-labelledby="aee-registros" className="min-w-0">
-          <h2 id="aee-registros" className="mb-1 text-lg font-semibold text-ink">Registros</h2>
+          <h2 id="aee-registros" className="mb-1 text-xl font-semibold text-ink">Registros</h2>
           <p className="mb-4 text-sm text-ink-soft">Os mais recentes aparecem primeiro.</p>
           {sessions.length ? (
             <ul className="grid min-w-0 gap-3">
@@ -110,7 +110,7 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
               })}
             </ul>
           ) : (
-            <EmptyState title="Nenhum atendimento registrado" hint={canRecord ? "Use o formulário acima depois de cada atendimento previsto." : undefined} />
+            <EmptyState character="care" title="Nenhum atendimento registrado" hint={canRecord ? "Use o formulário acima depois de cada atendimento previsto." : undefined} />
           )}
         </section>
       </div>

@@ -7,13 +7,13 @@ import { generateBatchForClass } from "@/actions/activities";
 import { SHIFTS } from "@/lib/scale";
 import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS } from "@/lib/form-options";
-import { PageHeader, Badge, EmptyState } from "@/components/ui";
+import { PageHero, Badge, EmptyState } from "@/components/ui";
+import { primaryButtonCls, quietButtonCls } from "@/components/form-styles";
 import { Character } from "@/components/character";
-import { BarList } from "@/components/charts";
 import { StepTrack } from "@/components/viz/step-track";
 import { JOURNEY_STEPS } from "@/lib/dashboard";
 import { percentOf } from "@/lib/series";
-import { ArrowLeft, ArrowRight, Check, Layers, Plus, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Layers, Plus, Search, Sprout } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -81,14 +81,18 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       {action ? <Link href="/" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm text-brand-strong"><ArrowLeft size={16} aria-hidden /> Voltar para o início</Link> : null}
-      <PageHeader title={title} lede={action ? "Procure pelo nome ou escolha uma turma. Depois, selecione o estudante para continuar." : "Encontre um estudante e veja qual é o próximo passo do acompanhamento."}
-        actions={<Link href="/estudantes/novo" className="task-action task-action-secondary"><Plus size={18} aria-hidden /> Cadastrar estudante</Link>} />
+      <PageHero
+        character="learning"
+        title={title}
+        lede={action ? "Procure pelo nome ou escolha uma turma. Depois, selecione o estudante para continuar." : "Encontre um estudante e veja qual é o próximo passo do acompanhamento."}
+        actions={<Link href="/estudantes/novo" className={primaryButtonCls}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>}
+      />
 
-      {lote && /^\d+$/.test(lote) ? <div role="status" className="mb-6 flex items-start gap-3 rounded-2xl bg-green-soft p-5 text-sm leading-relaxed"><Check size={20} className="shrink-0" aria-hidden /><p>{lote} estudante(s) receberam sugestões de atividade. Abra as atividades de cada estudante para avaliar o que será aplicado.</p></div> : null}
+      {lote && /^\d+$/.test(lote) ? <div role="status" className="mb-6 flex items-start gap-3 rounded-2xl bg-green-soft p-5 text-sm leading-relaxed"><Sprout size={20} className="sprout-mark shrink-0 text-green" aria-hidden /><p>{lote} estudante(s) receberam sugestões de atividade. Abra as atividades de cada estudante para avaliar o que será aplicado.</p></div> : null}
 
       {allStudents.length ? (
         <>
-          <form method="get" action="/estudantes" role="search" aria-label="Buscar estudante" className="mb-6 grid gap-4 rounded-[22px] bg-surface-muted p-5 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
+          <form method="get" action="/estudantes" role="search" aria-label="Buscar estudante" className="mb-6 grid gap-4 rounded-2xl bg-surface-muted p-5 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
             {action ? <input type="hidden" name="acao" value={action} /> : null}
             <div className="min-w-0">
               <label htmlFor="student-search" className="mb-2 block text-sm font-medium">Nome do estudante</label>
@@ -109,16 +113,28 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
           <p role="status" className="mb-4 text-sm text-ink-soft">{students.length} {students.length === 1 ? "estudante encontrado" : "estudantes encontrados"}{query ? ` para “${query}”` : ""}{selectedClass ? " na turma selecionada" : ""}.</p>
           {!action && students.length ? (
             // Resumo da lista atual (respeita a busca e a turma escolhidas).
+            // Trilha das cinco etapas com quantos estudantes estão em cada uma: compacta,
+            // para os cartões dos estudantes aparecerem logo abaixo.
             <section aria-labelledby="etapas-resumo" className="dash-board mb-6">
               <div className="dash-card min-w-0">
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                   <div className="min-w-0">
-                    <h2 id="etapas-resumo" className="text-[15px] font-medium tracking-tight text-ink">Em que etapa estão</h2>
-                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">Quantos estudantes desta lista estão em cada etapa do acompanhamento, pelo próximo passo sugerido.</p>
+                    <h2 id="etapas-resumo" className="text-base font-medium tracking-tight text-ink">Em que etapa estão</h2>
+                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">Pelo próximo passo sugerido de cada estudante desta lista.</p>
                   </div>
                   <p className="text-xs text-ink-soft"><span className="font-display text-2xl leading-none text-ink tabular-nums">{inRoutine}</span> de {rows.length} na rotina de registros</p>
                 </div>
-                <BarList rows={byStep} />
+                <ol className="grid grid-cols-5 gap-1">
+                  {byStep.map((step, index) => (
+                    <li key={step.key} className="relative flex min-w-0 flex-col items-center text-center">
+                      {index < byStep.length - 1 ? <span aria-hidden className="absolute left-[calc(50%+24px)] right-[calc(-50%+24px)] top-5 border-t-[1.5px] border-dashed border-line" /> : null}
+                      <span className={`relative flex size-10 items-center justify-center rounded-full text-sm font-semibold tabular-nums ${step.value ? "bg-brand text-white" : "bg-surface-muted text-ink-soft"}`}>{step.value}</span>
+                      <span className="sr-only">{step.value === 1 ? "estudante na etapa" : "estudantes na etapa"}</span>
+                      <span className="mt-2 text-xs font-medium leading-snug text-ink [overflow-wrap:anywhere]">{step.label}</span>
+                      <span className="text-xs text-ink-soft tabular-nums">{step.detail ?? "sem base"}</span>
+                    </li>
+                  ))}
+                </ol>
               </div>
             </section>
           ) : null}
@@ -134,10 +150,10 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                       ? { href: `${base}/atividades`, label: "Preparar atividade", description: "Veja as sugestões e escolha uma atividade para aplicar." }
                       : next;
                 return (
-                  <article key={student.id} className="flex min-w-0 flex-col rounded-[22px] border border-line bg-paper-raised p-5 sm:p-6">
+                  <article key={student.id} className="flex min-w-0 flex-col rounded-2xl border border-line bg-paper-raised p-5 sm:p-6">
                     <div className="flex items-start gap-3">
                       <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-full text-base font-medium" style={{ backgroundColor: `oklch(88% 0.07 ${student.avatarHue})` }}>{student.name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span>
-                      <div className="min-w-0"><h2 className="text-lg font-medium leading-snug">{student.name}</h2><p className="mt-1 text-sm text-ink-soft">{student.gradeYear} · {student.className} · {SHIFTS[student.shift] ?? student.shift}</p></div>
+                      <div className="min-w-0"><h2 className="text-xl font-medium leading-snug">{student.name}</h2><p className="mt-1 text-sm text-ink-soft">{student.gradeYear} · {student.className} · {SHIFTS[student.shift] ?? student.shift}</p></div>
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-ink-soft">{student.school.name}</p>
                     <div className="mt-3"><StepTrack steps={steps} current={next.step} note={next.step === 5 && steps[4].done ? "Na rotina de registros" : undefined} /></div>
@@ -152,12 +168,12 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                 );
               })}
             </div>
-          ) : <EmptyState title="Nenhum estudante encontrado" hint="Confira o nome digitado ou use “Limpar filtros” para ver todos os estudantes disponíveis." />}
+          ) : <EmptyState character="learning" title="Nenhum estudante encontrado" hint="Confira o nome digitado ou use “Limpar filtros” para ver todos os estudantes disponíveis." action={<Link href={resetHref} className={quietButtonCls}>Limpar filtros</Link>} />}
         </>
-      ) : <div><EmptyState title="Cadastre o primeiro estudante" hint="Comece com nome, escola e turma. Depois, você poderá completar as informações de aprendizagem." /><Link href="/estudantes/novo" className="task-action mt-4 w-fit"><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link></div>}
+      ) : <EmptyState character="learning" title="Cadastre o primeiro estudante" hint="Comece com nome, escola e turma. Depois, você poderá completar as informações de aprendizagem." action={<Link href="/estudantes/novo" className={primaryButtonCls}><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link>} />}
 
       {classes.length ? (
-        <details id="planejar-turma" className="mt-8 rounded-[22px] border border-line bg-teal-soft/60">
+        <details id="planejar-turma" className="mt-8 rounded-2xl border border-line bg-teal-soft/60">
           <summary className="min-h-14 cursor-pointer px-5 py-5 text-base font-medium sm:px-6">Preparar atividades para uma turma inteira</summary>
           <div className="px-5 pb-6 sm:px-6">
             <div className="mb-5 flex items-center gap-5"><div className="flex-1"><h2 className="text-base font-medium">Planejamento da turma</h2><p className="mt-2 text-sm leading-relaxed text-ink-soft">Use esta opção quando já tiver preenchido como os estudantes aprendem e definido seus objetivos no plano de ensino.</p></div><Character variant="planning" className="hidden w-28 sm:block" /></div>

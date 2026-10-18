@@ -13,7 +13,7 @@ import { PageHeader, Card, SectionTitle, Badge, SupportPill, AIDisclaimer } from
 import { PendingButton } from "@/components/pending-button";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ObjectiveFields } from "@/components/objective-fields";
-import { ArrowRight, Bot, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRight, Sparkles, Trash2 } from "lucide-react";
 import { canSeePedagogicalDetail, getCurrentUser } from "@/lib/auth";
 import { canPlanDua } from "@/lib/dua/access";
 import { DuaError } from "@/lib/dua/shared";
@@ -23,12 +23,10 @@ import { percentOf } from "@/lib/series";
 import { DataBoard, DataCard, RingStat, StatusPill, TONE_COLOR, withSegmentColors, type Tone } from "@/components/data-viz";
 import { HatchedDonut, Legend } from "@/components/charts";
 import { ObjectiveScale } from "@/components/viz/student-viz";
+import { inputCls, labelCls, primaryButtonCls as buttonCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-const inputCls = "min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
-const labelCls = "mb-2 block text-sm font-medium text-ink";
-const buttonCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong";
 const fieldStyle = { labelClassName: labelCls, inputClassName: inputCls };
 const multiStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
@@ -52,7 +50,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     if (!isCaseStudyConcluded(student.caseStudy)) {
       return (
         <>
-          <PageHeader title="Plano de ensino (PPI)" lede="O plano parte do estudo de caso: é ele que reúne a escuta da família, do estudante e a avaliação pedagógica." />
+          <PageHeader level={2} title="Plano de ensino (PPI)" lede="O plano parte do estudo de caso: é ele que reúne a escuta da família, do estudante e a avaliação pedagógica." />
           <Card className="max-w-2xl border-amber-800/20 bg-amber-soft/50">
             <SectionTitle>Primeiro, conclua o estudo de caso</SectionTitle>
             <p className="text-sm leading-relaxed text-ink" role="status">{CASE_STUDY_REQUIRED_MESSAGE}</p>
@@ -90,7 +88,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     if (draft) {
       return (
         <>
-          <PageHeader title="Plano de ensino (PPI)" lede="Revise a proposta, ajuste o que for preciso e escolha os objetivos. O plano só passa a valer quando você o ativar." />
+          <PageHeader level={2} title="Plano de ensino (PPI)" lede="Revise a proposta, ajuste o que for preciso e escolha os objetivos. O plano só passa a valer quando você o ativar." />
           <ProposalReview
             studentId={id}
             studentName={student.name}
@@ -112,9 +110,9 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
     return (
       <>
-        <PageHeader title="Plano de ensino (PPI)" lede="Reúna o que o estudante já consegue fazer e os apoios que a equipe vai oferecer. Depois, defina os objetivos de aprendizagem." />
+        <PageHeader level={2} title="Plano de ensino (PPI)" lede="Reúna o que o estudante já consegue fazer e os apoios que a equipe vai oferecer. Depois, defina os objetivos de aprendizagem." />
         <Card className="mb-6 max-w-2xl border-brand/30 bg-brand-soft/40">
-          <SectionTitle><span className="flex items-center gap-2"><Bot size={16} aria-hidden /> {aiOn ? "Peça uma proposta aos agentes de IA" : "Peça uma proposta automática"}</span></SectionTitle>
+          <SectionTitle><span className="flex items-center gap-2"><Sparkles size={16} aria-hidden /> {aiOn ? "Peça uma proposta aos agentes de IA" : "Peça uma proposta automática"}</span></SectionTitle>
           <p className="text-sm leading-relaxed text-ink-soft">
             {aiOn
               ? "Três agentes trabalham em sequência: o analista lê o estudo de caso, o planejador propõe objetivos e estratégias e o revisor confere tudo. Você revisa e decide antes de ativar o plano."
@@ -163,23 +161,23 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <PageHeader
+      <PageHeader level={2}
         title="Plano de ensino (PPI)"
         lede={`Criado em ${formatDate(plan.createdAt)} · data de revisão: ${formatDate(plan.reviewDate)}`}
         actions={overdue ? <Badge tone="coral">Hora de revisar com a equipe</Badge> : <Badge tone="green">Plano ativo</Badge>}
       />
 
-      <Card className="mb-6 border-brand/30 bg-brand-soft/50">
-        <SectionTitle>{hasActiveObjectives ? "Próximo passo: preparar a aula" : "Próximo passo: definir um objetivo"}</SectionTitle>
-        <p className="mb-3 text-sm leading-relaxed text-ink-soft">
-          {hasActiveObjectives
-            ? "Seu plano já tem objetivos ativos. Escolha um deles para preparar uma atividade e, depois da aula, registre o resultado."
-            : "O plano foi criado. Agora, descreva abaixo uma aprendizagem que você poderá observar nas próximas aulas."}
-        </p>
-        <Link href={hasActiveObjectives ? `/estudantes/${id}/atividades` : "#novo-objetivo"} className={buttonCls}>
-          {hasActiveObjectives ? "Preparar uma atividade" : "Definir o objetivo"} <ArrowRight size={16} aria-hidden />
-        </Link>
-      </Card>
+      {/* O próximo passo segue a regra da jornada (botão no cabeçalho da ficha). Só
+          quando o passo é aqui mesmo (plano sem objetivo ativo) o cartão leva ao formulário. */}
+      {!hasActiveObjectives ? (
+        <Card className="mb-6 border-brand/30 bg-brand-soft/50">
+          <SectionTitle>Próximo passo: definir um objetivo</SectionTitle>
+          <p className="mb-3 text-sm leading-relaxed text-ink-soft">O plano foi criado. Agora, descreva abaixo uma aprendizagem que você poderá observar nas próximas aulas.</p>
+          <Link href="#novo-objetivo" className={buttonCls}>
+            Definir o objetivo <ArrowRight size={16} aria-hidden />
+          </Link>
+        </Card>
+      ) : null}
 
       <SectionTitle>Andamento do plano</SectionTitle>
       <DataBoard className="mb-6 md:grid-cols-2">
@@ -187,9 +185,9 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <div className="flex min-w-0 flex-wrap items-center gap-4">
             <RingStat id="ppi-prazo" value={elapsedPct} label="Tempo do plano já percorrido" size={96} color={TONE_COLOR[reviewTone]} />
             <div className="min-w-0 flex-1 basis-40">
-              <p className="font-display text-[32px] leading-none tracking-tight text-ink tabular-nums">
+              <p className="font-display text-3xl leading-none tracking-tight text-ink tabular-nums">
                 {daysLeft === 0 ? "Hoje" : Math.abs(daysLeft)}
-                {daysLeft !== 0 ? <span className="ml-1 text-lg text-ink-soft">{Math.abs(daysLeft) === 1 ? "dia" : "dias"}</span> : null}
+                {daysLeft !== 0 ? <span className="ml-1 text-xl text-ink-soft">{Math.abs(daysLeft) === 1 ? "dia" : "dias"}</span> : null}
               </p>
               <p className="mt-2"><StatusPill tone={reviewTone}>{reviewStatus}</StatusPill></p>
               <p className="mt-2 text-xs leading-relaxed text-ink-soft">
@@ -204,7 +202,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <div className="flex min-w-0 flex-wrap items-center gap-4">
               <HatchedDonut id="ppi-objetivos" segments={objectiveStatus} size={96} thickness={13} label={`Objetivos do plano: ${objectiveStatus.map((segment) => `${segment.label.toLowerCase()} ${segment.value}`).join(", ")}`}>
                 <span className="font-display text-2xl leading-none text-ink tabular-nums">{plan.objectives.length}</span>
-                <span className="mt-0.5 text-[11px] text-ink-soft">{plan.objectives.length === 1 ? "objetivo" : "objetivos"}</span>
+                <span className="mt-0.5 text-xs text-ink-soft">{plan.objectives.length === 1 ? "objetivo" : "objetivos"}</span>
               </HatchedDonut>
               <div className="min-w-0 flex-1 basis-40"><Legend segments={objectiveStatus} /></div>
             </div>
@@ -409,7 +407,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
           <SectionTitle>Proposta de plano</SectionTitle>
           <p className="-mt-2 text-xs text-ink-soft">Pedida por {createdBy} em {formatDate(createdAt)}.</p>
         </div>
-        <Badge tone={source === "ia" ? "brand" : "neutral"}>{source === "ia" ? <><Bot size={12} aria-hidden /> Agentes de IA</> : "Motor de regras"}</Badge>
+        <Badge tone={source === "ia" ? "brand" : "neutral"}>{source === "ia" ? <><Sparkles size={12} aria-hidden /> Agentes de IA</> : "Motor de regras"}</Badge>
       </div>
 
       {analysis ? (
@@ -467,12 +465,12 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
 
       <div className="mt-6 flex flex-wrap items-start gap-3 border-t border-line pt-4">
         <form action={regenerate} className="has-[[data-testid=espera-jardim]]:basis-full">
-          <PendingButton className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-soft px-4 text-sm font-medium text-brand-strong hover:bg-lilac" pendingText={aiOn ? "Os agentes estão preparando outra proposta." : "Preparando outra proposta…"} wait={aiOn ? "plano" : undefined}>
+          <PendingButton className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-soft px-4 text-sm font-medium text-brand-strong hover:bg-lilac" pendingText={aiOn ? "Os agentes estão preparando outra proposta." : "Preparando outra proposta…"} wait={aiOn ? "plano" : undefined}>
             <Sparkles size={16} aria-hidden /> Gerar outra proposta
           </PendingButton>
         </form>
         <form action={discard}>
-          <button type="submit" className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm text-ink-soft hover:bg-coral-soft hover:text-coral"><Trash2 size={16} aria-hidden /> Descartar proposta</button>
+          <button type="submit" className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm text-ink-soft hover:bg-coral-soft hover:text-coral"><Trash2 size={16} aria-hidden /> Descartar proposta</button>
         </form>
       </div>
     </Card>

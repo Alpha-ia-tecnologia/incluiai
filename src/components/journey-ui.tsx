@@ -33,7 +33,7 @@ export function JourneyBar({ journey }: { journey: Journey }) {
 export function JourneyWelcome({ journey }: { journey: Journey }) {
   const start = journey.current ?? journey.chapters[0];
   return (
-    <section aria-labelledby="boas-vindas-titulo" className="mb-7 overflow-hidden rounded-[26px] bg-lilac-soft p-5 sm:p-7 print:hidden">
+    <section aria-labelledby="boas-vindas-titulo" className="mb-7 overflow-hidden rounded-3xl bg-lilac-soft p-5 sm:p-7 print:hidden">
       <div className="flex items-start gap-5">
         <div className="min-w-0 flex-1">
           <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-paper-raised px-3 py-1 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Sua história começa aqui</p>
@@ -57,7 +57,7 @@ export function JourneyWelcome({ journey }: { journey: Journey }) {
             ) : null}
             <Link href="/jornada" className="task-action task-action-secondary">Ver a história completa</Link>
             <form action={dismissWelcome}>
-              <button type="submit" className="min-h-12 rounded-[14px] px-4 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline">Agora não</button>
+              <button type="submit" className="min-h-12 rounded-xl px-4 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline">Agora não</button>
             </form>
           </div>
         </div>
@@ -75,7 +75,7 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
   const summary = `${journey.completed} de ${total} capítulos`;
   if (layout === "strip") {
     return (
-      <section aria-label="Sua jornada" className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-[22px] bg-lilac-soft px-4 py-3.5 sm:px-5 print:hidden">
+      <section aria-label="Sua jornada" className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-lilac-soft px-4 py-3.5 sm:px-5 print:hidden">
         <div className="min-w-[180px] flex-1">
           <p className="flex items-center gap-2 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Sua jornada · {summary}</p>
           <p className="mt-1 text-sm font-medium text-ink">{current ? `Próximo: ${current.title}` : journey.completed < total ? "Você está em dia. O restante aguarda a outra parte." : "Todos os capítulos concluídos. A história continua a cada semana."}</p>
@@ -89,7 +89,7 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
     );
   }
   return (
-    <section aria-labelledby="jornada-resumo-titulo" className="rounded-[20px] bg-paper-raised p-5">
+    <section aria-labelledby="jornada-resumo-titulo" className="rounded-2xl bg-paper-raised p-5">
       <div className="flex min-w-0 items-center gap-4">
         <RingStat id="jornada-resumo" value={percentOf(journey.completed, total)} label="Capítulos concluídos da jornada" size={76}>
           <span className="font-display text-xl leading-none text-ink tabular-nums">{journey.completed}<span className="text-sm text-ink-soft">/{total}</span></span>

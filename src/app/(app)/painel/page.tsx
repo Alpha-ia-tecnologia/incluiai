@@ -21,6 +21,7 @@ import {
 import { RingStat, StatTile, StatusPill, TrendBadge, withSegmentColors, type Tone } from "@/components/data-viz";
 import { ShareRing } from "@/components/viz/share-ring";
 import { UsageMeter } from "@/components/viz/usage-meter";
+import { Character } from "@/components/character";
 import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ function CardHeader({ title, hint, href, linkLabel }: { title: string; hint?: st
   return (
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <h3 className="text-[15px] font-medium tracking-tight text-ink">{title}</h3>
+        <h3 className="text-base font-medium tracking-tight text-ink">{title}</h3>
         {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
       </div>
       {href ? <Link href={href} className="circle-link" aria-label={linkLabel ?? `Abrir ${title.toLowerCase()}`}><ArrowUpRight size={16} aria-hidden /></Link> : null}
@@ -86,12 +87,12 @@ function FactorCard({ title, value, tone, status, text, href, trend }: Factor) {
         <Link href={href} className="circle-link !size-8" aria-label={`Ver detalhes: ${title}`}><ArrowUpRight size={15} aria-hidden /></Link>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="font-display text-[32px] font-normal leading-none tracking-tight text-ink">{value}</p>
+        <p className="font-display text-3xl font-normal leading-none tracking-tight text-ink">{value}</p>
         <StatusPill tone={tone}>{status}</StatusPill>
       </div>
       <p className="mt-2.5 text-xs leading-relaxed text-ink-soft">{text}</p>
       {trend && trend.delta !== null ? (
-        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-snug text-ink-soft">
+        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-snug text-ink-soft">
           <TrendBadge delta={trend.delta} better={trend.better} text={pointsText(trend.delta)} />
           <span className="min-w-0">{trend.caption}</span>
         </p>
@@ -105,8 +106,8 @@ function AiStat({ label, value, detail, wide = false, children }: { label: strin
   return (
     <div className={`min-w-0 rounded-2xl bg-surface-muted/70 p-3.5 ${wide ? "col-span-2" : ""}`}>
       <dt className="text-xs leading-snug text-ink-soft">{label}</dt>
-      <dd className="mt-1.5 font-display text-[26px] font-normal leading-none tracking-tight text-ink tabular-nums">{value}</dd>
-      {detail ? <dd className="mt-1 text-[11px] leading-snug text-ink-soft">{detail}</dd> : null}
+      <dd className="mt-1.5 font-display text-2xl font-normal leading-none tracking-tight text-ink tabular-nums">{value}</dd>
+      {detail ? <dd className="mt-1 text-xs leading-snug text-ink-soft">{detail}</dd> : null}
       {children ? <dd className="mt-2">{children}</dd> : null}
     </div>
   );
@@ -129,12 +130,12 @@ function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denomina
         <div className="min-w-0">
           {value === null
             ? <p className="text-sm font-medium leading-snug text-ink-soft">{noBaseText}</p>
-            : <p className="font-display text-[32px] font-normal leading-none tracking-tight text-ink">{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</p>}
+            : <p className="font-display text-3xl font-normal leading-none tracking-tight text-ink">{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</p>}
           <p className="mt-2 text-sm text-ink">{numerator} de {denominator} {unit}</p>
         </div>
       </div>
       <p className="mt-3 text-xs leading-relaxed text-ink-soft">{definition}</p>
-      <p className="mt-auto pt-3 text-[11px] leading-relaxed text-ink-soft">{footer}</p>
+      <p className="mt-auto pt-3 text-xs leading-relaxed text-ink-soft">{footer}</p>
     </article>
   );
 }
@@ -272,7 +273,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-normal tracking-tight text-ink sm:text-[34px]">Painel de indicadores</h1>
+          <h1 className="font-display text-3xl font-normal tracking-tight text-ink sm:text-3xl">Painel de indicadores</h1>
           <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
             <span className="font-medium text-ink">{scope.schoolName ?? "Toda a rede"}</span>
             {o.students ? <> · <span data-testid="total-estudantes">{plural(o.students, "estudante", "estudantes")}</span> ({o.withAEE} no AEE) · {plural(o.schools, "escola", "escolas")} · {plural(o.classes, "turma", "turmas")}</> : null}
@@ -280,7 +281,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <nav aria-label="Período" className="flex flex-wrap gap-1 rounded-[22px] border border-line bg-surface-muted p-1 sm:rounded-full">
+          <nav aria-label="Período" className="flex flex-wrap gap-1 rounded-2xl border border-line bg-surface-muted p-1 sm:rounded-full">
             {(Object.keys(PERIODS) as DashboardPeriod[]).map((key) => (
               <Link key={key} href={href({ periodo: key })} aria-current={key === period ? "page" : undefined} className="inline-flex min-h-9 items-center rounded-full px-3.5 text-sm text-ink-soft transition-colors hover:text-ink aria-[current=page]:bg-paper-raised aria-[current=page]:font-medium aria-[current=page]:text-ink aria-[current=page]:shadow-e1">
                 {PERIODS[key]}
@@ -297,7 +298,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <option value="">Toda a rede</option>
                 {scope.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
               </select>
-              <button type="submit" className="min-h-10 rounded-full bg-ink-strong px-4 text-sm font-medium text-white transition-colors hover:bg-[#3a3a3a]">Ver</button>
+              <button type="submit" className="min-h-10 rounded-full bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-strong">Ver</button>
             </form>
           ) : null}
           <PrintButton label="Imprimir" />
@@ -306,23 +307,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       {o.students === 0 ? (
         <div>
-          <EmptyState title="Ainda não há estudantes ativos neste recorte" hint="Quando houver estudantes cadastrados, os indicadores aparecem aqui." />
-          <Link href="/estudantes/novo" className="task-action mt-4 w-fit">Cadastrar estudante</Link>
+          <EmptyState character="resources" title="Ainda não há estudantes ativos neste recorte" hint="Quando houver estudantes cadastrados, os indicadores aparecem aqui." action={<Link href="/estudantes/novo" className="task-action">Cadastrar estudante</Link>} />
         </div>
       ) : (
         <div className="dash-board">
           <nav aria-label="Seções do painel" className="sticky top-0 z-20 -mx-1 mb-3.5 flex gap-1.5 overflow-x-auto rounded-full bg-surface-muted/95 p-1 backdrop-blur scrollbar-none print:hidden">
             {sections.map(([id, label]) => (
-              <a key={id} href={`#${id}`} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-paper-raised/70 px-4 text-sm text-ink-soft transition-colors hover:bg-ink-strong hover:text-white">{label}</a>
+              <a key={id} href={`#${id}`} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-paper-raised/70 px-4 text-sm text-ink-soft transition-colors hover:bg-brand hover:text-white">{label}</a>
             ))}
           </nav>
 
           <section id="visao-geral" aria-label="Visão geral" className="grid scroll-mt-20 grid-cols-1 gap-3.5 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]">
             {/* Coluna da direita (vem primeiro no celular): destaque e cartões de situação */}
             <div className="contents xl:order-2 xl:flex xl:min-w-0 xl:flex-col xl:gap-3.5">
-              <section aria-labelledby="destaque-titulo" className="dash-hero order-1 min-w-0 px-5 pb-6 pt-8 text-center sm:px-8 xl:order-none">
-                <h2 id="destaque-titulo" className="font-display text-[34px] font-medium leading-tight tracking-tight text-ink sm:text-[42px]">Olá, {firstName(user.name)}</h2>
-                <p className="mt-1 text-xl font-light leading-snug text-ink sm:text-[26px]">Este é o acompanhamento {scopePhrase}</p>
+              <section aria-labelledby="destaque-titulo" className="dash-hero relative order-1 min-w-0 px-5 pb-6 pt-8 text-center sm:px-8 xl:order-none">
+                <Character variant="resources" className="absolute right-4 top-4 hidden w-16 sm:block xl:w-20" />
+                <h2 id="destaque-titulo" className="font-display text-3xl font-medium leading-tight tracking-tight text-ink sm:text-4xl">Olá, {firstName(user.name)}</h2>
+                <p className="mt-1 text-xl font-light leading-snug text-ink sm:text-2xl">Este é o acompanhamento {scopePhrase}</p>
                 <nav aria-label="Indicador do medidor" className="mx-auto mt-5 inline-flex max-w-full flex-wrap justify-center gap-1 rounded-full border border-black/5 bg-white/40 p-1">
                   {(Object.keys(GAUGES) as DashboardGauge[]).map((key) => (
                     <Link key={key} href={href({ indicador: key })} scroll={false} aria-current={key === gaugeKey ? "page" : undefined} className="inline-flex min-h-9 items-center rounded-full px-4 text-sm text-ink-soft transition-colors hover:text-ink aria-[current=page]:bg-white aria-[current=page]:text-ink aria-[current=page]:shadow-e1">
@@ -334,58 +335,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <HatchedGauge value={gauge.value} label={`${GAUGES[gaugeKey]}: ${gauge.value === null ? "sem dados" : `${gauge.value}%`}, em uma escala de 0 a 100%.`} />
                   <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
                     <StatusPill tone={gauge.pill.tone}>{gauge.pill.text}{"deltaText" in gauge && gauge.deltaText ? <span className="sr-only">: {gauge.deltaText}</span> : null}</StatusPill>
-                    <p className="mt-1 font-display text-[60px] font-normal leading-none tracking-tight text-ink sm:text-[68px]">{gauge.value ?? "—"}{gauge.value !== null ? <span className="text-[0.5em]">%</span> : null}</p>
+                    <p className="mt-1 font-display text-5xl font-normal leading-none tracking-tight text-ink sm:text-5xl">{gauge.value ?? "—"}{gauge.value !== null ? <span className="text-[0.5em]">%</span> : null}</p>
                   </div>
                 </div>
                 <p className="mx-auto mt-4 max-w-sm text-xs leading-relaxed text-ink-soft">{gauge.description}</p>
                 {scope.network
-                  ? <a href="#atencao" className="pill-dark mx-auto mt-5 max-w-sm">Ver estudantes com avisos</a>
-                  : <Link href="/estudantes?acao=registrar" className="pill-dark mx-auto mt-5 max-w-sm">Registrar uma aula</Link>}
+                  ? <a href="#atencao" className="pill-action mx-auto mt-5 max-w-sm">Ver estudantes com avisos</a>
+                  : <Link href="/estudantes?acao=registrar" className="pill-action mx-auto mt-5 max-w-sm">Registrar uma aula</Link>}
               </section>
 
               <div className="order-2 grid min-w-0 grid-cols-2 gap-3.5 xl:order-none 2xl:grid-cols-3">
                 {factors.map((factor) => <FactorCard key={factor.title} {...factor} />)}
               </div>
 
-              <section id="ia" aria-labelledby="ia-titulo" className="dash-card order-4 min-w-0 scroll-mt-20 xl:order-none">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <h2 id="ia-titulo" className="text-[15px] font-medium tracking-tight">Inteligência artificial</h2>
-                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">A IA propõe e o professor decide. Nomes, contatos e documentos são trocados por marcadores antes do envio.</p>
-                  </div>
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-lime-soft text-ink-strong"><ShieldCheck size={17} aria-hidden /></span>
-                </div>
-                <dl className="grid gap-1.5 text-sm">
-                  {([
-                    ["Claude", "planos e atividades", ai.providers.claude],
-                    ["DeepSeek", "reserva", ai.providers.deepseek],
-                    ["OpenAI", "imagens de apoio", ai.providers.openai],
-                  ] as const).map(([name, purpose, active]) => (
-                    <div key={name} className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl bg-surface-muted/70 px-3.5 py-2">
-                      <dt className="min-w-0"><span className="font-medium text-ink">{name}</span> <span className="text-ink-soft">· {purpose}</span></dt>
-                      <dd>{active ? <StatusPill tone="good"><Check size={12} strokeWidth={3} aria-hidden /> Ativo</StatusPill> : <StatusPill tone="neutral">Não configurado</StatusPill>}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <dl className="mt-3 grid grid-cols-2 gap-1.5">
-                  <AiStat label="Planos propostos pela IA" value={ai.planProposals.ia} detail={`${plural(ai.planProposals.regras, "proposto", "propostos")} pelo motor de regras`} />
-                  <AiStat label="Propostas aguardando revisão" value={ai.draftsPending} detail={ai.draftsPending ? "o professor decide" : "nenhuma pendente"} />
-                  <AiStat label="Atividades criadas pela IA" value={ai.activities.total} wide detail={ai.activities.adhesion === null ? "Adesão: sem atividades avaliadas para calcular." : `Adesão de ${ai.activities.adhesion}%: ${ai.activities.used} de ${plural(ai.activities.decided, "avaliada foi aceita ou aplicada", "avaliadas foram aceitas ou aplicadas")}.`}>
-                    {ai.activities.adhesion !== null ? <UsageMeter value={ai.activities.adhesion} max={100} color={SIGNAL.cyan} /> : null}
-                  </AiStat>
-                  <AiStat label="Imagens geradas" value={ai.images} />
-                  <AiStat label="Envios à IA de reserva" value={ai.deepseekSends} />
-                </dl>
-                <p className="mt-2 text-[11px] leading-relaxed text-ink-soft">Números de {periodText}. Cada envio à IA de reserva fica no histórico de acessos que a família consulta.</p>
-                <Link href="/estudantes?acao=preparar" className="pill-dark mt-4"><Sparkles size={16} aria-hidden /> Preparar uma atividade</Link>
-              </section>
             </div>
 
             {/* Coluna da esquerda: jornada, contadores, estudantes, apoio, participação e meses */}
             <div className="contents xl:order-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-3.5">
               <section id="jornada" aria-labelledby="jornada-titulo" className="dash-card order-3 min-w-0 scroll-mt-20 xl:order-none">
                 <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 id="jornada-titulo" className="text-[15px] font-medium tracking-tight">Jornada do acompanhamento</h2>
+                  <h2 id="jornada-titulo" className="text-base font-medium tracking-tight">Jornada do acompanhamento</h2>
                   <p className="text-xs text-ink-soft">{j.completion ?? 0}% concluída{j.caseStudyDrafts ? ` · ${plural(j.caseStudyDrafts, "estudo de caso em andamento", "estudos de caso em andamento")}` : ""}</p>
                 </div>
                 <div className="-mx-1 overflow-x-auto scrollbar-none" tabIndex={0} role="region" aria-label="Etapas da jornada do acompanhamento (role para o lado no celular)">
@@ -394,13 +363,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       const complete = step.done === o.students;
                       return (
                         <li key={step.key} className="stepper-item">
-                          <span className={`relative z-10 flex size-[34px] items-center justify-center rounded-full text-xs font-semibold ${complete ? "bg-ink-strong text-white" : step.done > 0 ? "border-2 border-signal-lime bg-signal-lime-soft text-ink-strong" : "border-2 border-dashed border-[#cfc9c0] bg-paper-raised text-ink-soft"}`}>
+                          <span className={`relative z-10 flex size-[34px] items-center justify-center rounded-full text-xs font-semibold ${complete ? "bg-brand text-white" : step.done > 0 ? "border-2 border-signal-lime bg-signal-lime-soft text-ink-strong" : "border-2 border-dashed border-[#cfc9c0] bg-paper-raised text-ink-soft"}`}>
                             {complete ? <Check size={17} strokeWidth={3} aria-hidden /> : step.done}
                           </span>
-                          <span className="mt-2 text-[11px] text-ink-soft">Etapa {step.step}</span>
-                          <span className="text-[13px] font-medium leading-snug text-ink">{step.label}</span>
-                          <span className="mt-0.5 text-[11px] text-ink-soft">{step.done} de {o.students}</span>
-                          {step.here ? <span className="mt-1.5 rounded-full bg-signal-yellow-soft px-2 py-0.5 text-[10px] font-medium text-ink-strong">{step.here} {step.step === 5 ? "na rotina" : "nesta etapa"}</span> : null}
+                          <span className="mt-2 text-xs text-ink-soft">Etapa {step.step}</span>
+                          <span className="text-sm font-medium leading-snug text-ink">{step.label}</span>
+                          <span className="mt-0.5 text-xs text-ink-soft">{step.done} de {o.students}</span>
+                          {step.here ? <span className="mt-1.5 rounded-full bg-signal-yellow-soft px-2 py-0.5 text-xs font-medium text-ink-strong">{step.here} {step.step === 5 ? "na rotina" : "nesta etapa"}</span> : null}
                         </li>
                       );
                     })}
@@ -420,7 +389,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <section id="atencao" aria-labelledby="atencao-titulo" className="dash-card order-3 min-w-0 scroll-mt-20 xl:order-none">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 id="atencao-titulo" className="text-[15px] font-medium tracking-tight">Estudantes</h2>
+                    <h2 id="atencao-titulo" className="text-base font-medium tracking-tight">Estudantes</h2>
                     <p className="mt-1 text-xs text-ink-soft">Ordenados por avisos. Só aparecem estudantes aos quais você tem acesso.</p>
                   </div>
                   <Link href="/estudantes" className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line px-3.5 text-sm text-ink transition-colors hover:border-ink-strong">Ver todos <ArrowRight size={15} aria-hidden /></Link>
@@ -474,7 +443,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="order-3 grid min-w-0 gap-3.5 md:grid-cols-2 xl:order-none">
                 <section aria-labelledby="apoio-titulo" className="dash-card">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h2 id="apoio-titulo" className="text-[15px] font-medium tracking-tight">Nível de apoio</h2>
+                    <h2 id="apoio-titulo" className="text-base font-medium tracking-tight">Nível de apoio</h2>
                     {supportDrop !== null && support.target !== null ? <TrendBadge delta={-supportDrop} better="down" text={supportDrop === 0 ? "Sem mudança desde o início" : `${supportDrop > 0 ? "−" : "+"}${decimal(Math.abs(supportDrop))} desde o início`} /> : null}
                   </div>
                   {support.initial !== null && support.latest !== null && support.target !== null ? (
@@ -498,12 +467,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </section>
 
                 <section aria-labelledby="participacao-titulo" className="dash-card">
-                  <h2 id="participacao-titulo" className="text-[15px] font-medium tracking-tight">Participação nas aulas</h2>
+                  <h2 id="participacao-titulo" className="text-base font-medium tracking-tight">Participação nas aulas</h2>
                   {participationTotal ? (
                     <div className="mt-4 flex flex-wrap items-center gap-5">
                       <HatchedDonut id="rosca-participacao" segments={participation} label={`Participação: ${participation.map((segment) => `${segment.label} ${segment.value}`).join(", ")}`} size={140} thickness={18}>
-                        <span className="font-display text-[30px] leading-none tracking-tight">{o.fullParticipationPct ?? 0}%</span>
-                        <span className="mt-1 text-[11px] leading-tight text-ink-soft">{o.fullParticipation} de {o.records}<br />plenas</span>
+                        <span className="font-display text-3xl leading-none tracking-tight">{o.fullParticipationPct ?? 0}%</span>
+                        <span className="mt-1 text-xs leading-tight text-ink-soft">{o.fullParticipation} de {o.records}<br />plenas</span>
                       </HatchedDonut>
                       <div className="min-w-[150px] flex-1">
                         <p className="mb-3 text-xs leading-relaxed text-ink-soft">Registre a cada aula: o ritmo dos registros mostra o que está funcionando.</p>
@@ -517,7 +486,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <section aria-labelledby="meses-titulo" className="dash-card order-3 min-w-0 xl:order-none">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h2 id="meses-titulo" className="text-[15px] font-medium tracking-tight">Meses com registro de aula</h2>
+                    <h2 id="meses-titulo" className="text-base font-medium tracking-tight">Meses com registro de aula</h2>
                     <p className="mt-1 text-xs leading-relaxed text-ink-soft">
                       {cal.schoolMonths ? `Houve registro em ${cal.monthsWithRecords} de ${plural(cal.schoolMonths, "mês letivo", "meses letivos")} desde o primeiro registro.` : "Ainda não há registros de aula."} Histórico completo, sem o filtro de período.
                     </p>
@@ -525,7 +494,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   {cal.gaps ? <StatusPill tone="alert">{plural(cal.gaps, "mês sem registro", "meses sem registro")}</StatusPill> : cal.schoolMonths ? <StatusPill tone="good">Sem lacunas</StatusPill> : null}
                 </div>
                 <MonthGrid years={cal.years} />
-                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-ink-soft">
+                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
                   <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border-2 border-[#e2f6a6] bg-signal-lime" />Com registro</li>
                   <li className="flex items-center gap-1.5"><span aria-hidden className="flex size-3 items-center justify-center rounded-full bg-signal-orange" />Mês letivo sem registro</li>
                   <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-dashed border-[#cfc9c0]" />Mês atual</li>
@@ -533,6 +502,41 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </ul>
               </section>
             </div>
+            {/* IA numa faixa inteira, depois das duas colunas: assim nenhuma coluna fica com um vão embaixo. */}
+            <section id="ia" aria-labelledby="ia-titulo" className="dash-card order-4 min-w-0 scroll-mt-20 xl:order-3 xl:col-span-2">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h2 id="ia-titulo" className="text-base font-medium tracking-tight">Inteligência artificial</h2>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-soft">A IA propõe e o professor decide. Nomes, contatos e documentos são trocados por marcadores antes do envio.</p>
+                </div>
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-lime-soft text-ink-strong"><ShieldCheck size={17} aria-hidden /></span>
+              </div>
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:items-start lg:gap-4">
+              <dl className="grid gap-1.5 text-sm">
+                {([
+                  ["Claude", "planos e atividades", ai.providers.claude],
+                  ["DeepSeek", "reserva", ai.providers.deepseek],
+                  ["OpenAI", "imagens de apoio", ai.providers.openai],
+                ] as const).map(([name, purpose, active]) => (
+                  <div key={name} className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl bg-surface-muted/70 px-3.5 py-2">
+                    <dt className="min-w-0"><span className="font-medium text-ink">{name}</span> <span className="text-ink-soft">· {purpose}</span></dt>
+                    <dd>{active ? <StatusPill tone="good"><Check size={12} strokeWidth={3} aria-hidden /> Ativo</StatusPill> : <StatusPill tone="neutral">Não configurado</StatusPill>}</dd>
+                  </div>
+                ))}
+              </dl>
+              <dl className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                <AiStat label="Planos propostos pela IA" value={ai.planProposals.ia} detail={`${plural(ai.planProposals.regras, "proposto", "propostos")} pelo motor de regras`} />
+                <AiStat label="Propostas aguardando revisão" value={ai.draftsPending} detail={ai.draftsPending ? "o professor decide" : "nenhuma pendente"} />
+                <AiStat label="Atividades criadas pela IA" value={ai.activities.total} wide detail={ai.activities.adhesion === null ? "Adesão: sem atividades avaliadas para calcular." : `Adesão de ${ai.activities.adhesion}%: ${ai.activities.used} de ${plural(ai.activities.decided, "avaliada foi aceita ou aplicada", "avaliadas foram aceitas ou aplicadas")}.`}>
+                  {ai.activities.adhesion !== null ? <UsageMeter value={ai.activities.adhesion} max={100} color={SIGNAL.cyan} /> : null}
+                </AiStat>
+                <AiStat label="Imagens geradas" value={ai.images} />
+                <AiStat label="Envios à IA de reserva" value={ai.deepseekSends} />
+              </dl>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-ink-soft">Números de {periodText}. Cada envio à IA de reserva fica no histórico de acessos que a família consulta.</p>
+              <Link href="/estudantes?acao=preparar" className="pill-action mt-4 sm:w-fit"><Sparkles size={16} aria-hidden /> Preparar uma atividade</Link>
+            </section>
           </section>
 
           <Section id="objetivos" title="Objetivos e aprendizagem" description="Avançar é precisar de menos apoio para a mesma tarefa, na escala de 0 (independente) a 5 (apoio físico total).">
@@ -582,8 +586,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {act.created ? (
                   <div className="flex flex-wrap items-center gap-5">
                     <HatchedDonut id="rosca-atividades" segments={statusSegments} label={`Atividades: ${statusSegments.map((segment) => `${segment.label} ${segment.value}`).join(", ")}`} size={132} thickness={17}>
-                      <span className="font-display text-[28px] leading-none tracking-tight">{act.created}</span>
-                      <span className="mt-1 text-[11px] text-ink-soft">criadas</span>
+                      <span className="font-display text-3xl leading-none tracking-tight">{act.created}</span>
+                      <span className="mt-1 text-xs text-ink-soft">criadas</span>
                     </HatchedDonut>
                     <div className="min-w-[160px] flex-1"><Legend segments={statusSegments} /></div>
                   </div>
@@ -629,7 +633,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
           {dua ? (
             <Section id="dua" title="Planejamento com DUA — uso e documentação" description={`Como a equipe está usando o planejamento com Desenho Universal para a Aprendizagem · ${duaPeriod} · ${dua.scopeLabel}.`}>
-              <p className="mb-3.5 max-w-3xl rounded-[22px] bg-surface-muted px-4 py-3 text-sm leading-relaxed text-ink">
+              <p className="mb-3.5 max-w-3xl rounded-2xl bg-surface-muted px-4 py-3 text-sm leading-relaxed text-ink">
                 <strong className="font-medium">Estes números medem uso e documentação, não aprendizagem.</strong> Não existe nota, selo nem “conformidade DUA”: nenhum número aqui avalia professor, escola ou estudante. Quando não há o que contar no período, aparece “{dua.noBaseText.toLowerCase()}”, e não 0%.
                 {canPlanDua(user) ? <> <Link href="/planejamento" className="font-medium text-ink underline">Abrir o planejamento</Link></> : null}
               </p>
@@ -648,7 +652,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
           <Section id="perfil" title="Perfil dos estudantes" description="Dados agregados, sem identificar ninguém: orientam formação, compra de recursos e adaptação dos ambientes.">
             {p.caa.withoutResources > 0 ? (
-              <div className="mb-3.5 flex items-start gap-3 rounded-[22px] bg-signal-yellow-soft p-4 sm:p-5">
+              <div className="mb-3.5 flex items-start gap-3 rounded-2xl bg-signal-yellow-soft p-4 sm:p-5">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-yellow text-ink-strong"><Lightbulb size={17} aria-hidden /></span>
                 <p className="text-sm leading-relaxed text-ink">
                   <strong>Leitura para a gestão:</strong> {plural(p.caa.total, "estudante se comunica", "estudantes se comunicam")} por comunicação alternativa ou acionador, e {p.caa.withoutResources} ainda {p.caa.withoutResources === 1 ? "não tem" : "não têm"} recursos de acessibilidade registrados. É um indicativo para compra de materiais e formação.
@@ -734,7 +738,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     {upcomingDates.map((event) => (
                       <li key={event.key}>
                         <Link href={`/calendario?mes=${monthParam(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-surface-muted">
-                          <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-[11px]">{MONTH_SHORT[event.start.month - 1]}</span></span>
+                          <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-xs">{MONTH_SHORT[event.start.month - 1]}</span></span>
                           <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-xs text-ink-soft">{relativeLabel(event, today)}</span></span>
                         </Link>
                       </li>

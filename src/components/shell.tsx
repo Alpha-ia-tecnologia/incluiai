@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Home, Users, Layers, Route, Sparkles, BarChart3, Library, Heart, ShieldCheck, Stethoscope, LogOut, School, Sprout, ChevronDown, CircleHelp, CalendarDays } from "lucide-react";
 import { NavLink } from "./nav-link";
 import { MobileNavigation } from "./mobile-navigation";
@@ -11,6 +11,7 @@ import type { SessionUser } from "@/lib/auth";
 import { hasApiKey } from "@/lib/env";
 import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantPopup } from "./assistant/assistant-popup";
+import { NavigationProgress } from "./navigation-progress";
 
 const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, family: Heart, care: Stethoscope, help: CircleHelp };
 
@@ -22,6 +23,7 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
   return (
     <div className="app-frame">
       <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
+      <Suspense fallback={null}><NavigationProgress /></Suspense>
       <aside className="nav-rail" aria-label="Menu lateral">
         <Link href={home} aria-label="IncluiEdu — início" className="mb-8 flex items-center gap-2.5 px-2 text-brand">
           <Sprout size={28} aria-hidden /><span className="text-xl font-semibold tracking-tight">IncluiEdu</span>

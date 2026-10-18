@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
-  Bot,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -12,8 +11,9 @@ import {
   RotateCcw,
   Save,
   Send,
-  Sparkles,
 } from "lucide-react";
+import { Character } from "@/components/character";
+import { primaryButtonCls } from "@/components/form-styles";
 import {
   BARRIERS,
   CHANNELS,
@@ -431,7 +431,7 @@ export function ProfileChat({
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const textRef = useRef<HTMLTextAreaElement>(null);
-  const conversationRef = useRef<HTMLElement>(null);
+  const conversationRef = useRef<HTMLDivElement>(null);
 
   const done = currentIndex >= steps.length && !editingField;
   const current =
@@ -566,26 +566,26 @@ export function ProfileChat({
       <div className="overflow-hidden rounded-2xl border border-line bg-paper-raised shadow-e2">
         <header className="border-b border-line bg-gradient-to-r from-brand-soft/80 to-paper-raised px-5 py-4 sm:px-7">
           <div className="flex items-center gap-3">
-            <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-e1">
-              <Bot size={21} aria-hidden />
-            </span>
+            <Character variant="ideas" className="w-12" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display font-semibold text-ink">Perfil guiado</h2>
-                <span className="rounded-full bg-green-soft px-2 py-0.5 text-[10px] font-semibold text-green">
-                  {done ? "pronto para revisar" : "em andamento"}
+                {/* Verde só quando há o que revisar; em andamento é a conversa guiada, em lilás. */}
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${done ? "bg-green-soft text-green" : "bg-brand-soft text-brand-strong"}`}>
+                  {done ? "Pronto para revisar" : "Conversa guiada"}
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-ink-soft">
                 Registre como {firstName} aprende e participa — sem informações de diagnóstico.
               </p>
             </div>
-            <div className="hidden text-right sm:block">
-              <p className="font-mono text-xs font-semibold text-ink">{progress}%</p>
-              <p className="text-[10px] text-ink-soft">{answeredCount} de {steps.length}</p>
+            {/* O andamento também em texto, inclusive no celular: a barra abaixo só repete. */}
+            <div className="shrink-0 text-right">
+              <p className="text-xs font-semibold tabular-nums text-ink">{progress}%</p>
+              <p className="text-xs tabular-nums text-ink-soft">{answeredCount} de {steps.length}</p>
             </div>
           </div>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-line/60">
+          <div aria-hidden className="mt-4 h-1.5 overflow-hidden rounded-full bg-line/60">
             <div
               className="h-full rounded-full bg-brand transition-[width] duration-300"
               style={{ width: `${progress}%` }}
@@ -595,8 +595,9 @@ export function ProfileChat({
 
         {!done && current ? (
           <div className="grid min-h-[36rem] lg:grid-cols-[13rem_1fr]">
-            <aside className="hidden border-r border-line bg-paper/60 p-4 lg:block">
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
+            {/* Lista de etapas sem marco próprio: um <aside> dentro do <main> seria um marco aninhado. */}
+            <div className="hidden border-r border-line bg-paper/60 p-4 lg:block">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink-soft">
                 Etapas do perfil
               </p>
               <ol className="space-y-1">
@@ -610,14 +611,14 @@ export function ProfileChat({
                   return (
                     <li
                       key={section}
-                      className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs ${
+                      className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs ${
                         active
                           ? "bg-brand-soft font-semibold text-brand-strong"
                           : "text-ink-soft"
                       }`}
                     >
                       <span
-                        className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                        className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs ${
                           completed
                             ? "bg-green text-white"
                             : active
@@ -632,24 +633,24 @@ export function ProfileChat({
                   );
                 })}
               </ol>
-            </aside>
+            </div>
 
-            <main
+            <div
               ref={conversationRef}
               className="flex min-w-0 scroll-mt-4 flex-col"
             >
               <div className="border-b border-line/70 px-5 py-3 sm:px-8">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-strong">
-                      Etapa {currentSectionIndex + 1} de {sections.length} · {current.section}
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
+                      Etapa <span className="tabular-nums">{currentSectionIndex + 1} de {sections.length}</span> · {current.section}
                     </p>
                     <p className="mt-0.5 text-xs text-ink-soft">
                       {SECTION_META[current.section]?.description}
                     </p>
                   </div>
                   {editingField ? (
-                    <span className="rounded-full bg-amber-soft px-2.5 py-1 text-[10px] font-semibold text-amber">
+                    <span className="rounded-full bg-amber-soft px-2.5 py-1 text-xs font-semibold text-amber">
                       Editando
                     </span>
                   ) : null}
@@ -667,7 +668,7 @@ export function ProfileChat({
                             onClick={() => edit(step)}
                             className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-soft px-3.5 py-2 text-left text-xs text-brand-strong hover:ring-1 hover:ring-brand/30"
                           >
-                            <span className="block text-[10px] font-semibold opacity-70">
+                            <span className="block text-xs font-semibold opacity-70">
                               {step.label}
                             </span>
                             {answerLabel(step, answers[step.field])}
@@ -678,11 +679,9 @@ export function ProfileChat({
                   ) : null}
 
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
-                      <Sparkles size={15} aria-hidden />
-                    </span>
-                    <div>
-                      <p className="rounded-2xl rounded-tl-sm bg-paper px-4 py-3 text-sm leading-relaxed text-ink shadow-sm">
+                    <Character variant="ideas" className="w-10" />
+                    <div className="min-w-0">
+                      <p id={`pergunta-${current.field}`} className="rounded-2xl rounded-tl-sm bg-paper px-4 py-3 text-sm leading-relaxed text-ink shadow-sm">
                         {current.question}
                       </p>
                       {current.helper ? (
@@ -694,7 +693,7 @@ export function ProfileChat({
                     </div>
                   </div>
 
-                  <div className="mt-6 sm:pl-11">
+                  <div className="mt-6 sm:pl-13">
                     <AnswerControl
                       key={current.field}
                       step={current}
@@ -721,7 +720,7 @@ export function ProfileChat({
                   type="button"
                   onClick={goBack}
                   disabled={currentIndex === 0 && !editingField}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft hover:text-brand-strong disabled:invisible"
+                  className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-ink-soft hover:text-brand-strong disabled:invisible"
                 >
                   <ChevronLeft size={14} aria-hidden />
                   {editingField ? "Cancelar edição" : "Voltar"}
@@ -729,13 +728,13 @@ export function ProfileChat({
                 <button
                   type="button"
                   onClick={() => setShowReset(true)}
-                  className="inline-flex items-center gap-1.5 text-xs text-ink-soft hover:text-coral"
+                  className="inline-flex min-h-11 items-center gap-1.5 text-xs text-ink-soft hover:text-coral"
                 >
                   <RotateCcw size={13} aria-hidden />
                   {hasSavedProfile ? "Restaurar dados salvos" : "Recomeçar"}
                 </button>
               </footer>
-            </main>
+            </div>
           </div>
         ) : (
           <Review
@@ -766,14 +765,14 @@ export function ProfileChat({
           <button
             type="button"
             onClick={() => setShowReset(false)}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-raised"
+            className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-ink-soft hover:bg-paper-raised"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={resetConversation}
-            className="rounded-lg bg-coral px-3 py-1.5 text-xs font-medium text-white"
+            className="inline-flex min-h-11 items-center rounded-full bg-coral px-4 text-sm font-medium text-white"
           >
             Confirmar
           </button>
@@ -803,7 +802,7 @@ function AnswerControl({
   onAnswer: (value: Answer) => void;
 }) {
   const [otherOpen, setOtherOpen] = useState(textDraft !== "");
-  const chipCls = "rounded-full border px-3.5 py-2 text-xs font-medium transition";
+  const chipCls = "inline-flex min-h-11 items-center rounded-full border px-3.5 py-2 text-sm font-medium transition";
   const chipOn = "border-brand bg-brand-soft text-brand-strong";
   const chipOff = "border-line bg-paper-raised text-ink hover:border-brand/50";
   const toggle = (value: string) =>
@@ -838,7 +837,7 @@ function AnswerControl({
             const active = multiDraft.includes(item);
             return (
               <button key={item} type="button" aria-pressed={active} onClick={() => toggle(item)} className={`${chipCls} ${active ? chipOn : chipOff}`}>
-                {active ? <Check size={13} className="mr-1 inline" aria-hidden /> : null}
+                {active ? <Check size={14} className="mr-1.5 shrink-0" aria-hidden /> : null}
                 {item}
               </button>
             );
@@ -846,11 +845,11 @@ function AnswerControl({
         </div>
         {otherField}
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-strong">
+          <button type="submit" className={primaryButtonCls}>
             Confirmar <ChevronRight size={15} aria-hidden />
           </button>
           {!step.required ? (
-            <button type="button" onClick={() => onAnswer("")} className="text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline">
+            <button type="button" onClick={() => onAnswer("")} className="inline-flex min-h-11 items-center text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline">
               Ainda não observado — pular
             </button>
           ) : null}
@@ -870,6 +869,7 @@ function AnswerControl({
         <div className="flex items-end gap-2">
           <textarea
             ref={textRef}
+            aria-labelledby={`pergunta-${step.field}`}
             rows={3}
             autoFocus
             value={textDraft}
@@ -880,7 +880,7 @@ function AnswerControl({
           <button
             type="submit"
             aria-label="Enviar resposta"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-e1 hover:bg-brand-strong"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-e1 hover:bg-brand-strong"
           >
             <Send size={17} aria-hidden />
           </button>
@@ -889,7 +889,7 @@ function AnswerControl({
           <button
             type="button"
             onClick={() => onAnswer("")}
-            className="mt-2 text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline"
+            className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline"
           >
             Ainda não observado — pular
           </button>
@@ -905,7 +905,7 @@ function AnswerControl({
         <div className="flex flex-wrap gap-2">
           {custom.map((value) => (
             <button key={value} type="button" aria-pressed onClick={() => toggle(value)} aria-label={`Remover ${value}`} className={`${chipCls} ${chipOn}`}>
-              <Check size={13} className="mr-1 inline" aria-hidden />
+              <Check size={14} className="mr-1.5 shrink-0" aria-hidden />
               {value}
             </button>
           ))}
@@ -923,13 +923,13 @@ function AnswerControl({
                       : [...multiDraft, option.value],
                   )
                 }
-                className={`rounded-full border px-3.5 py-2 text-xs font-medium transition ${
+                className={`${chipCls} ${
                   active
                     ? "border-brand bg-brand-soft text-brand-strong"
                     : "border-line bg-paper-raised text-ink hover:border-brand/50"
                 }`}
               >
-                {active ? <Check size={13} className="mr-1 inline" aria-hidden /> : null}
+                {active ? <Check size={14} className="mr-1.5 shrink-0" aria-hidden /> : null}
                 {option.label}
               </button>
             );
@@ -939,7 +939,7 @@ function AnswerControl({
         <button
           type="button"
           onClick={() => onAnswer([...new Set([...multiDraft, ...splitItems(textDraft, ",")])])}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-strong"
+          className={`mt-4 ${primaryButtonCls}`}
         >
           Confirmar seleção <ChevronRight size={15} aria-hidden />
         </button>
@@ -973,7 +973,7 @@ function AnswerControl({
           >
             <span className="flex items-center gap-2 text-sm font-semibold">
               {option.code ? (
-                <span className="inline-flex min-w-10 justify-center rounded-md bg-paper px-1.5 py-0.5 font-mono text-[10px] text-brand-strong">
+                <span className="inline-flex min-w-10 justify-center rounded-full bg-paper px-1.5 py-0.5 tabular-nums text-xs text-brand-strong">
                   {option.code}
                 </span>
               ) : null}
@@ -1028,7 +1028,7 @@ function AnswerControl({
               className="w-full rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15"
             />
           </div>
-          <button type="submit" aria-label="Confirmar resposta" className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-e1 hover:bg-brand-strong">
+          <button type="submit" aria-label="Confirmar resposta" className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-e1 hover:bg-brand-strong">
             <Send size={17} aria-hidden />
           </button>
         </form>
@@ -1079,7 +1079,7 @@ function Review({
           <section key={section} className="rounded-2xl border border-line bg-paper/40 p-4">
             <div className="mb-3">
               <h3 className="text-sm font-semibold text-ink">{section}</h3>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft">
+              <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">
                 {SECTION_META[section]?.description}
               </p>
             </div>
@@ -1087,23 +1087,24 @@ function Review({
               {steps
                 .filter((step) => step.section === section)
                 .map((step) => (
-                  <div key={step.field} className="flex items-start gap-3 py-2.5">
-                    <div className="min-w-0 flex-1">
-                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
-                        {step.label}
-                      </dt>
-                      <dd className="mt-0.5 break-words text-sm leading-relaxed text-ink">
-                        {answerLabel(step, answers[step.field])}
-                      </dd>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onEdit(step)}
-                      aria-label={`Editar ${step.label}`}
-                      className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-brand-soft hover:text-brand-strong"
-                    >
-                      <Pencil size={14} aria-hidden />
-                    </button>
+                  // dl > div > dt + dd: o botão de editar fica num dd próprio, na coluna da direita.
+                  <div key={step.field} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 py-2.5">
+                    <dt className="col-start-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                      {step.label}
+                    </dt>
+                    <dd className="col-start-1 mt-0.5 break-words text-sm leading-relaxed text-ink">
+                      {answerLabel(step, answers[step.field])}
+                    </dd>
+                    <dd className="col-start-2 row-span-2 row-start-1">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(step)}
+                        aria-label={`Editar ${step.label}`}
+                        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-brand-soft hover:text-brand-strong"
+                      >
+                        <Pencil size={14} aria-hidden />
+                      </button>
+                    </dd>
                   </div>
                 ))}
             </dl>
@@ -1121,7 +1122,7 @@ function Review({
         <button
           type="button"
           onClick={onReset}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:border-coral/40 hover:bg-coral-soft hover:text-coral"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:border-coral/40 hover:bg-coral-soft hover:text-coral"
         >
           <RotateCcw size={15} aria-hidden /> Descartar alterações
         </button>
@@ -1129,7 +1130,7 @@ function Review({
           type="button"
           onClick={onSave}
           disabled={pending}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-strong hover:shadow-e2 disabled:opacity-60"
+          className={primaryButtonCls}
         >
           <Save size={16} aria-hidden />
           {pending ? "Salvando..." : "Salvar perfil educacional"}

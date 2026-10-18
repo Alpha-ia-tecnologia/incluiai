@@ -1,6 +1,8 @@
-import type { ComponentType, ReactNode } from "react";
+import Link from "next/link";
+import type { ButtonHTMLAttributes, ComponentType, ReactNode } from "react";
 import { supportInfo } from "@/lib/scale";
-import { Character } from "./character";
+import { Character, type CharacterVariant } from "./character";
+import { BUTTON_CLS, type ButtonVariant } from "./form-styles";
 
 // Anel de progresso para KPIs percentuais — valor sempre também em texto.
 function ProgressRing({ pct }: { pct: number }) {
@@ -14,9 +16,10 @@ function ProgressRing({ pct }: { pct: number }) {
         cx="32" cy="32" r={r} fill="none"
         stroke="var(--brand)" strokeWidth="6" strokeLinecap="round"
         strokeDasharray={`${(clamped / 100) * c} ${c}`}
+        className="viz-ring"
       />
       <text x="32" y="32" transform="rotate(90 32 32)" textAnchor="middle" dominantBaseline="central"
-        className="fill-[var(--ink)] font-mono text-[13px] font-semibold">
+        className="fill-[var(--ink)] text-sm font-semibold tabular-nums">
         {clamped}%
       </text>
     </svg>
@@ -62,21 +65,62 @@ export function KpiCard({
         ) : null}
         <div className={`font-display text-4xl font-medium leading-none ${tone === "coral" ? "text-coral" : "text-ink"}`}>{value}</div>
         <div className="mt-1.5 text-xs font-medium text-ink/80">{label}</div>
-        {sub ? <div className="mt-0.5 text-[11px] text-ink/80">{sub}</div> : null}
+        {sub ? <div className="mt-0.5 text-xs text-ink/80">{sub}</div> : null}
       </div>
       {typeof pct === "number" ? <ProgressRing pct={pct} /> : null}
     </Card>
   );
 }
 
-export function PageHeader({ title, lede, actions }: { title: string; lede?: string; actions?: ReactNode }) {
+// Título da página. level 2 = título de uma aba dentro de uma ficha que já tem
+// o título principal (ex.: o nome do estudante no cabeçalho).
+export function PageHeader({ title, lede, actions, level = 1 }: { title: string; lede?: string; actions?: ReactNode; level?: 1 | 2 }) {
+  const Heading = level === 1 ? "h1" : "h2";
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className={`${level === 1 ? "mb-8" : "mb-6"} flex flex-wrap items-end justify-between gap-4`}>
       <div className="max-w-2xl">
-        <h1 className="font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-[40px]">{title}</h1>
+        <Heading className={level === 1
+          ? "font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-4xl"
+          : "font-display text-2xl font-normal leading-tight tracking-tight text-ink sm:text-3xl"}>{title}</Heading>
         {lede ? <p className="mt-3 text-sm leading-relaxed text-ink-soft">{lede}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+    </div>
+  );
+}
+
+// Herói das telas principais: faixa lilás com o título, o personagem do assunto
+// e, se houver, ações e números (HeroStat). O personagem é decorativo; no
+// celular fica pequeno acima do título, para títulos longos não encostarem nele.
+export function PageHero({ title, lede, eyebrow, character, actions, children, preload = false }: {
+  title: string;
+  lede?: ReactNode;
+  eyebrow?: ReactNode;
+  character: CharacterVariant;
+  actions?: ReactNode;
+  children?: ReactNode;
+  preload?: boolean;
+}) {
+  return (
+    <section className="page-hero mb-8 grid min-w-0 gap-y-3 rounded-3xl bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-8 sm:p-8">
+      <div className="min-w-0 sm:row-start-1">
+        {eyebrow ? <p className="mb-2 flex items-center gap-2 text-sm font-medium text-brand-strong">{eyebrow}</p> : null}
+        <h1 className="font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-4xl">{title}</h1>
+        {lede ? <div className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-soft sm:text-base">{lede}</div> : null}
+        {actions ? <div className="mt-5 flex flex-wrap gap-2">{actions}</div> : null}
+        {children ? <div className="mt-5">{children}</div> : null}
+      </div>
+      <Character variant={character} className="row-start-1 w-14 sm:col-start-2 sm:w-32 lg:w-40" preload={preload} />
+    </section>
+  );
+}
+
+// Número dentro do herói: valor grande e o que ele conta.
+export function HeroStat({ value, label }: { value: ReactNode; label: string }) {
+  return (
+    <div className="min-w-0 rounded-xl bg-paper-raised px-4 py-3">
+      <p className="font-display text-2xl leading-none tracking-tight text-ink tabular-nums">{value}</p>
+      <p className="mt-1.5 text-xs leading-snug text-ink-soft">{label}</p>
     </div>
   );
 }
@@ -109,7 +153,7 @@ const BADGE_TONES: Record<BadgeTone, string> = {
 
 export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${BADGE_TONES[tone]}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${BADGE_TONES[tone]}`}>
       {children}
     </span>
   );
@@ -135,22 +179,34 @@ export function AIDisclaimer() {
   );
 }
 
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+// Estado vazio com o personagem do assunto da tela (ver docs/visual.md) e,
+// quando faz sentido, a ação que resolve o vazio.
+export function EmptyState({ title, hint, character = "resources", action }: { title: string; hint?: string; character?: CharacterVariant; action?: ReactNode }) {
   return (
-    <div className="rounded-[22px] border border-dashed border-line bg-surface-muted/40 px-6 py-12 text-center">
-      <Character variant="resources" className="mx-auto mb-4 w-24" />
+    <div className="rounded-2xl border border-dashed border-line bg-surface-muted/40 px-6 py-12 text-center">
+      <Character variant={character} className="mx-auto mb-4 w-24" />
       <p className="font-medium text-ink">{title}</p>
-      {hint ? <p className="mt-1 text-sm text-ink-soft">{hint}</p> : null}
+      {hint ? <p className="mx-auto mt-1 max-w-md text-sm text-ink-soft">{hint}</p> : null}
+      {action ? <div className="mt-5 flex flex-wrap justify-center gap-2">{action}</div> : null}
     </div>
   );
 }
 
-// Botão primário padrão do design system (bg-brand, elevação e1→e2, active).
-export function PrimaryButton({ children, className = "", ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
+// Botões do kit (src/components/form-styles.ts): pílula com quatro pesos.
+export function Button({ variant = "primary", className = "", children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; children: ReactNode }) {
+  return <button type="button" {...rest} className={`${BUTTON_CLS[variant]} ${className}`}>{children}</button>;
+}
+
+export function ButtonLink({ href, variant = "primary", className = "", children }: { href: string; variant?: ButtonVariant; className?: string; children: ReactNode }) {
+  return <Link href={href} className={`${BUTTON_CLS[variant]} ${className}`}>{children}</Link>;
+}
+
+// Botão primário padrão do design system (mantido para os formulários existentes).
+export function PrimaryButton({ children, className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
   return (
     <button
       {...rest}
-      className={`inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-e1 transition-all duration-200 hover:bg-brand-strong hover:shadow-e2 active:translate-y-px disabled:pointer-events-none disabled:opacity-60 ${className}`}
+      className={`${BUTTON_CLS.primary} shadow-e1 hover:shadow-e2 active:translate-y-px ${className}`}
     >
       {children}
     </button>

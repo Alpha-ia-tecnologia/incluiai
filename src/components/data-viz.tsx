@@ -39,7 +39,7 @@ const levelText = (level: number) => `${SUPPORT_NAMES[Math.round(Math.min(5, Mat
 const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
 export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${TONE_CLASSES[tone]}`}>{children}</span>;
+  return <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${TONE_CLASSES[tone]}`}>{children}</span>;
 }
 
 // Quadro cinza que agrupa cartões, como no painel.
@@ -53,7 +53,7 @@ export function DataCard({ title, hint, href, linkLabel, children, className = "
     <section id={id} aria-label={title} className={`dash-card min-w-0 ${className}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-medium tracking-tight text-ink">{title}</h3>
+          <h3 className="text-base font-medium tracking-tight text-ink">{title}</h3>
           {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
         </div>
         {href ? <Link href={href} className="circle-link" aria-label={linkLabel ?? `Abrir ${title.toLowerCase()}`}><ArrowUpRight size={16} aria-hidden /></Link> : null}
@@ -92,7 +92,7 @@ export function StatTile({ label, value, unit, hint, tone, status, trend, chart,
         {href ? <Link href={href} className="circle-link !size-8" aria-label={linkLabel ?? `Ver detalhes: ${label}`}><ArrowUpRight size={15} aria-hidden /></Link> : null}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="font-display text-[32px] font-normal leading-none tracking-tight text-ink tabular-nums">{value}{unit ? <span className="ml-0.5 text-lg text-ink-soft">{unit}</span> : null}</p>
+        <p className="font-display text-3xl font-normal leading-none tracking-tight text-ink tabular-nums">{value}{unit ? <span className="ml-0.5 text-xl text-ink-soft">{unit}</span> : null}</p>
         {status && tone ? <StatusPill tone={tone}>{status}</StatusPill> : null}
         {trend}
       </div>
@@ -103,8 +103,10 @@ export function StatTile({ label, value, unit, hint, tone, status, trend, chart,
 }
 
 // Minigráfico de linha. `invert` põe o 0 em cima (nível de apoio: subir = menos apoio).
+// Ao abrir, a área cresce de baixo para cima e a linha se revela por recorte
+// (viz-wipe): com non-scaling-stroke, o viz-draw (tracejado) cortava a linha no meio.
 export function Sparkline({ values, label, domain, invert = false, color = SIGNAL.ink, height = 36 }: { values: ReadonlyArray<number>; label: string; domain?: [number, number]; invert?: boolean; color?: string; height?: number }) {
-  if (values.length < 2) return <p className="text-[11px] text-ink-soft">Poucos registros para a linha.</p>;
+  if (values.length < 2) return <p className="text-xs text-ink-soft">Poucos registros para a linha.</p>;
   const [min, max] = domain ?? [Math.min(...values), Math.max(...values)];
   const span = max - min || 1;
   const x = (index: number) => (index / (values.length - 1)) * 100;
@@ -117,8 +119,8 @@ export function Sparkline({ values, label, domain, invert = false, color = SIGNA
   return (
     <div className="relative w-full" style={{ height }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" role="img" aria-label={label}>
-        <path d={`${line} L100,100 L0,100 Z`} fill="var(--signal-lime-soft)" opacity={0.7} />
-        <path d={line} fill="none" stroke={color} strokeWidth={1.8} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={`${line} L100,100 L0,100 Z`} fill="var(--signal-lime-soft)" opacity={0.7} className="viz-grow-y" />
+        <path d={line} fill="none" stroke={color} strokeWidth={1.8} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className="viz-wipe" />
       </svg>
       <span aria-hidden className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-e1" style={{ left: "100%", top: `${y(last)}%`, backgroundColor: color }} />
     </div>
@@ -127,6 +129,7 @@ export function Sparkline({ values, label, domain, invert = false, color = SIGNA
 
 // Evolução do nível de apoio (0 em cima = independente). A área mostra a autonomia
 // ganha; a linha tracejada é a meta. Tabela para leitor de tela com cada registro.
+// Ao abrir, só a área cresce; linha, pontos e referências ficam parados (ver Sparkline).
 export function SupportChart({ points, start, target, label, height = 168 }: { points: ReadonlyArray<{ date: string; value: number }>; start?: number | null; target?: number | null; label: string; height?: number }) {
   if (points.length < 2) return <p className="text-sm text-ink-soft">Com dois registros ou mais, a evolução do apoio aparece aqui.</p>;
   const x = (index: number) => (index / (points.length - 1)) * 100;
@@ -136,27 +139,27 @@ export function SupportChart({ points, start, target, label, height = 168 }: { p
   return (
     <figure className="min-w-0">
       <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2">
-        <div className="flex flex-col justify-between text-right text-[10px] leading-none text-ink-soft" style={{ height }} aria-hidden>
+        <div className="flex flex-col justify-between text-right text-xs leading-none text-ink-soft" style={{ height }} aria-hidden>
           <span>0 · IND</span><span>5 · FIS-T</span>
         </div>
         <div className="relative min-w-0" style={{ height }}>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" role="img" aria-label={label}>
             {[0, 1, 2, 3, 4, 5].map((level) => <line key={level} x1={0} x2={100} y1={y(level)} y2={y(level)} stroke="var(--line)" strokeWidth={1} vectorEffect="non-scaling-stroke" />)}
-            <path d={`${line} L100,100 L0,100 Z`} fill="var(--signal-lime-soft)" />
+            <path d={`${line} L100,100 L0,100 Z`} fill="var(--signal-lime-soft)" className="viz-grow-y" />
             {typeof target === "number" ? <line x1={0} x2={100} y1={y(target)} y2={y(target)} stroke={SIGNAL.ink} strokeWidth={1.2} strokeDasharray="5 4" vectorEffect="non-scaling-stroke" /> : null}
             {typeof start === "number" ? <line x1={0} x2={100} y1={y(start)} y2={y(start)} stroke="var(--ink-soft)" strokeWidth={1} strokeDasharray="2 4" vectorEffect="non-scaling-stroke" /> : null}
-            <path d={line} fill="none" stroke={SIGNAL.ink} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            <path d={line} fill="none" stroke={SIGNAL.ink} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className="viz-wipe" />
           </svg>
           {points.map((point, index) => (
             <span key={index} aria-hidden title={`${point.date}: ${levelText(point.value)}`} className="absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-e1" style={{ left: `${x(index)}%`, top: `${y(point.value)}%`, backgroundColor: supportColor(point.value) }} />
           ))}
-          {typeof target === "number" ? <span aria-hidden className="absolute right-0 -translate-y-full rounded-full bg-paper-raised px-1.5 text-[10px] font-medium text-ink" style={{ top: `${y(target)}%` }}>meta</span> : null}
+          {typeof target === "number" ? <span aria-hidden className="absolute right-0 -translate-y-full rounded-full bg-paper-raised px-1.5 text-xs font-medium text-ink" style={{ top: `${y(target)}%` }}>meta</span> : null}
         </div>
       </div>
-      <div className="ml-[3.25rem] mt-1.5 flex justify-between text-[10px] text-ink-soft" aria-hidden>
+      <div className="ml-[3.25rem] mt-1.5 flex justify-between text-xs text-ink-soft" aria-hidden>
         <span>{points[0].date}</span>{points.length > 2 ? <span className="max-sm:hidden">{points[middle].date}</span> : null}<span>{points[points.length - 1].date}</span>
       </div>
-      <figcaption className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-soft">
+      <figcaption className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft">
         <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 bg-ink" /> Apoio registrado</span>
         {typeof target === "number" ? <span className="inline-flex items-center gap-1.5"><span aria-hidden className="w-4 border-t-2 border-dashed border-ink" /> Meta: {levelText(target)}</span> : null}
         {typeof start === "number" ? <span className="inline-flex items-center gap-1.5"><span aria-hidden className="w-4 border-t-2 border-dotted border-ink-soft" /> Início: {levelText(start)}</span> : null}
@@ -197,7 +200,7 @@ export function DotStrip({ items, label, legend }: { items: ReadonlyArray<{ key:
         ))}
       </ol>
       {legend ? (
-        <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-ink-soft" aria-hidden>
+        <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-soft" aria-hidden>
           {legend.map((item) => <li key={item.label} className="inline-flex items-center gap-1.5"><span className="hatch size-2.5 rounded-[3px]" style={{ backgroundColor: TONE_COLOR[item.tone] }} />{item.label}</li>)}
         </ul>
       ) : null}
@@ -215,7 +218,7 @@ export function SupportBars({ rows }: { rows: ReadonlyArray<{ label: string; lev
           <li key={row.label} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[10rem_minmax(0,1fr)_auto]">
             <span className="min-w-0 text-ink">{row.label}</span>
             <span aria-hidden className="col-span-2 row-start-2 flex gap-1 sm:col-span-1 sm:row-start-auto">
-              {[1, 2, 3, 4, 5].map((cell) => <span key={cell} className={`h-2.5 flex-1 rounded-full ${cell <= level ? "hatch" : ""}`} style={{ backgroundColor: cell <= level ? supportColor(level) : SIGNAL.track }} />)}
+              {[1, 2, 3, 4, 5].map((cell) => <span key={cell} className={`h-2.5 flex-1 rounded-full ${cell <= level ? "hatch viz-grow-x" : ""}`} style={{ backgroundColor: cell <= level ? supportColor(level) : SIGNAL.track }} />)}
             </span>
             <span className="text-right text-xs tabular-nums text-ink-soft"><span className="font-medium text-ink">{SUPPORT_CODES[level]}</span><span className="max-sm:sr-only"> · {SUPPORT_NAMES[level]}</span></span>
           </li>
@@ -232,7 +235,7 @@ export function CountChips({ items, tone = "good", unit = "x" }: { items: Readon
       {items.map((item) => (
         <li key={item.label} className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${tone === "good" ? "bg-signal-lime-soft text-ink" : "bg-surface-muted text-ink"}`}>
           <span className="min-w-0 [overflow-wrap:anywhere]">{item.label}</span>
-          {typeof item.value === "number" ? <span className="rounded-full bg-paper-raised px-1.5 text-[10px] tabular-nums text-ink-soft">{item.value}{unit}</span> : null}
+          {typeof item.value === "number" ? <span className="rounded-full bg-paper-raised px-1.5 text-xs tabular-nums text-ink-soft">{item.value}{unit}</span> : null}
         </li>
       ))}
     </ul>
@@ -244,7 +247,7 @@ export function QuoteCard({ text, source }: { text: string; source: string }) {
   return (
     <figure className="dash-card relative min-w-0 overflow-hidden">
       <Quote size={40} aria-hidden className="absolute -right-1 -top-1 text-brand-soft" />
-      <blockquote className="relative text-[15px] leading-relaxed text-ink">{text}</blockquote>
+      <blockquote className="relative text-base leading-relaxed text-ink">{text}</blockquote>
       <figcaption className="relative mt-2 text-xs text-ink-soft">{source}</figcaption>
     </figure>
   );
@@ -257,10 +260,10 @@ export function MiniColumns({ points, label }: { points: ReadonlyArray<{ label: 
     <div className="min-w-0">
       <div className="flex h-14 items-end gap-1" role="img" aria-label={`${label}: ${points.map((point) => `${point.title}, ${point.value}`).join("; ")}`}>
         {points.map((point, index) => (
-          <div key={`${point.label}-${index}`} title={`${point.title}: ${point.value}`} className="hatch min-w-0 flex-1 rounded-t-md rounded-b-sm" style={{ height: `${Math.max(point.value > 0 ? 12 : 6, (point.value / max) * 100)}%`, backgroundColor: point.value > 0 ? SIGNAL.lime : SIGNAL.track }} />
+          <div key={`${point.label}-${index}`} title={`${point.title}: ${point.value}`} className="hatch viz-grow-y min-w-0 flex-1 rounded-t-md rounded-b-sm" style={{ height: `${Math.max(point.value > 0 ? 12 : 6, (point.value / max) * 100)}%`, backgroundColor: point.value > 0 ? SIGNAL.lime : SIGNAL.track }} />
         ))}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-ink-soft" aria-hidden><span>{points[0]?.label}</span><span>{points.at(-1)?.label}</span></div>
+      <div className="mt-1 flex justify-between text-xs text-ink-soft" aria-hidden><span>{points[0]?.label}</span><span>{points.at(-1)?.label}</span></div>
     </div>
   );
 }

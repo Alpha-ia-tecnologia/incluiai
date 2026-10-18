@@ -44,7 +44,7 @@ export function VersionSteps({ steps, label }: { steps: ReadonlyArray<VersionSte
                 <span className="min-w-0 pb-1">
                   <span className="block text-sm font-medium leading-snug text-ink">Versão {step.version}{step.current ? <span className="font-normal text-ink-soft"> · atual</span> : null}</span>
                   <span className={`mt-0.5 block text-xs ${step.kind === "validado" ? "font-medium text-ink" : "text-ink-soft"}`}>{step.stateLabel}</span>
-                  {step.dates.map((date) => <span key={date} className="mt-0.5 block text-[11px] leading-snug text-ink-soft">{date}</span>)}
+                  {step.dates.map((date) => <span key={date} className="mt-0.5 block text-xs leading-snug text-ink-soft">{date}</span>)}
                 </span>
               </a>
             </li>

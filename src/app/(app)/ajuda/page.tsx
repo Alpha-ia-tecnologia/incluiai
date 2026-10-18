@@ -51,10 +51,10 @@ export default async function HelpPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-8 flex items-center justify-between gap-5">
-        <div><p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-strong"><CircleHelp size={18} aria-hidden /> Ajuda e primeiros passos</p><h1 className="text-3xl leading-tight tracking-tight sm:text-[40px]">Vamos por partes.</h1><p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft">Você não precisa conhecer todos os recursos para começar. Siga o caminho da sua rotina.</p></div>
+        <div><p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-strong"><CircleHelp size={18} aria-hidden /> Ajuda e primeiros passos</p><h1 className="text-3xl leading-tight tracking-tight sm:text-4xl">Vamos por partes.</h1><p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft">Você não precisa conhecer todos os recursos para começar. Siga o caminho da sua rotina.</p></div>
         <Character variant="care" className="hidden w-36 sm:block" />
       </div>
-      <Link href="/jornada" className="mb-8 flex items-center gap-4 rounded-[22px] bg-lilac-soft p-5 transition-colors hover:bg-lilac">
+      <Link href="/jornada" className="mb-8 flex items-center gap-4 rounded-2xl bg-lilac-soft p-5 transition-colors hover:bg-lilac">
         <Route size={26} className="shrink-0 text-brand-strong" aria-hidden />
         <span className="min-w-0 flex-1"><span className="block text-base font-medium">Prefere um caminho guiado?</span><span className="mt-1 block text-sm leading-relaxed text-ink-soft">Em Minha jornada, a plataforma mostra o que você já fez, com os seus dados, e o próximo passo.</span></span>
         <ArrowRight size={20} className="shrink-0 text-brand-strong" aria-hidden />
@@ -62,7 +62,7 @@ export default async function HelpPage() {
       <section aria-labelledby="steps-title">
         <h2 id="steps-title" className="mb-5 text-xl font-medium">{family ? "Acompanhe e compartilhe conquistas" : therapist ? "Aproxime suas orientações da escola" : managing ? "Acompanhe o trabalho da rede" : "Da primeira informação à próxima aula"}</h2>
         <ol className="space-y-4">
-          {steps.map((step, index) => <li key={step.title} className="flex gap-3 rounded-[22px] border border-line bg-paper-raised p-5 sm:gap-5 sm:p-6"><span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft font-medium text-brand-strong">{index + 1}</span><div className="min-w-0"><h3 className="text-lg font-medium">{step.title}</h3><p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.text}</p><Link href={step.href} className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline">{step.action}<ArrowRight size={16} className="shrink-0" aria-hidden /></Link></div></li>)}
+          {steps.map((step, index) => <li key={step.title} className="flex gap-3 rounded-2xl border border-line bg-paper-raised p-5 sm:gap-5 sm:p-6"><span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft font-medium text-brand-strong">{index + 1}</span><div className="min-w-0"><h3 className="text-xl font-medium">{step.title}</h3><p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.text}</p><Link href={step.href} className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline">{step.action}<ArrowRight size={16} className="shrink-0" aria-hidden /></Link></div></li>)}
         </ol>
       </section>
       <section className="mt-10" aria-labelledby="questions-title">

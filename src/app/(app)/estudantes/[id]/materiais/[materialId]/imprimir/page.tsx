@@ -27,8 +27,8 @@ export default async function PrintMaterialPage({ params }: { params: Promise<{ 
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/estudantes/${id}/materiais#material-${material.id}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline">
-          <ArrowLeft size={16} aria-hidden /> Voltar para os materiais
+        <Link href={`/estudantes/${id}/materiais/${material.id}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline">
+          <ArrowLeft size={16} aria-hidden /> Voltar para o material
         </Link>
         <PrintButton label="Imprimir este material" />
       </div>

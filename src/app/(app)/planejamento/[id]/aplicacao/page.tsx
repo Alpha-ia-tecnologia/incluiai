@@ -127,7 +127,7 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
             ))}
           </ul>
         ) : (
-          <EmptyState title="Nenhuma aplicação registrada" hint={validatedOptions.length ? "Registre a primeira aplicação no formulário acima." : "Depois da validação, registre aqui cada vez que a atividade for aplicada."} />
+          <EmptyState character="planning" title="Nenhuma aplicação registrada" hint={validatedOptions.length ? "Registre a primeira aplicação no formulário acima." : "Depois da validação, registre aqui cada vez que a atividade for aplicada."} />
         )}
       </section>
     </div>

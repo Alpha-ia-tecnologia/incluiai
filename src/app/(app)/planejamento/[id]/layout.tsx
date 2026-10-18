@@ -31,7 +31,7 @@ export default async function PlanningLayout({ children, params }: { children: R
       <Link href="/planejamento" className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline print:hidden">
         <ArrowLeft size={16} aria-hidden /> Voltar para o planejamento
       </Link>
-      <div className="mb-4 rounded-[24px] bg-surface-muted p-4 sm:p-5 print:hidden">
+      <div className="mb-4 rounded-2xl bg-surface-muted p-4 sm:p-5 print:hidden">
         <p className="text-xs font-medium uppercase tracking-wide text-brand-strong">Atividade com DUA</p>
         <h1 className="mt-1 font-display text-2xl font-medium tracking-tight text-ink sm:text-3xl">{planning.title}</h1>
         <p className="mt-1 text-sm text-ink-soft">

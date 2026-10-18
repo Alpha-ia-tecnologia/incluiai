@@ -27,7 +27,7 @@ function ChapterProgress({ chapter }: { chapter: Chapter }) {
   return (
     <div className="mt-3 max-w-xs" aria-hidden>
       <div className="h-2 overflow-hidden rounded-full bg-paper-raised">
-        <div className={`h-full rounded-full ${TONE_CLASSES[chapter.tone].solid}`} style={{ width: `${pct}%` }} />
+        <div className={`viz-grow-x h-full rounded-full ${TONE_CLASSES[chapter.tone].solid}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -48,7 +48,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
       <header className="mb-7 flex items-center justify-between gap-5">
         <div className="min-w-0 max-w-2xl">
           <p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-strong"><Route size={18} aria-hidden /> Minha jornada</p>
-          <h1 className="font-display text-3xl leading-tight tracking-tight sm:text-[40px]">{journey.title}</h1>
+          <h1 className="font-display text-3xl leading-tight tracking-tight sm:text-4xl">{journey.title}</h1>
           <p className="mt-3 text-base leading-relaxed text-ink-soft">{journey.intro}</p>
           {chapters.length ? (
             <div className="mt-5 max-w-md">
@@ -76,14 +76,14 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
       ) : null}
 
       {!chapters.length ? (
-        <EmptyState title="Sua história ainda não começou" hint={journey.intro} />
+        <EmptyState character="learning" title="Sua história ainda não começou" hint={journey.intro} />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
             {current ? (
-              <section aria-labelledby="agora-titulo" className={`mb-8 rounded-[26px] p-5 sm:p-7 ${TONE_CLASSES[current.tone].soft}`}>
+              <section aria-labelledby="agora-titulo" className={`mb-8 rounded-3xl p-5 sm:p-7 ${TONE_CLASSES[current.tone].soft}`}>
                 <p className={`text-xs font-semibold uppercase tracking-wide ${TONE_CLASSES[current.tone].ink}`}>Capítulo {currentIndex + 1} · Continue de onde parou</p>
-                <h2 id="agora-titulo" className="mt-2 font-display text-2xl font-medium leading-tight tracking-tight text-ink sm:text-[28px]">{current.title}</h2>
+                <h2 id="agora-titulo" className="mt-2 font-display text-2xl font-medium leading-tight tracking-tight text-ink sm:text-3xl">{current.title}</h2>
                 <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">{current.story}</p>
                 {current.evidence ? <p className="mt-3 max-w-2xl rounded-2xl bg-paper-raised/70 px-4 py-3 text-sm leading-relaxed text-ink-soft">{current.evidence}</p> : null}
                 <ChapterProgress chapter={current} />
@@ -91,21 +91,21 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
                 <Link href={current.action.href} className="task-action mt-5 w-full sm:w-fit">{current.action.label} <ArrowRight size={17} aria-hidden /></Link>
               </section>
             ) : waiting.length ? (
-              <section aria-labelledby="em-dia-titulo" className="mb-8 rounded-[26px] bg-sage-soft p-5 sm:p-7">
+              <section aria-labelledby="em-dia-titulo" className="mb-8 rounded-3xl bg-sage-soft p-5 sm:p-7">
                 <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sage-ink"><Sparkles size={15} aria-hidden /> Você está em dia</p>
                 <h2 id="em-dia-titulo" className="mt-2 font-display text-2xl font-medium leading-tight tracking-tight text-ink">O que depende de você já foi feito</h2>
                 <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">{waiting.map((chapter) => `“${chapter.title}” está aguardando: ${chapter.evidence ?? chapter.story}`).join(" ")}</p>
                 <Link href={waiting[0].action.href} className="task-action task-action-secondary mt-5 w-full sm:w-fit">{waiting[0].action.label} <ArrowRight size={17} aria-hidden /></Link>
               </section>
             ) : (
-              <section aria-labelledby="completa-titulo" className="mb-8 rounded-[26px] bg-sage-soft p-5 sm:p-7">
+              <section aria-labelledby="completa-titulo" className="mb-8 rounded-3xl bg-sage-soft p-5 sm:p-7">
                 <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sage-ink"><Sparkles size={15} aria-hidden /> História completa</p>
                 <h2 id="completa-titulo" className="mt-2 font-display text-2xl font-medium leading-tight tracking-tight text-ink">Todos os capítulos têm registro</h2>
                 <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">A história continua na rotina: cada aula registrada, cada conquista contada e cada revisão do plano somam ao que já foi construído.</p>
               </section>
             )}
 
-            <h2 className="mb-4 text-lg font-medium">Todos os capítulos</h2>
+            <h2 className="mb-4 text-xl font-medium">Todos os capítulos</h2>
             <ol className="relative">
               {chapters.map((chapter, index) => {
                 const tone = TONE_CLASSES[chapter.tone];
@@ -116,15 +116,15 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
                     <span className={`relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${chapter.done ? `${tone.solid} text-white` : chapter.status === "agora" ? `${tone.soft} ${tone.ink} ring-2 ring-current` : "border-2 border-dashed border-line bg-paper-raised text-ink-soft"}`}>
                       {chapter.done ? <Check size={18} strokeWidth={3} aria-hidden /> : index + 1}
                     </span>
-                    <article className={`min-w-0 flex-1 rounded-[20px] border p-4 sm:p-5 ${chapter.status === "agora" ? "border-transparent bg-paper-raised shadow-e2" : "border-line bg-paper-raised"}`}>
+                    <article className={`min-w-0 flex-1 rounded-2xl border p-4 sm:p-5 ${chapter.status === "agora" ? "border-transparent bg-paper-raised shadow-e2" : "border-line bg-paper-raised"}`}>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <p className="text-xs text-ink-soft">Capítulo {index + 1}</p>
-                        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${chapter.done ? `${tone.soft} ${tone.ink}` : chapter.status === "agora" ? "bg-brand text-white" : "bg-surface-muted text-ink-soft"}`}>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${chapter.done ? `${tone.soft} ${tone.ink}` : chapter.status === "agora" ? "bg-brand text-white" : "bg-surface-muted text-ink-soft"}`}>
                           {STATUS_LABELS[chapter.status]}{chapter.done && chapter.date ? ` em ${formatDate(chapter.date)}` : ""}
                         </span>
                         {chapter.progress && chapter.progress.total ? <span className="text-xs text-ink-soft">{chapter.progress.done} de {chapter.progress.total}</span> : null}
                       </div>
-                      <h3 className="mt-1.5 text-base font-medium leading-snug text-ink sm:text-lg">{chapter.title}</h3>
+                      <h3 className="mt-1.5 text-base font-medium leading-snug text-ink sm:text-xl">{chapter.title}</h3>
                       {chapter.status === "agora" ? <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">Detalhes no destaque acima.</p>
                         : chapter.done ? <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{chapter.evidence ?? chapter.story}</p>
                           : <>
@@ -158,7 +158,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
             ) : null}
 
             {journey.milestones.length ? (
-              <section aria-labelledby="conquistas-titulo" className="rounded-[22px] bg-paper-raised p-5 ring-1 ring-line">
+              <section aria-labelledby="conquistas-titulo" className="rounded-2xl bg-paper-raised p-5 ring-1 ring-line">
                 <h2 id="conquistas-titulo" className="text-base font-medium">Conquistas da jornada</h2>
                 <p className="mt-1 text-xs text-ink-soft">{journey.milestones.filter((milestone) => milestone.achieved).length} de {journey.milestones.length} alcançadas{journey.kind === "professor" || journey.kind === "escola" || journey.kind === "rede" ? " pela equipe" : ""}.</p>
                 <ul className="mt-4 space-y-3">
@@ -177,7 +177,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
               </section>
             ) : null}
 
-            <Link href="/ajuda" className="flex items-center gap-3 rounded-[22px] bg-brand-soft p-5 text-sm text-ink transition-colors hover:bg-lilac">
+            <Link href="/ajuda" className="flex items-center gap-3 rounded-2xl bg-brand-soft p-5 text-sm text-ink transition-colors hover:bg-lilac">
               <CircleHelp size={22} className="shrink-0 text-brand-strong" aria-hidden />
               <span><span className="block font-medium">Dúvida em algum capítulo?</span><span className="text-ink-soft">A ajuda explica cada tarefa em poucos passos.</span></span>
             </Link>
@@ -205,7 +205,7 @@ function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
         <RingStat id={id} value={viz.pct} label={item.label} size={84} color={TONE_COLOR[viz.tone]} />
         <div className="min-w-0">
           <h3 className="text-sm font-medium leading-snug text-ink">{item.label}</h3>
-          <p className="mt-1 font-display text-[28px] leading-none tracking-tight text-ink tabular-nums">{item.value}</p>
+          <p className="mt-1 font-display text-3xl leading-none tracking-tight text-ink tabular-nums">{item.value}</p>
           {item.hint ? <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{item.hint}</p> : null}
         </div>
       </article>

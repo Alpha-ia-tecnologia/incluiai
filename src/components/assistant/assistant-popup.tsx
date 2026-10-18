@@ -73,6 +73,15 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
       .catch(() => setInitial(null));
   }, [open, initial]);
 
+  // Ao rolar a página, o botão encolhe para o ícone e não cobre o conteúdo do canto.
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setCompact(window.scrollY > 120);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Ao abrir, o foco vai para o painel (sem abrir o teclado do celular).
   useEffect(() => {
     if (open) panelRef.current?.focus();
@@ -114,9 +123,10 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
             aria-controls="assistente-painel"
             aria-label={open ? "Fechar o assistente" : FAB_LABELS[heldActivity ?? activity]}
             className="assistant-fab print:hidden"
+            data-compact={compact && !open ? "true" : undefined}
           >
             {open ? <X size={22} aria-hidden /> : <Sparkles size={22} aria-hidden />}
-            <span className="hidden sm:inline">{open ? "Fechar" : "Assistente"}</span>
+            <span className="assistant-fab-label hidden sm:inline">{open ? "Fechar" : "Assistente"}</span>
             {!open && activity !== "livre" ? <span className="assistant-fab-mark" data-activity={activity} aria-hidden="true" /> : null}
           </button>
           <p role="status" className="sr-only">{open ? "" : FAB_STATUS[activity] ?? ""}</p>

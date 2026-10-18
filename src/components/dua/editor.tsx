@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, CloudCheck, CloudUpload, TriangleAlert } from "lucide-react";
+import { ArrowLeft, ArrowRight, CloudUpload, Sprout, TriangleAlert } from "lucide-react";
 import { saveDuaDraft, openDuaNewVersion } from "@/actions/dua";
 import type { DuaContent, ReviewState } from "@/lib/dua/domain";
 import type { PlanningAccess } from "@/lib/dua/access";
@@ -12,6 +12,7 @@ import { StepBarriers } from "./step-barriers";
 import { StepOptions } from "./step-options";
 import { StepReview } from "./step-review";
 import { buttonCls, secondaryCls } from "./dua-ui";
+import { Character } from "@/components/character";
 
 // Formulário em quatro etapas (RF02) com salvamento automático. As gravações saem
 // uma de cada vez (o Next despacha ações em série) e sempre com a revisão
@@ -161,8 +162,10 @@ export function DuaEditor(props: EditorProps) {
   return (
     <div className="min-w-0">
       {props.state === "validado" ? (
+        // Planejamento validado é um momento de conclusão: a prancheta acompanha o aviso.
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-green/20 bg-green-soft/60 p-4">
-          <p className="max-w-xl text-sm leading-relaxed text-ink">
+          <Character variant="planning" className="hidden w-14 sm:block" />
+          <p className="min-w-0 max-w-xl flex-1 text-sm leading-relaxed text-ink">
             <strong className="font-medium">A versão {props.version} está validada e não muda mais.</strong> As aplicações registradas continuam presas a ela. Para ajustar, abra a versão {props.version + 1}.
           </p>
           {props.access.edit ? (
@@ -185,7 +188,7 @@ export function DuaEditor(props: EditorProps) {
                 aria-current={index === step ? "step" : undefined}
                 className={`flex min-h-12 w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors ${index === step ? "bg-brand font-medium text-white" : "bg-surface-muted text-ink-soft hover:bg-line hover:text-ink"}`}
               >
-                <span aria-hidden className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-xs ${index === step ? "bg-white/20" : "bg-paper-raised"}`}>{index + 1}</span>
+                <span aria-hidden className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full tabular-nums text-xs ${index === step ? "bg-white/20" : "bg-paper-raised"}`}>{index + 1}</span>
                 <span className="min-w-0">{item.label}</span>
               </button>
             </li>
@@ -241,10 +244,10 @@ function SaveIndicator({ status, readOnly, onKeepMine, onUseTheirs, onRetry }: {
     );
   }
   const text = status.kind === "salvando" ? "Salvando…" : status.kind === "alterado" ? "Alterações ainda não salvas" : "Tudo salvo";
-  const Icon = status.kind === "salvo" ? CloudCheck : CloudUpload;
+  // O broto entra a cada gravação concluída (e ao abrir, já salvo) e cresce uma vez.
   return (
     <p role="status" aria-live="polite" className="mb-4 inline-flex items-center gap-2 text-xs text-ink-soft">
-      <Icon size={14} aria-hidden /> {text}
+      {status.kind === "salvo" ? <Sprout size={16} aria-hidden className="sprout-mark text-green" /> : <CloudUpload size={14} aria-hidden />} {text}
     </p>
   );
 }

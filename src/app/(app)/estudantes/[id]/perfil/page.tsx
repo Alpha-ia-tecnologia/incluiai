@@ -1,20 +1,18 @@
-﻿import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { upsertProfile } from "@/actions/profile";
 import { parseJson } from "@/lib/format";
 import { SUPPORT_LEVELS, CHANNELS, BARRIERS, SENSORY_AREAS, SENSORY_LABELS, SENSORY_VALUES } from "@/lib/scale";
-import { PageHeader, Card, SectionTitle } from "@/components/ui";
+import { ButtonLink, PageHeader, Card, SectionTitle } from "@/components/ui";
 import { ProfileChat } from "@/components/profile-chat";
 import type { ProfileAnswers } from "@/components/profile-chat";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ATTENTION_MINUTES, CALMING_OPTIONS, EARLY_SIGN_OPTIONS, INTEREST_OPTIONS, STRENGTH_OPTIONS, TASK_TOLERANCE_MINUTES, TRIGGER_OPTIONS, splitItems } from "@/lib/form-options";
 import { parseCaseStudy } from "@/lib/case-study";
 import { MessageSquareText, ListChecks } from "lucide-react";
+import { inputCls, labelCls, primaryButtonCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-const inputCls = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
-const labelCls = "mb-1 block text-xs font-medium text-ink-soft";
 const fieldStyle = { labelClassName: labelCls, inputClassName: inputCls };
 const channelOptions = Object.entries(CHANNELS).map(([value, label]) => ({ value, label }));
 
@@ -107,12 +105,13 @@ export default async function ProfilePage({
     return (
       <>
         <PageHeader
+          level={2}
           title="Como aprende"
           lede="Conte como o estudante se comunica, do que gosta e quais apoios ajudam no dia a dia. Responda uma pergunta por vez."
           actions={
-            <Link href={`/estudantes/${id}/perfil?modo=formulario`} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-line px-3 py-2 text-sm font-medium text-ink-soft hover:border-brand hover:text-brand-strong">
-              <ListChecks size={13} aria-hidden /> Abrir formulário completo
-            </Link>
+            <ButtonLink href={`/estudantes/${id}/perfil?modo=formulario`} variant="quiet">
+              <ListChecks size={16} aria-hidden /> Abrir formulário completo
+            </ButtonLink>
           }
         />
 
@@ -134,12 +133,13 @@ export default async function ProfilePage({
   return (
     <>
       <PageHeader
+        level={2}
         title="Como aprende"
         lede="Preencha ou revise as informações sobre a aprendizagem. Em cada atividade, escolha o apoio de que o estudante precisa hoje."
         actions={
-          <Link href={`/estudantes/${id}/perfil`} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-line px-3 py-2 text-sm font-medium text-ink-soft hover:border-brand hover:text-brand-strong">
-            <MessageSquareText size={13} aria-hidden /> Responder uma pergunta por vez
-          </Link>
+          <ButtonLink href={`/estudantes/${id}/perfil`} variant="quiet">
+            <MessageSquareText size={16} aria-hidden /> Responder uma pergunta por vez
+          </ButtonLink>
         }
       />
       {suggestionNote}
@@ -199,7 +199,7 @@ export default async function ProfilePage({
             <SupportSelect name="fineMotor" label="Movimentos das mãos e dos dedos" defaultValue={p?.fineMotor ?? 1} />
             <SupportSelect name="grossMotor" label="Movimentos do corpo" defaultValue={p?.grossMotor ?? 0} />
           </div>
-          <label className="mt-4 flex items-center gap-2 text-sm text-ink">
+          <label className="mt-4 flex min-h-11 items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="usesWheelchairOrOrthosis" defaultChecked={p?.usesWheelchairOrOrthosis} className="size-4 accent-[var(--brand)]" />
             Usa cadeira de rodas ou órtese
           </label>
@@ -244,7 +244,7 @@ export default async function ProfilePage({
           </div>
         </Card>
 
-        <button type="submit" className="rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-strong">
+        <button type="submit" className={primaryButtonCls}>
           Salvar informações
         </button>
       </form>

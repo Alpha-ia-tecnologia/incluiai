@@ -4,8 +4,8 @@ import { useActionState } from "react";
 import { ImagePlus, Send } from "lucide-react";
 import { generateMaterialImagesAction, sendMaterialActivity, type MaterialActionState } from "@/actions/materials";
 import { PendingButton } from "@/components/pending-button";
+import { quietButtonCls as secondaryCls } from "@/components/form-styles";
 
-const secondaryCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-paper-raised px-4 py-2 text-sm font-medium text-ink hover:bg-surface-muted";
 
 function Result({ state }: { state: MaterialActionState }) {
   if (state.status === "idle") return <span role="status" aria-live="polite" className="sr-only" />;

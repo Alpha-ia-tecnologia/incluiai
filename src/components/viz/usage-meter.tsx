@@ -16,7 +16,7 @@ export function UsageMeter({ value, max, color = SIGNAL.lime, track = "bg-signal
   const width = value > 0 && max > 0 ? Math.max(4, Math.round((Math.min(value, max) / max) * 100)) : 0;
   return (
     <span aria-hidden className={`block h-2 min-w-0 overflow-hidden rounded-full ${track} ${className}`}>
-      <span className="hatch block h-full rounded-full" style={{ width: `${width}%`, backgroundColor: color }} />
+      <span className="hatch viz-grow-x block h-full rounded-full" style={{ width: `${width}%`, backgroundColor: color }} />
     </span>
   );
 }

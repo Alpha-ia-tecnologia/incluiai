@@ -20,8 +20,8 @@ export function DonutSummary({ id, segments, label, caption, center, empty, size
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-5">
       <HatchedDonut id={id} segments={segments} label={`${label}: ${segments.map((segment) => `${segment.label} ${segment.value}`).join(", ")}`} size={size} thickness={Math.round(size / 7.5)}>
-        <span className="font-display text-[28px] leading-none tracking-tight text-ink tabular-nums">{center ?? total}</span>
-        {caption ? <span className="mt-1 text-[11px] leading-tight text-ink-soft">{caption}</span> : null}
+        <span className="font-display text-3xl leading-none tracking-tight text-ink tabular-nums">{center ?? total}</span>
+        {caption ? <span className="mt-1 text-xs leading-tight text-ink-soft">{caption}</span> : null}
       </HatchedDonut>
       <div className="min-w-0 flex-1 basis-40"><Legend segments={segments} /></div>
     </div>

@@ -118,7 +118,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
             <Card key={activity.id}>
               <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft font-mono text-sm font-semibold text-brand-strong" aria-hidden>
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft tabular-nums text-sm font-semibold text-brand-strong" aria-hidden>
                     {index + 1}
                   </span>
                   <div>
@@ -159,7 +159,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
                     <ol className="space-y-2">
                       {steps.map((step, stepIndex) => (
                         <li key={step} className="flex gap-2.5 text-sm leading-relaxed text-ink">
-                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-soft font-mono text-[10px] font-semibold text-brand-strong">{stepIndex + 1}</span>
+                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-soft tabular-nums text-xs font-semibold text-brand-strong">{stepIndex + 1}</span>
                           {step}
                         </li>
                       ))}

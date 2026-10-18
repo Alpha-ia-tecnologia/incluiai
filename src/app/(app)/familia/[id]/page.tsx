@@ -6,9 +6,10 @@ import { createFamilyNote, markHomeActivityDone } from "@/actions/diary";
 import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { PendingButton } from "@/components/pending-button";
+import { Character } from "@/components/character";
 import { parseJson, formatDate } from "@/lib/format";
 import { ROLES } from "@/lib/scale";
-import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
+import { PageHero, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
 import { Trophy, ShieldCheck, Home, CircleCheck } from "lucide-react";
@@ -18,9 +19,8 @@ import { percentOf } from "@/lib/series";
 import { RingTile } from "@/components/viz/ring-tile";
 import { SupportTrack } from "@/components/viz/support-track";
 import { Timeline } from "@/components/viz/timeline";
+import { labelCls as familyLabelCls, inputCls as familyInputCls } from "@/components/form-styles";
 
-const familyLabelCls = "mb-2 block text-sm font-medium text-ink";
-const familyInputCls = "min-h-11 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,8 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        character="care"
         title={`Acompanhamento de ${firstName}`}
         lede="O que a escola está trabalhando, os avanços recentes e o espaço para a família registrar o que observa em casa."
       />
@@ -69,14 +70,19 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       <section aria-label={`Resumo do acompanhamento de ${firstName}`} className="mb-6">
         <DataBoard className="sm:grid-cols-2">
           <StatTile label="Objetivos em andamento" value={objectives.length} hint={objectives.length ? "No plano de ensino ativo." : "A escola ainda está montando o plano."} />
-          <RingTile
-            id="familia-casa"
-            pct={percentOf(homeDone, homeActivities.length)}
-            label="Atividades de casa feitas"
-            value={homeActivities.length ? `${homeDone} de ${homeActivities.length}` : "—"}
-            color={SIGNAL.lime}
-            hint={homeActivities.length ? "Das atividades mais recentes que a escola enviou." : "A escola ainda não enviou atividades para casa."}
-          />
+          {/* Sem atividade enviada, não há o que medir: um anel vazio pareceria quebrado. */}
+          {homeActivities.length ? (
+            <RingTile
+              id="familia-casa"
+              pct={percentOf(homeDone, homeActivities.length)}
+              label="Atividades de casa feitas"
+              value={`${homeDone} de ${homeActivities.length}`}
+              color={SIGNAL.lime}
+              hint="Das atividades mais recentes que a escola enviou."
+            />
+          ) : (
+            <StatTile label="Atividades de casa" value={0} hint="A escola ainda não enviou atividades para casa. Elas aparecem aqui quando chegarem." />
+          )}
           <StatTile label="Conquistas recentes" value={student.timeline.length} hint={student.timeline[0] ? `A mais recente em ${formatDate(student.timeline[0].date)}.` : "As conquistas registradas pela escola aparecem aqui."} />
           <StatTile label="Registros da família" value={student.familyNotes.length} hint={lastNote ? `O último em ${formatDate(lastNote.date)}.` : "Conte para a escola o que vocês observam em casa."} />
         </DataBoard>
@@ -144,6 +150,12 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             {student.timeline.length === 0 ? (
               <p className="text-sm text-ink-soft">As conquistas registradas pela escola aparecerão aqui.</p>
             ) : (
+              <>
+              {/* Momento de comemorar: o personagem do acolhimento acompanha as conquistas. */}
+              <div className="mb-4 flex items-center gap-3 rounded-xl bg-amber-soft/60 p-3">
+                <Character variant="care" className="w-14" />
+                <p className="text-sm leading-relaxed text-ink">Cada conquista conta. Comemore com {firstName} e conte para a escola o que vocês veem em casa.</p>
+              </div>
               <Timeline
                 label={`Conquistas recentes de ${firstName}, da mais nova para a mais antiga`}
                 items={student.timeline.map((t) => ({
@@ -155,6 +167,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                   markerClassName: "bg-amber-soft text-amber-800",
                 }))}
               />
+              </>
             )}
           </Card>
 
@@ -187,7 +200,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             <form action={addNote} className="space-y-4">
               <MultiChoiceField name="note" label="O que aconteceu? *" options={FAMILY_ACHIEVEMENT_OPTIONS} required otherPlaceholder={`Ex.: ${firstName} pediu água durante o jantar`} legendClassName={familyLabelCls} inputClassName={familyInputCls} />
               <ChoiceField name="author" label="Quem observou" options={FAMILY_MEMBER_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: madrinha" labelClassName={familyLabelCls} inputClassName={familyInputCls} />
-              <button type="submit" className="min-h-11 rounded-xl bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-strong">
+              <button type="submit" className="min-h-11 rounded-full bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-strong">
                 Enviar
               </button>
             </form>
@@ -196,13 +209,13 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
           <div>
             <SectionTitle>O que a família já registrou</SectionTitle>
             {student.familyNotes.length === 0 ? (
-              <EmptyState title="Nenhum registro ainda" hint="As observações da família ajudam a equipe a planejar." />
+              <EmptyState character="care" title="Nenhum registro ainda" hint="As observações da família ajudam a equipe a planejar." />
             ) : (
               <div className="space-y-3">
                 {student.familyNotes.map((n) => (
                   <Card key={n.id}>
                     <p className="text-sm leading-relaxed text-ink">“{n.note}”</p>
-                    <p className="mt-1 text-[11px] text-ink-soft">{n.author} · {formatDate(n.date)}</p>
+                    <p className="mt-1 text-xs text-ink-soft">{n.author} · {formatDate(n.date)}</p>
                   </Card>
                 ))}
               </div>

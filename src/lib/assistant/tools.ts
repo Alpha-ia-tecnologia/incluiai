@@ -332,7 +332,9 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       const { material, content, source, images } = await createStudentMaterial(ctx.user, id, {
         kind: args.tipo, topic: args.tema ?? "", context: args.contexto ?? "aee", withImages: Boolean(args.imagens),
       });
+      // A galeria e a página própria do material novo.
       revalidatePath(`/estudantes/${id}/materiais`);
+      revalidatePath(`/estudantes/${id}/materiais/${material.id}`);
       const kind = MATERIAL_KINDS.find((item) => item.kind === args.tipo);
       return [
         `${kind?.label ?? args.tipo} criado ${source === "ia" ? "pelos agentes de IA" : "pelas regras da plataforma"}: "${material.title}". Fica como sugestão até a equipe aprovar.`,
@@ -341,7 +343,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
         `Atividades para aplicar: ${content.activities.map((activity) => `${activity.title} (${activity.durationMinutes} min)`).join("; ")}.`,
         images.requested ? `Imagens: ${images.created} pictograma(s) prontos${images.errors.length ? `; ${images.errors[0]}` : ""}.` : "Sem imagens: podem ser geradas na página do material.",
         content.reviewNotes.length ? `Pontos para a equipe conferir: ${content.reviewNotes.join("; ")}` : "",
-        `Ver, aprovar e imprimir: /estudantes/${id}/materiais.`,
+        `Ver, aprovar e imprimir: /estudantes/${id}/materiais/${material.id}.`,
       ].filter(Boolean).join("\n");
     });
 

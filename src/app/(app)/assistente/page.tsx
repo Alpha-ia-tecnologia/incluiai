@@ -5,6 +5,7 @@ import { hasApiKey } from "@/lib/env";
 import { getConversation, listConversations } from "@/lib/assistant/store";
 import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
+import { PageHero } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,12 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-5">
-        <p className="mb-2 flex items-center gap-2 text-sm font-medium text-brand-strong"><Sparkles size={18} aria-hidden /> Assistente</p>
-        <h1 className="font-display text-3xl leading-tight tracking-tight sm:text-[36px]">Converse com o assistente</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">Tire dúvidas sobre a plataforma e o acompanhamento, peça propostas de plano e atividades, registre aulas e consulte o painel. O assistente propõe; você decide, sempre com um cartão de confirmação. Os dados chegam à IA sem nomes.</p>
-      </div>
+      <PageHero
+        character="ideas"
+        eyebrow={<><Sparkles size={18} aria-hidden /> Assistente</>}
+        title="Converse com o assistente"
+        lede="Tire dúvidas sobre a plataforma e o acompanhamento, peça propostas de plano e atividades, registre aulas e consulte o painel. O assistente propõe; você decide, sempre com um cartão de confirmação. Os dados chegam à IA sem nomes."
+      />
       <AssistantChat layout="page" enabled={hasApiKey("ANTHROPIC_API_KEY")} suggestions={suggestionsFor(user.role)} initial={selected} conversations={conversations} />
     </div>
   );

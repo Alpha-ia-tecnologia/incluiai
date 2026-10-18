@@ -19,13 +19,13 @@ export function SupportTrack({ current, target }: { current: number; target: num
         <div className="grid grid-cols-6 gap-[2px]">
           {LEVELS.map((level) => {
             const onPath = !reached && level < today && level >= goal;
-            return <span key={level} className={`h-3 rounded-[4px] ${onPath ? "hatch" : ""}`} style={{ backgroundColor: onPath ? "var(--signal-lime-soft)" : SIGNAL.track }} />;
+            return <span key={level} className={`h-3 rounded-[4px] ${onPath ? "hatch viz-grow-x" : ""}`} style={{ backgroundColor: onPath ? "var(--signal-lime-soft)" : SIGNAL.track }} />;
           })}
         </div>
         <span className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white bg-ink-strong shadow-e1" style={{ left: center(today) }} />
         {!reached ? <span className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] border-2 border-ink-strong bg-white" style={{ left: center(goal) }} /> : null}
       </div>
-      <div aria-hidden className="mt-1 flex justify-between text-[11px] text-ink-soft"><span>Mais apoio</span><span>Independente</span></div>
+      <div aria-hidden className="mt-1 flex justify-between text-xs text-ink-soft"><span>Mais apoio</span><span>Independente</span></div>
       <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink">
         <span className="inline-flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-full bg-ink-strong" /> Apoio atual: {supportInfo(today).label}</span>
         {reached ? <span className="text-ink-soft">O apoio atual já está na meta do plano.</span>

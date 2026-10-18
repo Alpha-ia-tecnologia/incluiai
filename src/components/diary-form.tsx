@@ -2,15 +2,13 @@
 
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
-import { CheckCircle2, LoaderCircle } from "lucide-react";
+import { LoaderCircle, Sprout } from "lucide-react";
 import { SUPPORT_LEVELS, ROLES } from "@/lib/scale";
 import { RECOMMENDATION_OPTIONS, WHAT_WORKED_OPTIONS } from "@/lib/form-options";
 import { VoiceNote } from "@/components/voice-note";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
+import { inputCls, labelCls, choiceCls } from "@/components/form-styles";
 
-const inputCls = "min-h-12 w-full rounded-xl border border-line bg-paper px-3 py-3 text-sm text-ink";
-const labelCls = "mb-2 block text-sm font-medium text-ink";
-const choiceCls = "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-line bg-paper px-3 py-3 text-sm text-ink has-checked:border-brand has-checked:bg-brand-soft";
 
 const participationChoices = [
   ["total", "Participou de toda a atividade"],
@@ -166,7 +164,7 @@ export function DiaryForm({
       <div className="flex flex-col items-start gap-3 border-t border-line pt-5">
         <p ref={statusRef} tabIndex={-1} role={result === "error" ? "alert" : "status"} aria-live="polite" className={`text-sm leading-relaxed ${result === "error" ? "text-coral" : "text-brand-strong"}`}>
           {pending ? "Salvando seu registro…" : result === "saved" ? (
-            <span className="flex items-start gap-2"><CheckCircle2 size={18} className="mt-0.5 shrink-0" aria-hidden />Registro salvo. Ele já aparece no histórico abaixo.</span>
+            <span className="flex items-start gap-2"><Sprout size={16} aria-hidden className="sprout-mark mt-1 shrink-0 text-green" />Registro salvo. Ele já aparece no histórico abaixo.</span>
           ) : result === "error" ? "Não foi possível confirmar o salvamento. Suas respostas foram mantidas. Confira o histórico antes de tentar novamente." : "Depois de salvar, você poderá acompanhar este registro no histórico abaixo."}
         </p>
         <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-strong disabled:cursor-wait disabled:opacity-60 sm:w-auto">

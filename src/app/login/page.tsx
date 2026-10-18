@@ -22,7 +22,7 @@ export default async function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-3 sm:p-6 lg:p-8">
-      <div className="grid w-full max-w-[1320px] overflow-hidden rounded-[30px] bg-paper p-2 shadow-[0_24px_80px_-36px_rgba(80,50,110,0.24)] sm:rounded-[38px] sm:p-3 lg:grid-cols-[1fr_1fr]">
+      <div className="grid w-full max-w-[1320px] overflow-hidden rounded-3xl bg-paper p-2 shadow-[0_24px_80px_-36px_rgba(80,50,110,0.24)] sm:rounded-3xl sm:p-3 lg:grid-cols-[1fr_1fr]">
         <section className="flex flex-col px-5 py-6 sm:px-10 sm:py-9 xl:px-16">
           <Link href="/login" className="inline-flex w-fit items-center gap-3 text-ink">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-brand text-paper">
@@ -36,7 +36,7 @@ export default async function LoginPage() {
               <span className="size-1.5 rounded-full bg-brand" aria-hidden="true" />
               Um espaço para cada possibilidade
             </span>
-            <h1 className="font-display text-[36px] font-normal leading-[1.12] tracking-[-0.045em] text-ink sm:text-[44px]">
+            <h1 className="font-display text-3xl font-normal leading-[1.12] tracking-[-0.045em] text-ink sm:text-4xl">
               Que bom ter<br />você por aqui.
             </h1>
             <p className="mb-8 mt-4 max-w-xs text-sm leading-relaxed text-ink-soft">Entre na plataforma e acompanhe os próximos passos de uma educação mais inclusiva.</p>
@@ -49,7 +49,7 @@ export default async function LoginPage() {
           </p>
         </section>
 
-        <aside className="flex flex-col rounded-[24px] bg-[var(--surface-muted)] px-5 py-8 sm:rounded-[30px] sm:px-8 sm:py-10 xl:px-10" aria-labelledby="demo-title">
+        <aside className="flex flex-col rounded-2xl bg-[var(--surface-muted)] px-5 py-8 sm:rounded-3xl sm:px-8 sm:py-10 xl:px-10" aria-labelledby="demo-title">
           <div className="mb-8 flex items-center justify-between">
             <span className="inline-flex items-center gap-2 rounded-full bg-paper-raised px-3.5 py-2 text-xs text-ink">
               <Sparkles size={14} strokeWidth={1.7} aria-hidden="true" />
@@ -61,7 +61,7 @@ export default async function LoginPage() {
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_96px] items-center gap-3 sm:grid-cols-[minmax(0,1fr)_180px] lg:grid-cols-[minmax(0,1fr)_144px] xl:grid-cols-[minmax(0,1fr)_180px]">
-            <p className="font-display text-[28px] font-normal leading-[1.14] tracking-[-0.045em] text-ink sm:text-[36px] lg:text-[30px] xl:text-[36px]">Muitas conexões.<br />Um só propósito.</p>
+            <p className="font-display text-3xl font-normal leading-[1.14] tracking-[-0.045em] text-ink sm:text-4xl lg:text-3xl xl:text-4xl">Muitas conexões.<br />Um só propósito.</p>
             <Character variant="care" className="w-full" preload />
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-soft">Toda trajetória é única. Juntos, construímos caminhos para que cada estudante possa aprender e se desenvolver.</p>
@@ -72,12 +72,12 @@ export default async function LoginPage() {
           </div>
           <ul className="grid gap-2.5 sm:grid-cols-2">
             {DEMO_ACCOUNTS.map(({ role, email, icon: Icon, color }) => (
-              <li key={email} className="min-w-0 rounded-[20px] p-4 text-ink" style={{ backgroundColor: color }}>
+              <li key={email} className="min-w-0 rounded-2xl p-4 text-ink" style={{ backgroundColor: color }}>
                 <span className="mb-4 flex size-8 items-center justify-center rounded-full bg-white/75">
                   <Icon size={17} strokeWidth={1.6} aria-hidden="true" />
                 </span>
-                <p className="text-[13px] font-medium leading-snug">{role}</p>
-                <p className="mt-1.5 break-all text-[11px] leading-relaxed text-ink/75">{email}</p>
+                <p className="text-sm font-medium leading-snug">{role}</p>
+                <p className="mt-1.5 break-all text-xs leading-relaxed text-ink/75">{email}</p>
               </li>
             ))}
           </ul>

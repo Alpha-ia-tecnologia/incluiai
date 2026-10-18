@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { Card, Badge, EmptyState } from "@/components/ui";
+import { labelCls } from "@/components/form-styles";
 import { Character } from "@/components/character";
 import { STAGES } from "@/lib/scale";
 import { ArrowUpRight, Search, ListChecks, BookOpen, MessagesSquare, MonitorPlay, Puzzle, Sparkles, Laptop, type LucideIcon } from "lucide-react";
@@ -70,8 +71,8 @@ export default async function ResourcesPage({
 
   return (
     <>
-      <section aria-labelledby="resources-title" className="mb-8 grid grid-cols-[minmax(0,1fr)_80px] items-center gap-x-4 gap-y-3 rounded-[1.75rem] bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-x-7 sm:p-7 lg:grid-cols-[minmax(0,1fr)_176px]">
-        <h1 id="resources-title" className="min-w-0 font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-[40px]">Recursos para incluir.</h1>
+      <section aria-labelledby="resources-title" className="mb-8 grid grid-cols-[minmax(0,1fr)_80px] items-center gap-x-4 gap-y-3 rounded-3xl bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-x-7 sm:p-7 lg:grid-cols-[minmax(0,1fr)_176px]">
+        <h1 id="resources-title" className="min-w-0 font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-4xl">Recursos para incluir.</h1>
         <Character variant="ideas" className="w-20 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-40 lg:w-44" preload />
         <p className="col-span-2 max-w-2xl text-sm leading-relaxed text-ink-soft sm:col-span-1">Explore o banco municipal de recursos inclusivos: atividades, adaptações e novas possibilidades para aprender.</p>
       </section>
@@ -79,7 +80,7 @@ export default async function ResourcesPage({
       <Card className="mb-8">
         <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_auto]">
           <div className="min-w-0">
-            <label htmlFor="q" className="mb-2 block text-xs font-medium text-ink-soft">Buscar recurso</label>
+            <label htmlFor="q" className={labelCls}>Buscar recurso</label>
             <div className="relative">
               <Search size={16} className="pointer-events-none absolute left-4 top-3.5 text-ink-soft" aria-hidden />
               <input
@@ -87,20 +88,20 @@ export default async function ResourcesPage({
                 name="q"
                 defaultValue={q}
                 placeholder="Título, habilidade ou acessibilidade"
-                className="h-11 w-full rounded-full border border-line bg-paper py-2.5 pl-11 pr-4 text-sm text-ink"
+                className="h-11 w-full rounded-xl border border-line bg-paper py-2.5 pl-11 pr-4 text-sm text-ink"
               />
             </div>
           </div>
           <div>
-            <label htmlFor="etapa" className="mb-2 block text-xs font-medium text-ink-soft">Etapa</label>
-            <select id="etapa" name="etapa" defaultValue={filters.etapa ?? ""} className="h-11 w-full rounded-full border border-line bg-paper px-4 py-2.5 text-sm text-ink">
+            <label htmlFor="etapa" className={labelCls}>Etapa</label>
+            <select id="etapa" name="etapa" defaultValue={filters.etapa ?? ""} className="h-11 w-full rounded-xl border border-line bg-paper px-4 py-2.5 text-sm text-ink">
               <option value="">Todas</option>
               {Object.entries(STAGES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="tipo" className="mb-2 block text-xs font-medium text-ink-soft">Tipo de recurso</label>
-            <select id="tipo" name="tipo" defaultValue={filters.tipo ?? ""} className="h-11 w-full rounded-full border border-line bg-paper px-4 py-2.5 text-sm text-ink">
+            <label htmlFor="tipo" className={labelCls}>Tipo de recurso</label>
+            <select id="tipo" name="tipo" defaultValue={filters.tipo ?? ""} className="h-11 w-full rounded-xl border border-line bg-paper px-4 py-2.5 text-sm text-ink">
               <option value="">Todos</option>
               {Object.entries(TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
@@ -112,7 +113,7 @@ export default async function ResourcesPage({
         </form>
       </Card>
       {resources.length === 0 ? (
-        <EmptyState title="Nenhum recurso encontrado" hint="Ajuste ou limpe os filtros para ver o catálogo completo." />
+        <EmptyState character="resources" title="Nenhum recurso encontrado" hint="Ajuste ou limpe os filtros para ver o catálogo completo." />
       ) : (
         <div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
@@ -128,7 +129,7 @@ export default async function ResourcesPage({
               const visual = RESOURCE_VISUALS[r.resourceType] ?? { color: "bg-surface-muted", icon: BookOpen };
               const ResourceIcon = visual.icon;
               return (
-                <Link key={r.id} href={`/recursos/${r.id}`} className={`group flex h-full flex-col rounded-[1.75rem] p-6 text-ink transition duration-200 hover:-translate-y-1 hover:shadow-e2 ${visual.color}`}>
+                <Link key={r.id} href={`/recursos/${r.id}`} className={`group flex h-full flex-col rounded-3xl p-6 text-ink transition duration-200 hover:-translate-y-1 hover:shadow-e2 ${visual.color}`}>
                   <div className="mb-7 flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/80"><ResourceIcon size={19} strokeWidth={1.6} aria-hidden /></span>
@@ -147,7 +148,7 @@ export default async function ResourcesPage({
                     {/* O anel repete o percentual escrito ao lado: fica fora do nome do link. */}
                     <div aria-hidden className="shrink-0 rounded-full bg-white/80 p-1">
                       <RingStat id={`boa-resposta-${r.id}`} value={successRate} label="Boa resposta" size={52} color={SIGNAL.lime}>
-                        <span aria-hidden className="text-[11px] font-medium tabular-nums text-ink">{successRate === null ? "—" : `${successRate}%`}</span>
+                        <span aria-hidden className="text-xs font-medium tabular-nums text-ink">{successRate === null ? "—" : `${successRate}%`}</span>
                       </RingStat>
                     </div>
                     <div className="min-w-0 flex-1">

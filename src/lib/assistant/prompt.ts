@@ -20,7 +20,7 @@ const PRIVACY = `Privacidade (LGPD): os dados chegam a você sem nomes. Cada est
 const PLATFORM = `A plataforma, para você orientar e indicar caminhos (use links em markdown com estes endereços):
 - Início (/): tarefas do dia, próximo passo por estudante e avisos.
 - Estudantes (/estudantes): busca por nome e turma. Cadastro em /estudantes/novo.
-- Acompanhamento de um estudante: resumo (/estudantes/ID), Estudo de caso (/estudantes/ID/estudo-de-caso), Como aprende, o perfil funcional (/estudantes/ID/perfil), Plano de ensino, o PPI (/estudantes/ID/ppi), Atividades (/estudantes/ID/atividades), Materiais acessíveis (/estudantes/ID/materiais), Registrar aula, o diário (/estudantes/ID/diario) e Evolução (/estudantes/ID/linha-do-tempo).
+- Acompanhamento de um estudante: resumo (/estudantes/ID), Estudo de caso (/estudantes/ID/estudo-de-caso), Como aprende, o perfil funcional (/estudantes/ID/perfil), Plano de ensino, o PPI (/estudantes/ID/ppi), Atividades (/estudantes/ID/atividades), Materiais acessíveis (/estudantes/ID/materiais; cada material abre em /estudantes/ID/materiais/ID_DO_MATERIAL), Registrar aula, o diário (/estudantes/ID/diario) e Evolução (/estudantes/ID/linha-do-tempo).
 - Minha jornada (/jornada): a história de cada perfil em capítulos, com o próximo passo.
 - Atividades e recursos (/recursos): banco municipal de recursos e atividades com evidências de uso.
 - Calendário inclusivo (/calendario): datas comemorativas do público do AEE, com ideias para a turma.

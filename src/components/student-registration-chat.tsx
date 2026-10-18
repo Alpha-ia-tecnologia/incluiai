@@ -3,7 +3,6 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import type { ChangeEvent, ReactNode, RefObject } from "react";
 import {
-  Bot,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -11,11 +10,12 @@ import {
   RotateCcw,
   Save,
   Send,
-  Sparkles,
   Trash2,
   UserRound,
 } from "lucide-react";
 import { createStudent } from "@/actions/students";
+import { Character } from "@/components/character";
+import { primaryButtonCls } from "@/components/form-styles";
 import {
   ACCESSIBILITY_NOTE_OPTIONS,
   AEE_FREQUENCY_OPTIONS,
@@ -377,7 +377,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
         <button
           type="submit"
           aria-label={submitLabel}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-e1 transition hover:bg-brand-strong"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-e1 transition hover:bg-brand-strong"
         >
           <Send size={17} aria-hidden />
         </button>
@@ -401,11 +401,11 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
                   type="button"
                   aria-pressed={active}
                   onClick={() => setMulti(active ? multi.filter((item) => item !== option.value) : [...multi, option.value])}
-                  className={`rounded-full border px-3.5 py-2 text-xs font-medium transition ${
+                  className={`inline-flex min-h-11 items-center rounded-full border px-3.5 py-2 text-sm font-medium transition ${
                     active ? "border-brand bg-brand-soft text-brand-strong" : "border-line bg-paper-raised text-ink hover:border-brand/50"
                   }`}
                 >
-                  {active ? <Check size={13} className="mr-1 inline" aria-hidden /> : null}
+                  {active ? <Check size={14} className="mr-1.5 shrink-0" aria-hidden /> : null}
                   {option.label}
                 </button>
               );
@@ -416,7 +416,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
             <button
               type="button"
               onClick={() => applyAnswer(step, "")}
-              className="mt-2 text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline"
+              className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline"
             >
               {step.optionalLabel}
             </button>
@@ -503,6 +503,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
             <textarea
               {...commonProps}
               ref={inputRef as RefObject<HTMLTextAreaElement>}
+              aria-labelledby={`pergunta-${step.field}`}
               rows={4}
               autoFocus
               className={`${fieldClass} resize-none`}
@@ -511,6 +512,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
             <input
               {...commonProps}
               ref={inputRef as RefObject<HTMLInputElement>}
+              aria-labelledby={`pergunta-${step.field}`}
               type={step.kind}
               autoFocus
               max={step.kind === "date" ? new Date().toISOString().slice(0, 10) : undefined}
@@ -521,7 +523,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
           <button
             type="submit"
             aria-label="Enviar resposta"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-e1 transition hover:bg-brand-strong"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-e1 transition hover:bg-brand-strong"
           >
             <Send size={17} aria-hidden />
           </button>
@@ -530,7 +532,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
           <button
             type="button"
             onClick={() => applyAnswer(step, "")}
-            className="mt-2 text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline"
+            className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline"
           >
             {step.optionalLabel}
           </button>
@@ -544,27 +546,26 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
       <div className="overflow-hidden rounded-2xl border border-line bg-paper-raised shadow-e2">
         <div className="border-b border-line bg-gradient-to-r from-brand-soft/80 to-paper-raised px-5 py-4 sm:px-7">
           <div className="flex items-center gap-3">
-            <span className="inline-flex size-10 items-center justify-center rounded-full bg-brand text-white shadow-e1">
-              <Bot size={20} aria-hidden />
-            </span>
+            <Character variant="ideas" className="w-12" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display text-base font-semibold text-ink">
                   Assistente de cadastro
                 </h2>
-                <span className="rounded-full bg-green-soft px-2 py-0.5 text-[10px] font-semibold text-green">
-                  online
+                <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand-strong">
+                  Conversa guiada
                 </span>
               </div>
               <p className="text-xs text-ink-soft">
                 Uma pergunta por vez. Você revisa tudo antes de salvar.
               </p>
             </div>
-            <span className="hidden font-mono text-xs text-ink-soft sm:block">
+            {/* O andamento também em texto, inclusive no celular: a barra abaixo só repete. */}
+            <span className="shrink-0 text-xs tabular-nums text-ink-soft">
               {done ? "Resumo" : `${currentPosition + 1} de ${visibleSteps.length}`}
             </span>
           </div>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-line/60">
+          <div aria-hidden className="mt-4 h-1.5 overflow-hidden rounded-full bg-line/60">
             <div
               className="h-full rounded-full bg-brand transition-[width] duration-300"
               style={{ width: `${progress}%` }}
@@ -582,11 +583,9 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
               ) : null}
 
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
-                  <Sparkles size={15} aria-hidden />
-                </span>
-                <div>
-                  <p className="max-w-xl rounded-2xl rounded-tl-sm bg-paper px-4 py-3 text-sm leading-relaxed text-ink shadow-sm">
+                <Character variant="ideas" className="w-10" />
+                <div className="min-w-0">
+                  <p id={`pergunta-${current.field}`} className="max-w-xl rounded-2xl rounded-tl-sm bg-paper px-4 py-3 text-sm leading-relaxed text-ink shadow-sm">
                     {current.question}
                   </p>
                   {current.hint ? (
@@ -597,7 +596,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
                 </div>
               </div>
 
-              <div className="mt-6 pl-0 sm:pl-11">{renderAnswerInput(current)}</div>
+              <div className="mt-6 pl-0 sm:pl-13">{renderAnswerInput(current)}</div>
 
               {error ? (
                 <p className="mt-4 rounded-xl bg-coral-soft px-4 py-3 text-sm text-coral" role="alert">
@@ -660,14 +659,14 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-raised"
+                    className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-ink-soft hover:bg-paper-raised"
                   >
                     Cancelar
                   </button>
                   <button
                     type="button"
                     onClick={clearDraft}
-                    className="rounded-lg bg-coral px-3 py-1.5 text-xs font-medium text-white"
+                    className="inline-flex min-h-11 items-center rounded-full bg-coral px-4 text-sm font-medium text-white"
                   >
                     Sim, excluir
                   </button>
@@ -676,7 +675,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-coral/30 px-4 py-2.5 text-sm font-medium text-coral hover:bg-coral-soft"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-coral/30 px-4 py-2.5 text-sm font-medium text-coral hover:bg-coral-soft"
                 >
                   <Trash2 size={16} aria-hidden /> Excluir informações
                 </button>
@@ -687,7 +686,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
                   type="button"
                   onClick={saveStudent}
                   disabled={pending}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-e1 transition hover:bg-brand-strong hover:shadow-e2 disabled:opacity-60"
+                  className={primaryButtonCls}
                 >
                   <Save size={16} aria-hidden />
                   {pending ? "Salvando..." : "Salvar no prontuário"}
@@ -703,7 +702,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
               type="button"
               onClick={goBack}
               disabled={stepIndex === 0 && !editingField}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft hover:text-brand-strong disabled:invisible"
+              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-ink-soft hover:text-brand-strong disabled:invisible"
             >
               <ChevronLeft size={14} aria-hidden />
               {editingField ? "Cancelar edição" : "Voltar"}
@@ -712,7 +711,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="inline-flex items-center gap-1.5 text-xs text-ink-soft hover:text-coral"
+                className="inline-flex min-h-11 items-center gap-1.5 text-xs text-ink-soft hover:text-coral"
               >
                 <RotateCcw size={13} aria-hidden /> Recomeçar
               </button>
@@ -731,14 +730,14 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
           <button
             type="button"
             onClick={() => setShowDeleteConfirm(false)}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-raised"
+            className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-ink-soft hover:bg-paper-raised"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={clearDraft}
-            className="rounded-lg bg-coral px-3 py-1.5 text-xs font-medium text-white"
+            className="inline-flex min-h-11 items-center rounded-full bg-coral px-4 text-sm font-medium text-white"
           >
             Excluir rascunho
           </button>
@@ -772,7 +771,7 @@ function SummarySection({
         {steps.map((step) => (
           <div key={step.field} className="group flex items-start gap-3 py-3 first:pt-1 last:pb-1">
             <div className="min-w-0 flex-1">
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+              <dt className="text-xs font-medium uppercase tracking-wide text-ink-soft">
                 {summaryLabel(step.field)}
               </dt>
               <dd className="mt-0.5 break-words text-sm leading-relaxed text-ink">
@@ -783,7 +782,7 @@ function SummarySection({
               type="button"
               onClick={() => onEdit(step)}
               aria-label={`Editar ${summaryLabel(step.field)}`}
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-soft transition hover:bg-brand-soft hover:text-brand-strong"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-soft transition hover:bg-brand-soft hover:text-brand-strong"
             >
               <Pencil size={14} aria-hidden />
             </button>

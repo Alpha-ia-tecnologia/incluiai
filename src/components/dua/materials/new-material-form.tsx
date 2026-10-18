@@ -3,7 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileText } from "lucide-react";
+import { FileText, Sprout } from "lucide-react";
 import { createDuaMaterial } from "@/actions/dua";
 import { MATERIAL_ACCESSIBILITY, MATERIAL_FORMATS, MATERIAL_FORMAT_LABEL, REVIEW_STATE_LABEL, type MaterialFormat, type MaterialScope, type ReviewState } from "@/lib/dua/domain";
 import { Field, ResultMessage, buttonCls, hintCls, inputCls, labelCls, linkCls, textareaCls } from "../dua-ui";
@@ -122,9 +122,12 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
       </form>
       <div role="status" aria-live="polite">
         {createdId ? (
-          <p className="mt-3 rounded-xl bg-green-soft px-3 py-2 text-sm text-green">
-            Material preparado. Confira o conteúdo antes de usar.{" "}
-            <Link href={`/planejamento/${planningId}/materiais/${createdId}`} className={linkCls}>Abrir o material</Link>
+          <p className="mt-3 flex items-start gap-2 rounded-xl bg-green-soft px-3 py-2 text-sm text-green">
+            <Sprout size={16} aria-hidden className="sprout-mark mt-0.5 shrink-0 text-green" />
+            <span className="min-w-0">
+              Material preparado. Confira o conteúdo antes de usar.{" "}
+              <Link href={`/planejamento/${planningId}/materiais/${createdId}`} className={linkCls}>Abrir o material</Link>
+            </span>
           </p>
         ) : null}
       </div>

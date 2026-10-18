@@ -29,10 +29,11 @@ export function StackedColumns({ rows, series, caption, empty = "Sem registros n
           return (
             <div key={`${row.title}-${index}`} title={`${row.title}: ${describe(row)}`} className="flex min-w-0 flex-1 flex-col items-center">
               <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-end">
-                <span className="mb-1 text-[11px] tabular-nums text-ink-soft">{total}</span>
+                <span className="mb-1 text-xs tabular-nums text-ink-soft">{total}</span>
                 {total > 0 ? (
                   // 78% no máximo: o total acima da coluna mais alta continua visível.
-                  <div className="flex w-full max-w-10 flex-col-reverse gap-[2px]" style={{ height: `${Math.max(8, (total / max) * 78)}%` }}>
+                  // A pilha inteira cresce uma vez; o total acima já aparece no lugar.
+                  <div className="viz-grow-y flex w-full max-w-10 flex-col-reverse gap-[2px]" style={{ height: `${Math.max(8, (total / max) * 78)}%` }}>
                     {series.map((item) => {
                       const value = row.counts[item.key] ?? 0;
                       return value > 0 ? <div key={item.key} className="hatch min-h-[4px] w-full rounded-[4px] border border-black/5" style={{ flex: `${value} 1 0`, backgroundColor: item.color }} /> : null;
@@ -40,7 +41,7 @@ export function StackedColumns({ rows, series, caption, empty = "Sem registros n
                   </div>
                 ) : <div className="h-[3px] w-full max-w-10 rounded-full bg-signal-track" />}
               </div>
-              <span className="mt-1.5 text-[11px] leading-tight text-ink-soft">{row.label}</span>
+              <span className="mt-1.5 text-xs leading-tight text-ink-soft">{row.label}</span>
             </div>
           );
         })}

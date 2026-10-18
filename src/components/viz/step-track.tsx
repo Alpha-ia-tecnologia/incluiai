@@ -23,7 +23,7 @@ export function StepTrack({ steps, current, note }: { steps: ReadonlyArray<StepI
             <li
               key={step.label}
               title={`${index + 1}. ${step.label}: ${state}`}
-              className={`h-2.5 min-w-0 flex-1 rounded-full ${step.done ? "hatch" : ""} ${isCurrent ? "ring-2 ring-ink-strong ring-offset-1 ring-offset-paper-raised" : ""}`}
+              className={`h-2.5 min-w-0 flex-1 rounded-full ${step.done ? "hatch viz-grow-x" : ""} ${isCurrent ? "ring-2 ring-ink-strong ring-offset-1 ring-offset-paper-raised" : ""}`}
               style={{ backgroundColor: step.done ? SIGNAL.lime : isCurrent ? "var(--signal-lime-soft)" : SIGNAL.track }}
             >
               <span className="sr-only">{index + 1}. {step.label}: {state}</span>

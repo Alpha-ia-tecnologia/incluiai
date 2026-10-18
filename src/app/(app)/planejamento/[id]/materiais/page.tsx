@@ -98,7 +98,7 @@ export default async function MaterialsPage({ params }: { params: Promise<{ id: 
             })}
           </ul>
         ) : (
-          <EmptyState title="Nenhum material preparado" hint={canCreate ? "Escolha a versão, o formato e a finalidade no formulário acima." : "Quando a equipe preparar materiais, eles aparecem aqui."} />
+          <EmptyState character="ideas" title="Nenhum material preparado" hint={canCreate ? "Escolha a versão, o formato e a finalidade no formulário acima." : "Quando a equipe preparar materiais, eles aparecem aqui."} />
         )}
       </section>
     </div>

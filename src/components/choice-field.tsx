@@ -3,10 +3,9 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { splitItems, type ChoiceOption } from "@/lib/form-options";
+import { inputCls as defaultInputCls, labelCls as defaultLabelCls } from "@/components/form-styles";
 
 const OTHER = "__outro__";
-const defaultInputCls = "min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
-const defaultLabelCls = "mb-2 block text-sm font-medium text-ink";
 
 const normalize = (option: ChoiceOption) => (typeof option === "string" ? { value: option, label: option } : option);
 const sameText = (a: string, b: string) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }) === 0;
@@ -193,7 +192,7 @@ export function MultiChoiceField({
         <div id={`${id}-outro`} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <label htmlFor={`${id}-texto`} className="sr-only">{label} — outra opção</label>
           <input ref={draftRef} id={`${id}-texto`} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={onDraftKey} placeholder={otherPlaceholder} className={inputClassName} />
-          <button type="button" onClick={addDraft} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-brand-soft px-4 text-sm font-medium text-brand-strong hover:bg-lilac">
+          <button type="button" onClick={addDraft} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand-soft px-4 text-sm font-medium text-brand-strong hover:bg-lilac">
             <Plus size={15} aria-hidden /> Adicionar
           </button>
         </div>

@@ -170,7 +170,8 @@ let danteHref = "";
     ["/materiais", "Materiais de apoio"],
   ]) {
     await page.goto(`${BASE}${danteHref}${tab}`, { waitUntil: "networkidle2" });
-    const hasHeading = await page.evaluate((expected) => [...document.querySelectorAll("h1")].some((title) => title.textContent.includes(expected)), heading);
+    // A ficha tem um h1 (o nome do estudante); o título de cada aba é h2.
+    const hasHeading = await page.evaluate((expected) => [...document.querySelectorAll("h1, h2")].some((title) => title.textContent.includes(expected)), heading);
     check(`seção ${tab || "/resumo"} renderiza`, hasHeading);
   }
   check("prontuário sem erros de cliente", errors.length === 0, errors.join("; "));
@@ -228,18 +229,33 @@ if (!ONLY_WAIT) {
       check("registro da aula salvo no histórico", await page.evaluate((note) => Boolean(document.querySelector("#historico-registros")?.textContent.includes(note)), diaryNote));
     }
 
-    // 5d. Criar material de apoio (IA ou regras): conta os materiais salvos, não o texto do título.
+    // 5d. Criar material de apoio (IA ou regras): ao criar, abre a página do material novo;
+    // de volta à galeria, há um cartão a mais, e é o primeiro.
     await page.goto(`${BASE}${danteHref}/materiais`, { waitUntil: "networkidle2" });
     const materialsBefore = await page.$$eval("article[id^='material-']", (items) => items.length);
     await page.$eval("input[name=kind][value=historia_social]", (radio) => radio.click());
     await clickByText(page, "Criar material");
-    await page.waitForFunction((before) => document.querySelectorAll("article[id^='material-']").length === before + 1, { timeout: 180000 }, materialsBefore).catch(() => {});
-    const created = await page.evaluate((before) => {
-      const items = document.querySelectorAll("article[id^='material-']");
-      const first = items[0];
-      return items.length === before + 1 && Boolean(first?.textContent?.includes("História social")) && Boolean(first?.textContent?.includes("Atividades para aplicar"));
-    }, materialsBefore);
-    check("criar material de apoio (história social, com atividades para aplicar)", created);
+    await page.waitForFunction((href) => /^\/[^/]+$/.test(location.pathname.slice(`${href}/materiais`.length)) && location.pathname.startsWith(`${href}/materiais/`) && Boolean(document.querySelector("article[id^='material-'] h2")), { timeout: 180000 }, danteHref).catch(() => {});
+    const opened = await page.evaluate(() => {
+      const articles = document.querySelectorAll("article[id^='material-']");
+      const article = articles[0];
+      return {
+        path: location.pathname,
+        id: article?.id ?? "",
+        single: articles.length === 1,
+        // O título da IA pode não repetir o tipo; o selo do tipo fica no mesmo article.
+        kind: Boolean(article?.textContent?.includes("História social")),
+        title: Boolean(article?.querySelector("h2")?.textContent?.trim()),
+        activities: Boolean(article?.textContent?.includes("Atividades para aplicar")),
+        notice: document.body.innerText.includes("Material criado"),
+      };
+    });
+    check("criar material: abre a página do material (história social, com atividades para aplicar)",
+      opened.path.startsWith(`${danteHref}/materiais/`) && opened.single && opened.kind && opened.title && opened.activities && opened.notice, JSON.stringify(opened));
+    await page.evaluate(() => [...document.querySelectorAll("a")].find((link) => link.textContent.includes("Voltar para os materiais"))?.click());
+    await page.waitForFunction((before) => document.querySelectorAll("article[id^='material-']").length === before + 1, { timeout: 20000 }, materialsBefore).catch(() => {});
+    const gallery = await page.evaluate(() => [...document.querySelectorAll("article[id^='material-']")].map((item) => item.id));
+    check("galeria de materiais: um cartão a mais, o novo primeiro", gallery.length === materialsBefore + 1 && gallery[0] === opened.id, `${gallery.length} cartões`);
     check("fluxos sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }

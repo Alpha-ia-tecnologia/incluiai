@@ -96,15 +96,12 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
         <div>
           <SectionTitle>O que estamos trabalhando</SectionTitle>
           {objectives.length === 0 ? (
-            <div>
-              <EmptyState
-                title="Vamos escolher o que trabalhar?"
-                hint="No Plano de ensino, defina uma aprendizagem para acompanhar com o estudante."
-              />
-              <Link href={`/estudantes/${id}/ppi`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong">
-                Abrir plano de ensino
-              </Link>
-            </div>
+            <EmptyState
+              character="planning"
+              title="Vamos escolher o que trabalhar?"
+              hint="No Plano de ensino, defina uma aprendizagem para acompanhar com o estudante."
+              action={<Link href={`/estudantes/${id}/ppi`} className="task-action">Abrir plano de ensino</Link>}
+            />
           ) : (
             <DataBoard>
               {objectives.map((obj) => {
@@ -258,7 +255,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               {student.familyNotes.map((n) => (
                 <li key={n.id} className="text-sm">
                   <p className="leading-relaxed text-ink">“{n.note}”</p>
-                  <p className="mt-0.5 text-[11px] text-ink-soft">{n.author} · {formatDate(n.date)}</p>
+                  <p className="mt-0.5 text-xs text-ink-soft">{n.author} · {formatDate(n.date)}</p>
                 </li>
               ))}
             </ul>
@@ -276,13 +273,13 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-ink-soft">Use estas perguntas para conversar com a equipe e a família.</p>
+          <p className="mt-2 text-xs text-ink-soft">Use estas perguntas para conversar com a equipe e a família.</p>
         </Card>
 
         {intersector ? (
           <Card>
             <SectionTitle>Orientações da equipe de saúde</SectionTitle>
-            <p className="mb-2 text-[11px] text-ink-soft">{intersector.authorName} · {formatDate(intersector.createdAt)}</p>
+            <p className="mb-2 text-xs text-ink-soft">{intersector.authorName} · {formatDate(intersector.createdAt)}</p>
             <dl className="space-y-2 text-sm">
               <div><dt className="text-xs text-ink-soft">Comunicação eficaz</dt><dd className="text-ink">{intersector.communication}</dd></div>
               <div><dt className="text-xs text-ink-soft">Estratégias a testar na escola</dt><dd className="text-ink">{intersector.strategiesToTry}</dd></div>

@@ -63,7 +63,7 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
 
   return (
     <>
-      <PageHeader
+      <PageHeader level={2}
         title="Atividades com DUA"
         lede="Atividades planejadas para a turma com o Desenho Universal para a Aprendizagem e o que foi planejado e observado para este estudante em cada uma."
       />
@@ -77,7 +77,7 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
         </Card>
 
         <section aria-labelledby="dua-apoios" className="min-w-0 max-w-3xl">
-          <h2 id="dua-apoios" className="mb-1 text-lg font-semibold text-ink">Apoios nas atividades</h2>
+          <h2 id="dua-apoios" className="mb-1 text-xl font-semibold text-ink">Apoios nas atividades</h2>
           <p className="mb-4 text-sm text-ink-soft">Apoios individuais planejados para este estudante. Eles não mudam o perfil nem o Plano de ensino.</p>
           {supports.length ? (
             <ul className="grid min-w-0 gap-3">
@@ -102,12 +102,12 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
               ))}
             </ul>
           ) : (
-            <EmptyState title="Nenhum apoio individual ainda" hint="Use “Planejar participação em atividade” para começar." />
+            <EmptyState character="planning" title="Nenhum apoio individual ainda" hint="Use “Planejar participação em atividade” para começar." />
           )}
         </section>
 
         <section aria-labelledby="dua-evidencias" className="min-w-0 max-w-3xl">
-          <h2 id="dua-evidencias" className="mb-1 text-lg font-semibold text-ink">Evidências</h2>
+          <h2 id="dua-evidencias" className="mb-1 text-xl font-semibold text-ink">Evidências</h2>
           <p className="mb-2 text-sm text-ink-soft">O que foi observado quando a atividade foi aplicada, na sala comum ou no AEE.</p>
           <p className="mb-4 rounded-xl bg-amber-soft px-3 py-2 text-sm leading-relaxed text-amber-900">
             “Não houve oportunidade de observar” e “Ainda não registrado” não querem dizer “ainda não demonstrou”. Esses critérios não contam como progresso nem como dificuldade: só o que foi observado forma o resultado.
@@ -117,12 +117,12 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
               {evidence.map((item) => <EvidenceItem key={item.id} item={item} />)}
             </ul>
           ) : (
-            <EmptyState title="Nenhuma evidência registrada" hint="As evidências aparecem aqui quando a atividade for aplicada e o registro for feito." />
+            <EmptyState character="planning" title="Nenhuma evidência registrada" hint="As evidências aparecem aqui quando a atividade for aplicada e o registro for feito." />
           )}
         </section>
 
         <section aria-labelledby="dua-proximos" className="min-w-0 max-w-3xl">
-          <h2 id="dua-proximos" className="mb-1 text-lg font-semibold text-ink">Próximos passos sugeridos</h2>
+          <h2 id="dua-proximos" className="mb-1 text-xl font-semibold text-ink">Próximos passos sugeridos</h2>
           <p className="mb-4 text-sm text-ink-soft">Recomendações para a equipe revisar, montadas a partir das evidências e dos apoios planejados.</p>
           <dl className="mb-4 grid min-w-0 gap-3 sm:grid-cols-3">
             <div className="min-w-0 rounded-xl bg-brand-soft/50 p-3">
@@ -238,7 +238,7 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
   if (!evidence.length) {
     return (
       <section aria-labelledby="dua-resumo" className="min-w-0 max-w-3xl">
-        <h2 id="dua-resumo" className="mb-1 text-lg font-semibold text-ink">Resumo das evidências</h2>
+        <h2 id="dua-resumo" className="mb-1 text-xl font-semibold text-ink">Resumo das evidências</h2>
         <p className="text-sm text-ink-soft">O resumo aparece depois da primeira evidência registrada na aplicação de uma atividade.</p>
       </section>
     );
@@ -255,7 +255,7 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
 
   return (
     <section aria-labelledby="dua-resumo" className="min-w-0 max-w-3xl">
-      <h2 id="dua-resumo" className="mb-1 text-lg font-semibold text-ink">Resumo das evidências</h2>
+      <h2 id="dua-resumo" className="mb-1 text-xl font-semibold text-ink">Resumo das evidências</h2>
       <p className="mb-4 text-sm text-ink-soft">{plural(evidence.length, "evidência registrada", "evidências registradas")}, com {plural(criteria.length, "critério", "critérios")} no total. Os detalhes estão na lista de evidências.</p>
       <DataBoard className="sm:grid-cols-2">
         <DataCard title="Critérios observados" hint="Como cada critério observado ficou, somando todas as evidências." className="sm:col-span-2">

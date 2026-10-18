@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
-import { PageHeader, Card } from "@/components/ui";
+import { PageHero, Card } from "@/components/ui";
 import { ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,8 @@ export default async function FamilyPortalIndex() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        character="care"
         title="Portal da família"
         lede="Um ambiente simples, sem linguagem excessivamente técnica, para acompanhar avanços, registrar conquistas e saber quem acessou os dados do estudante."
       />
@@ -33,7 +34,7 @@ export default async function FamilyPortalIndex() {
             <Card className="flex items-center gap-3 transition-shadow group-hover:shadow-md">
               <span
                 aria-hidden
-                className="flex size-10 items-center justify-center rounded-full font-display text-lg font-semibold text-white"
+                className="flex size-10 items-center justify-center rounded-full font-display text-xl font-semibold text-white"
                 style={{ backgroundColor: `oklch(55% 0.11 ${s.avatarHue})` }}
               >
                 {s.name[0]}

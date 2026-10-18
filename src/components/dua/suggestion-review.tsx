@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Bot, Check, Pencil, ShieldAlert, Sparkles, X } from "lucide-react";
+import { Check, Pencil, ShieldAlert, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { decideDuaBlock, requestDuaSuggestion, type DuaResult } from "@/actions/dua";
 import {
@@ -47,7 +47,7 @@ export function SuggestionReview({ planningId, purpose, supportId, profileRefs =
   return (
     <section aria-labelledby={`sugestoes-${purpose}-${supportId ?? "turma"}`} className="min-w-0 rounded-2xl border border-brand/25 bg-brand-soft/30 p-4 sm:p-5">
       <h3 id={`sugestoes-${purpose}-${supportId ?? "turma"}`} className="flex items-center gap-2 text-sm font-medium text-ink">
-        <Bot size={16} aria-hidden /> {purpose === "opcoes" ? "Sugestões de opções para revisão (opcional)" : "Sugestões para este apoio (opcional)"}
+        <Sparkles size={16} className="shrink-0 text-brand-strong" aria-hidden /> {purpose === "opcoes" ? "Sugestões de opções para revisão (opcional)" : "Sugestões para este apoio (opcional)"}
       </h3>
       <p className="mt-1 text-sm leading-relaxed text-ink-soft">
         {aiOn

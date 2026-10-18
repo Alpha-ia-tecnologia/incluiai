@@ -6,7 +6,7 @@ import { loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS } from "@/lib/scale";
-import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
+import { PageHero, Card, SectionTitle, EmptyState } from "@/components/ui";
 import { MultiChoiceField } from "@/components/choice-field";
 import {
   ACCESSIBILITY_RESOURCE_OPTIONS, COMMUNICATION_OPTIONS, FACILITATOR_OPTIONS, POSITIONING_OPTIONS,
@@ -16,11 +16,10 @@ import { Check, FileText, Stethoscope } from "lucide-react";
 import { DataBoard, MiniColumns, StatTile, StatusPill } from "@/components/data-viz";
 import { monthlyCounts } from "@/lib/series";
 import { Timeline } from "@/components/viz/timeline";
+import { inputCls, labelCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-const inputCls = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
-const labelCls = "mb-2 block text-sm font-medium text-ink";
 const fieldStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
 export default async function TherapistPage() {
@@ -59,10 +58,11 @@ export default async function TherapistPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        character="care"
+        eyebrow={<><Stethoscope size={16} aria-hidden /> Rede de saúde</>}
         title="Articulação intersetorial"
         lede="Espaço do terapeuta: apenas informações funcionais relevantes ao ambiente escolar. Os registros clínicos completos permanecem no sistema de saúde."
-        actions={<Badge tone="brand"><Stethoscope size={12} aria-hidden /> Rede de saúde</Badge>}
       />
       {journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />}
 
@@ -107,7 +107,7 @@ export default async function TherapistPage() {
           <MultiChoiceField name="schoolGuidance" label="Orientações aplicáveis à escola *" options={SCHOOL_GUIDANCE_OPTIONS} required {...fieldStyle} />
           <MultiChoiceField name="sharedGoals" label="Objetivos compartilhados escola-família *" options={SHARED_GOAL_OPTIONS} required {...fieldStyle} />
           <div>
-            <button type="submit" className="rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong">
+            <button type="submit" className="rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong">
               Enviar para a equipe escolar
             </button>
           </div>
@@ -116,7 +116,7 @@ export default async function TherapistPage() {
 
       <div id="relatorios" className="scroll-mt-24"><SectionTitle>Relatórios enviados</SectionTitle></div>
       {reports.length === 0 ? (
-        <EmptyState title="Nenhum relatório ainda" hint="Use o formulário acima para enviar as primeiras orientações para a escola." />
+        <EmptyState character="care" title="Nenhum relatório ainda" hint="Use o formulário acima para enviar as primeiras orientações para a escola." />
       ) : (
         <Card className="min-w-0">
           <Timeline

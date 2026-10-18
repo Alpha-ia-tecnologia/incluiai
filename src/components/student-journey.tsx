@@ -4,29 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import { Character } from "@/components/character";
+import { primaryButtonCls } from "@/components/form-styles";
 import { getStudentNextStep, type StudentJourneyInput } from "@/lib/student-journey";
 
+// Um só próximo passo por tela: no Resumo, o cartão com as etapas; nas outras
+// abas, o botão no cabeçalho da ficha (StudentNextStepLink).
 export function StudentJourney({ progress }: { progress: StudentJourneyInput }) {
   const pathname = usePathname();
   const base = `/estudantes/${progress.id}`;
+  if (pathname !== base) return null;
   const next = getStudentNextStep(progress);
-  const isOverview = pathname === base;
-  const isNextSection = pathname === next.href;
-
-  if (!isOverview) {
-    return (
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand-soft/70 px-4 py-3 text-sm print:hidden">
-        <p className="text-ink-soft">
-          {isNextSection ? <><span className="font-medium text-ink">Você está no próximo passo.</span> {next.description}</> : "Continue no seu ritmo. Próximo passo sugerido:"}
-        </p>
-        {!isNextSection ? (
-          <Link href={next.href} className="inline-flex min-h-11 items-center gap-2 font-medium text-brand-strong underline underline-offset-4">
-            {next.label} <ArrowRight size={15} aria-hidden />
-          </Link>
-        ) : null}
-      </div>
-    );
-  }
 
   const steps = [
     { label: "Estudo de caso", href: `${base}/estudo-de-caso`, complete: progress.caseStudy === "concluido" },
@@ -38,14 +25,14 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
   ];
 
   return (
-    <section aria-label="Próximo passo do acompanhamento" className="mb-5 rounded-[22px] border border-line bg-brand-soft/70 p-4 sm:p-5 print:hidden">
+    <section aria-label="Próximo passo do acompanhamento" className="mb-6 rounded-2xl border border-line bg-brand-soft/70 p-4 sm:p-5 print:hidden">
       <div className="flex items-center gap-4">
         <Character variant="care" className="hidden w-20 sm:block" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-brand-strong">Próximo passo sugerido</p>
-          <h2 className="mt-1 text-lg font-semibold text-ink">{next.label}</h2>
+          <h2 className="mt-1 text-xl font-semibold text-ink">{next.label}</h2>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">{next.description}</p>
-          <Link href={next.href} className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong">
+          <Link href={next.href} className={`${primaryButtonCls} mt-3`}>
             {next.step === 5 ? "Registrar aula" : "Continuar"} <ArrowRight size={16} aria-hidden />
           </Link>
         </div>
@@ -64,5 +51,26 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
         ))}
       </ol>
     </section>
+  );
+}
+
+// Botão do próximo passo no cabeçalho da ficha. Some no Resumo (que tem o
+// cartão completo) e, na própria seção do passo, vira só um aviso.
+export function StudentNextStepLink({ progress }: { progress: StudentJourneyInput }) {
+  const pathname = usePathname();
+  const base = `/estudantes/${progress.id}`;
+  if (pathname === base) return null;
+  const next = getStudentNextStep(progress);
+  if (pathname === next.href) {
+    return (
+      <span className="student-head-detail inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-paper-raised px-3 text-xs font-medium text-brand-strong">
+        <Check size={14} aria-hidden /> Você está no próximo passo
+      </span>
+    );
+  }
+  return (
+    <Link href={next.href} title={next.description} className={`student-head-cta ${primaryButtonCls} shrink-0`}>
+      <span className="sr-only">Próximo passo: </span>{next.label} <ArrowRight size={16} aria-hidden />
+    </Link>
   );
 }

@@ -1,14 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import { BookOpen, LayoutGrid, ListChecks, ListOrdered, MessagesSquare, Sparkles, Thermometer, type LucideIcon } from "lucide-react";
 import { generateMaterial, type MaterialActionState } from "@/actions/materials";
 import { ChoiceField } from "@/components/choice-field";
 import { PendingButton } from "@/components/pending-button";
 import { MATERIAL_CONTEXTS, MATERIAL_KINDS, MATERIAL_TOPICS, type MaterialKind } from "@/lib/material-content";
+import { labelCls, inputCls, linkCls, primaryButtonCls } from "@/components/form-styles";
 
 // Formulário "Criar um material": tipo, situação, objetivo do plano, contexto e
-// imagens. A geração (IA ou regras) e as conferências ficam no servidor.
+// imagens. A geração (IA ou regras) e as conferências ficam no servidor, que ao
+// terminar leva à página do material novo; o estado só volta com erro.
 
 const ICONS: Record<MaterialKind, LucideIcon> = {
   rotina_visual: ListOrdered,
@@ -19,8 +22,6 @@ const ICONS: Record<MaterialKind, LucideIcon> = {
   regulacao: Thermometer,
 };
 
-const labelCls = "mb-2 block text-sm font-medium text-ink";
-const inputCls = "min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
 
 export function MaterialForm({ studentId, objectives, defaultContext, aiOn, imagesOn }: {
   studentId: string;
@@ -104,7 +105,7 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, imag
 
       <div className="flex min-w-0 flex-wrap items-center gap-3">
         <PendingButton
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-strong"
+          className={`${primaryButtonCls} shadow-e1`}
           pendingText={aiOn ? "Os agentes de IA estão criando o material e as atividades." : "Preparando o material…"}
           wait="material"
         >
@@ -120,7 +121,7 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, imag
       <div ref={resultRef} tabIndex={-1} className="outline-none" aria-live="polite">
         {state.status === "ok" ? (
           <p role="status" className="rounded-xl bg-green-soft px-3 py-2 text-sm text-green">
-            {state.message} {state.materialId ? <a href={`#material-${state.materialId}`} className="font-medium underline underline-offset-4">Ver o material</a> : null}
+            {state.message} {state.materialId ? <Link href={`/estudantes/${studentId}/materiais/${state.materialId}`} className={linkCls}>Abrir o material</Link> : null}
           </p>
         ) : state.status === "erro" ? (
           <p role="alert" className="rounded-xl bg-coral-soft px-3 py-2 text-sm text-coral">{state.message}</p>

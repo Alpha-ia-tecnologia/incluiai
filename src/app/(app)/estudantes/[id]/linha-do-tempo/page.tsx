@@ -132,7 +132,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
 
   return (
     <>
-      <PageHeader
+      <PageHeader level={2}
         title="Evolução"
         lede={pedagogical
           ? "Veja o histórico de planos, atendimentos, atividades com DUA, frequência do AEE e conquistas, do mais recente ao mais antigo."
@@ -144,7 +144,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
         }
       />
       {entries.length === 0 ? (
-        <EmptyState title="O histórico começa aqui" hint="Os planos de ensino e as conquistas registrados na plataforma aparecerão nesta lista." />
+        <EmptyState character="learning" title="O histórico começa aqui" hint="Os planos de ensino e as conquistas registrados na plataforma aparecerão nesta lista." />
       ) : (
         <>
           <h2 className="sr-only">Resumo do histórico</h2>

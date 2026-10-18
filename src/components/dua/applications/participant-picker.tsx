@@ -42,7 +42,7 @@ export function ParticipantPicker({ idPrefix, legend, hint, students, className,
           </label>
         ) : <p className="text-sm text-ink-soft">Sem turma informada: aparecem todos os estudantes que você acompanha.</p>}
         <div className="min-w-0">
-          <label htmlFor={`${idPrefix}-busca`} className="mb-1 block text-xs font-medium text-ink-soft">Buscar estudante pelo nome</label>
+          <label htmlFor={`${idPrefix}-busca`} className={labelCls}>Buscar estudante pelo nome</label>
           <input id={`${idPrefix}-busca`} type="search" value={query} onChange={(event) => setQuery(event.target.value)} className={inputCls} />
         </div>
       </div>

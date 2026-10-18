@@ -29,7 +29,7 @@ export function ActivityImageForm({ action, hasImage }: {
       </div>
       <div className="contents">
         <PendingButton
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-soft px-4 text-sm font-medium text-brand-strong hover:bg-lilac"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-soft px-4 text-sm font-medium text-brand-strong hover:bg-lilac"
           pendingText="A OpenAI está desenhando a imagem."
           wait="imagem"
         >

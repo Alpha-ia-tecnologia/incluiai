@@ -141,7 +141,7 @@ export default async function SupportsPage({ params, searchParams }: { params: P
       </Card>
 
       <section aria-labelledby="apoios-lista" className="min-w-0">
-        <h2 id="apoios-lista" className="mb-1 text-lg font-semibold text-ink">Apoios planejados</h2>
+        <h2 id="apoios-lista" className="mb-1 text-xl font-semibold text-ink">Apoios planejados</h2>
         <p className="mb-4 text-sm text-ink-soft">Aparecem só os apoios dos estudantes que você acompanha.</p>
         {supports.length ? (
           <ol className="grid min-w-0 gap-4">
@@ -157,7 +157,7 @@ export default async function SupportsPage({ params, searchParams }: { params: P
             ))}
           </ol>
         ) : (
-          <EmptyState title="Nenhum apoio individual que você possa ver" hint="Escolha um estudante acima para planejar o apoio dele nesta atividade." />
+          <EmptyState character="planning" title="Nenhum apoio individual que você possa ver" hint="Escolha um estudante acima para planejar o apoio dele nesta atividade." />
         )}
       </section>
     </div>

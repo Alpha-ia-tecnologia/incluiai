@@ -21,12 +21,10 @@ type ActivityWithImage = Activity & { image: { altText: string; kind: string; cr
 import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS, REJECT_REASON_OPTIONS } from "@/lib/form-options";
 import { ArrowRight, Clock, ImagePlus, Trash2, Wand2 } from "lucide-react";
+import { inputCls, labelCls, primaryButtonCls as linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-const inputCls = "min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
-const labelCls = "mb-2 block text-sm font-medium text-ink";
-const linkCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-strong";
 
 const STATUS_PLURAL = { sugerida: "Sugeridas", aceita: "Aceitas", aplicada: "Aplicadas", rejeitada: "Rejeitadas" } as const;
 
@@ -81,7 +79,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
             Imagem gerada por IA (OpenAI). Confira antes de usar com o estudante.
             {imagesOn && activity.status !== "rejeitada" ? (
               <form action={removeImage} className="print:hidden">
-                <button type="submit" className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-ink-soft hover:bg-coral-soft hover:text-coral"><Trash2 size={13} aria-hidden /> Remover imagem</button>
+                <button type="submit" className="inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-ink-soft hover:bg-coral-soft hover:text-coral"><Trash2 size={13} aria-hidden /> Remover imagem</button>
               </form>
             ) : null}
           </figcaption>
@@ -149,7 +147,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
             <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-ink-soft">Esta sugestão não serve para a aula?</summary>
             <form action={reject} className="space-y-3 pb-4">
               <ChoiceField name="reason" label="Conte o motivo (opcional)" options={REJECT_REASON_OPTIONS} placeholder="Escolha um motivo" otherPlaceholder="Ex.: a turma terá passeio neste dia" labelClassName={labelCls} inputClassName={inputCls} />
-              <button type="submit" className="min-h-11 rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-coral-soft hover:text-coral">Rejeitar sugestão</button>
+              <button type="submit" className="min-h-11 rounded-full border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-coral-soft hover:text-coral">Rejeitar sugestão</button>
             </form>
           </details>
         </div>
@@ -196,10 +194,10 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
 
   return (
     <>
-      <PageHeader
+      <PageHeader level={2}
         title="Preparar uma atividade"
         lede="Escolha o objetivo e o conteúdo da aula. Depois, avalie as sugestões para a sala comum, o AEE e a rotina de casa."
-        actions={<div className="[&_button]:min-h-11 [&_button]:text-sm"><PrintButton label="Imprimir atividades" /></div>}
+        actions={<PrintButton label="Imprimir atividades" />}
       />
 
       {activities.length > 0 ? (
@@ -272,7 +270,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
 
       <SectionTitle>Atividades que você já avaliou</SectionTitle>
       {others.length === 0 ? (
-        <EmptyState title="Nenhuma atividade avaliada ainda" hint="Prepare sugestões acima, confira os passos e escolha se deseja usar ou rejeitar cada atividade." />
+        <EmptyState character="learning" title="Nenhuma atividade avaliada ainda" hint="Prepare sugestões acima, confira os passos e escolha se deseja usar ou rejeitar cada atividade." />
       ) : (
         <div className="space-y-4">
           {others.map((a) => (

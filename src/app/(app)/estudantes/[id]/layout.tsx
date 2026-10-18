@@ -8,7 +8,8 @@ import { ageFrom } from "@/lib/format";
 import { STAGES, SHIFTS } from "@/lib/scale";
 import { Badge } from "@/components/ui";
 import { StudentTabs } from "@/components/student-tabs";
-import { StudentJourney } from "@/components/student-journey";
+import { StudentJourney, StudentNextStepLink } from "@/components/student-journey";
+import { StudentHead } from "@/components/student-head";
 import { canPlanDua } from "@/lib/dua/access";
 
 export default async function StudentLayout({
@@ -46,48 +47,52 @@ export default async function StudentLayout({
     },
   }) : null;
 
+  const journey = progress ? {
+    id: student.id,
+    caseStudy: (progress.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null,
+    hasProfile: Boolean(progress.profile),
+    hasPlan: progress.plans.length > 0,
+    hasObjective: (progress.plans[0]?.objectives.length ?? 0) > 0,
+    hasPreparedActivity: progress.activities.length > 0,
+    hasDiary: progress.diaryEntries.length > 0,
+  } : null;
+
+  // Cabeçalho numa linha (identidade, selos e próximo passo) e abas numa linha:
+  // o conteúdo da aba começa logo na primeira tela.
   return (
     <>
-      <Link href="/estudantes" className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline print:hidden">
-        <ArrowLeft size={16} aria-hidden /> Voltar para estudantes
-      </Link>
-      <div className="mb-4 flex items-start gap-3 rounded-[24px] bg-surface-muted p-4 sm:gap-4 sm:p-5">
-        <span
-          aria-hidden
-          className="flex size-12 shrink-0 items-center justify-center rounded-full font-display text-xl font-medium text-ink sm:size-14"
-          style={{ backgroundColor: `oklch(88% 0.07 ${student.avatarHue})` }}
-        >
-          {student.name[0]}
-        </span>
-        <div className="min-w-0">
-          <h1 className="font-display text-2xl font-medium tracking-tight text-ink sm:text-3xl">{student.name}</h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            {ageFrom(student.birthDate)} anos · {student.gradeYear} ({student.className}) · {SHIFTS[student.shift] ?? student.shift} · {STAGES[student.stage] ?? student.stage}
-          </p>
-          <p className="mt-0.5 text-sm text-ink-soft">{student.school.name}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {student.hasAEE ? <Badge tone="brand">AEE {student.aeeFrequency ?? ""}</Badge> : null}
-            {student.supportProfessional ? <Badge tone="green">Profissional de apoio</Badge> : null}
-            {student.accessibilityNotes ? <Badge tone="amber">{student.accessibilityNotes}</Badge> : null}
+      <StudentHead>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl bg-surface-muted px-3 py-3 sm:px-4">
+          <Link href="/estudantes" aria-label="Voltar para estudantes" title="Voltar para estudantes" className="circle-link size-11 bg-paper-raised print:hidden">
+            <ArrowLeft size={18} aria-hidden />
+          </Link>
+          <span
+            aria-hidden
+            className="student-head-avatar flex size-12 shrink-0 items-center justify-center rounded-full font-display text-xl font-medium text-ink"
+            style={{ backgroundColor: `oklch(88% 0.07 ${student.avatarHue})` }}
+          >
+            {student.name[0]}
+          </span>
+          <div className="min-w-0 flex-1 basis-64">
+            <h1 className="student-head-name font-display text-2xl font-medium leading-tight tracking-tight text-ink">{student.name}</h1>
+            <p className="student-head-detail mt-0.5 text-sm text-ink-soft">
+              {ageFrom(student.birthDate)} anos · {student.gradeYear} ({student.className}) · {SHIFTS[student.shift] ?? student.shift} · {STAGES[student.stage] ?? student.stage} · {student.school.name}
+            </p>
+            {/* Selos embaixo da identidade: o nome e a turma ficam numa linha só. */}
+            {student.hasAEE || student.supportProfessional || student.accessibilityNotes ? (
+              <div className="student-head-detail mt-2 flex min-w-0 flex-wrap gap-1.5">
+                {student.hasAEE ? <Badge tone="brand">AEE {student.aeeFrequency ?? ""}</Badge> : null}
+                {student.supportProfessional ? <Badge tone="green">Profissional de apoio</Badge> : null}
+                {student.accessibilityNotes ? <Badge tone="amber">{student.accessibilityNotes}</Badge> : null}
+              </div>
+            ) : null}
           </div>
+          {journey ? <StudentNextStepLink progress={journey} /> : null}
         </div>
-      </div>
-
-      {progress ? (
-        <StudentJourney progress={{
-          id: student.id,
-          caseStudy: (progress.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null,
-          hasProfile: Boolean(progress.profile),
-          hasPlan: progress.plans.length > 0,
-          hasObjective: (progress.plans[0]?.objectives.length ?? 0) > 0,
-          hasPreparedActivity: progress.activities.length > 0,
-          hasDiary: progress.diaryEntries.length > 0,
-        }} />
-      ) : null}
-
-      <div className="mb-6">
         <StudentTabs studentId={student.id} showCaseStudy={showJourney} showDua={showJourney && canPlanDua(user)} />
-      </div>
+      </StudentHead>
+
+      {journey ? <StudentJourney progress={journey} /> : null}
 
       {children}
     </>

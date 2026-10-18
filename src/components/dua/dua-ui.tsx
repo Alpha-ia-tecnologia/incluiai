@@ -1,18 +1,15 @@
 import type { ReactNode } from "react";
+import { Sprout } from "lucide-react";
 import { Badge } from "@/components/ui";
+import { hintCls, labelCls } from "@/components/form-styles";
 import { ORIGIN_LABEL, REVIEW_STATE_LABEL, type DuaOrigin, type ReviewState } from "@/lib/dua/domain";
 
 // Peças visuais do planejamento com DUA, no padrão das telas do IncluiEdu
-// (campos min-h-11, rótulos visíveis, lilás só em ação e marca).
+// (rótulos visíveis, lilás só em ação e marca).
 
-export const inputCls = "min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
-export const textareaCls = `${inputCls} min-h-24 leading-relaxed`;
-export const labelCls = "mb-2 block text-sm font-medium text-ink";
-export const hintCls = "mb-2 text-xs leading-relaxed text-ink-soft";
-export const buttonCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong disabled:pointer-events-none disabled:opacity-60";
-export const secondaryCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-paper-raised px-4 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted disabled:pointer-events-none disabled:opacity-60";
-export const dangerCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-coral/40 bg-paper-raised px-4 py-2.5 text-sm font-medium text-coral hover:bg-coral-soft disabled:pointer-events-none disabled:opacity-60";
-export const linkCls = "font-medium text-brand-strong underline underline-offset-4";
+// Campos e botões vêm do kit único da plataforma (src/components/form-styles.ts).
+export { inputCls, textareaCls, labelCls, hintCls, linkCls, primaryButtonCls as buttonCls, quietButtonCls as secondaryCls } from "@/components/form-styles";
+export const dangerCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-coral/40 bg-paper-raised px-4 py-2.5 text-sm font-medium text-coral hover:bg-coral-soft disabled:pointer-events-none disabled:opacity-60";
 
 export function ReviewBadge({ state }: { state: ReviewState }) {
   const tone = state === "validado" ? "green" : state === "em_revisao" ? "amber" : "neutral";
@@ -27,7 +24,12 @@ export function OriginBadge({ origin }: { origin: DuaOrigin }) {
 export function ResultMessage({ result, id }: { result: { ok: boolean; message?: string; problems?: { field: string; message: string }[] } | null; id?: string }) {
   if (!result) return <p id={id} role="status" aria-live="polite" className="sr-only" />;
   if (result.ok) {
-    return result.message ? <p id={id} role="status" aria-live="polite" className="mt-3 rounded-xl bg-green-soft px-3 py-2 text-sm text-green">{result.message}</p> : <p id={id} role="status" aria-live="polite" className="sr-only" />;
+    return result.message ? (
+      <p id={id} role="status" aria-live="polite" className="mt-3 flex items-start gap-2 rounded-xl bg-green-soft px-3 py-2 text-sm text-green">
+        <Sprout size={16} aria-hidden className="sprout-mark mt-0.5 shrink-0 text-green" />
+        <span className="min-w-0">{result.message}</span>
+      </p>
+    ) : <p id={id} role="status" aria-live="polite" className="sr-only" />;
   }
   return (
     <div id={id} role="alert" className="mt-3 rounded-xl bg-coral-soft px-3 py-2 text-sm text-coral">
