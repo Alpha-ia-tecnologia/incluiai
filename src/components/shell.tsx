@@ -39,7 +39,7 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
           })}
         </nav>
         <div className="mt-6 border-t border-line pt-4">
-          <p className="mb-3 flex items-center gap-2 text-xs text-ink-soft"><ShieldCheck size={15} aria-hidden /> Seu acesso é protegido.</p>
+          <Link href="/conta/seguranca" className="mb-3 flex min-h-6 items-center gap-2 text-xs text-ink-soft hover:text-brand-strong"><ShieldCheck size={15} aria-hidden /> Segurança da conta</Link>
           <p className="truncate text-sm font-medium">{user.name}</p>
           <p className="mt-1 text-xs text-ink-soft">{ROLES[user.role] ?? user.role}</p>
           <form action={logout} className="mt-3"><button type="submit" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-sm text-ink-soft hover:bg-coral-soft hover:text-coral"><LogOut size={18} aria-hidden /> Sair da plataforma</button></form>
@@ -62,6 +62,7 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
               <div className="absolute right-0 top-full mt-2 w-60 rounded-2xl border border-line bg-paper-raised p-4 shadow-e2">
                 <p className="text-sm font-medium">{user.name}</p><p className="mt-1 text-xs text-ink-soft">{ROLES[user.role] ?? user.role}</p>
                 <Link href="/ajuda" className="mt-3 flex min-h-11 items-center gap-2 rounded-lg p-2 text-sm hover:bg-brand-soft"><CircleHelp size={18} aria-hidden /> Ajuda e primeiros passos</Link>
+                <Link href="/conta/seguranca" className="flex min-h-11 items-center gap-2 rounded-lg p-2 text-sm hover:bg-brand-soft"><ShieldCheck size={18} aria-hidden /> Segurança da conta</Link>
                 <form action={logout} className="mt-2 border-t border-line pt-2"><button type="submit" className="flex min-h-11 w-full items-center gap-2 rounded-lg p-2 text-sm hover:bg-coral-soft"><LogOut size={18} aria-hidden /> Sair da plataforma</button></form>
               </div>
             </details>

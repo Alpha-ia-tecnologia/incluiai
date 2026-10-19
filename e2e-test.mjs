@@ -4,9 +4,10 @@
 //   E2E_ONLY=espera    só o prontuário (seção 4) e a espera dos agentes (seção 7)
 //   E2E_PAGO=1         com a IA ligada, roda também "Preparar 3 sugestões" (agentes pagos)
 import puppeteer from "puppeteer-core";
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { totpAt, totpStep } from "./src/lib/totp.ts";
 
 const BASE = process.env.BASE ?? "http://localhost:3213";
 const ONLY_WAIT = process.env.E2E_ONLY === "espera";
@@ -905,6 +906,111 @@ if (!ONLY_WAIT) {
     await page.goto(`${BASE}/planejamento`, { waitUntil: "networkidle2" });
     await settle(page);
     check("DUA: família não abre /planejamento", !new URL(page.url()).pathname.startsWith("/planejamento"), `url=${page.url()}`);
+    await ctx.close();
+  }
+  // ---------- 9. Verificação em duas etapas (seção 14) ----------
+  // Conta da coordenação, no fim da suíte: liga, entra com código, recusa código
+  // errado ou repetido, entra com código de recuperação e desliga. O segredo fica
+  // num arquivo temporário: se uma rodada parar no meio, a próxima desliga antes.
+  {
+    const email = "coordenacao@escola.edu.br";
+    const secretFile = join(tmpdir(), "incluiedu-e2e-totp.json");
+    let usedStep = -1;
+    // O servidor aceita a janela atual e a seguinte e recusa janela já usada.
+    const nextCode = async (secret) => {
+      for (;;) {
+        const ahead = totpStep(Date.now()) + 1;
+        if (ahead > usedStep) { usedStep = ahead; return totpAt(secret, ahead * 30_000); }
+        await sleep(1000);
+      }
+    };
+    const typeCode = async (page, selector, code) => {
+      await page.waitForSelector(selector, { timeout: 15000 });
+      await page.$eval(selector, (input) => { input.value = ""; });
+      await page.type(selector, code);
+    };
+    const waitPath = (page, test) => page.waitForFunction(test, { timeout: 20000 }).catch(() => {});
+    const logoutFrom = async (page) => {
+      await clickByText(page, "Sair da plataforma");
+      await waitPath(page, () => location.pathname.startsWith("/login"));
+    };
+    const disableWith = async (page, code) => {
+      await page.goto(`${BASE}/conta/seguranca`, { waitUntil: "networkidle2" });
+      await page.evaluate(() => document.querySelectorAll("details").forEach((item) => { item.open = true; }));
+      const selector = "details:last-of-type input[name=code]";
+      await typeCode(page, selector, code);
+      await clickByText(page, "Desligar");
+      await page.waitForFunction(() => document.body.innerText.includes("Ligar a verificação em duas etapas"), { timeout: 20000 }).catch(() => {});
+    };
+
+    const { ctx, page, errors } = await newSession();
+    let url = await login(page, email);
+    if (url.includes("/login/duas-etapas") && existsSync(secretFile)) {
+      const { secret } = JSON.parse(readFileSync(secretFile, "utf8"));
+      await typeCode(page, "input[name=code]", await nextCode(secret));
+      await clickByText(page, "Entrar");
+      await waitPath(page, () => !location.pathname.startsWith("/login"));
+      await disableWith(page, await nextCode(secret));
+      await logoutFrom(page);
+      url = await login(page, email);
+    }
+    check("2FA: sem as duas etapas ligadas, a senha basta", !url.includes("/login"), `url=${url}`);
+
+    await page.goto(`${BASE}/conta/seguranca`, { waitUntil: "networkidle2" });
+    await clickByText(page, "Ligar a verificação em duas etapas");
+    await page.waitForSelector("#totp-secret", { timeout: 20000 }).catch(() => {});
+    const secret = (await page.$eval("#totp-secret", (item) => item.textContent).catch(() => "")).replace(/\s/g, "");
+    const qr = await page.$('[role="img"][aria-label^="QR code"] svg');
+    check("2FA: tela de ligar mostra o QR code e o código para digitar", Boolean(qr) && /^[A-Z2-7]{32}$/.test(secret), `segredo=${secret.length}`);
+    writeFileSync(secretFile, JSON.stringify({ secret }));
+    await typeCode(page, "input[name=code]", await nextCode(secret));
+    await clickByText(page, "Confirmar e ligar");
+    await page.waitForSelector('ul[aria-label="Códigos de recuperação"] li', { timeout: 20000 }).catch(() => {});
+    const codes = await page.$$eval('ul[aria-label="Códigos de recuperação"] li', (items) => items.map((item) => item.textContent.trim()));
+    check("2FA: ao ligar, mostra 8 códigos de recuperação", codes.length === 8 && codes.every((code) => /^[A-Z2-7]{4}-[A-Z2-7]{4}$/.test(code)), JSON.stringify(codes));
+    await clickByText(page, "Já guardei os códigos");
+    await page.waitForFunction(() => document.body.innerText.includes("Ligada desde"), { timeout: 20000 }).catch(() => {});
+    check("2FA: a tela mostra a verificação ligada", (await textOf(page)).includes("Ligada desde"));
+
+    await logoutFrom(page);
+    url = await login(page, email);
+    check("2FA: depois da senha, pede o código", url.includes("/login/duas-etapas"), `url=${url}`);
+    await page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+    check("2FA: sessão sem o código não abre a plataforma", page.url().includes("/login"), `url=${page.url()}`);
+
+    await page.goto(`${BASE}/login/duas-etapas`, { waitUntil: "networkidle2" });
+    const wrong = totpAt(secret, Date.now()) === "000000" ? "111111" : "000000";
+    await typeCode(page, "input[name=code]", wrong);
+    await clickByText(page, "Entrar");
+    await page.waitForSelector('[role="alert"]', { timeout: 15000 }).catch(() => {});
+    check("2FA: código errado é recusado", page.url().includes("/login/duas-etapas") && (await textOf(page)).includes("Código inválido"));
+    const code = await nextCode(secret);
+    await typeCode(page, "input[name=code]", code);
+    await clickByText(page, "Entrar");
+    await waitPath(page, () => !location.pathname.startsWith("/login"));
+    check("2FA: código certo entra na plataforma", !page.url().includes("/login"), `url=${page.url()}`);
+
+    await logoutFrom(page);
+    await login(page, email);
+    await typeCode(page, "input[name=code]", code);
+    await clickByText(page, "Entrar");
+    await page.waitForSelector('[role="alert"]', { timeout: 15000 }).catch(() => {});
+    check("2FA: o mesmo código não entra duas vezes", page.url().includes("/login/duas-etapas"), `url=${page.url()}`);
+
+    await page.evaluate(() => document.querySelectorAll("details").forEach((item) => { item.open = true; }));
+    await typeCode(page, "details input[name=code]", codes[0].toLowerCase());
+    await clickByText(page, "Entrar com o código de recuperação");
+    await waitPath(page, () => location.pathname.startsWith("/conta/seguranca"));
+    await settle(page);
+    check("2FA: código de recuperação entra e avisa quantos restam", page.url().includes("aviso=recuperacao") && (await textOf(page)).includes("Restam 7 códigos"), `url=${page.url()}`);
+
+    await disableWith(page, codes[1]);
+    check("2FA: desligar com código de recuperação", (await textOf(page)).includes("Ligar a verificação em duas etapas"));
+    if (existsSync(secretFile)) unlinkSync(secretFile);
+    await logoutFrom(page);
+    url = await login(page, email);
+    check("2FA: desligada, a entrada volta a pedir só a senha", !url.includes("/login"), `url=${url}`);
+    check("2FA: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
 }

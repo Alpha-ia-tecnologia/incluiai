@@ -109,6 +109,15 @@ model User {
   studentId    String? // vincula família/terapeuta a um estudante
   createdAt    DateTime @default(now())
 
+  // Verificação em duas etapas (seção 14): segredo do aplicativo autenticador,
+  // a última janela de código usada (o mesmo código não entra duas vezes) e o
+  // resumo SHA-256 dos códigos de recuperação (JSON), nunca os códigos em si.
+  totpSecret        String?
+  totpPendingSecret String?
+  totpEnabledAt     DateTime?
+  totpLastStep      Int?
+  recoveryCodes     String?
+
   journeyMarks  JourneyMark[]
   conversations AssistantConversation[]
   sessions      Session[]
@@ -125,6 +134,8 @@ model Session {
   createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
   expiresAt  DateTime
+  // Senha certa, falta o código: a sessão abre só a tela da segunda etapa (10 min).
+  mfaPending Boolean  @default(false)
 
   @@index([userId])
 }

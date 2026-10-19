@@ -5,12 +5,13 @@ import { notFound, redirect } from "next/navigation";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma";
 import { recordView } from "./access-log";
-import { LOGIN_WINDOW_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
+import { LOGIN_WINDOW_MS, MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
 
 // Autenticação — item 7 (perfis de acesso) e 14 (LGPD). Senha com scrypt + sal.
 // A sessão fica no servidor (tabela Session): o cookie leva só um código
 // aleatório, que expira (8 h, ou 2 h sem uso) e é apagado ao sair. Regras puras
-// em session-core.ts. Em produção: HTTPS (cookie seguro) e duas etapas.
+// em session-core.ts. Em produção: HTTPS (cookie seguro) e duas etapas
+// (REQUIRE_2FA=1; regras em two-factor.ts e totp.ts).
 
 const SESSION_COOKIE = "incluiedu_session";
 // Cookie só por HTTPS em produção; SESSION_COOKIE_SECURE=0 libera o teste local
@@ -53,10 +54,11 @@ export async function recordLoginAttempt(email: string, success: boolean): Promi
   await prisma.loginAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
 }
 
-export async function createSession(userId: string): Promise<void> {
+// pending = senha certa, falta a segunda etapa: a sessão só abre /login/duas-etapas.
+export async function createSession(userId: string, { pending = false }: { pending?: boolean } = {}): Promise<void> {
   const token = newSessionToken();
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_MS);
-  await prisma.session.create({ data: { tokenHash: hashSessionToken(token), userId, expiresAt } });
+  const expiresAt = new Date(Date.now() + (pending ? MFA_PENDING_MS : SESSION_MAX_AGE_MS));
+  await prisma.session.create({ data: { tokenHash: hashSessionToken(token), userId, expiresAt, mfaPending: pending } });
   // Sessões vencidas de qualquer pessoa saem do banco a cada nova entrada.
   await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
   const store = await cookies();
@@ -67,6 +69,38 @@ export async function createSession(userId: string): Promise<void> {
     path: "/",
     expires: expiresAt,
   });
+}
+
+// Segunda etapa concluída: a sessão pendente sai e entra uma nova, com outro
+// código (quem viu o código da etapa anterior não ganha a sessão completa).
+export async function upgradeSession(pendingSessionId: string, userId: string): Promise<void> {
+  await prisma.session.deleteMany({ where: { id: pendingSessionId, mfaPending: true } });
+  await createSession(userId);
+}
+
+async function sessionFromCookie() {
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  return prisma.session.findUnique({ where: { tokenHash: hashSessionToken(token) }, include: { user: true } });
+}
+
+// Sessão aberta agora (para encerrar as outras ao ligar as duas etapas).
+export async function currentSessionId(): Promise<string | null> {
+  return (await sessionFromCookie())?.id ?? null;
+}
+
+// Sessão à espera da segunda etapa, para a tela /login/duas-etapas.
+export async function getPendingSecondStep() {
+  const session = await sessionFromCookie();
+  if (!session?.mfaPending || sessionState(session) !== "valida") return null;
+  return { sessionId: session.id, startedAt: session.createdAt, user: session.user };
+}
+
+// REQUIRE_2FA=1 (produção): a equipe da escola e a da rede só entram com a
+// segunda etapa. Família e terapeuta podem ligar, sem obrigação.
+export function twoFactorRequired(role: string): boolean {
+  return process.env.REQUIRE_2FA === "1" && isStaffOrNetwork(role);
 }
 
 // Sair apaga a sessão no banco: o mesmo cookie, se copiado, não vale mais.
@@ -88,16 +122,15 @@ export type SessionUser = {
 
 // Uma consulta por requisição, mesmo com layout, página e ação pedindo o usuário.
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const session = await prisma.session.findUnique({ where: { tokenHash: hashSessionToken(token) }, include: { user: true } });
+  const session = await sessionFromCookie();
   if (!session) return null;
   const now = new Date();
   if (sessionState(session, now) !== "valida") {
     await prisma.session.deleteMany({ where: { id: session.id } });
     return null;
   }
+  // Sem a segunda etapa (pendente, ou obrigatória e ainda não ligada), a sessão não abre a plataforma.
+  if (session.mfaPending || (twoFactorRequired(session.user.role) && !session.user.totpEnabledAt)) return null;
   if (shouldTouchSession(session.lastSeenAt, now)) await prisma.session.update({ where: { id: session.id }, data: { lastSeenAt: now } });
   const user = session.user;
   return {

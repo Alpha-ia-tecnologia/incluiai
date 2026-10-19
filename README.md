@@ -9,7 +9,7 @@ Plataforma de acompanhamento do Atendimento Educacional Especializado (AEE) e ge
 - **Next.js 16** (App Router, Server Components e Server Actions) + TypeScript
 - **Tailwind CSS 4** com o **tema visual IncluiEdu** (lilás para marca e ações, superfícies em neutros quentes, cores semânticas para estado — verde, âmbar, coral — e cinco cores suaves para categorias — céu, verde-água, pêssego, sálvia, rosa —, todas com contraste ≥ 4.5:1; tipografia Inter + JetBrains Mono, navegação lateral compacta e adaptação para celular) — tokens em `src/app/globals.css`
 - **Prisma 6 + SQLite** (troque o datasource para PostgreSQL em produção)
-- **Autenticação** própria: sessão guardada no servidor (o cookie httpOnly leva só um código aleatório; vale 8 h, cai após 2 h sem uso e é apagada ao sair), senha com scrypt e limite de 5 tentativas erradas por e-mail em 15 minutos
+- **Autenticação** própria: sessão guardada no servidor (o cookie httpOnly leva só um código aleatório; vale 8 h, cai após 2 h sem uso e é apagada ao sair), senha com scrypt e limite de 5 tentativas erradas por e-mail em 15 minutos, e verificação em duas etapas por aplicativo autenticador (TOTP, RFC 6238, com códigos de recuperação), obrigatória para a equipe com `REQUIRE_2FA=1`
 - **Agentes de IA opcionais** orquestrados com **LangGraph** (`@langchain/langgraph`), chamando o Claude pelo SDK oficial (`@anthropic-ai/sdk`) com saída estruturada (Zod) — geram propostas de plano (PPI) e atividades. Sem chave, o motor de regras determinísticas + templates assume
 
 ## Como rodar
@@ -25,6 +25,7 @@ Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 - `ANTHROPIC_API_KEY` liga os agentes de IA (modelo padrão `claude-opus-5-5`; troque com `ANTHROPIC_MODEL`).
 - **Autorizações da família** (`/familia/[id]`, cartão Autorizações): a IA só recebe dados de um estudante cuja família autorizou o uso (sem isso, plano, atividades, materiais e apoios do DUA saem pelas regras da plataforma e o assistente não consulta o estudante), e o terapeuta só vê o estudante e envia orientações com a conexão autorizada. A família pode retirar as autorizações a qualquer momento; cada decisão fica no histórico de acessos.
 - `SESSION_COOKIE_SECURE`: em produção o cookie da sessão só trafega por HTTPS. Para testar o build de produção em `http://` fora do `localhost`/`127.0.0.1`, use `SESSION_COOKIE_SECURE=0`.
+- `REQUIRE_2FA=1` (recomendado em produção): a equipe da escola e a da rede só entram com a verificação em duas etapas; quem ainda não ligou liga logo depois da senha, em `/login/duas-etapas`. Sem a variável, cada pessoa liga quando quiser em **Segurança da conta** (`/conta/seguranca`, no menu com o nome). Família e terapeuta podem ligar, sem obrigação.
 - `DEEPSEEK_API_KEY` **com** `DEEPSEEK_ENABLED=1` liga o DeepSeek como fallback quando o Claude falha (sem a ligação explícita, a chave sozinha não basta) (modelo padrão `deepseek-flash`; troque com `DEEPSEEK_MODEL`). **LGPD:** a DeepSeek processa e armazena dados na China; cada uso fica registrado no histórico de acessos visto pela família.
 - `OPENAI_API_KEY` liga as imagens de apoio das atividades (pictogramas), pela OpenAI (modelo padrão `gpt-image-2.5-flare`; troque com `OPENAI_IMAGE_MODEL`).
 
@@ -103,6 +104,7 @@ O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](
 - `material-content.ts` (puro, com testes) — os 6 tipos de material de apoio, o conteúdo (cartões com descrição do pictograma, como usar, atividades para aplicar, porquê de cada adaptação), as verificações e o motor de regras; `material-generate.ts` — geração pela IA (`agents/material-agent.ts`) ou pelas regras, aprovação, imagens por cartão (`images/material-images.ts`) e "levar para Atividades"
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
 - `auth.ts` — sessão, hash e controle de acesso por perfil
+- `totp.ts` (puro, com testes dos vetores da RFC 6238) e `two-factor.ts` — verificação em duas etapas: código do aplicativo, QR code desenhado no servidor (biblioteca `qrcode`, nada sai para serviço externo) e códigos de recuperação
 
 ## Salvaguardas (itens 14 e 17.7)
 
@@ -110,7 +112,7 @@ O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](
 - Aviso obrigatório em toda sugestão da IA
 - Regra antissegregação nos cartões de sala comum
 - Log de auditoria exibido à família; painel de indicadores e banco de práticas com dados agregados; nomes só para quem já tem acesso ao estudante
-- Autenticação por e-mail e senha e acesso por necessidade de saber
+- Autenticação por e-mail e senha, verificação em duas etapas e acesso por necessidade de saber. Na segunda etapa, a sessão fica pendente (10 minutos, só abre `/login/duas-etapas`); o código certo troca a sessão por uma nova. O mesmo código do aplicativo não entra duas vezes, cada código de recuperação vale uma vez (o banco guarda só o resumo SHA-256), e os códigos errados contam no mesmo limite do login. Ligar as duas etapas encerra as outras sessões da conta, e **Segurança da conta** mostra onde a conta está aberta e encerra as outras sessões
 
 ## Próximos passos para produção
 

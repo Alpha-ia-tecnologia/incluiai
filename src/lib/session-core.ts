@@ -7,6 +7,8 @@ import { createHash, randomBytes } from "node:crypto";
 // computadores de escola costumam ser compartilhados.
 export const SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 export const SESSION_IDLE_MS = 2 * 60 * 60 * 1000;
+// Entre a senha e o código da segunda etapa: 10 minutos.
+export const MFA_PENDING_MS = 10 * 60 * 1000;
 // O último uso é gravado no máximo a cada 5 minutos (não a cada clique).
 export const SESSION_TOUCH_MS = 5 * 60 * 1000;
 
