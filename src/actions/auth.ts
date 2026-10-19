@@ -2,10 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { createSession, destroySession, loginAllowed, recordLoginAttempt, twoFactorRequired, verifyPasswordOrDummy } from "@/lib/auth";
+import { createSession, destroySession, loginAllowed, loginStep, recordLoginAttempt, verifyPasswordOrDummy } from "@/lib/auth";
 
-// Valida e-mail e senha e cria a sessão. Com duas etapas (ligadas pela pessoa ou
-// obrigatórias para a equipe), a sessão fica pendente até o código.
+// Valida e-mail e senha e cria a sessão. Com senha temporária ou duas etapas
+// (ligadas pela pessoa ou obrigatórias para a equipe), a sessão fica pendente
+// até a pessoa criar a própria senha e digitar o código.
 // A mensagem de erro é a mesma para e-mail e senha: não revela quem tem conta.
 export async function login(_prev: unknown, formData: FormData): Promise<{ error?: string }> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -18,9 +19,11 @@ export async function login(_prev: unknown, formData: FormData): Promise<{ error
   const ok = verifyPasswordOrDummy(password, user?.passwordHash ?? null);
   await recordLoginAttempt(email, ok);
   if (!user || !ok) return { error: "E-mail ou senha inválidos." };
-  const secondStep = Boolean(user.totpEnabledAt) || twoFactorRequired(user.role);
-  await createSession(user.id, { pending: secondStep });
-  redirect(secondStep ? "/login/duas-etapas" : "/");
+  // Só depois da senha certa: quem não é dono da conta não descobre que ela existe.
+  if (user.deactivatedAt) return { error: "Esta conta está desativada. Fale com a coordenação da escola ou com a Secretaria." };
+  const step = loginStep(user);
+  await createSession(user.id, { pending: Boolean(step) });
+  redirect(step ? `/login/${step}` : "/");
 }
 
 export async function logout() {

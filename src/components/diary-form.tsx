@@ -20,7 +20,7 @@ const criterionChoices = [
   ["parcial", "Realizou uma parte"],
   ["nao", "Ainda não realizou o esperado"],
 ];
-const roleOptions = Object.entries(ROLES).filter(([value]) => value !== "familia").map(([value, label]) => ({ value, label }));
+const roleOptions = Object.entries(ROLES).filter(([value]) => value !== "familia" && value !== "terapeuta").map(([value, label]) => ({ value, label }));
 
 export function DiaryForm({
   saveAction, studentId, objectives, activities, initialActivityId, initialObjectiveId,

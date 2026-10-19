@@ -59,6 +59,8 @@ export async function createSession(userId: string, { pending = false }: { pendi
   const token = newSessionToken();
   const expiresAt = new Date(Date.now() + (pending ? MFA_PENDING_MS : SESSION_MAX_AGE_MS));
   await prisma.session.create({ data: { tokenHash: hashSessionToken(token), userId, expiresAt, mfaPending: pending } });
+  // Último acesso (para a gestão ver quem nunca entrou): só com o login completo.
+  if (!pending) await prisma.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
   // Sessões vencidas de qualquer pessoa saem do banco a cada nova entrada.
   await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
   const store = await cookies();
@@ -93,11 +95,20 @@ export async function currentSessionId(): Promise<string | null> {
   return (await sessionFromCookie())?.id ?? null;
 }
 
-// Sessão à espera da segunda etapa, para a tela /login/duas-etapas.
-export async function getPendingSecondStep() {
+// Sessão à espera de um passo do login (senha nova ou segunda etapa), para as
+// telas /login/nova-senha e /login/duas-etapas.
+export async function getPendingLogin() {
   const session = await sessionFromCookie();
-  if (!session?.mfaPending || sessionState(session) !== "valida") return null;
+  if (!session?.mfaPending || session.user.deactivatedAt || sessionState(session) !== "valida") return null;
   return { sessionId: session.id, startedAt: session.createdAt, user: session.user };
+}
+
+// O que falta depois da senha: criar a própria senha (temporária dada pela
+// gestão) e, depois, a segunda etapa (ligada pela pessoa ou obrigatória).
+export function loginStep(user: { role: string; mustChangePassword: boolean; totpEnabledAt: Date | null }): "nova-senha" | "duas-etapas" | null {
+  if (user.mustChangePassword) return "nova-senha";
+  if (user.totpEnabledAt || twoFactorRequired(user.role)) return "duas-etapas";
+  return null;
 }
 
 // REQUIRE_2FA=1 (produção): a equipe da escola e a da rede só entram com a
@@ -133,8 +144,14 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     await prisma.session.deleteMany({ where: { id: session.id } });
     return null;
   }
-  // Sem a segunda etapa (pendente, ou obrigatória e ainda não ligada), a sessão não abre a plataforma.
-  if (session.mfaPending || (twoFactorRequired(session.user.role) && !session.user.totpEnabledAt)) return null;
+  // Conta desativada: a sessão sai na hora.
+  if (session.user.deactivatedAt) {
+    await prisma.session.deleteMany({ where: { id: session.id } });
+    return null;
+  }
+  // Login pela metade (senha temporária, segunda etapa pendente ou obrigatória e
+  // ainda não ligada): a sessão não abre a plataforma.
+  if (session.mfaPending || session.user.mustChangePassword || (twoFactorRequired(session.user.role) && !session.user.totpEnabledAt)) return null;
   if (shouldTouchSession(session.lastSeenAt, now)) await prisma.session.update({ where: { id: session.id }, data: { lastSeenAt: now } });
   const user = session.user;
   let studentIds = user.studentLinks.map((link) => link.studentId);

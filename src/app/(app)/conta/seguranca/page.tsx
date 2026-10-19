@@ -5,6 +5,9 @@ import { currentSessionId, getCurrentUser, twoFactorRequired } from "@/lib/auth"
 import { recoveryCodesLeft } from "@/lib/two-factor";
 import { formatDate } from "@/lib/format";
 import { cancelTwoFactorSetup, disableTwoFactor, endOtherSessions, regenerateRecoveryCodes, startTwoFactorSetup } from "@/actions/two-factor";
+import { changeOwnPassword } from "@/actions/account";
+import { PasswordForm } from "@/components/password-form";
+import { ROLES } from "@/lib/scale";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
@@ -17,10 +20,11 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
   const [session, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!session) redirect("/login");
   const now = new Date();
-  const [user, sessions, current] = await Promise.all([
-    prisma.user.findUniqueOrThrow({ where: { id: session.id }, select: { email: true, totpEnabledAt: true, totpPendingSecret: true, recoveryCodes: true } }),
+  const [user, sessions, current, events] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: session.id }, select: { email: true, totpEnabledAt: true, totpPendingSecret: true, recoveryCodes: true, passwordChangedAt: true } }),
     prisma.session.count({ where: { userId: session.id, mfaPending: false, expiresAt: { gt: now } } }),
     currentSessionId(),
+    prisma.accountEvent.findMany({ where: { userId: session.id }, orderBy: { createdAt: "desc" }, take: 10 }),
   ]);
   const required = twoFactorRequired(session.role);
   const codesLeft = recoveryCodesLeft(user.recoveryCodes);
@@ -38,6 +42,19 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
       ) : null}
 
       <div className="grid max-w-3xl gap-6">
+        <Card>
+          <SectionTitle>Senha</SectionTitle>
+          <p className="mb-4 text-sm leading-relaxed text-ink-soft">
+            {user.passwordChangedAt ? `Trocada em ${formatDate(user.passwordChangedAt)}.` : "Ainda é a senha do cadastro."} Ao trocar, as outras sessões da conta são encerradas.
+          </p>
+          <details className="rounded-2xl bg-surface-muted p-4">
+            <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Trocar a senha</summary>
+            <div className="mt-4">
+              <PasswordForm action={changeOwnPassword} askCurrent button="Trocar a senha" pendingLabel="Trocando…" savedMessage="Senha trocada. As outras sessões foram encerradas." />
+            </div>
+          </details>
+        </Card>
+
         <Card>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 [&>h2]:mb-0">
             <SectionTitle>Verificação em duas etapas</SectionTitle>
@@ -98,6 +115,22 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
             </form>
           ) : null}
         </Card>
+
+        {events.length ? (
+          <Card>
+            <SectionTitle>Mudanças na sua conta</SectionTitle>
+            <p className="mb-4 text-sm leading-relaxed text-ink-soft">Quem criou, alterou ou redefiniu algo na sua conta. Não reconhece alguma mudança? Fale com a coordenação.</p>
+            <ol className="grid gap-3">
+              {events.map((event) => (
+                <li key={event.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
+                  <p className="text-sm text-ink">{event.actorId === session.id ? "Você" : <><strong className="font-medium">{event.actorName}</strong> ({ROLES[event.actorRole] ?? event.actorRole})</>} {event.action}</p>
+                  {event.detail ? <p className="mt-0.5 text-sm text-ink-soft">{event.detail}</p> : null}
+                  <p className="mt-0.5 text-xs text-ink-soft">{formatDate(event.createdAt)}</p>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        ) : null}
       </div>
     </>
   );

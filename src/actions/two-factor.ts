@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { currentSessionId, getCurrentUser, getPendingSecondStep, loginAllowed, recordLoginAttempt, twoFactorRequired, upgradeSession } from "@/lib/auth";
+import { currentSessionId, getCurrentUser, getPendingLogin, loginAllowed, recordLoginAttempt, twoFactorRequired, upgradeSession } from "@/lib/auth";
 import { confirmTwoFactor, consumeSecondFactor, newRecoveryCodesFor } from "@/lib/two-factor";
+import { recordAccountEvent } from "@/lib/accounts";
 import { newTotpSecret } from "@/lib/totp";
 
 // Verificação em duas etapas (seção 14): entrar com o código, ligar, gerar
@@ -20,11 +21,13 @@ const codeFrom = (formData: FormData) => String(formData.get("code") ?? "").trim
 // Quem pode ligar agora: a sessão completa, ou a sessão pendente de quem
 // precisa ligar para entrar (REQUIRE_2FA). Quem já tem as duas etapas e está
 // na sessão pendente só confere o código: não troca o segredo por aqui.
-async function setupUser(): Promise<{ id: string; pendingSessionId: string | null } | null> {
+async function setupUser(): Promise<{ id: string; name: string; role: string; pendingSessionId: string | null } | null> {
   const user = await getCurrentUser();
-  if (user) return { id: user.id, pendingSessionId: null };
-  const pending = await getPendingSecondStep();
-  if (pending && !pending.user.totpEnabledAt) return { id: pending.user.id, pendingSessionId: pending.sessionId };
+  if (user) return { id: user.id, name: user.name, role: user.role, pendingSessionId: null };
+  const pending = await getPendingLogin();
+  if (pending && !pending.user.totpEnabledAt && !pending.user.mustChangePassword) {
+    return { id: pending.user.id, name: pending.user.name, role: pending.user.role, pendingSessionId: pending.sessionId };
+  }
   return null;
 }
 
@@ -38,13 +41,15 @@ async function checkCode(user: { id: string; email: string; totpSecret: string |
 
 // Segunda etapa do login: o código do aplicativo ou um código de recuperação.
 export async function verifySecondStep(_previous: CodeState, formData: FormData): Promise<CodeState> {
-  const pending = await getPendingSecondStep();
+  const pending = await getPendingLogin();
   if (!pending) redirect("/login");
+  if (pending.user.mustChangePassword) redirect("/login/nova-senha");
   if (!pending.user.totpEnabledAt) redirect("/login/duas-etapas");
   const code = codeFrom(formData);
   if (!code) return { error: "Digite o código de 6 números do aplicativo." };
   const result = await checkCode(pending.user, code);
   if ("error" in result) return { error: result.error };
+  if (result.kind === "recuperacao") await recordAccountEvent(pending.user.id, pending.user, "entrou com um código de recuperação");
   await upgradeSession(pending.sessionId, pending.user.id);
   // Com código de recuperação, a tela de segurança mostra quantos ainda restam.
   redirect(result.kind === "recuperacao" ? "/conta/seguranca?aviso=recuperacao" : "/");
@@ -75,6 +80,7 @@ export async function confirmTwoFactorSetup(_previous: CodeState, formData: Form
   if (!code) return { error: "Digite o código de 6 números que aparece no aplicativo." };
   const codes = await confirmTwoFactor(user.id, code);
   if (!codes) return { error: "O código não bateu. Confira se o aplicativo leu o QR code desta tela e digite o código atual." };
+  await recordAccountEvent(user.id, user, "ligou as duas etapas");
   // Ligar as duas etapas encerra as outras sessões abertas desta conta.
   if (!user.pendingSessionId) {
     const keep = await currentSessionId();
@@ -86,8 +92,9 @@ export async function confirmTwoFactorSetup(_previous: CodeState, formData: Form
 // Depois de ligar na sessão pendente (REQUIRE_2FA): a sessão vira completa só
 // se as duas etapas foram ligadas nesta mesma sessão.
 export async function finishSecondStepSetup(): Promise<void> {
-  const pending = await getPendingSecondStep();
+  const pending = await getPendingLogin();
   if (!pending) redirect("/login");
+  if (pending.user.mustChangePassword) redirect("/login/nova-senha");
   if (!pending.user.totpEnabledAt || pending.user.totpEnabledAt < pending.startedAt) redirect("/login/duas-etapas");
   await upgradeSession(pending.sessionId, pending.user.id);
   redirect("/");
@@ -100,7 +107,9 @@ export async function regenerateRecoveryCodes(_previous: CodeState, formData: Fo
   if (!user.totpEnabledAt) return { error: "Ligue a verificação em duas etapas primeiro." };
   const result = await checkCode(user, codeFrom(formData));
   if ("error" in result) return { error: result.error };
-  return { codes: await newRecoveryCodesFor(user.id) };
+  const codes = await newRecoveryCodesFor(user.id);
+  await recordAccountEvent(user.id, session, "gerou novos códigos de recuperação", "Os códigos antigos deixaram de valer");
+  return { codes };
 }
 
 export async function disableTwoFactor(_previous: CodeState, formData: FormData): Promise<CodeState> {
@@ -115,6 +124,7 @@ export async function disableTwoFactor(_previous: CodeState, formData: FormData)
     where: { id: user.id },
     data: { totpSecret: null, totpPendingSecret: null, totpEnabledAt: null, totpLastStep: null, recoveryCodes: null },
   });
+  await recordAccountEvent(user.id, session, "desligou as duas etapas");
   revalidatePath("/conta/seguranca");
   return {};
 }

@@ -82,6 +82,17 @@ O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](
 
 `src/lib/auth.ts` centraliza sessão e permissões (as regras puras da sessão ficam em `src/lib/session-core.ts`). Cada rota valida o perfil: a família e o terapeuta só alcançam os estudantes vinculados à conta (`canAccessStudent`; tabela `StudentLink`, com mais de um estudante por conta: irmãos, ou um terapeuta com vários pacientes, que trocam de estudante no próprio portal) e não abrem a ficha da equipe (`/estudantes/[id]`): cada um usa o seu portal (`/familia/[id]` e `/terapeuta`), a **Secretaria vê a rede em números** (painel com avisos por escola, sem nomes; a lista de estudantes só mostra resultados a partir de uma busca de 3 letras) e abre a ficha de um estudante **só para leitura, informando o motivo** (`/acesso-nominal/[id]`: vale 8 horas e aparece no histórico que a família consulta), os **dados clínicos** do estudo de caso (diagnóstico informado, saúde, acompanhamentos externos e com quem mora) ficam com o AEE e a coordenação, o painel de indicadores mostra a rede inteira só a perfis de rede (a equipe escolar vê a própria escola, e as listas com nomes trazem apenas estudantes que a pessoa já acessa), e o terapeuta não vê diário pedagógico nem dados administrativos. O `AccessLog` (exposto à família, com nome, papel, ação e data) registra cada aba da ficha aberta (uma vez a cada 30 minutos por pessoa e aba, `src/lib/access-log.ts`), os registros de aula, as decisões sobre atividades (que também guardam quem decidiu), as mudanças de objetivo, as revisões e o encerramento do plano, além das ações do assistente. O diário guarda o autor real (da sessão) além do papel declarado.
 
+## Pessoas e acessos (gestão de contas)
+
+Em **Pessoas e acessos** (`/usuarios`), a gestão cuida das contas sem depender de quem administra o banco:
+
+- **Quem gerencia quem** (`src/lib/user-admin.ts`, com testes): a Secretaria cuida da equipe das escolas e da rede (não das famílias: ela vê a rede em números); a gestão e a coordenação cuidam da equipe da própria escola, das famílias e dos terapeutas dos estudantes dela. Ninguém altera a própria conta por aqui.
+- **Criar:** nome, e-mail, perfil e escola (equipe) ou estudantes vinculados (família e terapeuta, um ou mais). A plataforma gera uma **senha temporária**, mostrada uma vez para a gestão entregar; no primeiro acesso, a pessoa cria a própria senha (`/login/nova-senha`) antes de entrar.
+- **Alterar:** perfil, escola e vínculos (a escola só mexe nos vínculos com estudantes dela). Mudou o acesso, as sessões da pessoa são encerradas.
+- **Senha esquecida:** nova senha temporária, com as sessões encerradas. **Celular perdido:** a gestão desliga as duas etapas, e a pessoa liga de novo no próximo acesso.
+- **Desativar:** a pessoa deixa de entrar na hora; o histórico dos registros fica, e a conta pode ser reativada.
+- **Histórico da conta** (`AccountEvent`): quem criou, alterou, redefiniu, desativou; a própria pessoa vê as mudanças na conta dela em **Segurança da conta**, onde também troca a senha (mínimo de 10 caracteres, sem nome nem e-mail; as outras sessões são encerradas).
+
 ## Arquitetura de domínio (`src/lib`)
 
 - `scale.ts` — escala única de apoio (0 IND → 5 FIS-T), canais, dimensões, barreiras
@@ -104,6 +115,7 @@ O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](
 - `material-content.ts` (puro, com testes) — os 6 tipos de material de apoio, o conteúdo (cartões com descrição do pictograma, como usar, atividades para aplicar, porquê de cada adaptação), as verificações e o motor de regras; `material-generate.ts` — geração pela IA (`agents/material-agent.ts`) ou pelas regras, aprovação, imagens por cartão (`images/material-images.ts`) e "levar para Atividades"
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
 - `auth.ts` — sessão, hash e controle de acesso por perfil
+- `user-admin.ts` (puro, com testes) e `accounts.ts` — gestão de contas: escopo de quem gerencia, vínculos, senha temporária e histórico
 - `totp.ts` (puro, com testes dos vetores da RFC 6238) e `two-factor.ts` — verificação em duas etapas: código do aplicativo, QR code desenhado no servidor (biblioteca `qrcode`, nada sai para serviço externo) e códigos de recuperação
 
 ## Salvaguardas (itens 14 e 17.7)

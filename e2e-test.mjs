@@ -1013,6 +1013,109 @@ if (!ONLY_WAIT) {
     check("2FA: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
+  // ---------- 10. Pessoas e acessos (gestão de contas) ----------
+  // A coordenação cria uma família vinculada a dois estudantes; a família cria a
+  // própria senha, troca a senha, perde a sessão quando a gestão redefine e não
+  // entra depois de desativada. Cada rodada cria uma conta nova (e-mail único).
+  {
+    const D = "Dante", R = "Ravi";
+    const email = `familia.e2e.${Date.now()}@teste.edu.br`;
+    const loginWith = async (page, address, password) => {
+      await page.goto(`${BASE}/login`, { waitUntil: "networkidle2", timeout: 45000 });
+      await page.type("#email", address);
+      await page.type("#password", password);
+      await clickByText(page, "Entrar");
+      await sleep(1500);
+      await settle(page);
+      return page.url();
+    };
+    const fillPasswords = async (page, password, current) => {
+      await page.evaluate(() => document.querySelectorAll("details").forEach((item) => { item.open = true; }));
+      if (current) await page.type('input[name="current"]', current);
+      for (const name of ["password", "confirm"]) {
+        await page.$eval(`input[name="${name}"]`, (input) => { input.value = ""; });
+        await page.type(`input[name="${name}"]`, password);
+      }
+    };
+    const { ctx, page, errors } = await newSession();
+    await login(page, "coordenacao@escola.edu.br");
+    await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle2" });
+    const list = await textOf(page);
+    check("contas: a coordenação vê a equipe e as famílias da própria escola, sem a Secretaria", list.includes("aee@escola.edu.br") && list.includes("familia@email.com") && !list.includes("secretaria@municipio.gov.br"));
+
+    await page.goto(`${BASE}/usuarios/nova`, { waitUntil: "networkidle2" });
+    await page.type('input[name="name"]', "Família Teste E2E");
+    await page.type('input[name="email"]', email);
+    await choose(page, "Perfil", "familia");
+    await page.waitForSelector('input[name="studentIds"]', { timeout: 10000 }).catch(() => {});
+    await page.evaluate((names) => {
+      for (const label of document.querySelectorAll("label")) {
+        if (names.some((name) => label.textContent.includes(name))) label.querySelector('input[name="studentIds"]')?.click();
+      }
+    }, [D, R]);
+    await clickByText(page, "Criar a conta");
+    await page.waitForSelector("#senha-temporaria", { timeout: 20000 }).catch(() => {});
+    const temp = (await page.$eval("#senha-temporaria", (item) => item.textContent).catch(() => "")).trim();
+    check("contas: cria a família com senha temporária", /^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/.test(temp), `senha=${temp}`);
+    const accountHref = await page.$eval('a[href^="/usuarios/c"]', (link) => link.getAttribute("href")).catch(() => "");
+
+    const family = await newSession();
+    let url = await loginWith(family.page, email, temp);
+    check("contas: senha temporária leva a criar a própria senha", url.includes("/login/nova-senha"), `url=${url}`);
+    await family.page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+    check("contas: antes de criar a senha, a plataforma não abre", family.page.url().includes("/login"), `url=${family.page.url()}`);
+    await family.page.goto(`${BASE}/login/nova-senha`, { waitUntil: "networkidle2" });
+    await fillPasswords(family.page, "1234567890");
+    await clickByText(family.page, "Salvar a senha e continuar");
+    await family.page.waitForSelector('[role="alert"]', { timeout: 15000 }).catch(() => {});
+    check("contas: senha fraca é recusada", (await textOf(family.page)).includes("fácil de adivinhar"));
+    await fillPasswords(family.page, "girassol no patio azul");
+    await clickByText(family.page, "Salvar a senha e continuar");
+    await family.page.waitForFunction(() => !location.pathname.startsWith("/login"), { timeout: 20000 }).catch(() => {});
+    await settle(family.page);
+    const children = await family.page.$$eval('main a[href^="/familia/"]', (links) => links.length).catch(() => 0);
+    check("contas: a família entra e escolhe entre os dois filhos", new URL(family.page.url()).pathname === "/familia" && children === 2, `url=${family.page.url()} filhos=${children}`);
+
+    await family.page.goto(`${BASE}/conta/seguranca`, { waitUntil: "networkidle2" });
+    await fillPasswords(family.page, "outra frase bem comprida", "senha errada aqui");
+    await clickByText(family.page, "Trocar a senha");
+    await family.page.waitForSelector('[role="alert"]', { timeout: 15000 }).catch(() => {});
+    const wrongCurrent = (await textOf(family.page)).includes("A senha atual não confere");
+    await family.page.goto(`${BASE}/conta/seguranca`, { waitUntil: "networkidle2" });
+    await fillPasswords(family.page, "outra frase bem comprida", "girassol no patio azul");
+    await clickByText(family.page, "Trocar a senha");
+    await family.page.waitForFunction(() => document.body.innerText.includes("Senha trocada"), { timeout: 15000 }).catch(() => {});
+    check("contas: trocar a própria senha confere a atual", wrongCurrent && (await textOf(family.page)).includes("Senha trocada"));
+
+    await page.goto(`${BASE}${accountHref}`, { waitUntil: "networkidle2" });
+    await clickByText(page, "Gerar senha temporária");
+    await page.waitForSelector("#senha-temporaria", { timeout: 20000 }).catch(() => {});
+    const temp2 = (await page.$eval("#senha-temporaria", (item) => item.textContent).catch(() => "")).trim();
+    await family.page.goto(`${BASE}/familia`, { waitUntil: "networkidle2" });
+    check("contas: redefinir a senha encerra a sessão da pessoa", family.page.url().includes("/login") && temp2.length === 14, `url=${family.page.url()}`);
+    url = await loginWith(family.page, email, temp2);
+    check("contas: com a senha redefinida, cria outra no acesso", url.includes("/login/nova-senha"), `url=${url}`);
+
+    await page.goto(`${BASE}${accountHref}`, { waitUntil: "networkidle2" });
+    await page.evaluate(() => document.querySelectorAll("details").forEach((item) => { item.open = true; }));
+    await clickByText(page, "Desativar a conta");
+    await page.waitForFunction(() => document.body.innerText.includes("Reativar a conta"), { timeout: 20000 }).catch(() => {});
+    const history = await textOf(page);
+    check("contas: histórico com criar, redefinir e desativar", ["criou a conta", "criou a própria senha", "trocou a senha", "redefiniu a senha", "desativou a conta"].every((item) => history.includes(item)));
+    const blocked = await newSession();
+    await loginWith(blocked.page, email, temp2);
+    check("contas: conta desativada não entra", (await textOf(blocked.page)).includes("Esta conta está desativada"), `url=${blocked.page.url()}`);
+    await blocked.ctx.close();
+    check("contas: sem erros de cliente", errors.length === 0 && family.errors.length === 0, [...errors, ...family.errors].join("; "));
+    await family.ctx.close();
+    await ctx.close();
+
+    const teacher = await newSession();
+    await login(teacher.page, "professor@escola.edu.br");
+    await teacher.page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle2" });
+    check("contas: professor não abre Pessoas e acessos", !new URL(teacher.page.url()).pathname.startsWith("/usuarios"), `url=${teacher.page.url()}`);
+    await teacher.ctx.close();
+  }
 }
 
 await browser.close();

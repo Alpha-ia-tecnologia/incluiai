@@ -121,10 +121,36 @@ model User {
   totpLastStep      Int?
   recoveryCodes     String?
 
+  // Gestão de contas: conta desativada não entra (o histórico fica); senha
+  // temporária (criada ou redefinida pela gestão) precisa ser trocada no
+  // primeiro acesso.
+  deactivatedAt      DateTime?
+  mustChangePassword Boolean   @default(false)
+  passwordChangedAt  DateTime?
+  lastLoginAt        DateTime?
+
   journeyMarks  JourneyMark[]
   conversations AssistantConversation[]
   sessions      Session[]
   studentLinks  StudentLink[]
+  accountEvents AccountEvent[]
+}
+
+// Histórico da conta (seção 14): quem criou, alterou, redefiniu a senha,
+// desligou as duas etapas, desativou ou reativou. A própria pessoa vê o dela
+// em Segurança da conta; quem gerencia vê na página da conta.
+model AccountEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actorName String
+  actorRole String
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // Família ou terapeuta vinculado a um ou mais estudantes (irmãos na mesma

@@ -2,7 +2,7 @@ export type NavigationItem = {
   href: string;
   label: string;
   shortLabel: string;
-  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "family" | "care" | "help";
+  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help";
   exact?: boolean;
   section?: "routine" | "management" | "help";
 };
@@ -50,6 +50,7 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
     links.push(
       { ...dashboard, section: "management" },
       { href: "/cadastros", label: "Escolas e turmas", shortLabel: "Cadastros", icon: "schools", section: "management" },
+      { href: "/usuarios", label: "Pessoas e acessos", shortLabel: "Acessos", icon: "accounts", section: "management" },
     );
   } else {
     links.push({ ...dashboard, section: "routine" });

@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ShieldCheck, Sprout } from "lucide-react";
-import { getCurrentUser, getPendingSecondStep } from "@/lib/auth";
-import { logout } from "@/actions/auth";
+import { ShieldCheck } from "lucide-react";
+import { getCurrentUser, getPendingLogin } from "@/lib/auth";
 import { startTwoFactorSetup, verifySecondStep } from "@/actions/two-factor";
 import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
-import { primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { primaryButtonCls } from "@/components/form-styles";
+import { LoginStepFrame } from "@/components/login-step-frame";
 
 export const dynamic = "force-dynamic";
 
@@ -15,34 +14,21 @@ export const dynamic = "force-dynamic";
 // liga aqui mesmo, antes de entrar.
 export default async function SecondStepPage() {
   if (await getCurrentUser()) redirect("/");
-  const pending = await getPendingSecondStep();
+  const pending = await getPendingLogin();
   if (!pending) redirect("/login");
+  if (pending.user.mustChangePassword) redirect("/login/nova-senha");
   const { user } = pending;
   const setup = !user.totpEnabledAt;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas p-3 sm:p-6">
-      <div className="w-full max-w-xl rounded-3xl bg-paper px-5 py-8 shadow-[0_24px_80px_-36px_rgba(80,50,110,0.24)] sm:px-10 sm:py-10">
-        <Link href="/login" className="mb-10 flex w-fit items-center gap-3 text-ink">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-brand text-paper">
-            <Sprout size={23} strokeWidth={1.7} aria-hidden="true" />
-          </span>
-          <span className="font-display text-2xl font-semibold tracking-tight">IncluiEdu<span className="text-ink-soft">.</span></span>
-        </Link>
-
-        <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3.5 py-2 text-xs text-ink">
-          <ShieldCheck size={14} strokeWidth={1.7} aria-hidden="true" />
-          Verificação em duas etapas
-        </span>
-        <h1 className="font-display text-3xl font-normal leading-[1.12] tracking-[-0.045em] text-ink">
-          {setup ? "Proteja sua conta antes de entrar" : "Confirme que é você"}
-        </h1>
-        <p className="mb-8 mt-3 text-sm leading-relaxed text-ink-soft">
-          {setup
-            ? "A equipe da escola e da rede lida com dados de estudantes, por isso a entrada pede, além da senha, um código do celular. Leva dois minutos."
-            : `A senha de ${user.email} está certa. Agora digite o código de 6 números do aplicativo autenticador.`}
-        </p>
-
+    <LoginStepFrame
+      badge="Verificação em duas etapas"
+      icon={<ShieldCheck size={14} strokeWidth={1.7} aria-hidden="true" />}
+      title={setup ? "Proteja sua conta antes de entrar" : "Confirme que é você"}
+      lede={setup
+        ? "A equipe da escola e da rede lida com dados de estudantes, por isso a entrada pede, além da senha, um código do celular. Leva dois minutos."
+        : `A senha de ${user.email} está certa. Agora digite o código de 6 números do aplicativo autenticador.`}
+    >
         {setup ? (
           user.totpPendingSecret ? (
             <TwoFactorSetup secret={user.totpPendingSecret} account={user.email} finish="enter" />
@@ -71,11 +57,6 @@ export default async function SecondStepPage() {
             </details>
           </div>
         )}
-
-        <form action={logout} className="mt-8 border-t border-line pt-5">
-          <button type="submit" className={quietButtonCls}>Voltar e entrar com outra conta</button>
-        </form>
-      </div>
-    </main>
+    </LoginStepFrame>
   );
 }
