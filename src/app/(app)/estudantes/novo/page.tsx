@@ -11,9 +11,11 @@ export default async function NewStudentPage() {
   if (!user) redirect("/login");
   if (!isStaffOrNetwork(user.role)) redirect("/");
 
+  // Quem é de uma escola cadastra só nela; a rede escolhe a escola.
+  const own = user.schoolId ? { schoolId: user.schoolId } : {};
   const [schools, classes] = await Promise.all([
-    prisma.school.findMany({ orderBy: { name: "asc" } }),
-    prisma.schoolClass.findMany({ orderBy: { name: "asc" } }),
+    prisma.school.findMany({ where: user.schoolId ? { id: user.schoolId } : {}, orderBy: { name: "asc" } }),
+    prisma.schoolClass.findMany({ where: own, orderBy: { name: "asc" } }),
   ]);
 
   const schoolOptions = schools.map((school) => ({

@@ -8,12 +8,13 @@ import { SHIFTS } from "@/lib/scale";
 import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS } from "@/lib/form-options";
 import { PageHero, Badge, EmptyState } from "@/components/ui";
-import { primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { primaryButtonCls, quietButtonCls, secondaryButtonCls } from "@/components/form-styles";
+import { isAccountManager } from "@/lib/user-admin";
 import { Character } from "@/components/character";
 import { StepTrack } from "@/components/viz/step-track";
 import { JOURNEY_STEPS } from "@/lib/dashboard";
 import { percentOf } from "@/lib/series";
-import { ArrowLeft, ArrowRight, Layers, Plus, Search, Sprout } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileSpreadsheet, Layers, Plus, Search, Sprout } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,12 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         character="learning"
         title={title}
         lede={action ? "Procure pelo nome ou escolha uma turma. Depois, selecione o estudante para continuar." : "Encontre um estudante e veja qual é o próximo passo do acompanhamento."}
-        actions={<Link href="/estudantes/novo" className={primaryButtonCls}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link href="/estudantes/novo" className={primaryButtonCls}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>
+            {isAccountManager(user.role) ? <Link href="/estudantes/importar" className={secondaryButtonCls}><FileSpreadsheet size={18} aria-hidden /> Importar planilha</Link> : null}
+          </div>
+        }
       />
 
       {lote && /^\d+$/.test(lote) ? <div role="status" className="mb-6 flex items-start gap-3 rounded-2xl bg-green-soft p-5 text-sm leading-relaxed"><Sprout size={20} className="sprout-mark shrink-0 text-green" aria-hidden /><p>{lote} estudante(s) receberam sugestões de atividade. Abra as atividades de cada estudante para avaliar o que será aplicado.</p></div> : null}

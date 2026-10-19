@@ -1116,6 +1116,64 @@ if (!ONLY_WAIT) {
     check("contas: professor não abre Pessoas e acessos", !new URL(teacher.page.url()).pathname.startsWith("/usuarios"), `url=${teacher.page.url()}`);
     await teacher.ctx.close();
   }
+  // ---------- 11. Importação de estudantes por planilha ----------
+  // Confere sem gravar, importa só as linhas prontas e, na segunda vez, aponta
+  // que já estão cadastrados. Nomes com a marca da rodada (não colidem).
+  {
+    const stamp = Date.now().toString(36);
+    const names = [`Importado ${stamp} Um`, `Importado ${stamp} Dois`];
+    const csvFile = join(tmpdir(), `incluiedu-importacao-${stamp}.csv`);
+    writeFileSync(csvFile, "\uFEFF" + [
+      "Nome do estudante;Data de nascimento;Ano;Turma;Turno;Responsável;AEE;Frequência AEE",
+      `${names[0]};12/05/2017;3º ano;Turma B;Manhã;Responsável Um;sim;2x por semana`,
+      `${names[1]};01/08/2013;7º ano;Turma C;tarde;Responsável Dois;não;`,
+      `Linha Com Problema ${stamp};31/02/2016;4º ano;Turma B;manhã;Responsável Três;não;`,
+    ].join("\r\n"));
+    const upload = async (page) => {
+      await page.goto(`${BASE}/estudantes/importar`, { waitUntil: "networkidle2" });
+      const input = await page.$('input[type="file"]');
+      await input.uploadFile(csvFile);
+      await clickByText(page, "Conferir a planilha");
+      await page.waitForFunction(() => document.body.innerText.includes("Nada foi gravado ainda") || document.querySelector('[role="alert"]'), { timeout: 20000 }).catch(() => {});
+      return textOf(page);
+    };
+    const listed = async (page) => {
+      await page.goto(`${BASE}/estudantes?q=${encodeURIComponent(`Importado ${stamp}`)}`, { waitUntil: "networkidle2" });
+      const text = await textOf(page);
+      return names.filter((name) => text.includes(name)).length;
+    };
+    const { ctx, page, errors } = await newSession();
+    await login(page, "coordenacao@escola.edu.br");
+    const template = await page.evaluate(async () => {
+      const response = await fetch("/estudantes/importar/modelo");
+      return { type: response.headers.get("content-type"), text: await response.text() };
+    });
+    check("planilha: modelo para baixar em CSV", String(template.type).startsWith("text/csv") && template.text.includes("nome;nascimento;etapa;ano;turma;turno;responsavel"), JSON.stringify(template.type));
+
+    let text = await upload(page);
+    check("planilha: confere sem gravar (2 prontos, 1 com problema)", text.includes("2 pronto(s) para importar") && text.includes("1 com problema") && text.includes("Linha 4"), text.slice(0, 300));
+    check("planilha: a linha com problema diz o motivo", text.includes("nascimento inválido"));
+    const before = await listed(page);
+    check("planilha: nada entra antes de confirmar", before === 0, `encontrados=${before}`);
+
+    await upload(page);
+    await clickByText(page, "Importar 2 estudantes");
+    await page.waitForFunction(() => document.body.innerText.includes("estudantes importados"), { timeout: 30000 }).catch(() => {});
+    check("planilha: importa as linhas prontas", (await textOf(page)).includes("2 estudantes importados"));
+    check("planilha: os importados aparecem na lista", (await listed(page)) === 2);
+
+    text = await upload(page);
+    check("planilha: na segunda vez, aponta os já cadastrados", text.includes("0 pronto(s) para importar") && text.includes("2 já cadastrado(s)"), text.slice(0, 300));
+    check("planilha: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+    unlinkSync(csvFile);
+
+    const teacher = await newSession();
+    await login(teacher.page, "professor@escola.edu.br");
+    await teacher.page.goto(`${BASE}/estudantes/importar`, { waitUntil: "networkidle2" });
+    check("planilha: professor não importa", !new URL(teacher.page.url()).pathname.startsWith("/estudantes/importar"), `url=${teacher.page.url()}`);
+    await teacher.ctx.close();
+  }
 }
 
 await browser.close();

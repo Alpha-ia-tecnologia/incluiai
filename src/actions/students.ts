@@ -37,6 +37,10 @@ export async function createStudent(formData: FormData) {
     where: { id: schoolId },
     select: { id: true },
   });
+  // Quem é de uma escola cadastra estudantes só nela.
+  if (user.schoolId && schoolId !== user.schoolId) {
+    throw new Error("Você cadastra estudantes só na sua escola.");
+  }
 
   if (
     !name ||

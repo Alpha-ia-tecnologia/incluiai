@@ -93,6 +93,10 @@ Em **Pessoas e acessos** (`/usuarios`), a gestão cuida das contas sem depender 
 - **Desativar:** a pessoa deixa de entrar na hora; o histórico dos registros fica, e a conta pode ser reativada.
 - **Histórico da conta** (`AccountEvent`): quem criou, alterou, redefiniu, desativou; a própria pessoa vê as mudanças na conta dela em **Segurança da conta**, onde também troca a senha (mínimo de 10 caracteres, sem nome nem e-mail; as outras sessões são encerradas).
 
+### Importar estudantes por planilha
+
+Em **Estudantes › Importar planilha** (`/estudantes/importar`), a gestão e a coordenação da escola (e a Secretaria, escolhendo a escola) cadastram uma turma inteira a partir de um CSV salvo pelo Excel ou pelo LibreOffice (ponto e vírgula ou vírgula, UTF-8 ou Windows-1252). As colunas são reconhecidas pelo nome, em qualquer ordem (há um modelo para baixar). A importação tem duas fases: **conferir**, que não grava nada e mostra as linhas prontas, as já cadastradas (mesmo nome e nascimento na escola), as com problema (com o motivo) e os nomes iguais com outro nascimento (para conferir); e **importar**, que lê a planilha de novo no servidor e grava só as linhas prontas, com o registro na linha do tempo e no histórico de acessos. Até 500 estudantes por vez. Regras puras em `src/lib/student-import.ts`, com testes. O cadastro individual também fica restrito à escola de quem cadastra.
+
 ## Arquitetura de domínio (`src/lib`)
 
 - `scale.ts` — escala única de apoio (0 IND → 5 FIS-T), canais, dimensões, barreiras
