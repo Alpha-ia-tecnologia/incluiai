@@ -1,4 +1,6 @@
 ﻿import Link from "next/link";
+import { ConsentNote } from "@/components/consent-note";
+import { aiAllowedFor, imagesAllowedFor } from "@/lib/consent";
 import Image from "next/image";
 import type { Activity } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -11,7 +13,6 @@ import { PageHeader, Card, SectionTitle, Badge, AIDisclaimer, EmptyState } from 
 import { PrintButton } from "@/components/print-button";
 import { PendingButton } from "@/components/pending-button";
 import { isAIEnabled } from "@/lib/agents/model";
-import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { generateActivityImage, removeActivityImage } from "@/actions/activity-images";
 import { ActivityImageForm } from "@/components/activity-image-form";
 import { DataBoard, DataCard, withSegmentColors } from "@/components/data-viz";
@@ -187,8 +188,9 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
   ]);
 
   const generate = generateActivities.bind(null, id);
-  const aiOn = isAIEnabled();
-  const imagesOn = isImageGenerationEnabled();
+  // IA e imagens só com a autorização da família; o aviso explica quando falta.
+  const [aiOn, imagesOn] = await Promise.all([aiAllowedFor(id), imagesAllowedFor(id)]);
+  const consentMissing = isAIEnabled() && !aiOn;
   const suggested = activities.filter((a) => a.status === "sugerida");
   const others = activities.filter((a) => a.status !== "sugerida");
   // Resumo das atividades já listadas abaixo: situação e onde acontecem.
@@ -232,6 +234,8 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
             <Link href={`/estudantes/${id}/ppi`} className={linkCls}>Definir um objetivo no plano <ArrowRight size={16} aria-hidden /></Link>
           </div>
         ) : (
+          <>
+          <ConsentNote show={consentMissing} />
           <form action={generate} className="grid min-w-0 gap-4 sm:grid-cols-2">
             <div className="min-w-0">
               <label htmlFor="objectiveId" className={labelCls}>1. Escolha um objetivo</label>
@@ -260,6 +264,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
               </p>
             </div>
           </form>
+          </>
         )}
         <AIDisclaimer />
       </Card>

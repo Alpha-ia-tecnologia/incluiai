@@ -57,6 +57,7 @@ model Student {
   familyNotes        FamilyNote[]
   accessLogs         AccessLog[]
   accessGrants          AccessGrant[]
+  consent               Consent?
   intersectorReports IntersectorReport[]
   materials          Material[]
   caseStudy          CaseStudy?
@@ -126,6 +127,18 @@ model Session {
   expiresAt  DateTime
 
   @@index([userId])
+}
+
+// Autorizações da família (seções 12 e 14): uso de IA com os dados do estudante
+// e conexão com o terapeuta. Sem registro, nada está autorizado.
+model Consent {
+  id            String   @id @default(cuid())
+  studentId     String   @unique
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  aiUse         Boolean  @default(false)
+  therapistLink Boolean  @default(false)
+  updatedBy     String?
+  updatedAt     DateTime @updatedAt
 }
 
 // Acesso nominal da Secretaria (seções 10 e 14): a rede vê números; para abrir a

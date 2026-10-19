@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { studentConsent } from "@/lib/consent";
+import { SUMMARY_VIEW_DETAILS } from "@/lib/access-log";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { createIntersectorReport } from "@/actions/intersector";
@@ -28,6 +30,18 @@ export default async function TherapistPage() {
   if (user.role !== "terapeuta" || !user.studentId) redirect("/");
   await recordJourneyMark(user.id, "terapeuta_inicio");
   const journey = await loadJourney(user);
+  // Seção 8 e 12: a conexão com a escola depende da autorização da família.
+  if (!(await studentConsent(user.studentId)).therapistLink) {
+    return (
+      <>
+        <PageHero character="care" eyebrow={<><Stethoscope size={16} aria-hidden /> Rede de saúde</>} title="Articulação intersetorial" lede="Espaço do terapeuta: apenas informações funcionais relevantes ao ambiente escolar." />
+        <Card className="max-w-2xl">
+          <SectionTitle>Aguardando a autorização da família</SectionTitle>
+          <p className="text-sm leading-relaxed text-ink-soft">A família ainda não autorizou a conexão com a escola pela plataforma. Quando autorizar, você verá o perfil funcional do estudante e poderá enviar orientações para a equipe.</p>
+        </Card>
+      </>
+    );
+  }
 
   const student = await prisma.student.findUniqueOrThrow({
     where: { id: user.studentId },
@@ -44,7 +58,7 @@ export default async function TherapistPage() {
   const seenAt = await Promise.all(reports.map((report, index) => {
     const newer = index > 0 ? reports[index - 1].createdAt : null;
     return prisma.accessLog.findFirst({
-      where: { studentId: student.id, detail: "Visão geral do prontuário", role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: newer ? { gt: report.createdAt, lte: newer } : { gt: report.createdAt } },
+      where: { studentId: student.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: newer ? { gt: report.createdAt, lte: newer } : { gt: report.createdAt } },
       orderBy: { createdAt: "asc" },
       select: { createdAt: true },
     }).then((log) => log?.createdAt ?? null);

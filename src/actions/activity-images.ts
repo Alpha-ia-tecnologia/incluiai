@@ -1,5 +1,6 @@
 "use server";
 
+import { imagesAllowedFor } from "@/lib/consent";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireStudentTeam } from "@/lib/auth";
@@ -19,6 +20,7 @@ async function requireActivity(studentId: string, activityId: string) {
 export async function generateActivityImage(studentId: string, activityId: string, _previous: ImageActionState, formData: FormData): Promise<ImageActionState> {
   const user = await requireActivity(studentId, activityId);
   if (!isImageGenerationEnabled()) return { status: "erro", message: "A geração de imagens não está configurada (falta OPENAI_API_KEY)." };
+  if (!(await imagesAllowedFor(studentId))) return { status: "erro", message: "A família ainda não autorizou o uso de IA com os dados deste estudante." };
   const kind = String(formData.get("kind") ?? "").trim().slice(0, 500) || "sequencia";
   try {
     await createActivityImage(activityId, kind, user);

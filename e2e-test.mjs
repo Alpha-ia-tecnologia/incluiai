@@ -356,7 +356,19 @@ if (!ONLY_WAIT) {
     check("família registra conquista de casa", await page.evaluate(() => document.body.innerText.includes("pediu água pela prancha no jantar")));
     check("família vê log de acessos (LGPD)", await page.evaluate(() => document.body.innerText.toLowerCase().includes("quem acessou os dados")));
     // Seção 12: com nome de quem acessou (a professora do AEE abriu a ficha nesta mesma execução).
-    check("família vê o nome de quem acessou a ficha", await page.evaluate(() => /Beatriz[\s\S]{0,120}visualizou/.test(document.body.innerText)));
+    // O histórico completo fica num "ver mais" fechado: textContent lê a lista inteira.
+    check("família vê o nome de quem acessou a ficha", await page.evaluate(() => /Beatriz[\s\S]{0,160}visualizou/.test(document.querySelector("#conteudo")?.textContent ?? "")));
+    // Autorizações (seções 12 e 14): sem a conexão autorizada, o terapeuta fica em espera.
+    check("família vê as autorizações", await page.evaluate(() => Boolean(document.querySelector("#autorizacoes"))));
+    await clickByText(page, "Retirar a autorização: Conexão com o terapeuta");
+    await page.waitForFunction(() => [...document.querySelectorAll("#autorizacoes button")].some((button) => button.textContent.includes("Autorizar: Conexão com o terapeuta")), { timeout: 15000 }).catch(() => {});
+    const therapistWaiting = await newSession();
+    await login(therapistWaiting.page, "terapeuta@clinica.com.br");
+    check("terapeuta em espera sem a autorização da família", await therapistWaiting.page.evaluate(() => document.body.innerText.includes("Aguardando a autorização da família")));
+    await therapistWaiting.ctx.close();
+    await clickByText(page, "Autorizar: Conexão com o terapeuta");
+    await page.waitForFunction(() => [...document.querySelectorAll("#autorizacoes button")].some((button) => button.textContent.includes("Retirar a autorização: Conexão com o terapeuta")), { timeout: 15000 }).catch(() => {});
+    check("família autoriza de novo a conexão com o terapeuta", await page.evaluate(() => [...document.querySelectorAll("#autorizacoes button")].some((button) => button.textContent.includes("Retirar a autorização: Conexão com o terapeuta"))));
     check("família sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
@@ -379,12 +391,18 @@ if (!ONLY_WAIT) {
     await page.goto(`${BASE}/estudantes?q=Dan`, { waitUntil: "networkidle2" });
     check("secretaria: busca com 3 letras encontra o estudante", await page.evaluate(() => document.body.innerText.includes("Dante Oliveira")));
     await page.goto(`${BASE}${danteHref}`, { waitUntil: "networkidle2" });
-    check("secretaria: ficha com nome pede o motivo", page.url().includes("/acesso-nominal/"), `url=${page.url()}`);
-    if (page.url().includes("/acesso-nominal/")) {
-      await choose(page, "Motivo do acesso", "Transferência entre escolas");
-      await page.type("#access-detail", "Teste E2E: conferir o plano antes da transferência.");
-      await clickByText(page, "Registrar o motivo e abrir a ficha");
-      await page.waitForFunction(() => /\/estudantes\/[^/]+$/.test(location.pathname), { timeout: 20000 }).catch(() => {});
+    // Sem acesso válido, pede o motivo; numa nova execução (acesso de 8 h ainda
+    // válido), a ficha abre direto, sempre com a faixa de leitura.
+    const asked = page.url().includes("/acesso-nominal/");
+    const reopened = !asked && (await page.evaluate(() => document.body.innerText.includes("Acesso de leitura com motivo registrado")));
+    check("secretaria: ficha com nome pede o motivo", asked || reopened, `url=${page.url()}`);
+    if (asked || reopened) {
+      if (asked) {
+        await choose(page, "Motivo do acesso", "Transferência entre escolas");
+        await page.type("#access-detail", "Teste E2E: conferir o plano antes da transferência.");
+        await clickByText(page, "Registrar o motivo e abrir a ficha");
+        await page.waitForFunction(() => /\/estudantes\/[^/]+$/.test(location.pathname), { timeout: 20000 }).catch(() => {});
+      }
       const record = await page.evaluate(() => ({
         banner: document.body.innerText.includes("Acesso de leitura com motivo registrado"),
         tabs: [...document.querySelectorAll('nav[aria-label="Seções do estudante"] a')].map((link) => link.textContent.trim()),
@@ -394,7 +412,7 @@ if (!ONLY_WAIT) {
       check("secretaria: aba de registro volta ao resumo", new URL(page.url()).pathname === danteHref, `url=${page.url()}`);
       const family = await newSession();
       await login(family.page, "familia@email.com");
-      check("família vê o acesso justificado da Secretaria", await family.page.evaluate(() => document.body.innerText.includes("acesso justificado")));
+      check("família vê o acesso justificado da Secretaria", await family.page.evaluate(() => (document.querySelector("#conteudo")?.textContent ?? "").includes("acesso justificado")));
       await family.ctx.close();
     }
     check("assistente: botão flutuante em todas as telas", Boolean(await page.$(".assistant-fab")));

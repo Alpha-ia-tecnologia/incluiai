@@ -1,10 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { aiAllowedFor } from "../consent";
 import { prisma } from "../prisma";
 import { assertCaseStudyConcluded } from "../records";
 import type { SessionUser } from "../auth";
 import { generateActivityCards, type ActivityCard, type EngineInput } from "../activity-engine";
 import { applicableRules } from "../rules";
-import { AgentOutputError, createAgentModel, isAIEnabled } from "./model";
+import { AgentOutputError, createAgentModel } from "./model";
 import { DeepSeekAPIError } from "./deepseek";
 import { recordDeepSeekUse } from "./audit";
 import { loadAnonymizer } from "./anonymize";
@@ -63,7 +64,8 @@ export async function createPlanDraft(studentId: string, user: SessionUser, repo
   let trace: TraceStep[] = [];
   let source: "ia" | "regras" = "regras";
 
-  if (isAIEnabled()) {
+  // IA só com a autorização da família; sem ela, a proposta sai pelas regras.
+  if (await aiAllowedFor(studentId)) {
     const anonymizer = await loadAnonymizer(studentId);
     const agents = createAgentModel(anonymizer);
     try {
@@ -102,7 +104,7 @@ export async function createPlanDraft(studentId: string, user: SessionUser, repo
 
 // Os 3 cartões (sala comum / AEE / casa) para um objetivo.
 export async function buildActivityCards(input: EngineInput, report?: AgentReport): Promise<ActivityCard[]> {
-  if (isAIEnabled()) {
+  if (await aiAllowedFor(input.student.id)) {
     const anonymizer = await loadAnonymizer(input.student.id);
     const agents = createAgentModel(anonymizer);
     try {

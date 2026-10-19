@@ -161,6 +161,9 @@ export async function loadPseudonymizer(user: SessionUser, map: PseudonymMap): P
       ...students.flatMap((student) => student.intersectorReports.map((report) => report.authorName)),
     ],
   });
-  // A Secretaria não consulta estudantes pelo assistente (os nomes ainda são mascarados no que ela digitar).
-  return { ...pseudonymizer, studentIds: user.role === "secretaria" ? [] : students.map((student) => student.id) };
+  // A Secretaria não consulta estudantes pelo assistente, e ninguém consulta um
+  // estudante cuja família não autorizou o uso de IA (os nomes continuam
+  // mascarados no que a pessoa digitar).
+  const consented = new Set((await prisma.consent.findMany({ where: { studentId: { in: students.map((student) => student.id) }, aiUse: true }, select: { studentId: true } })).map((item) => item.studentId));
+  return { ...pseudonymizer, studentIds: user.role === "secretaria" ? [] : students.filter((student) => consented.has(student.id)).map((student) => student.id) };
 }

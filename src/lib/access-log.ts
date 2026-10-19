@@ -18,3 +18,8 @@ export async function recordView(user: SessionUser, studentId: string, section: 
 export async function recordChange(user: SessionUser, studentId: string, action: string, detail: string): Promise<void> {
   await prisma.accessLog.create({ data: { studentId, actorId: user.id, actor: user.name, role: user.role, action, detail: detail.slice(0, 200) } });
 }
+
+// Leitura do resumo do estudante, onde fica o relatório do terapeuta mais
+// recente ("visto pela escola"). O nome antigo continua valendo para os
+// registros gravados antes.
+export const SUMMARY_VIEW_DETAILS = ["Resumo", "Visão geral do prontuário"];

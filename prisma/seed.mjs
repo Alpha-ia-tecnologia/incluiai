@@ -23,6 +23,7 @@ async function main() {
   await prisma.duaPlanningVersion.deleteMany();
   await prisma.duaPlanning.deleteMany();
   await prisma.aeeSession.deleteMany();
+  await prisma.loginAttempt.deleteMany();
   await prisma.user.deleteMany();
   await prisma.material.deleteMany();
   await prisma.intersectorReport.deleteMany();
@@ -404,6 +405,16 @@ async function main() {
       },
     });
   }
+
+  // ---- Autorizações das famílias (seções 12 e 14) ----
+  // Dante: IA e terapeuta autorizados; Lívia: só IA; Ravi: ainda sem decisão
+  // (mostra o aviso para a equipe e o portal pedindo a autorização).
+  await prisma.consent.createMany({
+    data: [
+      { studentId: dante.id, aiUse: true, therapistLink: true, updatedBy: "Carla (mãe de Dante)" },
+      { studentId: livia.id, aiUse: true, therapistLink: false, updatedBy: "Responsável por Lívia" },
+    ],
+  });
 
   // ---- Usuários com perfis de acesso (senha: demo123) ----
   const contas = [

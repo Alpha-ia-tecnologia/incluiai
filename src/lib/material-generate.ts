@@ -1,10 +1,11 @@
 import type { FunctionalProfile, Student } from "@prisma/client";
+import { aiAllowedFor, imagesAllowedFor } from "./consent";
 import { prisma } from "./prisma";
 import type { SessionUser } from "./auth";
 import { assertStudentTeam } from "./records";
 import { parseJson } from "./format";
 import { CHANNELS } from "./scale";
-import { createAgentModel, isAIEnabled } from "./agents/model";
+import { createAgentModel } from "./agents/model";
 import { loadAnonymizer } from "./agents/anonymize";
 import { recordDeepSeekUse } from "./agents/audit";
 import { caseStudyText, profileText } from "./agents/context";
@@ -68,7 +69,8 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
   let result: { title: string; content: MaterialContent } | null = null;
   let source: "ia" | "regras" = "regras";
   let trace: TraceStep[] = [];
-  if (isAIEnabled()) {
+  // IA só com a autorização da família; sem ela, o material sai pelas regras.
+  if (await aiAllowedFor(studentId)) {
     const anonymizer = await loadAnonymizer(studentId);
     const agents = createAgentModel(anonymizer);
     const contextText = [
@@ -103,7 +105,7 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: `Material de apoio (${source === "ia" ? "agentes de IA" : "regras"}): ${MATERIAL_KIND_LABEL[kind]}` } });
 
   let images = { created: 0, errors: [] as string[], requested: false };
-  if (request.withImages && isImageGenerationEnabled()) {
+  if (request.withImages && (await imagesAllowedFor(studentId))) {
     report?.({ agent: "Ilustração", phase: "start" });
     images = { ...(await generateMaterialImages(material.id, user)), requested: true };
     report?.({ agent: "Ilustração", phase: images.errors.length && !images.created ? "fail" : "end" });
@@ -128,6 +130,7 @@ export async function approveStudentMaterial(user: SessionUser, studentId: strin
 export async function addMaterialImages(user: SessionUser, studentId: string, materialId: string) {
   const material = await loadOwnMaterial(user, studentId, materialId);
   if (!isImageGenerationEnabled()) throw new Error("A geração de imagens não está configurada (falta OPENAI_API_KEY).");
+  if (!(await imagesAllowedFor(studentId))) throw new Error("A família ainda não autorizou o uso de IA com os dados deste estudante.");
   return generateMaterialImages(material.id, user);
 }
 

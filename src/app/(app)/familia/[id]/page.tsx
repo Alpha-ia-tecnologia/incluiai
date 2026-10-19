@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { ConsentCard } from "@/components/consent-card";
+import { studentConsent } from "@/lib/consent";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, canAccessStudent, hasNominalAccess } from "@/lib/auth";
@@ -59,6 +61,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
 
   const isFamily = user.role === "familia";
+  const consent = await studentConsent(student.id);
   if (isFamily) await recordJourneyMark(user.id, "familia_inicio");
   const journey = isFamily ? await loadJourney(user) : null;
   const objectives = student.plans.flatMap((p) => p.objectives);
@@ -194,6 +197,8 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
               </>
             )}
           </Card>
+
+          <ConsentCard studentId={id} firstName={firstName} consent={consent} canDecide={isFamily && user.studentId === id} />
 
           <Card>
             <SectionTitle>

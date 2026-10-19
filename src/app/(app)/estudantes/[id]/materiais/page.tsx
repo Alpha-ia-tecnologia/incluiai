@@ -1,9 +1,10 @@
 ﻿import Link from "next/link";
+import { ConsentNote } from "@/components/consent-note";
+import { aiAllowedFor, imagesAllowedFor } from "@/lib/consent";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { isAIEnabled } from "@/lib/agents/model";
-import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { MATERIAL_KINDS, isMaterialKind } from "@/lib/material-content";
 import { PageHeader, Card, SectionTitle, EmptyState, ButtonLink } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
@@ -35,6 +36,9 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
   const student = await prisma.student.findUnique({ where: { id }, select: { schoolId: true } });
   if (!student || !canAccessStudent(user, student.schoolId, id)) redirect("/");
   const team = canEditStudentRecord(user.role);
+  // IA e imagens só com a autorização da família; o aviso explica quando falta.
+  const [aiOn, imagesOn] = await Promise.all([aiAllowedFor(id), imagesAllowedFor(id)]);
+  const consentMissing = isAIEnabled() && !aiOn;
   const [profile, materials, objectives] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id }, select: { id: true } }),
     prisma.material.findMany({
@@ -99,13 +103,16 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
               <Link href={`/estudantes/${id}/perfil`} className={linkCls}>Preencher Como aprende</Link>
             </p>
           ) : (
-            <MaterialForm
-              studentId={id}
-              objectives={objectives}
-              defaultContext={user.role === "professor_sala" ? "sala_comum" : "aee"}
-              aiOn={isAIEnabled()}
-              imagesOn={isImageGenerationEnabled()}
-            />
+            <>
+              <ConsentNote show={consentMissing} />
+              <MaterialForm
+                studentId={id}
+                objectives={objectives}
+                defaultContext={user.role === "professor_sala" ? "sala_comum" : "aee"}
+                aiOn={aiOn}
+                imagesOn={imagesOn}
+              />
+            </>
           )}
         </Card>
       ) : null}

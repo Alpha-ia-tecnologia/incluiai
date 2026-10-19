@@ -1,12 +1,12 @@
 ﻿"use server";
 
+import { imagesAllowedFor } from "@/lib/consent";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentTeam } from "@/lib/auth";
 import { decideActivity } from "@/lib/records";
 import { buildActivityCards, saveSuggestedActivities } from "@/lib/agents/generate";
-import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { createActivityImage } from "@/lib/images/save";
 
 // Gera 3 cartões (sala comum / AEE / casa) e salva como "sugerida".
@@ -29,7 +29,7 @@ export async function generateActivities(studentId: string, formData: FormData) 
   const created = await saveSuggestedActivities(studentId, objectiveId, cards);
 
   // Imagens de apoio opcionais, em paralelo; uma falha não impede as atividades.
-  if (formData.get("gerarImagens") === "on" && isImageGenerationEnabled()) {
+  if (formData.get("gerarImagens") === "on" && (await imagesAllowedFor(studentId))) {
     const results = await Promise.allSettled(created.map((activity) => createActivityImage(activity.id, "sequencia", user)));
     for (const result of results) {
       if (result.status === "rejected") console.error("[imagens] falha ao gerar imagem da atividade:", result.reason);

@@ -1,4 +1,5 @@
 import { PARTICIPATION_TEXT, PARTICIPATION_TONE, countItems, percentOf, supportSeries, supportTrend, weeklyCounts, type SeriesPoint, type Trend, type VizTone } from "./series";
+import { SUMMARY_VIEW_DETAILS } from "./access-log";
 import { prisma } from "./prisma";
 import { canAccessStudent, isNetworkRole, type SessionUser } from "./auth";
 import { objectiveTrend } from "./insights";
@@ -627,7 +628,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
   // A escola recebeu: alguém da equipe abriu o resumo do estudante, onde as
   // orientações aparecem, depois do último relatório.
   const seen = last ? await prisma.accessLog.findFirst({
-    where: { studentId: s.id, detail: "Visão geral do prontuário", role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: { gt: last.createdAt } },
+    where: { studentId: s.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: { gt: last.createdAt } },
     orderBy: { createdAt: "asc" },
     select: { createdAt: true },
   }) : null;

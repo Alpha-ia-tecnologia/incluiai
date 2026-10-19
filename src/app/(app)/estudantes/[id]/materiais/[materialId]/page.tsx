@@ -1,9 +1,9 @@
 import Link from "next/link";
+import { imagesAllowedFor } from "@/lib/consent";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentPage } from "@/lib/auth";
-import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { MaterialView } from "@/components/materials/material-view";
 import { CreatedNotice } from "@/components/materials/created-notice";
 
@@ -30,7 +30,8 @@ export default async function MaterialPage({ params, searchParams }: { params: P
   // O layout do estudante já confere o acesso; a página confere de novo, perto dos dados.
   if (!canAccessStudent(user, material.student.schoolId, id)) redirect("/");
   const team = canEditStudentRecord(user.role);
-  const imagesOn = isImageGenerationEnabled();
+  // Desenhar imagens também depende da autorização da família.
+  const imagesOn = await imagesAllowedFor(id);
   const objective = material.objectiveId
     ? await prisma.objective.findFirst({ where: { id: material.objectiveId, plan: { studentId: id } }, select: { description: true } })
     : null;

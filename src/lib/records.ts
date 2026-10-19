@@ -99,6 +99,8 @@ export async function saveIntersectorReport(user: SessionUser, studentId: string
   if (user.role !== "terapeuta" || user.studentId !== studentId) {
     throw new Error("Só o terapeuta vinculado ao estudante pode enviar orientações.");
   }
+  const consent = await prisma.consent.findUnique({ where: { studentId }, select: { therapistLink: true } });
+  if (!consent?.therapistLink) throw new Error("A família ainda não autorizou a conexão com o terapeuta.");
   const report = await prisma.intersectorReport.create({
     data: { studentId, authorName: user.name, ...input, positioning: input.positioning?.trim() || null },
   });

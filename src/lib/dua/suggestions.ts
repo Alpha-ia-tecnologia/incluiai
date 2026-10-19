@@ -1,4 +1,5 @@
 import "server-only";
+import { aiAllowedFor } from "../consent";
 import { randomUUID } from "node:crypto";
 import { z } from "zod/v4";
 import { prisma } from "../prisma";
@@ -128,7 +129,9 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
     promptVersion: DUA_PROMPT_VERSION, requestedById: user.id, requestedByName: user.name,
   };
 
-  const useAI = isAIEnabled();
+  // Apoio individual leva dados do estudante: só com a autorização da família.
+  // O planejamento da turma (sem estudante) segue a configuração da IA.
+  const useAI = support ? await aiAllowedFor(support.studentId) : isAIEnabled();
   let state: AiState = "aguardando_revisao";
   let provider = useAI ? "ia" : "regras";
   let model: string | null = useAI ? null : "regras-dua-v1";

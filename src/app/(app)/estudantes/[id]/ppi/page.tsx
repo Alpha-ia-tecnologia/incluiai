@@ -1,4 +1,6 @@
 ﻿import Link from "next/link";
+import { ConsentNote } from "@/components/consent-note";
+import { aiAllowedFor } from "@/lib/consent";
 import { prisma } from "@/lib/prisma";
 import { createPlan, createObjective, markObjectiveStatus, reviewPlan, closePlan } from "@/actions/plan";
 import { activatePlanDraft, discardPlanDraft, generatePlanDraft } from "@/actions/plan-ai";
@@ -80,7 +82,9 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       );
     }
     const hasData = Boolean(student.profile || student.caseStudy);
-    const aiOn = isAIEnabled();
+    // IA só com a autorização da família; o aviso explica quando falta.
+    const aiOn = await aiAllowedFor(id);
+    const consentMissing = isAIEnabled() && !aiOn;
     const generate = generatePlanDraft.bind(null, id);
     const manualForm = (
         <Card className="max-w-2xl">
@@ -129,6 +133,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         <PageHeader level={2} title="Plano de ensino (PPI)" lede="Reúna o que o estudante já consegue fazer e os apoios que a equipe vai oferecer. Depois, defina os objetivos de aprendizagem." />
         <Card className="mb-6 max-w-2xl border-brand/30 bg-brand-soft/40">
           <SectionTitle><span className="flex items-center gap-2"><Sparkles size={16} aria-hidden /> {aiOn ? "Peça uma proposta aos agentes de IA" : "Peça uma proposta automática"}</span></SectionTitle>
+          <ConsentNote show={consentMissing} />
           <p className="text-sm leading-relaxed text-ink-soft">
             {aiOn
               ? "Três agentes trabalham em sequência: o analista lê o estudo de caso, o planejador propõe objetivos e estratégias e o revisor confere tudo. Você revisa e decide antes de ativar o plano."
