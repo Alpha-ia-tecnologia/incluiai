@@ -35,7 +35,7 @@ export async function createDiaryEntry(studentId: string, formData: FormData) {
 export async function markHomeActivityDone(activityId: string) {
   const user = await getCurrentUser();
   const activity = await prisma.activity.findUnique({ where: { id: activityId }, select: { studentId: true, title: true, context: true, status: true } });
-  if (!user || !activity || user.role !== "familia" || user.studentId !== activity.studentId || activity.context !== "casa" || !["aceita", "aplicada"].includes(activity.status)) {
+  if (!user || !activity || user.role !== "familia" || !user.studentIds.includes(activity.studentId) || activity.context !== "casa" || !["aceita", "aplicada"].includes(activity.status)) {
     throw new Error("Você não tem permissão para esta ação.");
   }
   await prisma.familyNote.create({ data: { studentId: activity.studentId, note: homeActivityNote(activity.title), author: "Família" } });

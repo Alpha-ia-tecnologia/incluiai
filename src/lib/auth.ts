@@ -82,7 +82,10 @@ async function sessionFromCookie() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return prisma.session.findUnique({ where: { tokenHash: hashSessionToken(token) }, include: { user: true } });
+  return prisma.session.findUnique({
+    where: { tokenHash: hashSessionToken(token) },
+    include: { user: { include: { studentLinks: { select: { studentId: true }, orderBy: { createdAt: "asc" } } } } },
+  });
 }
 
 // Sessão aberta agora (para encerrar as outras ao ligar as duas etapas).
@@ -117,7 +120,8 @@ export type SessionUser = {
   email: string;
   role: string;
   schoolId: string | null;
-  studentId: string | null;
+  // Família e terapeuta: estudantes vinculados (StudentLink), na ordem do vínculo.
+  studentIds: string[];
 };
 
 // Uma consulta por requisição, mesmo com layout, página e ação pedindo o usuário.
@@ -133,9 +137,19 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   if (session.mfaPending || (twoFactorRequired(session.user.role) && !session.user.totpEnabledAt)) return null;
   if (shouldTouchSession(session.lastSeenAt, now)) await prisma.session.update({ where: { id: session.id }, data: { lastSeenAt: now } });
   const user = session.user;
+  let studentIds = user.studentLinks.map((link) => link.studentId);
+  // Conta de antes do vínculo múltiplo: copia o estudante do campo antigo uma vez.
+  if (!studentIds.length && user.studentId && isLinkedRole(user.role)) {
+    await prisma.studentLink.upsert({
+      where: { userId_studentId: { userId: user.id, studentId: user.studentId } },
+      create: { userId: user.id, studentId: user.studentId },
+      update: {},
+    }).catch(() => null);
+    studentIds = [user.studentId];
+  }
   return {
     id: user.id, name: user.name, email: user.email,
-    role: user.role, schoolId: user.schoolId, studentId: user.studentId,
+    role: user.role, schoolId: user.schoolId, studentIds: isLinkedRole(user.role) ? studentIds : [],
   };
 });
 
@@ -187,7 +201,7 @@ const SCHOOL_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coord
 
 export function canAccessStudent(user: SessionUser, studentSchoolId: string, studentId: string): boolean {
   if (user.role === "secretaria") return true;
-  if (user.role === "familia" || user.role === "terapeuta") return user.studentId === studentId;
+  if (isLinkedRole(user.role)) return user.studentIds.includes(studentId);
   if (SCHOOL_ROLES.has(user.role)) {
     return !user.schoolId || user.schoolId === studentSchoolId;
   }
@@ -203,6 +217,11 @@ export function isSchoolStaff(role: string): boolean {
 }
 
 // Equipe escolar ou gestão da rede — perfis com visão de listas/painéis.
+// Família e terapeuta: veem só os estudantes vinculados à conta, pelos portais.
+export function isLinkedRole(role: string): boolean {
+  return role === "familia" || role === "terapeuta";
+}
+
 export function isStaffOrNetwork(role: string): boolean {
   return SCHOOL_ROLES.has(role) || NETWORK_ROLES.has(role);
 }

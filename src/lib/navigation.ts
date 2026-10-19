@@ -9,14 +9,17 @@ export type NavigationItem = {
 
 const PLANNER_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]);
 
-export function getNavigation(role: string, studentId: string | null): NavigationItem[] {
+export function getNavigation(role: string, studentIds: string[] = []): NavigationItem[] {
   const help: NavigationItem = { href: "/ajuda", label: "Ajuda e primeiros passos", shortLabel: "Ajuda", icon: "help", section: "help" };
   const calendar: NavigationItem = { href: "/calendario", label: "Calendário inclusivo", shortLabel: "Calendário", icon: "calendar", section: "routine" };
   const journey: NavigationItem = { href: "/jornada", label: "Minha jornada", shortLabel: "Jornada", icon: "journey", section: "routine" };
   const assistant: NavigationItem = { href: "/assistente", label: "Assistente", shortLabel: "Assistente", icon: "assistant", section: "routine" };
   if (role === "familia") {
     return [
-      { href: studentId ? `/familia/${studentId}` : "/familia", label: "Acompanhar meu filho", shortLabel: "Meu filho", icon: "family", section: "routine" },
+      // Mais de um filho vinculado: a lista do portal da família, para escolher.
+      studentIds.length === 1
+        ? { href: `/familia/${studentIds[0]}`, label: "Acompanhar meu filho", shortLabel: "Meu filho", icon: "family", section: "routine" }
+        : { href: "/familia", label: "Acompanhar meus filhos", shortLabel: "Meus filhos", icon: "family", section: "routine" },
       journey,
       assistant,
       calendar,

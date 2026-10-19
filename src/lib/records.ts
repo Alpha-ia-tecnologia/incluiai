@@ -96,7 +96,7 @@ export type IntersectorReportInput = {
 };
 
 export async function saveIntersectorReport(user: SessionUser, studentId: string, input: IntersectorReportInput) {
-  if (user.role !== "terapeuta" || user.studentId !== studentId) {
+  if (user.role !== "terapeuta" || !user.studentIds.includes(studentId)) {
     throw new Error("Só o terapeuta vinculado ao estudante pode enviar orientações.");
   }
   const consent = await prisma.consent.findUnique({ where: { studentId }, select: { therapistLink: true } });

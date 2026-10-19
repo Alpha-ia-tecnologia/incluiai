@@ -522,7 +522,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
 // ---------------------------------------------------------------------------
 async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> {
   const welcomed = marks.has("boas_vindas");
-  if (!user.studentId) {
+  if (!user.studentIds.length) {
     return finish({
       kind: "familia", character: "care", welcomed, title: "Sua história com a escola",
       intro: "Seu acesso ainda precisa ser vinculado a um estudante. Peça à equipe da escola para conferir o cadastro.",
@@ -531,7 +531,7 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     });
   }
   const s = await prisma.student.findUniqueOrThrow({
-    where: { id: user.studentId },
+    where: { id: user.studentIds[0] },
     include: {
       plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" } } } },
       activities: { where: { context: "casa", status: { in: ["aceita", "aplicada"] } }, select: { id: true } },
@@ -607,7 +607,7 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
 // ---------------------------------------------------------------------------
 async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journey> {
   const welcomed = marks.has("boas_vindas");
-  if (!user.studentId) {
+  if (!user.studentIds.length) {
     return finish({
       kind: "terapeuta", character: "care", welcomed, title: "Sua história com a escola",
       intro: "Seu acesso ainda precisa ser vinculado a um estudante. Peça à equipe da escola para conferir o cadastro.",
@@ -616,7 +616,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
     });
   }
   const s = await prisma.student.findUniqueOrThrow({
-    where: { id: user.studentId },
+    where: { id: user.studentIds[0] },
     include: {
       profile: { select: { expressiveChannel: true, interests: true } },
       intersectorReports: { orderBy: { createdAt: "asc" }, select: { createdAt: true } },

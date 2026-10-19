@@ -31,7 +31,7 @@ export async function imagesAllowedFor(studentId: string): Promise<boolean> {
 
 // Só a família vinculada ao estudante decide; a decisão entra no histórico de acessos.
 export async function setStudentConsent(user: SessionUser, studentId: string, field: ConsentField, value: boolean): Promise<void> {
-  if (user.role !== "familia" || user.studentId !== studentId) throw new Error("Só a família do estudante decide as autorizações.");
+  if (user.role !== "familia" || !user.studentIds.includes(studentId)) throw new Error("Só a família do estudante decide as autorizações.");
   await prisma.consent.upsert({
     where: { studentId },
     create: { studentId, [field]: value, updatedBy: user.name },

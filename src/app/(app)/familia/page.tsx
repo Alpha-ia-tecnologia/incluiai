@@ -1,33 +1,41 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { canAccessStudent, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { PageHero, Card } from "@/components/ui";
 import { ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+// Família com mais de um filho vinculado escolhe aqui; a equipe confere como a
+// família vê o portal, só com os estudantes que já acompanha (a própria escola).
 export default async function FamilyPortalIndex() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role === "familia" && user.studentId) redirect(`/familia/${user.studentId}`);
-  if (!isStaffOrNetwork(user.role) || user.role === "secretaria") redirect("/");
-  const students = await prisma.student.findMany({
-    where: { status: "ativo" },
+  const family = user.role === "familia";
+  if (family && user.studentIds.length === 1) redirect(`/familia/${user.studentIds[0]}`);
+  if (family ? !user.studentIds.length : !isStaffOrNetwork(user.role) || user.role === "secretaria") redirect("/");
+  const candidates = await prisma.student.findMany({
+    where: family ? { id: { in: user.studentIds } } : { status: "ativo", ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
     include: { school: true },
     orderBy: { name: "asc" },
   });
+  const students = candidates.filter((student) => canAccessStudent(user, student.schoolId, student.id));
 
   return (
     <>
       <PageHero
         character="care"
         title="Portal da família"
-        lede="Um ambiente simples, sem linguagem excessivamente técnica, para acompanhar avanços, registrar conquistas e saber quem acessou os dados do estudante."
+        lede={family
+          ? "Escolha quem você quer acompanhar: avanços, atividades para casa e quem acessou os dados de cada um."
+          : "Um ambiente simples, sem linguagem excessivamente técnica, para acompanhar avanços, registrar conquistas e saber quem acessou os dados do estudante."}
       />
-      <p className="mb-4 text-xs text-ink-soft">
-        Demonstração: em produção, cada responsável acessa apenas o próprio estudante.
-      </p>
+      {family ? null : (
+        <p className="mb-4 text-xs text-ink-soft">
+          Veja como a família enxerga o portal. Cada responsável acessa só os estudantes vinculados à conta dele.
+        </p>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         {students.map((s) => (
           <Link key={s.id} href={`/familia/${s.id}`} className="group">

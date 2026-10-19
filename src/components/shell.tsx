@@ -18,7 +18,7 @@ const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, a
 export function Shell({ user, children }: { user: SessionUser; children: ReactNode }) {
   // Iniciais sem títulos e observações entre parênteses: "Carla (mãe de Dante)" → "C".
   const initials = user.name.replace(/\([^)]*\)/g, " ").split(/\s+/).filter((part) => /^\p{L}/u.test(part) && !part.includes(".")).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || user.name[0];
-  const links = getNavigation(user.role, user.studentId);
+  const links = getNavigation(user.role, user.studentIds);
   const home = links[0].href;
   return (
     <div className="app-frame">

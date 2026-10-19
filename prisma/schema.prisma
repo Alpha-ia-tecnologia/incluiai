@@ -58,6 +58,7 @@ model Student {
   accessLogs         AccessLog[]
   accessGrants          AccessGrant[]
   consent               Consent?
+  userLinks             StudentLink[]
   intersectorReports IntersectorReport[]
   materials          Material[]
   caseStudy          CaseStudy?
@@ -106,7 +107,9 @@ model User {
   passwordHash String
   role         String // professor_sala | professor_aee | coordenacao | gestao | secretaria | familia | terapeuta
   schoolId     String? // vincula profissional/gestor a uma escola
-  studentId    String? // vincula família/terapeuta a um estudante
+  // Legado: o vínculo de família e terapeuta agora fica em StudentLink (mais de
+  // um estudante por conta). Contas antigas são copiadas no primeiro acesso.
+  studentId    String?
   createdAt    DateTime @default(now())
 
   // Verificação em duas etapas (seção 14): segredo do aplicativo autenticador,
@@ -121,6 +124,21 @@ model User {
   journeyMarks  JourneyMark[]
   conversations AssistantConversation[]
   sessions      Session[]
+  studentLinks  StudentLink[]
+}
+
+// Família ou terapeuta vinculado a um ou mais estudantes (irmãos na mesma
+// escola ou em escolas diferentes; um terapeuta com vários pacientes).
+model StudentLink {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, studentId])
+  @@index([studentId])
 }
 
 // Sessão no servidor (seção 14): o cookie leva só um código aleatório; aqui fica

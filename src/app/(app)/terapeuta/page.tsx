@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { studentConsent } from "@/lib/consent";
 import { SUMMARY_VIEW_DETAILS } from "@/lib/access-log";
@@ -24,17 +25,25 @@ export const dynamic = "force-dynamic";
 
 const fieldStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
-export default async function TherapistPage() {
-  const user = await getCurrentUser();
+export default async function TherapistPage({ searchParams }: { searchParams: Promise<{ estudante?: string | string[] }> }) {
+  const [user, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!user) redirect("/login");
-  if (user.role !== "terapeuta" || !user.studentId) redirect("/");
+  if (user.role !== "terapeuta" || !user.studentIds.length) redirect("/");
+  // Terapeuta com mais de um estudante vinculado escolhe pela URL; só vale um estudante do vínculo.
+  const asked = Array.isArray(query.estudante) ? query.estudante[0] : query.estudante;
+  const studentId = asked && user.studentIds.includes(asked) ? asked : user.studentIds[0];
   await recordJourneyMark(user.id, "terapeuta_inicio");
-  const journey = await loadJourney(user);
+  const [journey, linked] = await Promise.all([
+    loadJourney(user),
+    user.studentIds.length > 1 ? prisma.student.findMany({ where: { id: { in: user.studentIds } }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : [],
+  ]);
+  const switcher = <StudentSwitcher students={linked} current={studentId} />;
   // Seção 8 e 12: a conexão com a escola depende da autorização da família.
-  if (!(await studentConsent(user.studentId)).therapistLink) {
+  if (!(await studentConsent(studentId)).therapistLink) {
     return (
       <>
         <PageHero character="care" eyebrow={<><Stethoscope size={16} aria-hidden /> Rede de saúde</>} title="Articulação intersetorial" lede="Espaço do terapeuta: apenas informações funcionais relevantes ao ambiente escolar." />
+        {switcher}
         <Card className="max-w-2xl">
           <SectionTitle>Aguardando a autorização da família</SectionTitle>
           <p className="text-sm leading-relaxed text-ink-soft">A família ainda não autorizou a conexão com a escola pela plataforma. Quando autorizar, você verá o perfil funcional do estudante e poderá enviar orientações para a equipe.</p>
@@ -44,7 +53,7 @@ export default async function TherapistPage() {
   }
 
   const student = await prisma.student.findUniqueOrThrow({
-    where: { id: user.studentId },
+    where: { id: studentId },
     include: {
       profile: true,
       intersectorReports: { orderBy: { createdAt: "desc" } },
@@ -79,6 +88,7 @@ export default async function TherapistPage() {
         lede="Espaço do terapeuta: apenas informações funcionais relevantes ao ambiente escolar. Os registros clínicos completos permanecem no sistema de saúde."
       />
       {journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />}
+      {switcher}
 
       <section aria-label="Seus relatórios" className="mb-6">
         <DataBoard className="sm:grid-cols-2">
@@ -170,5 +180,26 @@ function ReportDetails({ report: r }: { report: Report }) {
       <div><dt className="text-xs text-ink-soft">Orientações à escola</dt><dd className="text-ink">{r.schoolGuidance}</dd></div>
       <div><dt className="text-xs text-ink-soft">Objetivos compartilhados</dt><dd className="text-ink">{r.sharedGoals}</dd></div>
     </dl>
+  );
+}
+
+// Um terapeuta com mais de um estudante: pílulas com o primeiro nome; a ativa
+// fica marcada para o leitor de tela (aria-current).
+function StudentSwitcher({ students, current }: { students: { id: string; name: string }[]; current: string }) {
+  if (students.length < 2) return null;
+  return (
+    <nav aria-label="Estudantes acompanhados" className="mb-6 flex min-w-0 flex-wrap items-center gap-2">
+      <p className="text-sm font-medium text-ink">Estudante:</p>
+      {students.map((student) => (
+        <Link
+          key={student.id}
+          href={`/terapeuta?estudante=${student.id}`}
+          aria-current={student.id === current ? "page" : undefined}
+          className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm transition-colors ${student.id === current ? "bg-brand font-medium text-white" : "bg-surface-muted text-ink-soft hover:bg-line hover:text-ink"}`}
+        >
+          {student.name.split(" ")[0]}
+        </Link>
+      ))}
+    </nav>
   );
 }

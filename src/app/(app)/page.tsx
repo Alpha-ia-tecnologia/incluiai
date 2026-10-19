@@ -19,10 +19,10 @@ export const dynamic = "force-dynamic";
 export default async function SchoolDashboard() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (["familia", "terapeuta"].includes(user.role) && !user.studentId) {
+  if (["familia", "terapeuta"].includes(user.role) && !user.studentIds.length) {
     return <><h1 className="mb-6 font-display text-3xl tracking-tight">Boas-vindas, {firstName(user.name)}</h1><EmptyState character="care" title="Seu acesso ainda precisa ser vinculado a um estudante" hint="Peça à equipe da escola para conferir seu cadastro. Depois disso, o acompanhamento aparecerá aqui." action={<Link className="task-action" href="/ajuda">Consultar a ajuda</Link>} /></>;
   }
-  if (user.role === "familia") redirect(`/familia/${user.studentId}`);
+  if (user.role === "familia") redirect(user.studentIds.length === 1 ? `/familia/${user.studentIds[0]}` : "/familia");
   if (user.role === "terapeuta") redirect("/terapeuta");
   const journey = await loadJourney(user);
   const scoped = isSchoolStaff(user.role) && user.schoolId;

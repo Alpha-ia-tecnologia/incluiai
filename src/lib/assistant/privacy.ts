@@ -138,7 +138,7 @@ export async function loadPseudonymizer(user: SessionUser, map: PseudonymMap): P
   const [candidates, schools, users] = await Promise.all([
     prisma.student.findMany({
       where: user.role === "familia" || user.role === "terapeuta"
-        ? { id: user.studentId ?? "" }
+        ? { id: { in: user.studentIds } }
         : { ...(user.schoolId && user.role !== "secretaria" ? { schoolId: user.schoolId } : {}) },
       select: { id: true, name: true, schoolId: true, guardianName: true, familyNotes: { select: { author: true } }, intersectorReports: { select: { authorName: true } } },
       orderBy: { name: "asc" },

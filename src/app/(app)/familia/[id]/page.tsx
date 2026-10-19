@@ -198,7 +198,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             )}
           </Card>
 
-          <ConsentCard studentId={id} firstName={firstName} consent={consent} canDecide={isFamily && user.studentId === id} />
+          <ConsentCard studentId={id} firstName={firstName} consent={consent} canDecide={isFamily && user.studentIds.includes(id)} />
 
           <Card>
             <SectionTitle>

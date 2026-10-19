@@ -427,7 +427,10 @@ async function main() {
   ];
   for (const c of contas) {
     await prisma.user.create({
-      data: { ...c, passwordHash: hashPassword("demo123"), schoolId: c.schoolId ?? null, studentId: c.studentId ?? null },
+      data: {
+        name: c.name, email: c.email, role: c.role, passwordHash: hashPassword("demo123"), schoolId: c.schoolId ?? null,
+        ...(c.studentId ? { studentLinks: { create: { studentId: c.studentId } } } : {}),
+      },
     });
   }
 

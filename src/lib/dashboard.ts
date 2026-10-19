@@ -190,7 +190,9 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       },
     }),
     prisma.schoolClass.count({ where: schoolId ? { schoolId } : {} }),
-    prisma.user.findMany({ select: { role: true, schoolId: true, studentId: true } }),
+    prisma.user.findMany({ select: { role: true, schoolId: true, studentId: true, studentLinks: { select: { studentId: true } } } })
+      // Vínculos de família e terapeuta (StudentLink; o campo antigo vale até o primeiro acesso).
+      .then((rows) => rows.map((row) => ({ role: row.role, schoolId: row.schoolId, studentIds: row.studentLinks.length ? row.studentLinks.map((link) => link.studentId) : row.studentId ? [row.studentId] : [] }))),
     prisma.accessLog.groupBy({ by: ["action"], where: { student: studentWhere, createdAt }, _count: { _all: true } }),
     prisma.accessLog.findMany({ where: { student: studentWhere, createdAt, role: { not: "sistema" } }, distinct: ["actor"], select: { actor: true } }),
     prisma.accessLog.count({ where: { student: studentWhere, createdAt, actor: "Agentes de IA" } }),
@@ -319,7 +321,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
 
   // ---------- Equipe e acessos ----------
   const scopeIds = new Set(students.map((student) => student.id));
-  const scopedUsers = schoolId ? users.filter((item) => item.schoolId === schoolId || (item.studentId !== null && scopeIds.has(item.studentId))) : users;
+  const scopedUsers = schoolId ? users.filter((item) => item.schoolId === schoolId || item.studentIds.some((id) => scopeIds.has(id))) : users;
   const accessCount = (action: string) => accessByAction.find((row) => row.action === action)?._count._all ?? 0;
   const proposalCount = (detail: string) => proposals.find((row) => row.detail === detail)?._count._all ?? 0;
   const reports = students.flatMap((student) => student.intersectorReports);
@@ -466,7 +468,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     family: {
       notes: students.flatMap((student) => student.familyNotes).filter((note) => inPeriod(note.date)).length,
       records: periodEntries.filter((entry) => entry.authorRole === "familia").length,
-      withAccess: count((student) => users.some((item) => item.role === "familia" && item.studentId === student.id)),
+      withAccess: count((student) => users.some((item) => item.role === "familia" && item.studentIds.includes(student.id))),
       reports: reports.length,
       reportsInPeriod: reports.filter((report) => inPeriod(report.createdAt)).length,
       studentsWithReport: count((student) => student.intersectorReports.length > 0),
