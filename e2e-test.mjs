@@ -1436,6 +1436,52 @@ if (!ONLY_WAIT) {
     check("avisos: sem erros de cliente (equipe)", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
+  // ---------- 19. Dossiê de evidências ----------
+  // O AEE confere o dossiê do estudante e imprime (fica no histórico que a família
+  // vê); a coordenação vê a escola com nomes; a Secretaria, só números.
+  {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    const dante = await page.evaluate(() => [...document.querySelectorAll("article")].find((card) => card.textContent.includes("Dante"))?.querySelector('a[href^="/estudantes/c"]')?.getAttribute("href")?.match(/^\/estudantes\/[^/?#]+/)?.[0]);
+    await page.goto(`${BASE}${dante}/dossie`, { waitUntil: "networkidle2" });
+    let body = await textOf(page);
+    check("dossiê: aba com o checklist das normas", body.includes("Dossiê de evidências") && body.includes("Estudo de caso concluído") && body.includes("Decreto, art. 11, § 3º") && body.includes("PEI: devolutivas à família"));
+    check("dossiê: a devolutiva validada conta como evidência", /Último relatório do período validado em \d{2}\/\d{2}\/\d{4}/.test(body));
+    check("dossiê: sem exigência de laudo", body.includes("Sem exigência de laudo"));
+    check("dossiê: cada item leva ao registro", await page.evaluate(() => [...document.querySelectorAll("a")].some((link) => link.textContent.includes("Ver o registro") && link.getAttribute("href").endsWith("/estudo-de-caso"))));
+    await page.goto(`${BASE}${dante}/dossie/imprimir`, { waitUntil: "networkidle2" });
+    body = await textOf(page);
+    check("dossiê: versão para imprimir, sem links", body.includes("Dossiê de evidências: Dante") && body.includes("Gerado em") && !body.includes("Ver o registro"));
+    check("dossiê: sem erros de cliente (AEE)", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    const family = await newSession();
+    await login(family.page, "familia@email.com");
+    check("dossiê: a impressão fica no histórico que a família vê", await family.page.evaluate(() => (document.querySelector("#conteudo")?.textContent ?? "").includes("Impressão do dossiê de evidências")));
+    await family.ctx.close();
+
+    const coord = await newSession();
+    await login(coord.page, "coordenacao@escola.edu.br");
+    await coord.page.goto(`${BASE}/dossie?filtro=pendentes`, { waitUntil: "networkidle2" });
+    body = await textOf(coord.page);
+    check("dossiê da escola: a coordenação vê os estudantes e o que falta", body.includes("O que mais falta") && body.includes("Só com pendências") && await coord.page.evaluate(() => document.querySelectorAll('main a[href$="/dossie"]').length > 0));
+    check("dossiê da escola: sem erros de cliente", coord.errors.length === 0, coord.errors.join("; "));
+    await coord.ctx.close();
+
+    const network = await newSession();
+    await login(network.page, "secretaria@municipio.gov.br");
+    await network.page.goto(`${BASE}/dossie`, { waitUntil: "networkidle2" });
+    body = await textOf(network.page);
+    check("dossiê da rede: a Secretaria vê números por escola, sem nomes", body.includes("Por escola") && !body.includes("Dante") && await network.page.evaluate(() => !document.querySelector('main a[href^="/estudantes/"]')));
+    await network.ctx.close();
+
+    const teacher = await newSession();
+    await login(teacher.page, "professor@escola.edu.br");
+    await teacher.page.goto(`${BASE}/dossie`, { waitUntil: "networkidle2" });
+    check("dossiê da escola: o professor da sala comum não abre", new URL(teacher.page.url()).pathname === "/");
+    await teacher.ctx.close();
+  }
 }
 
 await browser.close();

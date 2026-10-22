@@ -4,31 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-const TABS = [
-  { slug: "", label: "Resumo" },
-  { slug: "estudo-de-caso", label: "Estudo de caso" },
-  { slug: "sondagem", label: "Sondagem" },
-  { slug: "perfil", label: "Como aprende" },
-  { slug: "ppi", label: "Plano de ensino" },
-  { slug: "atividades", label: "Atividades" },
-  { slug: "dua", label: "Atividades com DUA" },
-  { slug: "diario", label: "Registrar aula" },
-  { slug: "atendimentos-aee", label: "Atendimentos AEE" },
-  { slug: "linha-do-tempo", label: "Evolução" },
-  { slug: "materiais", label: "Materiais de apoio" },
-  { slug: "relatorios", label: "Relatórios" },
-];
-
-// Seções que ficam ocultas para quem não acessa o detalhe pedagógico (família e terapeuta).
-const PEDAGOGICAL_ONLY = new Set(["estudo-de-caso", "sondagem", "dua", "atendimentos-aee"]);
-// Leitura sem edição (Secretaria com motivo registrado): as abas de consulta.
-const READ_ONLY_TABS = new Set(["", "estudo-de-caso", "sondagem", "ppi", "atendimentos-aee", "linha-do-tempo", "materiais", "relatorios"]);
+import { visibleTabs } from "@/lib/student-tab-list";
 
 type Fade = "start" | "end" | "both" | undefined;
 
-// showCaseStudy = pode ver o detalhe pedagógico (estudo de caso, DUA e frequência do AEE).
-// showDua, quando informado, esconde só a aba do DUA de quem vê o detalhe mas não planeja (secretaria).
+// Quem vê cada aba: visibleTabs (src/lib/student-tab-list.ts).
 // As abas ficam numa linha que rola de lado (computador e celular); a aberta fica à vista.
 export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy, readOnly = false }: { studentId: string; showCaseStudy: boolean; showDua?: boolean; readOnly?: boolean }) {
   const pathname = usePathname();
@@ -36,7 +16,7 @@ export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy,
   const activeRef = useRef<HTMLAnchorElement>(null);
   const [fade, setFade] = useState<Fade>(undefined);
   const base = `/estudantes/${studentId}`;
-  const tabs = TABS.filter((tab) => (showCaseStudy || !PEDAGOGICAL_ONLY.has(tab.slug)) && (showDua || tab.slug !== "dua") && (!readOnly || READ_ONLY_TABS.has(tab.slug))).map((tab) => ({
+  const tabs = visibleTabs({ showCaseStudy, showDua, readOnly }).map((tab) => ({
     ...tab,
     href: tab.slug ? `${base}/${tab.slug}` : base,
   }));

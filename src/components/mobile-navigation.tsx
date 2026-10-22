@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
-import { Home, Users, Layers, Route, Sparkles, Library, BarChart3, School, Heart, Stethoscope, CircleHelp, CalendarDays, Menu, X, UserCog } from "lucide-react";
+import { Home, Users, Layers, Route, Sparkles, Library, BarChart3, School, Heart, Stethoscope, CircleHelp, CalendarDays, Menu, X, UserCog, FolderCheck } from "lucide-react";
 import type { NavigationItem } from "@/lib/navigation";
 
-const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, accounts: UserCog, family: Heart, care: Stethoscope, help: CircleHelp };
+const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, accounts: UserCog, family: Heart, care: Stethoscope, help: CircleHelp, evidence: FolderCheck };
 
 export function MobileNavigation({ links }: { links: NavigationItem[] }) {
   const pathname = usePathname();

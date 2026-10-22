@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
-import { Home, Users, Layers, Route, Sparkles, BarChart3, Library, Heart, ShieldCheck, Stethoscope, LogOut, School, Sprout, ChevronDown, CircleHelp, CalendarDays, UserCog } from "lucide-react";
+import { Home, Users, Layers, Route, Sparkles, BarChart3, Library, Heart, ShieldCheck, Stethoscope, LogOut, School, Sprout, ChevronDown, CircleHelp, CalendarDays, UserCog, FolderCheck } from "lucide-react";
 import { NavLink } from "./nav-link";
 import { MobileNavigation } from "./mobile-navigation";
 import { getNavigation } from "@/lib/navigation";
@@ -15,7 +15,7 @@ import { NavigationProgress } from "./navigation-progress";
 import { TextSizeControl } from "./text-size-control";
 import { NoticeBell } from "./notice-bell";
 
-const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, accounts: UserCog, family: Heart, care: Stethoscope, help: CircleHelp };
+const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, accounts: UserCog, family: Heart, care: Stethoscope, help: CircleHelp, evidence: FolderCheck };
 
 export function Shell({ user, notices = { unread: 0, latest: null }, children }: { user: SessionUser; notices?: { unread: number; latest: string | null }; children: ReactNode }) {
   // Iniciais sem títulos e observações entre parênteses: "Carla (mãe de Dante)" → "C".

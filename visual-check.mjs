@@ -103,14 +103,14 @@ await account("aee@escola.edu.br", "aee", async (page) => {
   const material = student ? await firstLink(page, `${student}/materiais`, `a[href^="${student}/materiais/c"]`) : null;
   const report = student ? await firstLink(page, `${student}/relatorios`, `a[href^="${student}/relatorios/c"]`) : null;
   const adapted = student ? await firstLink(page, `${student}/atividades`, `a[href^="${student}/atividades/adaptadas/c"]`) : null;
-  const tabs = student ? ["", "/perfil", "/estudo-de-caso", "/ppi", "/diario", "/linha-do-tempo", "/atividades", "/materiais", "/atendimentos-aee", "/dua", "/relatorios", "/sondagem", "/sondagem/aplicar"].map((tab) => [`estudante${tab.replaceAll("/", "_")}`, `${student}${tab}`]) : [];
+  const tabs = student ? ["", "/perfil", "/estudo-de-caso", "/ppi", "/diario", "/linha-do-tempo", "/atividades", "/materiais", "/atendimentos-aee", "/dua", "/relatorios", "/sondagem", "/sondagem/aplicar", "/dossie", "/dossie/imprimir"].map((tab) => [`estudante${tab.replaceAll("/", "_")}`, `${student}${tab}`]) : [];
   return [
     ["inicio", "/"], ["estudantes", "/estudantes"], ["estudantes_novo", "/estudantes/novo"], ["jornada", "/jornada"], ["assistente", "/assistente"],
     ["calendario", "/calendario"], ["ajuda", "/ajuda"], ["recursos", "/recursos"], resource && ["recurso", resource],
     ...tabs, material && ["material", material], material && ["material_imprimir", `${material}/imprimir`],
     report && ["relatorio", report], report && ["relatorio_imprimir", `${report}/imprimir`],
     student && ["adaptar", `${student}/atividades/adaptar`], adapted && ["adaptada", adapted], adapted && ["adaptada_imprimir", `${adapted}/imprimir`],
-    ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], ["estudante_naoexiste", "/estudantes/naoexiste"],
+    ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["estudante_naoexiste", "/estudantes/naoexiste"],
   ];
 });
 
@@ -124,12 +124,12 @@ await account("professor@escola.edu.br", "professor", async (page) => {
 
 await account("coordenacao@escola.edu.br", "coordenacao", async (page) => {
   const accountLink = await firstLink(page, "/usuarios", 'a[href^="/usuarios/c"]');
-  return [["painel", "/painel"], ["cadastros", "/cadastros"], ["jornada", "/jornada"], ["estudantes", "/estudantes"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
+  return [["painel", "/painel"], ["dossie", "/dossie"], ["dossie_pendentes", "/dossie?filtro=pendentes"], ["cadastros", "/cadastros"], ["jornada", "/jornada"], ["estudantes", "/estudantes"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
 });
 
 await account("secretaria@municipio.gov.br", "secretaria", async (page) => {
   const accountLink = await firstLink(page, "/usuarios", 'a[href^="/usuarios/c"]');
-  return [["inicio", "/"], ["painel", "/painel"], ["avisos", "/avisos"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
+  return [["inicio", "/"], ["painel", "/painel"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
 });
 
 await account("familia@email.com", "familia", async (page) => {

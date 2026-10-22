@@ -2,7 +2,7 @@ export type NavigationItem = {
   href: string;
   label: string;
   shortLabel: string;
-  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help";
+  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help" | "evidence";
   exact?: boolean;
   section?: "routine" | "management" | "help";
 };
@@ -46,14 +46,18 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
     calendar,
   ];
   const dashboard: NavigationItem = { href: "/painel", label: "Painel de indicadores", shortLabel: "Painel", icon: "network" };
+  // Dossiê de evidências (item 8): a coordenação e a rede conferem; o AEE prepara.
+  const dossier: NavigationItem = { href: "/dossie", label: "Dossiê de evidências", shortLabel: "Dossiê", icon: "evidence" };
   if (["secretaria", "gestao", "coordenacao"].includes(role)) {
     links.push(
       { ...dashboard, section: "management" },
+      { ...dossier, section: "management" },
       { href: "/cadastros", label: "Escolas e turmas", shortLabel: "Cadastros", icon: "schools", section: "management" },
       { href: "/usuarios", label: "Pessoas e acessos", shortLabel: "Acessos", icon: "accounts", section: "management" },
     );
   } else {
     links.push({ ...dashboard, section: "routine" });
+    if (role === "professor_aee") links.push({ ...dossier, section: "routine" });
   }
   return [...links, help];
 }

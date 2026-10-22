@@ -161,6 +161,40 @@ O sino no topo de cada tela leva a **Avisos** e mostra quantos avisos são novos
 
 Regras puras em `src/lib/family-contact.ts`, com testes.
 
+## Dossiê de evidências
+
+A aba **Dossiê** do estudante mostra, item por item, o que o Decreto nº 12.686/2025 (com a redação do Decreto nº 12.773/2025) e a Portaria MEC nº 421/2026 pedem. Para cada item, diz se o registro está na plataforma e leva até ele. Cada item recebe uma situação:
+
+- **Em dia:** o registro existe.
+- **Para conferir:** o registro está incompleto ou o prazo venceu.
+- **Pendente:** o registro ainda não existe.
+
+Os itens são agrupados assim:
+
+- **Estudo de caso** (Decreto, art. 11):
+    - estudo concluído;
+    - as quatro etapas do § 1º;
+    - a participação da família e a do estudante (§ 3º);
+    - a nota de que nenhuma etapa exige laudo (§ 7º).
+- **Plano: PAEE e PEI.** O plano de ensino é o documento único que a Portaria permite (art. 7º, § 2º). Os itens são:
+    - o plano a partir do estudo de caso;
+    - a revisão anual (art. 7º, § 3º);
+    - o conteúdo mínimo do PAEE (art. 10) e do PEI (art. 11);
+    - a devolutiva à família, que é o relatório do período validado.
+- **Atendimento e acompanhamento:**
+    - os atendimentos do AEE nos últimos 30 dias;
+    - a sondagem em dia;
+    - as autorizações da família.
+
+Há também uma versão para imprimir ou salvar em PDF. Cada impressão fica no histórico de acessos que a família vê.
+
+Em **Dossiê de evidências**, no menu:
+
+- **Coordenação e AEE:** veem os estudantes da escola e o que falta em cada um. Podem filtrar só os que têm pendências.
+- **Secretaria:** vê a rede em números por escola, sem nomes, com "menos de 5" para números pequenos.
+
+O dossiê aponta onde está o registro e não substitui a análise da equipe nem um parecer jurídico. Regras puras em `src/lib/evidence.ts`, com testes.
+
 ## Habilidades da BNCC
 
 O objetivo do Plano de ensino e o planejamento com DUA ligam-se a habilidades da BNCC escolhidas na base oficial (`prisma/data/bncc.json`, 1.580 códigos de educação infantil, fundamental e médio), e não digitadas à mão:
