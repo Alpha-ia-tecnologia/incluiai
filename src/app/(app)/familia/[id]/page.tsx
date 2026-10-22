@@ -68,6 +68,9 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
 
   const isFamily = user.role === "familia";
+  // O acesso justificado da Secretaria nunca sai da lista, mesmo depois de 200 registros de rotina.
+  const justified = await prisma.accessLog.findMany({ where: { studentId: student.id, action: "acesso justificado" }, orderBy: { createdAt: "desc" }, take: 50 });
+  const accessLogs = [...new Map([...student.accessLogs, ...justified].map((log) => [log.id, log])).values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const [consent, reports, prefs, checkIn] = await Promise.all([
     studentConsent(student.id),
     prisma.studentReport.findMany({ where: { studentId: student.id, status: "validado" }, orderBy: { periodEnd: "desc" }, take: 6, select: { id: true, data: true, validatedAt: true, validatedByName: true } }),
@@ -243,15 +246,15 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
               <span className="flex items-center gap-1.5"><ShieldCheck size={13} aria-hidden /> Quem acessou os dados</span>
             </SectionTitle>
             {/* Seção 12: a família entende quem acessou os dados, com nome, papel e o que fez. */}
-            {student.accessLogs.length === 0 ? (
+            {accessLogs.length === 0 ? (
               <p className="text-sm text-ink-soft">Nenhum acesso registrado.</p>
             ) : (
               <>
-                <AccessList logs={student.accessLogs.slice(0, 8)} />
-                {student.accessLogs.length > 8 ? (
+                <AccessList logs={accessLogs.slice(0, 8)} />
+                {accessLogs.length > 8 ? (
                   <details className="mt-3">
-                    <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-brand-strong">Ver o histórico completo ({student.accessLogs.length} registros{student.accessLogs.length === 200 ? ", os mais recentes" : ""})</summary>
-                    <AccessList logs={student.accessLogs.slice(8)} />
+                    <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-brand-strong">Ver o histórico completo ({accessLogs.length} registros{student.accessLogs.length === 200 ? ", os mais recentes e os acessos justificados" : ""})</summary>
+                    <AccessList logs={accessLogs.slice(8)} />
                   </details>
                 ) : null}
               </>
