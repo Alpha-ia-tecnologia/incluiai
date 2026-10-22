@@ -6,26 +6,32 @@
 // num fetch POST com o corpo {"text": "..."}, e uma amostra das aberturas vai
 // para o PostHog (estatística de uso, nos Estados Unidos) com o endereço da página.
 
-// Versão fixa: uma atualização do widget não muda o envio sem a gente conferir.
+// O widget vem do endereço oficial: o avatar roda numa página HTML (unity/index.html)
+// que só o servidor do governo entrega como página (o jsDelivr a entrega como texto).
+// A versão conferida fica anotada: o E2E avisa quando o governo atualizar o widget.
+export const VLIBRAS_ROOT = "https://vlibras.gov.br/app";
 export const VLIBRAS_VERSION = "7.12.2";
-export const VLIBRAS_ROOT = `https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/vlibras-portal@v${VLIBRAS_VERSION}/app`;
 
 const TRANSLATOR_HOSTS = new Set(["traducao2.vlibras.gov.br", "traducao2-dth.vlibras.gov.br"]);
+const READS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-// traducao: anonimiza e envia; bloqueado: outro pedido ao tradutor (ex.: revisão
-// de tradução, que manda o texto num formato que não conferimos); analytics: não sai.
+// traducao: anonimiza e envia. bloqueado: qualquer outro envio de dados para fora
+// da plataforma (fechado por padrão: uma mudança no widget não abre caminho sem a
+// troca). analytics: a estatística de uso do widget, que não sai. outro: segue.
 export type RequestKind = "traducao" | "bloqueado" | "analytics" | "outro";
 
-export function requestKind(url: string): RequestKind {
+export function requestKind(url: string, method = "GET", origin = "https://plataforma.invalid"): RequestKind {
   let parsed: URL;
   try {
-    parsed = new URL(url, "https://plataforma.invalid");
+    parsed = new URL(url, origin);
   } catch {
     return "outro";
   }
   if (parsed.hostname === "posthog.com" || parsed.hostname.endsWith(".posthog.com")) return "analytics";
-  if (!TRANSLATOR_HOSTS.has(parsed.hostname)) return "outro";
-  return parsed.pathname.replace(/\/$/, "") === "/translate" ? "traducao" : "bloqueado";
+  const verb = method.toUpperCase();
+  if (TRANSLATOR_HOSTS.has(parsed.hostname)) return parsed.pathname.replace(/\/$/, "") === "/translate" && verb === "POST" ? "traducao" : "bloqueado";
+  if (parsed.origin === new URL(origin).origin || READS.has(verb)) return "outro";
+  return "bloqueado";
 }
 
 // O texto do pedido de tradução; null se o corpo não for o esperado (aí o pedido não sai).

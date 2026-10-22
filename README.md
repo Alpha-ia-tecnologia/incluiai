@@ -289,7 +289,7 @@ O objetivo do Plano de ensino e o planejamento com DUA ligam-se a habilidades da
 
 Todas as telas têm o botão de Libras do VLibras, o tradutor do governo federal, de código aberto (LGPL-3.0). O botão fica no meio da lateral direita e, com um clique num texto, o avatar traduz.
 
-- **Versão fixa:** o widget é a versão 7.12.2, carregada por endereço com versão (`src/lib/vlibras-core.ts`). Uma atualização do governo não muda o envio sem conferência.
+- **Endereço oficial:** o widget vem de `vlibras.gov.br/app`. O avatar roda numa página HTML que só o servidor do governo entrega como página: o jsDelivr a entrega como texto, e o avatar não abre. A versão conferida é a 7.12.2, e o E2E avisa quando o governo trocar a versão, para conferir de novo como o texto é enviado.
 - **Dados pessoais trocados antes do envio:**
     - O widget manda o texto ao tradutor (`traducao2.vlibras.gov.br`) com um `fetch`. A plataforma intercepta esse pedido (`src/components/vlibras.tsx`).
     - O texto passa por `/api/libras/anonimizar`, que troca nomes, documentos, datas e contatos por termos como "o estudante" e "um familiar". São as regras do anonimizador da IA.
@@ -300,7 +300,7 @@ Todas as telas têm o botão de Libras do VLibras, o tradutor do governo federal
     - rede: todos.
 
   Assim a troca não revela quem está cadastrado. Sem sessão, como na tela de entrada, troca só documentos, datas e contatos.
-- **Sem estatística no exterior:** os pedidos do widget ao PostHog (estatística de uso, nos Estados Unidos) e os demais pedidos ao tradutor, como a revisão de tradução, são bloqueados. A plataforma envia `Referrer-Policy: strict-origin-when-cross-origin`: outros sites recebem só o domínio, nunca o caminho da página.
+- **Fechado por padrão:** qualquer envio de dados (POST, PUT) para fora da plataforma que não seja o pedido de tradução é bloqueado. Isso inclui a estatística de uso do widget (PostHog, nos Estados Unidos) e a revisão de tradução. Uma mudança no widget não abre caminho sem a troca. A plataforma envia `Referrer-Policy: strict-origin-when-cross-origin`: outros sites recebem só o domínio, nunca o caminho da página.
 - **Limite:** nomes que a plataforma não conhece em texto livre (um vizinho, um médico citado à mão) podem passar. Por isso o portal da família avisa, no cartão "Autorizações", o que vai para o governo ao traduzir.
 - **Instalação sem internet:** `NEXT_PUBLIC_VLIBRAS=0` desliga o botão.
 

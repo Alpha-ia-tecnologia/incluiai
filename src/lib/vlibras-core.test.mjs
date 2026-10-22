@@ -4,15 +4,21 @@ import assert from "node:assert/strict";
 import { requestKind, tidyForLibras, translationBody, translationText, VLIBRAS_ROOT } from "./vlibras-core.ts";
 import { createAnonymizer, naturalizePlaceholders } from "./agents/anonymize-core.ts";
 
-test("cada pedido do widget: tradução, bloqueado, estatística ou outro", () => {
-  assert.equal(requestKind("https://traducao2.vlibras.gov.br/translate"), "traducao");
-  assert.equal(requestKind("https://traducao2-dth.vlibras.gov.br/translate/"), "traducao");
-  assert.equal(requestKind("https://traducao2.vlibras.gov.br/review"), "bloqueado");
-  assert.equal(requestKind("https://us.i.posthog.com/e/?ip=1"), "analytics");
-  assert.equal(requestKind("https://dicionario2.vlibras.gov.br/2018.3.1/WEBGL/CASA"), "outro");
-  assert.equal(requestKind("/api/libras/anonimizar"), "outro");
-  assert.equal(requestKind("http://[::1"), "outro");
-  assert.match(VLIBRAS_ROOT, /vlibras-portal@v7\.12\.2\/app$/);
+test("cada pedido: tradução, bloqueado, estatística ou outro (fechado por padrão)", () => {
+  const here = "https://incluiedu.municipio.gov.br";
+  assert.equal(requestKind("https://traducao2.vlibras.gov.br/translate", "POST", here), "traducao");
+  assert.equal(requestKind("https://traducao2-dth.vlibras.gov.br/translate/", "post", here), "traducao");
+  assert.equal(requestKind("https://traducao2.vlibras.gov.br/review", "POST", here), "bloqueado");
+  assert.equal(requestKind("https://traducao2.vlibras.gov.br/translate", "GET", here), "bloqueado");
+  assert.equal(requestKind("https://us.i.posthog.com/e/?ip=1", "POST", here), "analytics");
+  assert.equal(requestKind("https://dicionario2.vlibras.gov.br/2018.3.1/WEBGL/CASA", "GET", here), "outro");
+  // Envio de dados a outro site que não seja o tradutor: bloqueado, mesmo de um endereço novo.
+  assert.equal(requestKind("https://novo-tradutor.vlibras.gov.br/api", "POST", here), "bloqueado");
+  assert.equal(requestKind("https://exemplo.com/coleta", "PUT", here), "bloqueado");
+  assert.equal(requestKind("/api/libras/anonimizar", "POST", here), "outro");
+  assert.equal(requestKind(`${here}/api/assistente`, "POST", here), "outro");
+  assert.equal(requestKind("http://[::1", "POST", here), "outro");
+  assert.equal(VLIBRAS_ROOT, "https://vlibras.gov.br/app");
 });
 
 test("corpo do pedido: só o formato conferido passa", () => {

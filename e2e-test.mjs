@@ -1663,6 +1663,12 @@ if (!ONLY_WAIT) {
     check("vlibras: a estatística de uso (PostHog) não sai", statistics === 204 && analytics.length === 0, `${statistics} ${analytics.length}`);
     const review = await page.evaluate(async () => (await fetch("https://traducao2.vlibras.gov.br/review", { method: "POST", body: "{}" })).status);
     check("vlibras: outros pedidos ao tradutor são bloqueados", review === 403 && sent.length === 1, `${review} ${sent.length}`);
+    const elsewhere = await page.evaluate(async () => (await fetch("https://exemplo.com/coleta", { method: "POST", body: "texto" })).status);
+    check("vlibras: envio de dados a outro site é bloqueado (fechado por padrão)", elsewhere === 403, String(elsewhere));
+    // O widget vem do endereço oficial: quando o governo trocar a versão, este teste
+    // avisa para conferir de novo como o texto é enviado (src/lib/vlibras-core.ts).
+    const served = await fetch("https://vlibras.gov.br/app/vlibras-plugin.js", { method: "HEAD", redirect: "manual" }).then((response) => response.headers.get("location") ?? "", () => "sem rede");
+    check("vlibras: o governo serve a versão conferida (7.12.2)", served.includes("@v7.12.2/"), served);
     check("vlibras: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
 
