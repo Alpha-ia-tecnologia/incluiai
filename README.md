@@ -80,6 +80,21 @@ Planejamento da atividade **da turma** com o Desenho Universal para a Aprendizag
 
 O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](./docs/dua.md).
 
+## Relatório do período (devolutiva à família)
+
+A Portaria MEC nº 421/2026 (art. 11, IV) pede que o PEI registre as devolutivas às famílias. Na aba **Relatórios** do estudante:
+
+1. **Montar:** a equipe escolhe o período (o semestre atual por padrão). A plataforma junta os registros do período:
+    - os objetivos do plano, com o apoio no começo e no fim do período e a habilidade da BNCC;
+    - os atendimentos do AEE (realizados, faltas e cancelamentos);
+    - o que mais funcionou, as atividades registradas em aula e os materiais aprovados;
+    - as observações da família e as orientações do terapeuta, estas só com a conexão autorizada.
+2. **Rascunho do parecer:** a plataforma escreve um rascunho por regras, sem IA. Do estudo de caso entra só a parte pedagógica (síntese e apoios necessários); diagnóstico, saúde e dados da família ficam de fora.
+3. **Validar:** a equipe revisa e completa o parecer. Quem valida é o professor do AEE ou a coordenação, e só com o trecho entre colchetes completado.
+4. **Depois de validado:** o relatório não muda mais, porque guarda os registros como estavam. Ele aparece no portal da família, entra na linha do tempo e no histórico de acessos, e tem versão para imprimir ou salvar em PDF.
+
+O painel conta os estudantes com relatório validado nos últimos 6 meses. Regras puras em `src/lib/period-report.ts`, com testes.
+
 ## Habilidades da BNCC
 
 O objetivo do Plano de ensino e o planejamento com DUA ligam-se a habilidades da BNCC escolhidas na base oficial (`prisma/data/bncc.json`, 1.580 códigos de educação infantil, fundamental e médio), e não digitadas à mão:

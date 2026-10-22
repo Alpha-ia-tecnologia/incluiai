@@ -59,6 +59,7 @@ model Student {
   accessGrants          AccessGrant[]
   consent               Consent?
   userLinks             StudentLink[]
+  reports               StudentReport[]
   intersectorReports IntersectorReport[]
   materials          Material[]
   caseStudy          CaseStudy?
@@ -835,4 +836,28 @@ model AeeSession {
   updatedAt  DateTime @updatedAt
 
   @@index([studentId, date])
+}
+
+// Relatório do período (devolutiva à família, Portaria MEC nº 421/2026, art. 11, IV):
+// a plataforma junta os registros do período, o AEE escreve o parecer e valida.
+// Validado, não muda mais (data = fotografia dos registros) e aparece no portal da família.
+model StudentReport {
+  id              String    @id @default(cuid())
+  studentId       String
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  periodStart     DateTime
+  periodEnd       DateTime
+  status          String    @default("rascunho") // rascunho | validado
+  data            String // JSON: ReportData (src/lib/period-report.ts)
+  opinion         String    @default("")
+  createdById     String
+  createdByName   String
+  updatedByName   String
+  validatedById   String?
+  validatedByName String?
+  validatedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([studentId, periodEnd])
 }

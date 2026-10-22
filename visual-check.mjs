@@ -101,11 +101,13 @@ await account("aee@escola.edu.br", "aee", async (page) => {
   const student = await firstLink(page, "/estudantes", 'a[href^="/estudantes/c"]', "Ver acompanhamento");
   const resource = await firstLink(page, "/recursos", 'a[href^="/recursos/c"]');
   const material = student ? await firstLink(page, `${student}/materiais`, `a[href^="${student}/materiais/c"]`) : null;
-  const tabs = student ? ["", "/perfil", "/estudo-de-caso", "/ppi", "/diario", "/linha-do-tempo", "/atividades", "/materiais", "/atendimentos-aee", "/dua"].map((tab) => [`estudante${tab.replaceAll("/", "_")}`, `${student}${tab}`]) : [];
+  const report = student ? await firstLink(page, `${student}/relatorios`, `a[href^="${student}/relatorios/c"]`) : null;
+  const tabs = student ? ["", "/perfil", "/estudo-de-caso", "/ppi", "/diario", "/linha-do-tempo", "/atividades", "/materiais", "/atendimentos-aee", "/dua", "/relatorios"].map((tab) => [`estudante${tab.replaceAll("/", "_")}`, `${student}${tab}`]) : [];
   return [
     ["inicio", "/"], ["estudantes", "/estudantes"], ["estudantes_novo", "/estudantes/novo"], ["jornada", "/jornada"], ["assistente", "/assistente"],
     ["calendario", "/calendario"], ["ajuda", "/ajuda"], ["recursos", "/recursos"], resource && ["recurso", resource],
     ...tabs, material && ["material", material], material && ["material_imprimir", `${material}/imprimir`],
+    report && ["relatorio", report], report && ["relatorio_imprimir", `${report}/imprimir`],
     ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["estudante_naoexiste", "/estudantes/naoexiste"],
   ];
 });
@@ -131,7 +133,8 @@ await account("familia@email.com", "familia", async (page) => {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
   const portal = new URL(page.url()).pathname;
   const material = await firstLink(page, portal, 'a[href*="/materiais/"]');
-  return [["portal", portal], ["jornada", "/jornada"], ["conta_seguranca", "/conta/seguranca"], material && ["material", material]];
+  const report = await firstLink(page, portal, 'a[href*="/relatorios/"]');
+  return [["portal", portal], ["jornada", "/jornada"], ["conta_seguranca", "/conta/seguranca"], material && ["material", material], report && ["relatorio", report]];
 });
 
 await account("terapeuta@clinica.com.br", "terapeuta", async () => [["portal", "/terapeuta"], ["jornada", "/jornada"]]);

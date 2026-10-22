@@ -1254,6 +1254,49 @@ if (!ONLY_WAIT) {
     check("BNCC: painel conta objetivos por componente", (await textOf(coord.page)).includes("Objetivos por componente da BNCC"));
     await coord.ctx.close();
   }
+  // ---------- 14. Relatório do período (devolutiva à família) ----------
+  // O AEE monta o relatório do semestre, não valida com o trecho a completar,
+  // completa e valida; a família lê no portal e vê a validação no histórico.
+  {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    const dante = await page.evaluate(() => [...document.querySelectorAll("article")].find((card) => card.textContent.includes("Dante"))?.querySelector('a[href^="/estudantes/c"]')?.getAttribute("href")?.match(/^\/estudantes\/[^/?#]+/)?.[0]);
+    await page.goto(`${BASE}${dante}/relatorios`, { waitUntil: "networkidle2" });
+    await clickByText(page, "Montar o relatório do período");
+    await page.waitForFunction(() => /\/relatorios\/c[^/]+$/.test(location.pathname), { timeout: 30000 }).catch(() => {});
+    await settle(page);
+    const draft = await page.evaluate(() => ({ text: document.body.innerText, opinion: document.querySelector("#relatorio-parecer-texto")?.value ?? "" }));
+    check("relatório: monta o rascunho com os registros do período", draft.text.includes("Rascunho: a família ainda não vê") && draft.text.includes("Objetivos do plano de ensino") && draft.opinion.startsWith("Entre "), draft.text.slice(0, 200));
+    check("relatório: sem dados clínicos do estudo de caso", !/diagnóstico|Convulsões|Neurologia/i.test(draft.text));
+    await clickByText(page, "Validar e publicar para a família");
+    await page.waitForSelector('[role="alert"]', { timeout: 15000 }).catch(() => {});
+    check("relatório: não valida com o trecho a completar", (await textOf(page)).includes("Complete o trecho entre colchetes"));
+    const finalText = draft.opinion.replace(/\[complete[^\]]*\]/, "manter a prancha de comunicação e ampliar a leitura de palavras do campo de interesse.");
+    await page.$eval("#relatorio-parecer-texto", (area, value) => { area.value = value; }, finalText);
+    await clickByText(page, "Validar e publicar para a família");
+    await page.waitForFunction(() => document.body.innerText.includes("Validado por"), { timeout: 20000 }).catch(() => {});
+    check("relatório: o AEE valida e publica", (await textOf(page)).includes("Validado por") && (await textOf(page)).includes("ampliar a leitura de palavras"));
+    const print = await page.evaluate(() => [...document.querySelectorAll("a")].find((link) => link.textContent.includes("Imprimir ou salvar em PDF"))?.getAttribute("href"));
+    await page.goto(`${BASE}${print}`, { waitUntil: "networkidle2" });
+    check("relatório: versão para imprimir ou salvar em PDF", await page.evaluate(() => [...document.querySelectorAll("button")].some((button) => button.textContent.includes("Imprimir ou salvar em PDF")) && document.querySelectorAll("h1").length === 1));
+    check("relatório: sem erros de cliente (equipe)", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    const family = await newSession();
+    await login(family.page, "familia@email.com");
+    const link = await family.page.evaluate(() => [...document.querySelectorAll('#relatorios a')].at(0)?.getAttribute("href"));
+    check("relatório: aparece no portal da família", Boolean(link));
+    const history = await family.page.evaluate(() => document.querySelector("#conteudo")?.textContent ?? "");
+    check("relatório: a família vê a validação no histórico de acessos", history.includes("validou") && history.includes("Relatório do período"));
+    if (link) {
+      await family.page.goto(`${BASE}${link}`, { waitUntil: "networkidle2" });
+      const body = await textOf(family.page);
+      check("relatório: a família lê o relatório e o parecer", body.includes("Relatório da escola") && body.includes("Parecer da equipe") && body.includes("ampliar a leitura de palavras"));
+    }
+    check("relatório: sem erros de cliente (família)", family.errors.length === 0, family.errors.join("; "));
+    await family.ctx.close();
+  }
 }
 
 await browser.close();

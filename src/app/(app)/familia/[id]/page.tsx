@@ -16,7 +16,9 @@ import { ROLES } from "@/lib/scale";
 import { PageHero, Card, SectionTitle, EmptyState } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
-import { Trophy, ShieldCheck, Home, CircleCheck, BookOpen } from "lucide-react";
+import { Trophy, ShieldCheck, Home, CircleCheck, BookOpen, FileText } from "lucide-react";
+import Link from "next/link";
+import { periodLabel, reportData } from "@/lib/reports";
 import { MaterialGalleryCard, materialSummary } from "@/components/materials/material-gallery";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { SIGNAL } from "@/components/charts";
@@ -63,7 +65,10 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
 
   const isFamily = user.role === "familia";
-  const consent = await studentConsent(student.id);
+  const [consent, reports] = await Promise.all([
+    studentConsent(student.id),
+    prisma.studentReport.findMany({ where: { studentId: student.id, status: "validado" }, orderBy: { periodEnd: "desc" }, take: 6, select: { id: true, data: true, validatedAt: true, validatedByName: true } }),
+  ]);
   if (isFamily) await recordJourneyMark(user.id, "familia_inicio");
   const journey = isFamily ? await loadJourney(user) : null;
   const objectives = student.plans.flatMap((p) => p.objectives);
@@ -158,6 +163,24 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                     </li>
                   );
                 })}
+              </ul>
+            )}
+          </Card>
+
+          <Card className="scroll-mt-24" id="relatorios">
+            <SectionTitle><span className="flex items-center gap-1.5"><FileText size={13} aria-hidden /> Relatórios da escola</span></SectionTitle>
+            {reports.length === 0 ? (
+              <p className="text-sm text-ink-soft">No fim de cada período, a escola escreve um relatório sobre o acompanhamento de {firstName}. Ele aparece aqui depois de validado.</p>
+            ) : (
+              <ul className="grid gap-2">
+                {reports.map((report) => (
+                  <li key={report.id}>
+                    <Link href={`/familia/${id}/relatorios/${report.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-3 text-sm hover:bg-brand-soft">
+                      <span className="font-medium text-ink">Período de {periodLabel(reportData(report.data))}</span>
+                      <span className="text-xs text-ink-soft">Validado em {formatDate(report.validatedAt!)}</span>
+                    </Link>
+                  </li>
+                ))}
               </ul>
             )}
           </Card>

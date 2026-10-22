@@ -183,6 +183,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
         caseStudy: { select: { status: true } },
         profile: { select: { expressiveChannel: true, barriers: true, sensoryProfile: true, readingSupport: true, writingSupport: true } },
         plans: { include: { objectives: true } },
+        reports: { where: { status: "validado" }, select: { validatedAt: true } },
         diaryEntries: { orderBy: { date: "asc" } },
         activities: { select: { status: true, source: true, context: true, createdAt: true, rejectReason: true } },
         familyNotes: { select: { date: true } },
@@ -426,6 +427,11 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
         return { key, label, value: list.length, achieved: list.filter(({ objective }) => objective.status === "alcancado").length };
       })),
       criterion: labeledRows(countBy(periodEntries, (entry) => entry.criterionMet), CRITERION_MET),
+      // Estudantes com relatório do período validado nos últimos 6 meses (devolutiva à família).
+      reports: {
+        covered: count((student) => student.reports.some((report) => report.validatedAt && now.getTime() - report.validatedAt.getTime() <= 183 * 24 * 60 * 60 * 1000)),
+        total,
+      },
       // Objetivos ligados à BNCC, por componente curricular (campo de experiência no infantil).
       bncc: {
         linked: objectives.filter(({ objective }) => objective.bnccCode).length,
