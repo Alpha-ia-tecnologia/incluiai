@@ -237,9 +237,27 @@ O INEP não tem API pública. A troca oficial é o **arquivo de migração** (TX
     - sem a marcação de educação especial;
     - fora do arquivo.
   A escola pode informar o ID INEP de quem não foi encontrado.
+- **Conferências do vínculo de AEE**, na prévia e na verificação:
+    - vínculo sem nenhum tipo de atendimento marcado, que faz o Educacenso recusar o arquivo da escola;
+    - mais de 4 vínculos em AEE ou atividade complementar, caso em que a pessoa não é importada;
+    - AEE no mesmo horário da classe comum, comparando os dias e horários das turmas (registro 20, campos 7 a 13). É só alerta: desde 2025, a NT Conjunta nº 12/2025 conta a dupla matrícula mesmo assim, mas o Educacenso pode recusar horários coincidentes;
+    - mais de um vínculo no AEE, que conta uma vez só;
+    - classe comum semipresencial ou a distância, que não vale para a dupla matrícula.
+- **Escola pública:** a dependência administrativa (registro 00, campo 21) e o convênio com a Secretaria Municipal (campo 34) dizem o que conta no Fundeb:
+    - escola municipal: o AEE conta para a rede municipal;
+    - escola estadual: o AEE conta para o estado;
+    - escola federal ou privada sem convênio: nada conta;
+    - instituição conveniada: o AEE conta se ela atuar só em educação especial.
+- **Dupla matrícula entre escolas:** a classe comum presencial pode estar no arquivo de outra escola pública da rede, e a verificação procura lá.
 - **Conciliação das contagens:**
     - Por escola e na rede: educação especial no Censo, matrículas no AEE, dupla matrícula (por etapa agregada), AEE sem classe comum, educação especial sem AEE e estudantes com AEE na plataforma.
-    - A Secretaria informa quantas matrículas de AEE o FNDE considerou no Fundeb, e a plataforma compara com os arquivos. A diferença pede conferência e não comprova perda.
+    - A estimativa do AEE que o FNDE deve considerar segue as regras da NT Conjunta nº 12/2025:
+        - aluno com deficiência, TEA ou altas habilidades;
+        - vínculo aceito pelo Educacenso em escola municipal;
+        - classe comum presencial em escola pública;
+        - cada aluno contado uma vez.
+      A tela mostra quantos ficam de fora e por quê: sem classe comum nos arquivos da rede, vínculo recusado, repetido, AEE estadual ou AEE em conveniada.
+    - A Secretaria informa quantas matrículas de AEE o FNDE considerou no Fundeb, e a plataforma compara com essa estimativa. A diferença pede conferência e não comprova perda.
 - **Verificação na janela do Censo:**
     - O monitor confere todas as escolas nos horários configurados, por padrão às 8h e às 16h de Brasília, dentro da janela. A janela padrão vai de 26/05/2027 a 31/08/2027, e a Secretaria a ajusta.
     - O agendador sobe com o servidor (`src/instrumentation.ts`) e usa uma trava no banco, para duas instâncias não verificarem juntas. Se o servidor estava parado no horário, ele verifica ao voltar. `CENSUS_MONITOR=0` desliga.

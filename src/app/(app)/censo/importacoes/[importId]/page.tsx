@@ -35,7 +35,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
   const { importId } = await params;
   const loaded = await loadImport(user, importId);
   if (!loaded) notFound();
-  const { censusImport, plan, stats } = loaded;
+  const { censusImport, plan, stats, schoolNote } = loaded;
   const back = <Link href={`/censo/escolas/${censusImport.schoolId}`} className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline"><ArrowLeft size={16} aria-hidden /> {censusImport.school.name}</Link>;
   if (!plan) {
     return (
@@ -54,6 +54,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
       {back}
       <PageHeader title={`Prévia do Censo: ${censusImport.fileSchoolName}`} lede={`INEP ${censusImport.fileSchoolCode} · leiaute ${stats?.edition ?? "?"} · enviado por ${censusImport.createdByName} em ${brMoment(censusImport.createdAt)}. Nada muda no cadastro até você aplicar.`} />
       <div className="grid min-w-0 max-w-4xl gap-6">
+        <p className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${schoolNote.tone === "ok" ? "bg-green-soft text-green" : "bg-amber-soft text-amber"}`}>{schoolNote.text}</p>
         <DataBoard className="sm:grid-cols-4">
           <StatTile label="Alunos e pessoas no arquivo" value={stats?.persons ?? 0} hint={`${stats?.special ?? 0} do público do AEE`} />
           <StatTile label="Cadastrar" value={plan.totals.create} />

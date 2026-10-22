@@ -3,8 +3,8 @@ import { prisma } from "./prisma";
 import type { SessionUser } from "./auth";
 import { parseJson } from "./format";
 import { digitsOnly, identityKeys, parseEducacensoFile, specialEdPersons, type CensusPerson, type ParseStats } from "./educacenso";
-import { buildSyncPlan, censusCounts, regularOnlyIds, sumCounts, toSnapshot, type CensusCounts, type CoverageRow, type ReviewDecision, type SyncPlan } from "./census-rules";
-import { isoDay, schoolCoverage, schoolStudents } from "./census-core";
+import { buildSyncPlan, censusCounts, regularOnlyIds, schoolFundebNote, sumCounts, toSnapshot, type AeeEstimate, type CensusCounts, type CoverageRow, type ReviewDecision, type SchoolInfo, type SyncPlan } from "./census-rules";
+import { aeeEstimate, isoDay, networkSnapshots, schoolCoverage, schoolStudents } from "./census-core";
 
 // Censo Escolar (Educacenso) na escola: o arquivo de migração vira uma prévia,
 // a equipe revisa e aplica; a aplicação atualiza o cadastro e guarda a
@@ -62,6 +62,7 @@ export async function analyzeCensusFile(user: SessionUser, schoolId: string, con
     data: {
       schoolId, fileSchoolCode: parsed.school.code, fileSchoolName: parsed.school.name,
       persons: JSON.stringify(special), regularOnly: JSON.stringify(regularOnlyIds(students, parsed.persons)), stats: JSON.stringify(stats),
+      schoolInfo: JSON.stringify({ dependency: parsed.school.dependency, privateCategory: parsed.school.privateCategory, municipalPartnership: parsed.school.municipalPartnership } satisfies SchoolInfo),
       createdById: user.id, createdByName: user.name,
     },
   });
@@ -82,7 +83,8 @@ export async function loadImport(user: SessionUser, importId: string) {
   const decisions = parseJson<ReviewDecision[]>(censusImport.decisions, []);
   const students = await schoolStudents(censusImport.schoolId);
   const plan: SyncPlan | null = censusImport.status === "previa" ? buildSyncPlan(persons, students, { now: new Date(), decisions, elsewhere: await elsewhereCheck(censusImport.schoolId) }) : null;
-  return { censusImport, persons, decisions, students, plan, stats: parseJson<ImportStats | null>(censusImport.stats, null) };
+  const schoolNote = schoolFundebNote({ dependency: "", privateCategory: "", municipalPartnership: false, ...parseJson<Partial<SchoolInfo>>(censusImport.schoolInfo, {}) });
+  return { censusImport, persons, decisions, students, plan, schoolNote, stats: parseJson<ImportStats | null>(censusImport.stats, null) };
 }
 
 export async function saveDecision(user: SessionUser, importId: string, decision: ReviewDecision): Promise<string | null> {
@@ -161,7 +163,7 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
       }
     }
     const snapshotPersons = toSnapshot(persons);
-    const snapshot = { inepCode: censusImport.fileSchoolCode, fileSchoolName: censusImport.fileSchoolName, persons: JSON.stringify(snapshotPersons), regularOnly: censusImport.regularOnly, counts: JSON.stringify(censusCounts(snapshotPersons)), importedById: user.id, importedByName: user.name, importedAt: now };
+    const snapshot = { inepCode: censusImport.fileSchoolCode, fileSchoolName: censusImport.fileSchoolName, persons: JSON.stringify(snapshotPersons), regularOnly: censusImport.regularOnly, schoolInfo: censusImport.schoolInfo, counts: JSON.stringify(censusCounts(snapshotPersons)), importedById: user.id, importedByName: user.name, importedAt: now };
     await tx.censusSnapshot.upsert({ where: { schoolId: censusImport.schoolId }, create: { schoolId: censusImport.schoolId, ...snapshot }, update: snapshot });
     await tx.censusImport.update({
       where: { id: importId },
@@ -189,6 +191,7 @@ export type SchoolOverview = {
   importedAt: Date | null;
   importedByName: string | null;
   counts: CensusCounts | null;
+  note: ReturnType<typeof schoolFundebNote> | null;
   coverage: { confirmed: number; pending: number; percent: number | null; rows: CoverageRow[] } | null;
   platformAee: number;
   attended: number;
@@ -206,9 +209,10 @@ export async function censusOverview(user: SessionUser) {
     orderBy: { name: "asc" },
     select: { id: true, name: true, inepCode: true, censusSnapshot: { select: { importedAt: true, importedByName: true, counts: true } } },
   });
+  const network = await networkSnapshots();
   const rows: SchoolOverview[] = [];
   for (const school of schools) {
-    const result = school.censusSnapshot ? await schoolCoverage(school.id) : null;
+    const result = school.censusSnapshot ? await schoolCoverage(school.id, network) : null;
     const where = { schoolId: school.id, status: "ativo", hasAEE: true };
     const [platformAee, attended] = await Promise.all([
       prisma.student.count({ where }),
@@ -218,13 +222,18 @@ export async function censusOverview(user: SessionUser) {
       id: school.id, name: school.name, inepCode: school.inepCode,
       importedAt: school.censusSnapshot?.importedAt ?? null, importedByName: access.network ? null : school.censusSnapshot?.importedByName ?? null,
       counts: school.censusSnapshot ? parseJson<CensusCounts | null>(school.censusSnapshot.counts, null) : null,
+      note: result ? schoolFundebNote(result.info) : null,
       coverage: result ? { confirmed: result.coverage.confirmed, pending: result.coverage.pending, percent: result.coverage.percent, rows: access.network ? [] : result.coverage.rows } : null,
       platformAee, attended, canOpen: canOpenSchool(user, school.id),
     });
   }
   const withFile = rows.filter((row) => row.counts);
+  // A estimativa usa os arquivos de toda a rede (a classe comum pode estar em outra
+  // escola); a coordenação vê a da própria escola, a Secretaria a da rede.
+  const estimate: AeeEstimate = aeeEstimate(network, access.schoolId ?? undefined);
   return {
     access,
+    estimate,
     schools: rows,
     totals: sumCounts(withFile.map((row) => row.counts as CensusCounts)),
     withFile: withFile.length,

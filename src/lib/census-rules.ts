@@ -3,16 +3,25 @@
 // o cadastro, a verificação dos estudantes do AEE contra a referência de cada
 // escola (dupla matrícula), as contagens e a janela do monitor. Portado do
 // IncluiAI e adaptado ao cadastro do IncluiEdu.
-import { digitsOnly, identityKeys, normalizeName, titleCase, type CensusPerson } from "./educacenso.ts";
+import { digitsOnly, identityKeys, normalizeName, titleCase, type CensusPerson, type Dependency } from "./educacenso.ts";
 
 export type PlatformStudent = { id: string; name: string; birthDate: string; inepId: string | null; cpf: string | null; hasAEE: boolean };
 export type MatchBy = "inep" | "cpf" | "nome_nascimento" | "nome" | "manual";
 export const MATCH_LABEL: Record<MatchBy, string> = { inep: "ID INEP", cpf: "CPF", nome_nascimento: "nome e nascimento", nome: "nome", manual: "vínculo manual" };
 
 // Referência guardada por escola: só o público da educação especial, sem o arquivo.
-export type SnapshotPerson = { key: string; name: string; inepId: string; cpf: string; birthDate: string; special: boolean; aee: boolean; regular: boolean; stage: string };
+// Os campos opcionais vieram depois: referências antigas não os têm.
+export type SnapshotPerson = {
+  key: string; name: string; inepId: string; cpf: string; birthDate: string;
+  special: boolean; aee: boolean; regular: boolean; stage: string;
+  aeeLinks?: number; aeeNoService?: number; activityLinks?: number; overlap?: boolean; regularRemote?: boolean;
+};
 export const toSnapshot = (persons: CensusPerson[]): SnapshotPerson[] =>
-  persons.map((person) => ({ key: person.key, name: person.name, inepId: person.inepId, cpf: person.cpf, birthDate: person.birthDate, special: person.special, aee: person.hasAee, regular: person.hasRegular, stage: person.stageGroup }));
+  persons.map((person) => ({
+    key: person.key, name: person.name, inepId: person.inepId, cpf: person.cpf, birthDate: person.birthDate,
+    special: person.special, aee: person.hasAee, regular: person.hasRegular, stage: person.stageGroup,
+    aeeLinks: person.aeeLinks, aeeNoService: person.aeeLinksWithoutService, activityLinks: person.activityLinks, overlap: person.scheduleOverlap, regularRemote: person.regularRemote,
+  }));
 
 type Identified = { inepId?: string | null; cpf?: string | null; name: string; birthDate?: string | null };
 
@@ -79,11 +88,21 @@ export type SyncPlan = {
 
 const yesNo = (value: boolean) => (value ? "Sim" : "Não");
 
-export function personWarnings(person: Pick<CensusPerson, "special" | "hasAee" | "hasRegular">): string[] {
+type WarningInput = Pick<CensusPerson, "special" | "hasAee" | "hasRegular"> & Partial<Pick<CensusPerson, "regularRemote" | "aeeLinks" | "aeeLinksWithoutService" | "activityLinks" | "scheduleOverlap">>;
+
+export function personWarnings(person: WarningInput): string[] {
   const warnings: string[] = [];
-  if (person.hasAee && !person.hasRegular) warnings.push("Dupla matrícula não confirmada: há matrícula no AEE, mas nenhuma em classe comum no arquivo.");
+  if (person.hasAee && !person.hasRegular) {
+    warnings.push(person.regularRemote
+      ? "Classe comum semipresencial ou a distância: o FNDE só conta a dupla matrícula com escolarização presencial."
+      : "Dupla matrícula não confirmada: há matrícula no AEE, mas nenhuma em classe comum presencial no arquivo. Se o aluno estuda em outra escola ou rede, confira lá.");
+  }
+  if (person.aeeLinksWithoutService) warnings.push("Vínculo no AEE sem nenhum tipo de atendimento marcado: o Educacenso recusa o arquivo da escola.");
+  if (person.scheduleOverlap) warnings.push("O horário do AEE coincide com o da classe comum. Desde 2025 a dupla matrícula conta mesmo assim (Nota Técnica Conjunta nº 12/2025), mas o Educacenso pode recusar vínculos com horário coincidente: confira.");
+  if ((person.activityLinks ?? 0) > 4) warnings.push("Mais de 4 vínculos em AEE ou atividade complementar: o Educacenso não importa a pessoa.");
+  if ((person.aeeLinks ?? 0) > 1) warnings.push("Mais de um vínculo no AEE: o Fundeb conta um só por aluno.");
   if (person.special && !person.hasAee) warnings.push("Público da educação especial sem matrícula no AEE no arquivo.");
-  if (!person.special && person.hasAee) warnings.push("Matrícula no AEE sem a marcação de educação especial no registro da pessoa.");
+  if (!person.special && person.hasAee) warnings.push("Matrícula no AEE sem a marcação de educação especial: o Educacenso recusa o arquivo da escola.");
   return warnings;
 }
 
@@ -172,23 +191,57 @@ export const COVERAGE_LABEL: Record<CoverageStatus, string> = {
 };
 export const COVERAGE_HINT: Record<Exclude<CoverageStatus, "dupla">, string> = {
   sem_aee: "Registre a matrícula na turma de AEE no Educacenso.",
-  sem_comum: "Confira a matrícula na classe comum: sem ela, a dupla matrícula não conta.",
+  sem_comum: "Sem classe comum presencial nos arquivos da rede. Se o aluno estuda em escola estadual ou de outro município, a dupla matrícula pode contar, mas a plataforma não vê esse arquivo: confirme a escola da classe comum.",
   sem_marcacao: "Confira no registro da pessoa a marcação de público da educação especial.",
   ausente: "Confira nome, nascimento, CPF ou ID INEP no cadastro, ou importe um arquivo mais recente.",
 };
-export type CoverageRow = { id: string; name: string; status: CoverageStatus; matchedBy?: MatchBy };
+// Problemas do vínculo que a verificação aponta junto da situação. Os bloqueantes
+// fazem o Educacenso recusar o arquivo ou não importar a pessoa: o AEE não chega ao Fundeb.
+export type CoverageIssue = "sem_tipo_aee" | "vinculos_demais" | "comum_nao_presencial" | "horario_coincidente" | "aee_duplicado";
+export const ISSUE_LABEL: Record<CoverageIssue, string> = {
+  sem_tipo_aee: "Vínculo no AEE sem tipo de atendimento: o Educacenso recusa o arquivo da escola",
+  vinculos_demais: "Mais de 4 vínculos em AEE ou atividade complementar: o Educacenso não importa a pessoa",
+  comum_nao_presencial: "Classe comum semipresencial ou a distância: não vale para a dupla matrícula",
+  horario_coincidente: "Horário do AEE coincide com o da classe comum: confira no Educacenso",
+  aee_duplicado: "Mais de um vínculo no AEE: o Fundeb conta um só",
+};
+export const BLOCKING_ISSUES: ReadonlySet<CoverageIssue> = new Set(["sem_tipo_aee", "vinculos_demais"]);
+
+export function issuesOf(person: SnapshotPerson): CoverageIssue[] {
+  const issues: CoverageIssue[] = [];
+  if (person.aee && (person.aeeNoService ?? 0) > 0) issues.push("sem_tipo_aee");
+  if ((person.activityLinks ?? 0) > 4) issues.push("vinculos_demais");
+  if (person.aee && !person.regular && person.regularRemote) issues.push("comum_nao_presencial");
+  if (person.overlap) issues.push("horario_coincidente");
+  if ((person.aeeLinks ?? 0) > 1) issues.push("aee_duplicado");
+  return issues;
+}
+
+export type CoverageRow = { id: string; name: string; status: CoverageStatus; matchedBy?: MatchBy; issues: CoverageIssue[]; regularAt?: string };
 export type Coverage = { rows: CoverageRow[]; confirmed: number; pending: number; percent: number | null };
 
 // `regularOnly`: estudantes do cadastro que, na importação, estavam no arquivo fora do
 // público da educação especial (a referência não guarda as demais pessoas do arquivo).
-export function verifyCoverage(students: readonly PlatformStudent[], persons: readonly SnapshotPerson[], regularOnly: ReadonlySet<string> = new Set()): Coverage {
+// `regularElsewhere`: escola pública da rede em cujo arquivo a pessoa tem classe comum
+// presencial (a dupla matrícula vale entre escolas e redes).
+export function verifyCoverage(
+  students: readonly PlatformStudent[],
+  persons: readonly SnapshotPerson[],
+  regularOnly: ReadonlySet<string> = new Set(),
+  regularElsewhere: (keys: string[]) => string | null = () => null,
+): Coverage {
   const rows: CoverageRow[] = students.filter((student) => student.hasAEE).map((student) => {
     const { found, by } = findMatch(student, persons);
-    if (!found) return { id: student.id, name: student.name, status: regularOnly.has(student.id) ? "sem_marcacao" : "ausente" };
-    const status: CoverageStatus = !found.aee ? "sem_aee" : !found.regular ? "sem_comum" : "dupla";
-    return { id: student.id, name: student.name, status, matchedBy: by };
+    if (!found) return { id: student.id, name: student.name, status: regularOnly.has(student.id) ? "sem_marcacao" : "ausente", issues: [] };
+    const issues = issuesOf(found);
+    if (!found.aee) return { id: student.id, name: student.name, status: "sem_aee", matchedBy: by, issues };
+    if (found.regular) return { id: student.id, name: student.name, status: "dupla", matchedBy: by, issues };
+    const elsewhere = regularElsewhere([...identityKeys(found), ...identityKeys(student)]);
+    return elsewhere
+      ? { id: student.id, name: student.name, status: "dupla", matchedBy: by, issues, regularAt: elsewhere }
+      : { id: student.id, name: student.name, status: "sem_comum", matchedBy: by, issues };
   });
-  const confirmed = rows.filter((row) => row.status === "dupla").length;
+  const confirmed = rows.filter((row) => row.status === "dupla" && !row.issues.some((issue) => BLOCKING_ISSUES.has(issue))).length;
   return { rows, confirmed, pending: rows.length - confirmed, percent: rows.length ? Math.round((confirmed / rows.length) * 100) : null };
 }
 
@@ -224,13 +277,76 @@ export function sumCounts(list: readonly CensusCounts[]): CensusCounts {
   return total;
 }
 
+// --- Fundeb: a escola e a estimativa do AEE considerado na rede ---
+
+export type SchoolInfo = { dependency: Dependency; privateCategory: string; municipalPartnership: boolean };
+const PUBLIC: ReadonlySet<Dependency> = new Set(["municipal", "estadual"]);
+
+// O que a dependência da escola (registro 00) muda no Fundeb: o AEE conta para a
+// rede que o oferece, e a classe comum precisa ser de escola pública (NT Conjunta nº 12/2025).
+export function schoolFundebNote(info: SchoolInfo): { tone: "ok" | "atencao" | "fora"; text: string } {
+  if (info.dependency === "municipal") return { tone: "ok", text: "Escola municipal: o AEE oferecido aqui conta para a rede municipal, e a classe comum daqui vale para a dupla matrícula." };
+  if (info.dependency === "estadual") return { tone: "atencao", text: "Escola estadual: o AEE oferecido aqui conta para a rede estadual, não para a municipal. A classe comum daqui vale para a dupla matrícula." };
+  if (info.dependency === "federal") return { tone: "fora", text: "Escola federal: o AEE oferecido aqui não entra no Fundeb, e a classe comum daqui não vale para a dupla matrícula." };
+  if (info.dependency === "privada") {
+    return ["2", "3", "4"].includes(info.privateCategory) && info.municipalPartnership
+      ? { tone: "atencao", text: "Escola comunitária, confessional ou filantrópica conveniada com a Secretaria Municipal: o AEE daqui só conta se a instituição atuar exclusivamente em educação especial. A classe comum de escola privada não vale para a dupla matrícula." }
+      : { tone: "fora", text: "Escola privada sem convênio com a Secretaria Municipal: o AEE e a classe comum daqui não entram no Fundeb da rede." };
+  }
+  return { tone: "atencao", text: "O arquivo não informa a dependência administrativa da escola (registro 00, campo 21): não dá para saber se o AEE daqui conta." };
+}
+
+export type NetworkSchool = { id?: string; name: string; info: SchoolInfo; persons: readonly SnapshotPerson[] };
+export type AeeEstimate = {
+  considered: number; // AEE que o FNDE deve considerar para a rede municipal
+  byStage: Record<string, number>; // pela etapa da classe comum
+  notVerifiable: number; // sem classe comum pública presencial nos arquivos da rede
+  blocked: number; // vínculos que o Educacenso recusa ou não importa
+  repeated: number; // alunos com AEE em mais de uma escola: contam uma vez
+  otherNetwork: number; // AEE em escola estadual: conta para o estado
+  partner: number; // AEE em instituição conveniada: depende da atuação exclusiva
+};
+
+// Estimativa pelas regras do FNDE, a partir dos arquivos aplicados: aluno do
+// público da educação especial, vínculo de AEE aceito pelo Educacenso em escola
+// municipal e classe comum presencial em escola pública (no mesmo arquivo ou em
+// outro da rede), contado uma vez por aluno. É estimativa: a rede não vê os
+// arquivos do estado nem de outros municípios. `countOnly` conta só o AEE de uma
+// escola, mas procura a classe comum em toda a rede.
+export function networkAeeEstimate(schools: readonly NetworkSchool[], countOnly?: string): AeeEstimate {
+  const regular = new Map<string, string>();
+  for (const school of schools.filter((item) => PUBLIC.has(item.info.dependency))) {
+    for (const person of school.persons.filter((item) => item.regular)) for (const key of identityKeys(person)) if (!regular.has(key)) regular.set(key, person.stage);
+  }
+  const estimate: AeeEstimate = { considered: 0, byStage: {}, notVerifiable: 0, blocked: 0, repeated: 0, otherNetwork: 0, partner: 0 };
+  const seen = new Set<string>();
+  // Escolas municipais primeiro: o AEE conta para a rede que o oferece.
+  const ordered = [...schools].sort((a, b) => Number(b.info.dependency === "municipal") - Number(a.info.dependency === "municipal"));
+  for (const school of ordered.filter((item) => !countOnly || item.id === countOnly)) {
+    for (const person of school.persons.filter((item) => item.aee)) {
+      const keys = identityKeys(person);
+      if (keys.some((key) => seen.has(key))) { estimate.repeated += 1; continue; }
+      keys.forEach((key) => seen.add(key));
+      if (school.info.dependency === "estadual") { estimate.otherNetwork += 1; continue; }
+      if (school.info.dependency === "privada") { estimate.partner += 1; continue; }
+      if (school.info.dependency !== "municipal") continue;
+      if (!person.special || issuesOf(person).some((issue) => BLOCKING_ISSUES.has(issue))) { estimate.blocked += 1; continue; }
+      const stage = person.regular ? person.stage : keys.map((key) => regular.get(key)).find((value) => value !== undefined);
+      if (stage === undefined) { estimate.notVerifiable += 1; continue; }
+      estimate.considered += 1;
+      estimate.byStage[stage || "?"] = (estimate.byStage[stage || "?"] ?? 0) + 1;
+    }
+  }
+  return estimate;
+}
+
 // O FNDE publica as matrículas de AEE consideradas no Fundeb; a diferença pede conferência, não prova perda.
-export function fundebComparison(dupla: number, fnde: number | null): { difference: number | null; text: string } {
-  if (fnde === null) return { difference: null, text: "Informe as matrículas de AEE que o FNDE considerou para comparar com os arquivos." };
-  const difference = dupla - fnde;
-  if (difference === 0) return { difference, text: "As contagens batem: os arquivos mostram o mesmo número de matrículas de AEE com dupla matrícula que o FNDE considerou." };
-  if (difference > 0) return { difference, text: `Os arquivos mostram ${difference} ${difference === 1 ? "matrícula" : "matrículas"} de AEE com dupla matrícula a mais do que o FNDE considerou. Confira a situação de cada uma no Educacenso: a diferença sozinha não comprova perda.` };
-  return { difference, text: `O FNDE considerou ${-difference} ${difference === -1 ? "matrícula" : "matrículas"} de AEE a mais do que os arquivos importados mostram. Falta o arquivo de alguma escola ou a referência está desatualizada.` };
+export function fundebComparison(estimate: number, fnde: number | null): { difference: number | null; text: string } {
+  if (fnde === null) return { difference: null, text: "Informe as matrículas de AEE que o FNDE considerou para comparar com a estimativa dos arquivos." };
+  const difference = estimate - fnde;
+  if (difference === 0) return { difference, text: "As contagens batem: a estimativa dos arquivos, pelas regras do FNDE, dá o mesmo número de matrículas de AEE que o FNDE considerou." };
+  if (difference > 0) return { difference, text: `Pelas regras do FNDE, os arquivos indicam ${difference} ${difference === 1 ? "matrícula" : "matrículas"} de AEE a mais do que o FNDE considerou. Confira a situação de cada uma no Educacenso: a diferença sozinha não comprova perda.` };
+  return { difference, text: `O FNDE considerou ${-difference} ${difference === -1 ? "matrícula" : "matrículas"} de AEE a mais do que a estimativa dos arquivos. Falta o arquivo de alguma escola, a referência está desatualizada ou a classe comum está em outra rede.` };
 }
 
 // --- Janela do Censo e monitor (horário de Brasília, sem horário de verão desde 2019) ---

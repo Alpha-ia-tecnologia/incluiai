@@ -972,6 +972,8 @@ model CensusSnapshot {
   fileSchoolName String
   persons        String
   regularOnly    String   @default("[]")
+  // JSON: dependência administrativa, categoria da escola privada e convênio com a Secretaria Municipal (registro 00).
+  schoolInfo     String   @default("{}")
   counts         String // JSON CensusCounts
   importedById   String
   importedByName String
@@ -988,6 +990,7 @@ model CensusImport {
   fileSchoolName String
   persons        String // JSON CensusPerson[] do público da educação especial
   regularOnly    String    @default("[]")
+  schoolInfo     String    @default("{}")
   stats          String // JSON: linhas, registros lidos, pessoas no arquivo, avisos
   decisions      String    @default("[]")
   status         String    @default("previa") // previa | aplicada | descartada

@@ -31,8 +31,17 @@ export default async function CensusPage() {
   const state = monitorState(config, now, checks[0]?.at ?? null);
   const { access, totals } = overview;
   const count = (value: number) => (access.network ? smallNumber(value) : String(value));
-  const fnde = fundebComparison(totals.dupla, monitor.fndeAee);
-  const stages = Object.entries(totals.duplaByStage).sort(([a], [b]) => a.localeCompare(b));
+  const { estimate } = overview;
+  const fnde = fundebComparison(estimate.considered, monitor.fndeAee);
+  const stages = Object.entries(estimate.byStage).sort(([a], [b]) => a.localeCompare(b));
+  // O que os arquivos têm de AEE e a estimativa deixa de fora, com o motivo.
+  const outside = [
+    estimate.notVerifiable && `${count(estimate.notVerifiable)} sem classe comum presencial pública nos arquivos da rede (pode estar em escola estadual ou de outro município)`,
+    estimate.blocked && `${count(estimate.blocked)} com vínculo que o Educacenso recusa ou não importa`,
+    estimate.repeated && `${count(estimate.repeated)} com AEE em mais de uma escola (contam uma vez)`,
+    estimate.otherNetwork && `${count(estimate.otherNetwork)} com AEE em escola estadual (contam para o estado)`,
+    estimate.partner && `${count(estimate.partner)} com AEE em instituição conveniada (contam se ela atuar só em educação especial)`,
+  ].filter(Boolean);
 
   return (
     <>
@@ -65,15 +74,21 @@ export default async function CensusPage() {
           <DataBoard className="sm:grid-cols-3">
             <StatTile label="Educação especial no Censo" value={totals.especial} hint="Alunos com a marcação de deficiência, TEA ou altas habilidades." />
             <StatTile label="Matrículas no AEE" value={totals.aee} />
-            <StatTile label="Dupla matrícula" value={totals.dupla} hint="AEE com classe comum: o AEE que pode contar no Fundeb." />
+            <StatTile label="Dupla matrícula no arquivo" value={totals.dupla} hint="AEE com classe comum presencial no mesmo arquivo." />
             <StatTile label="AEE sem classe comum" value={count(totals.aeeSemComum)} hint="Dupla matrícula não confirmada no arquivo." />
             <StatTile label="Educação especial sem AEE" value={count(totals.especialSemAee)} hint="Confira se o estudante precisa do AEE." />
             <StatTile label="Com AEE na plataforma" value={overview.platformAee} hint={`${overview.attended} com atendimento registrado nos últimos 60 dias.`} />
           </DataBoard>
-          {stages.length ? <p className="text-sm text-ink"><span className="font-medium">Dupla matrícula por etapa:</span> {stages.map(([stage, value]) => `${STAGE_GROUPS[stage] ?? "Etapa não informada"} ${value}`).join(" · ")}.</p> : null}
+          <Card>
+            <SectionTitle>AEE que o FNDE deve considerar (estimativa)</SectionTitle>
+            <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink tabular-nums">{estimate.considered}</p>
+            {stages.length ? <p className="mt-2 text-sm text-ink"><span className="font-medium">Por etapa:</span> {stages.map(([stage, value]) => `${STAGE_GROUPS[stage] ?? "Etapa não informada"} ${count(value)}`).join(" · ")}.</p> : null}
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">Pelas regras da Nota Técnica Conjunta nº 12/2025: aluno com deficiência, TEA ou altas habilidades; vínculo de AEE aceito pelo Educacenso em escola municipal; classe comum presencial em escola pública, no mesmo arquivo ou no de outra escola da rede; cada aluno uma vez.</p>
+            {outside.length ? <p className="mt-2 text-sm text-ink"><span className="font-medium">Fora da estimativa:</span> {outside.join("; ")}.</p> : null}
+          </Card>
           <Card>
             <SectionTitle>Comparação com o FNDE</SectionTitle>
-            {monitor.fndeAee !== null ? <p className="mb-2 text-sm text-ink"><span className="font-medium">Matrículas de AEE consideradas pelo FNDE{monitor.fndeYear ? ` no Fundeb ${monitor.fndeYear}` : ""}:</span> {monitor.fndeAee}. <span className="font-medium">Dupla matrícula nos arquivos:</span> {totals.dupla}.</p> : null}
+            {monitor.fndeAee !== null ? <p className="mb-2 text-sm text-ink"><span className="font-medium">Matrículas de AEE consideradas pelo FNDE{monitor.fndeYear ? ` no Fundeb ${monitor.fndeYear}` : ""}:</span> {monitor.fndeAee}. <span className="font-medium">Estimativa dos arquivos:</span> {estimate.considered}.</p> : null}
             <p className="text-sm leading-relaxed text-ink">{access.network || monitor.fndeAee !== null ? fnde.text : "A Secretaria informa o número de matrículas de AEE que o FNDE considerou para comparar com os arquivos da rede."}</p>
             {access.network ? <div className="mt-4"><FndeForm action={saveFndeCount} value={monitor.fndeAee} year={monitor.fndeYear ?? now.getFullYear()} /></div> : null}
           </Card>
@@ -90,6 +105,7 @@ export default async function CensusPage() {
                   {school.coverage ? (school.coverage.pending ? <Badge tone="amber">{count(school.coverage.pending)} com pendência</Badge> : <Badge tone="green">Sem pendências</Badge>) : <Badge>Sem arquivo aplicado</Badge>}
                 </div>
                 <p className="mt-1 text-xs text-ink-soft">{school.inepCode ? `INEP ${school.inepCode}` : "Sem código INEP"}{school.importedAt ? ` · arquivo aplicado em ${brMoment(school.importedAt)}${school.importedByName ? ` por ${school.importedByName}` : ""}` : ""}</p>
+                {school.note && school.note.tone !== "ok" ? <p className="mt-2 text-xs leading-relaxed text-amber-800">{school.note.text}</p> : null}
                 <p className="mt-2 text-sm text-ink">
                   {school.platformAee} {school.platformAee === 1 ? "estudante" : "estudantes"} com AEE na plataforma
                   {school.coverage ? `; dupla matrícula confirmada para ${count(school.coverage.confirmed)}${school.coverage.percent !== null ? ` (${school.coverage.percent}%)` : ""}.` : "."}

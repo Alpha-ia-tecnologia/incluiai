@@ -9,8 +9,23 @@
 // sai do número de campos de cada registro; "campo N" = índice N-1 do split.
 
 export type Edition = 2025 | 2026;
-export type CensusSchool = { code: string; name: string };
-export type CensusClass = { systemCode: string; inepCode: string; name: string; isAee: boolean; isRegular: boolean; stageGroup: string };
+export type Dependency = "federal" | "estadual" | "municipal" | "privada" | "";
+// Escola (registro 00): dependência administrativa (campo 21), categoria da escola
+// privada (32: 1 particular, 2 comunitária, 3 confessional, 4 filantrópica) e
+// parceria ou convênio com a Secretaria Municipal (34).
+export type CensusSchool = { code: string; name: string; dependency: Dependency; privateCategory: string; municipalPartnership: boolean };
+type Interval = [number, number]; // minutos do dia, de [início, fim)
+export type CensusClass = {
+  systemCode: string;
+  inepCode: string;
+  name: string;
+  isAee: boolean;
+  isRegular: boolean; // curricular, não é classe especial e é presencial
+  isRemoteRegular: boolean; // curricular e não é classe especial, mas semipresencial ou a distância
+  isComplementary: boolean; // atividade complementar
+  stageGroup: string;
+  schedule: Interval[]; // um intervalo por dia (0 = domingo); [0, 0] sem aula
+};
 export type CensusPerson = {
   key: string;
   systemCode: string;
@@ -20,30 +35,38 @@ export type CensusPerson = {
   birthDate: string; // AAAA-MM-DD
   special: boolean; // público da educação especial (registro 30, campo 17)
   hasAee: boolean; // matrícula em turma de AEE
-  hasRegular: boolean; // matrícula em classe comum (turma curricular que não é classe especial)
+  hasRegular: boolean; // matrícula presencial em classe comum (curricular que não é classe especial)
+  regularRemote: boolean; // só tem classe comum semipresencial ou a distância
   enrolled: boolean; // tem matrícula de aluno (o registro 30 também traz gestores e professores)
   aeeClassName: string;
   regularClassName: string;
   stageGroup: string; // etapa agregada da classe comum (301 a 308)
   aeeServices: string[];
+  aeeLinks: number; // vínculos em turmas de AEE
+  aeeLinksWithoutService: number; // vínculos de AEE sem nenhum tipo de atendimento marcado
+  activityLinks: number; // vínculos em AEE ou atividade complementar (o Educacenso aceita até 4)
+  scheduleOverlap: boolean; // horário do AEE coincide com o da classe comum em algum dia
 };
 export type ParseStats = { totalLines: number; parsed: Record<string, number>; skipped: { line: number; reason: string }[] };
 export type ParsedCensusFile = { edition: Edition; school: CensusSchool | null; classes: CensusClass[]; persons: CensusPerson[]; stats: ParseStats };
 
 // Campos que não mudaram entre 2025 e 2026.
 const COMMON = {
-  school: { code: 2, name: 6 },
-  schoolClass: { systemCode: 3, inepCode: 4, name: 5 },
+  school: { code: 2, name: 6, dependency: 21, privateCategory: 32, municipalPartnership: 34 },
+  schoolClass: { systemCode: 3, inepCode: 4, name: 5, mediation: 6, scheduleStart: 7 },
   person: { systemCode: 3, inepId: 4, cpf: 5, name: 6, birthDate: 7, specialFlag: 17, specialTypesStart: 18, specialTypesCount: 11 },
   enrollment: { personSystemCode: 3, personInepId: 4, classSystemCode: 5, classInepCode: 6 },
 };
-// 2025: tipo de turma em marcações (14 curricular, 16 AEE). 2026: um código no campo 14
-// (4 atividade complementar, 5 AEE, 6 curricular, 9 curricular com atividade complementar).
-// Em 2026, o campo 9 do registro 60 (carga horária) empurrou o bloco do AEE para 10–20.
+// 2025: tipo de turma em marcações (14 curricular, 15 atividade complementar, 16 AEE).
+// 2026: um código no campo 14 (4 atividade complementar, 5 AEE, 6 curricular,
+// 9 curricular com atividade complementar). Em 2026, o campo 9 do registro 60
+// (carga horária) empurrou o bloco do AEE para 10–20.
 export const LAYOUT = {
-  2025: { fields: { "00": 56, "20": 70, "30": 108, "60": 32 }, classCurricular: 14, classAee: 16, specialClass: 24, stageGroup: 25, aeeServicesStart: 9 },
+  2025: { fields: { "00": 56, "20": 70, "30": 108, "60": 32 }, classCurricular: 14, classComplementary: 15, classAee: 16, specialClass: 24, stageGroup: 25, aeeServicesStart: 9 },
   2026: { fields: { "00": 53, "20": 66, "30": 110, "60": 33 }, classType: 14, specialClass: 22, stageGroup: 23, aeeServicesStart: 10 },
 } as const;
+
+const DEPENDENCIES: Record<string, Dependency> = { "1": "federal", "2": "estadual", "3": "municipal", "4": "privada" };
 
 export const STAGE_GROUPS: Record<string, string> = {
   "301": "Educação infantil",
@@ -73,7 +96,7 @@ export const AEE_SERVICE_LABELS = [
 const field = (fields: string[], position: number) => (fields[position - 1] ?? "").trim();
 const flag = (fields: string[], position: number) => field(fields, position) === "1";
 
-export const normalizeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
+export const normalizeName = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
 export const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
 export function toIsoDate(brazilian: string): string {
@@ -90,30 +113,52 @@ export function titleCase(name: string): string {
   return name.toLowerCase().replace(/\s+/g, " ").trim().split(" ").map((word, index) => (index > 0 && PARTICLES.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1))).join(" ");
 }
 
+// Horário de um dia da turma ("hh:mm-hh:mm"), em minutos; [0, 0] sem aula ou inválido.
+export function parseInterval(value: string): Interval {
+  const match = /^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/.exec(value.trim());
+  if (!match) return [0, 0];
+  const [start, end] = [Number(match[1]) * 60 + Number(match[2]), Number(match[3]) * 60 + Number(match[4])];
+  return start < end && end <= 24 * 60 ? [start, end] : [0, 0];
+}
+
+// Duas turmas coincidem quando, em algum dia, os horários se cruzam.
+export const schedulesOverlap = (a: Interval[], b: Interval[]) => a.some(([start, end], day) => end > start && (b[day]?.[1] ?? 0) > start && (b[day]?.[0] ?? 0) < end && b[day][1] > b[day][0]);
+
 function parseClass(fields: string[], edition: Edition): CensusClass | null {
-  const systemCode = field(fields, COMMON.schoolClass.systemCode);
-  const inepCode = field(fields, COMMON.schoolClass.inepCode);
-  const name = field(fields, COMMON.schoolClass.name);
+  const layout = COMMON.schoolClass;
+  const systemCode = field(fields, layout.systemCode);
+  const inepCode = field(fields, layout.inepCode);
+  const name = field(fields, layout.name);
   if (!systemCode && !inepCode) return null;
   let isAee: boolean;
   let isCurricular: boolean;
+  let isComplementary: boolean;
   if (edition === 2026) {
     const type = field(fields, LAYOUT[2026].classType);
     isAee = type === "5";
     isCurricular = type === "6" || type === "9";
+    isComplementary = type === "4";
   } else {
     isAee = flag(fields, LAYOUT[2025].classAee);
     isCurricular = flag(fields, LAYOUT[2025].classCurricular);
+    isComplementary = flag(fields, LAYOUT[2025].classComplementary);
   }
   // Sem o tipo de turma preenchido, o nome decide: sala de recursos é AEE; o resto, classe comum.
-  if (!isAee && !isCurricular) {
+  if (!isAee && !isCurricular && !isComplementary) {
     isAee = /\bAEE\b|SALA DE RECURSOS/i.test(name);
     isCurricular = !isAee && !/ATIVIDADE COMPLEMENTAR/i.test(name);
   }
-  const layout = LAYOUT[edition];
+  const edLayout = LAYOUT[edition];
+  // Mediação vazia: o arquivo é antigo ou incompleto; conta como presencial.
+  const presential = ["", "1"].includes(field(fields, layout.mediation));
   // Classe especial não é classe comum: não confirma a dupla matrícula.
-  const isRegular = isCurricular && !flag(fields, layout.specialClass);
-  return { systemCode, inepCode, name: name || "Turma sem nome", isAee, isRegular, stageGroup: isCurricular ? field(fields, layout.stageGroup) : "" };
+  const common = isCurricular && !flag(fields, edLayout.specialClass);
+  return {
+    systemCode, inepCode, name: name || "Turma sem nome", isAee,
+    isRegular: common && presential, isRemoteRegular: common && !presential, isComplementary,
+    stageGroup: isCurricular ? field(fields, edLayout.stageGroup) : "",
+    schedule: Array.from({ length: 7 }, (_, day) => parseInterval(field(fields, layout.scheduleStart + day))),
+  };
 }
 
 function parsePerson(fields: string[]): CensusPerson | null {
@@ -131,15 +176,30 @@ function parsePerson(fields: string[]): CensusPerson | null {
     special: flag(fields, layout.specialFlag) || types.some(Boolean),
     hasAee: false,
     hasRegular: false,
+    regularRemote: false,
     enrolled: false,
     aeeClassName: "",
     regularClassName: "",
     stageGroup: "",
     aeeServices: [],
+    aeeLinks: 0,
+    aeeLinksWithoutService: 0,
+    activityLinks: 0,
+    scheduleOverlap: false,
   };
 }
 
-type State = { edition: Edition; stats: ParseStats; persons: Map<string, CensusPerson>; classes: Map<string, CensusClass>; ordered: CensusPerson[]; orderedClasses: CensusClass[]; school: CensusSchool | null };
+type State = {
+  edition: Edition;
+  stats: ParseStats;
+  persons: Map<string, CensusPerson>;
+  classes: Map<string, CensusClass>;
+  ordered: CensusPerson[];
+  orderedClasses: CensusClass[];
+  school: CensusSchool | null;
+  // Horários de cada pessoa, para conferir no fim se AEE e classe comum coincidem.
+  schedules: Map<CensusPerson, { aee: Interval[][]; regular: Interval[][] }>;
+};
 
 const skip = (state: State, line: number, reason: string) => {
   if (state.stats.skipped.length < 20) state.stats.skipped.push({ line, reason });
@@ -152,15 +212,26 @@ function attachEnrollment(state: State, fields: string[]): string | null {
   const schoolClass = state.classes.get(`inep:${field(fields, layout.classInepCode)}`) ?? state.classes.get(`sys:${field(fields, layout.classSystemCode)}`);
   if (!schoolClass) return "Matrícula (registro 60) de uma turma que não está no arquivo.";
   person.enrolled = true;
+  const schedules = state.schedules.get(person) ?? { aee: [], regular: [] };
+  state.schedules.set(person, schedules);
+  if (schoolClass.isAee || schoolClass.isComplementary) person.activityLinks += 1;
   if (schoolClass.isAee) {
     person.hasAee = true;
+    person.aeeLinks += 1;
     person.aeeClassName ||= schoolClass.name;
     const start = LAYOUT[state.edition].aeeServicesStart;
     const services = AEE_SERVICE_LABELS.filter((_, index) => flag(fields, start + index));
+    if (!services.length) person.aeeLinksWithoutService += 1;
     person.aeeServices = [...new Set([...person.aeeServices, ...services])];
+    schedules.aee.push(schoolClass.schedule);
   }
   if (schoolClass.isRegular) {
     person.hasRegular = true;
+    person.regularClassName ||= schoolClass.name;
+    person.stageGroup ||= schoolClass.stageGroup;
+    schedules.regular.push(schoolClass.schedule);
+  } else if (schoolClass.isRemoteRegular) {
+    person.regularRemote = true;
     person.regularClassName ||= schoolClass.name;
     person.stageGroup ||= schoolClass.stageGroup;
   }
@@ -175,9 +246,15 @@ function readLine(state: State, raw: string, index: number) {
   const type = field(fields, 1);
   state.stats.parsed[type] = (state.stats.parsed[type] ?? 0) + 1;
   if (type === "00") {
-    const code = digitsOnly(field(fields, COMMON.school.code));
+    const layout = COMMON.school;
+    const code = digitsOnly(field(fields, layout.code));
     if (!code) skip(state, index + 1, "Registro 00 sem o código INEP da escola.");
-    else state.school ??= { code, name: field(fields, COMMON.school.name) || "Escola sem nome no arquivo" };
+    else state.school ??= {
+      code, name: field(fields, layout.name) || "Escola sem nome no arquivo",
+      dependency: DEPENDENCIES[field(fields, layout.dependency)] ?? "",
+      privateCategory: field(fields, layout.privateCategory),
+      municipalPartnership: flag(fields, layout.municipalPartnership),
+    };
   } else if (type === "20") {
     const schoolClass = parseClass(fields, state.edition);
     if (!schoolClass) return skip(state, index + 1, "Registro 20 sem código de turma.");
@@ -218,8 +295,11 @@ export function parseEducacensoFile(content: string): ParsedCensusFile {
   // O arquivo começa no "00": um BOM (ou o "ÿ" que ele vira em ISO-8859-1) sai antes.
   const lines = content.replace(/^\D+/, "").split(/\r?\n/);
   const edition = detectEdition(lines.map((line) => line.trim()).filter(Boolean).map((line) => line.split("|")));
-  const state: State = { edition, stats: { totalLines: 0, parsed: {}, skipped: [] }, persons: new Map(), classes: new Map(), ordered: [], orderedClasses: [], school: null };
+  const state: State = { edition, stats: { totalLines: 0, parsed: {}, skipped: [] }, persons: new Map(), classes: new Map(), ordered: [], orderedClasses: [], school: null, schedules: new Map() };
   lines.forEach((raw, index) => readLine(state, raw, index));
+  for (const [person, { aee, regular }] of state.schedules) {
+    person.scheduleOverlap = aee.some((aeeSchedule) => regular.some((regularSchedule) => schedulesOverlap(aeeSchedule, regularSchedule)));
+  }
   const used = new Set<string>();
   for (const person of state.ordered) {
     const base = person.inepId || person.cpf || `${normalizeName(person.name)}|${person.birthDate}`;

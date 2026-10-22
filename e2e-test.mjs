@@ -1517,15 +1517,18 @@ if (!ONLY_WAIT) {
     const line = (count, values) => Array.from({ length: count }, (_, index) => values[index + 1] ?? "").join("|");
     const person = (code, inep, name, birth) => line(108, { 1: "30", 2: "21000001", 3: code, 4: inep, 6: name, 7: birth, 17: "1", 27: "1" });
     const enroll = (code, klass, caa) => line(32, { 1: "60", 2: "21000001", 3: code, 5: klass, ...(caa ? { 18: "1" } : {}) });
+    const weekdays = (interval) => Object.fromEntries([8, 9, 10, 11, 12].map((day) => [day, interval]));
+    // Ravi: AEE sem tipo de atendimento. Aluna nova: AEE na terça de manhã, no horário da classe comum.
     const file = [
-      line(56, { 1: "00", 2: "21000001", 3: "1", 6: "EMEF MARIA FIRMINA DOS REIS" }),
-      line(70, { 1: "20", 2: "21000001", 3: "T2B", 5: "2 ANO B", 14: "1", 16: "0", 25: "302" }),
-      line(70, { 1: "20", 2: "21000001", 3: "SRM", 5: "SALA DE RECURSOS MULTIFUNCIONAIS", 14: "0", 16: "1" }),
+      line(56, { 1: "00", 2: "21000001", 3: "1", 6: "EMEF MARIA FIRMINA DOS REIS", 21: "3", 34: "0" }),
+      line(70, { 1: "20", 2: "21000001", 3: "T2B", 5: "2 ANO B", 6: "1", ...weekdays("07:00-11:00"), 14: "1", 15: "0", 16: "0", 25: "302" }),
+      line(70, { 1: "20", 2: "21000001", 3: "SRM", 5: "SALA DE RECURSOS MULTIFUNCIONAIS", 6: "1", 8: "13:00-15:00", 14: "0", 15: "0", 16: "1" }),
+      line(70, { 1: "20", 2: "21000001", 3: "SRM2", 5: "AEE MANHA", 6: "1", 9: "08:00-09:00", 14: "0", 15: "0", 16: "1" }),
       person("P1", "210000000001", "DANTE OLIVEIRA", "12/03/2019"),
       person("P2", "210000000002", "RAVI ALMEIDA", "25/01/2017"),
       person("P3", "210000000003", "ALUNA NOVA DO CENSO", "15/08/2018"),
       person("P4", "", "LIVIA SANTOS", "02/07/2014"),
-      enroll("P1", "T2B"), enroll("P1", "SRM", true), enroll("P2", "SRM"), enroll("P3", "T2B"), enroll("P3", "SRM", true), enroll("P4", "T2B"),
+      enroll("P1", "T2B"), enroll("P1", "SRM", true), enroll("P2", "SRM"), enroll("P3", "T2B"), enroll("P3", "SRM2", true), enroll("P4", "T2B"),
       "99|",
     ].join("\r\n");
     const filePath = join(mkdtempSync(join(tmpdir(), "censo-")), "migracao.txt");
@@ -1544,6 +1547,10 @@ if (!ONLY_WAIT) {
     await settle(page);
     let body = await textOf(page);
     check("censo: prévia do arquivo com a edição do leiaute", body.includes("Prévia do Censo: EMEF MARIA FIRMINA DOS REIS") && body.includes("leiaute 2025"), body.slice(0, 200));
+    check("censo: a prévia diz o que a dependência da escola muda no Fundeb", body.includes("Escola municipal: o AEE oferecido aqui conta para a rede municipal"));
+    // Nas rodadas seguintes, os dois ficam em "Sem mudança", que vem fechado: textContent inclui o que está recolhido.
+    const preview = await page.evaluate(() => document.body.textContent);
+    check("censo: a prévia aponta AEE sem tipo de atendimento e horário coincidente", preview.includes("sem nenhum tipo de atendimento marcado") && preview.includes("O horário do AEE coincide com o da classe comum"));
     check("censo: Dante conciliado pelo nome e nascimento (ou pelo ID INEP já gravado)", /Dante Oliveira[\s\S]*(ID INEP: de vazio para 210000000001|Sem mudança)/.test(body) || body.includes("Sem mudança no cadastro"));
     check("censo: a aluna de outra escola da rede pede revisão", body.includes("LIVIA SANTOS") && body.includes("outra escola da rede"));
     check("censo: aplicar fica bloqueado com revisão pendente", await page.evaluate(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Aplicar e guardar"))?.disabled === true));
@@ -1558,7 +1565,8 @@ if (!ONLY_WAIT) {
     await settle(page);
     body = await textOf(page);
     check("censo: aplicado, com a referência da escola", body.includes("Arquivo aplicado") && body.includes("Conferido com o arquivo aplicado"));
-    check("censo: dupla matrícula não confirmada para quem está só no AEE", /Matrícula no AEE sem classe comum[\s\S]*Ravi Almeida/.test(body));
+    check("censo: dupla matrícula não confirmada para quem está só no AEE", /Matrícula no AEE sem classe comum[\s\S]*Ravi Almeida[\s\S]*sem tipo de atendimento/.test(body));
+    check("censo: dupla matrícula com alerta de horário coincidente", /Com dupla matrícula, mas com alerta no vínculo[\s\S]*Aluna Nova do Censo[\s\S]*Horário do AEE coincide/.test(body));
     check("censo: Dante confirmado com classe comum e AEE", await page.evaluate(() => [...document.querySelectorAll("details")].some((item) => item.textContent.includes("Confirmados") && item.textContent.includes("Dante Oliveira"))));
     await page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
     await clickByText(page, "Verificar agora");
@@ -1566,7 +1574,8 @@ if (!ONLY_WAIT) {
     await page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
     body = await textOf(page);
     check("censo: verificação manual no histórico", body.includes("manual, por Ana Coordenadora"));
-    check("censo: contagens da escola (educação especial, AEE e dupla matrícula)", body.includes("Educação especial no Censo") && body.includes("Dupla matrícula por etapa: Ensino fundamental"));
+    check("censo: contagens da escola (educação especial, AEE e dupla matrícula)", body.includes("Educação especial no Censo") && body.includes("Dupla matrícula no arquivo"));
+    check("censo: estimativa do AEE considerado, com o que fica de fora", /AEE que o FNDE deve considerar \(estimativa\)\s*2\s*Por etapa: Ensino fundamental 2/.test(body) && body.includes("com vínculo que o Educacenso recusa ou não importa"), body.slice(body.indexOf("AEE que o FNDE"), body.indexOf("AEE que o FNDE") + 300));
     await page.goto(`${BASE}/avisos`, { waitUntil: "networkidle2" });
     check("censo: a coordenação recebe o aviso da pendência", (await textOf(page)).includes("Censo:"));
     check("censo: sem erros de cliente (coordenação)", errors.length === 0, errors.join("; "));

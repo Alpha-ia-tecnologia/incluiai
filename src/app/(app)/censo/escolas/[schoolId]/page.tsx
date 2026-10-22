@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, TriangleAlert } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canOpenSchool } from "@/lib/census";
 import { schoolCoverage } from "@/lib/census-core";
-import { COVERAGE_HINT, COVERAGE_LABEL, MATCH_LABEL, brMoment, type CoverageStatus } from "@/lib/census-rules";
+import { BLOCKING_ISSUES, COVERAGE_HINT, COVERAGE_LABEL, ISSUE_LABEL, MATCH_LABEL, brMoment, schoolFundebNote, type CoverageRow, type CoverageStatus } from "@/lib/census-rules";
 import { parseJson } from "@/lib/format";
 import { saveSchoolInep, saveStudentInep, uploadCensusFile } from "@/actions/census";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
@@ -14,6 +14,16 @@ import { CensusUploadForm, InepForm } from "@/components/census/census-forms";
 export const dynamic = "force-dynamic";
 
 const PENDING: Exclude<CoverageStatus, "dupla">[] = ["ausente", "sem_aee", "sem_comum", "sem_marcacao"];
+const blocked = (row: CoverageRow) => row.issues.some((issue) => BLOCKING_ISSUES.has(issue));
+
+function Issues({ row }: { row: CoverageRow }) {
+  if (!row.issues.length) return null;
+  return (
+    <ul className="grid gap-1">
+      {row.issues.map((issue) => <li key={issue} className="flex gap-1.5 text-xs leading-relaxed text-amber-800"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {ISSUE_LABEL[issue]}</li>)}
+    </ul>
+  );
+}
 const IMPORT_STATUS: Record<string, string> = { previa: "Prévia aberta", aplicada: "Aplicada", descartada: "Descartada" };
 
 // O Censo de uma escola: código INEP, importação do arquivo e a dupla matrícula
@@ -32,6 +42,9 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
   const applied = (await searchParams).aplicado?.match(/^(\d+)-(\d+)$/);
   const open = imports.find((item) => item.status === "previa");
   const rows = result?.coverage.rows ?? [];
+  const note = result ? schoolFundebNote(result.info) : null;
+  // Com dupla matrícula, mas com alerta no vínculo: aparecem à parte para conferir no Educacenso.
+  const alerts = rows.filter((row) => row.status === "dupla" && row.issues.length);
 
   return (
     <>
@@ -57,7 +70,8 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
           <h2 id="censo-dupla" className="text-base font-medium text-ink">Dupla matrícula dos estudantes do AEE</h2>
           {result ? (
             <>
-              <p className="text-sm text-ink-soft">Conferido com o arquivo aplicado em {brMoment(result.importedAt)}: {result.coverage.confirmed} de {rows.length} {rows.length === 1 ? "estudante confirmado" : "estudantes confirmados"} no Censo com classe comum e AEE.</p>
+              <p className="text-sm text-ink-soft">Conferido com o arquivo aplicado em {brMoment(result.importedAt)}: {result.coverage.confirmed} de {rows.length} {rows.length === 1 ? "estudante confirmado" : "estudantes confirmados"} no Censo com classe comum presencial e AEE, sem impedimento no vínculo.</p>
+              {note ? <p className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${note.tone === "ok" ? "bg-green-soft text-green" : "bg-amber-soft text-amber"}`}>{note.text}</p> : null}
               {PENDING.map((status) => {
                 const list = rows.filter((row) => row.status === status);
                 if (!list.length) return null;
@@ -69,6 +83,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
                       {list.map((row) => (
                         <li key={row.id} className="grid min-w-0 gap-2 rounded-xl bg-surface-muted/60 p-3">
                           <Link href={`/estudantes/${row.id}`} className="w-fit text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
+                          <Issues row={row} />
                           {status === "ausente" ? <InepForm action={saveStudentInep.bind(null, row.id, schoolId)} id={`inep-${row.id}`} label="ID INEP do estudante (12 números)" name="inepId" length={12} /> : null}
                         </li>
                       ))}
@@ -76,11 +91,25 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
                   </Card>
                 );
               })}
+              {alerts.length ? (
+                <Card>
+                  <SectionTitle>Com dupla matrícula, mas com alerta no vínculo ({alerts.length})</SectionTitle>
+                  <p className="mb-3 text-sm text-ink-soft">{alerts.some(blocked) ? "Os vínculos com impedimento não chegam ao Fundeb: o Educacenso recusa o arquivo ou não importa a pessoa. " : ""}Confira no Educacenso antes do fechamento.</p>
+                  <ul className="grid gap-3">
+                    {alerts.map((row) => (
+                      <li key={row.id} className="grid min-w-0 gap-2 rounded-xl bg-surface-muted/60 p-3">
+                        <Link href={`/estudantes/${row.id}`} className="w-fit text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
+                        <Issues row={row} />
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              ) : null}
               {result.coverage.confirmed ? (
                 <details className="rounded-2xl border border-line bg-paper-raised p-4">
                   <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-ink">Confirmados ({result.coverage.confirmed})</summary>
                   <ul className="mt-2 grid gap-1 text-sm text-ink">
-                    {rows.filter((row) => row.status === "dupla").map((row) => <li key={row.id}>{row.name} <span className="text-ink-soft">(pelo {row.matchedBy ? MATCH_LABEL[row.matchedBy] : "cadastro"})</span></li>)}
+                    {rows.filter((row) => row.status === "dupla" && !blocked(row)).map((row) => <li key={row.id}>{row.name} <span className="text-ink-soft">(pelo {row.matchedBy ? MATCH_LABEL[row.matchedBy] : "cadastro"}{row.regularAt ? `; classe comum em ${row.regularAt}` : ""})</span></li>)}
                   </ul>
                 </details>
               ) : null}

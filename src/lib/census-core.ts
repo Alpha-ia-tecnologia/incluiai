@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "./prisma";
 import { parseJson } from "./format";
-import { DEFAULT_MONITOR, inWindow, nextRun, verifyCoverage, type Coverage, type MonitorConfig, type PlatformStudent, type SnapshotPerson } from "./census-rules";
+import { identityKeys } from "./educacenso";
+import { DEFAULT_MONITOR, inWindow, networkAeeEstimate, nextRun, verifyCoverage, type Coverage, type MonitorConfig, type PlatformStudent, type SchoolInfo, type SnapshotPerson } from "./census-rules";
 
 export type SchoolResult = { schoolId: string; school: string; aee: number; confirmed: number; pending: number; percent: number | null };
 
@@ -20,26 +21,53 @@ export async function schoolStudents(schoolId: string): Promise<PlatformStudent[
   return students.map((student) => ({ ...student, birthDate: isoDay(student.birthDate) }));
 }
 
-// Cobertura de uma escola contra a referência guardada (null sem arquivo aplicado).
-export async function schoolCoverage(schoolId: string): Promise<{ coverage: Coverage; importedAt: Date; persons: SnapshotPerson[] } | null> {
-  const snapshot = await prisma.censusSnapshot.findUnique({ where: { schoolId } });
-  if (!snapshot) return null;
-  const persons = parseJson<SnapshotPerson[]>(snapshot.persons, []);
-  const coverage = verifyCoverage(await schoolStudents(schoolId), persons, new Set(parseJson<string[]>(snapshot.regularOnly, [])));
-  return { coverage, importedAt: snapshot.importedAt, persons };
+export type NetworkSnapshot = { schoolId: string; name: string; info: SchoolInfo; persons: SnapshotPerson[]; regularOnly: string[]; importedAt: Date };
+const NO_INFO: SchoolInfo = { dependency: "", privateCategory: "", municipalPartnership: false };
+
+// As referências da rede: o último arquivo aplicado de cada escola.
+export async function networkSnapshots(): Promise<NetworkSnapshot[]> {
+  const rows = await prisma.censusSnapshot.findMany({ select: { schoolId: true, persons: true, regularOnly: true, schoolInfo: true, importedAt: true, school: { select: { name: true } } } });
+  return rows.map((row) => ({
+    schoolId: row.schoolId, name: row.school.name, importedAt: row.importedAt,
+    info: { ...NO_INFO, ...parseJson<Partial<SchoolInfo>>(row.schoolInfo, {}) },
+    persons: parseJson<SnapshotPerson[]>(row.persons, []), regularOnly: parseJson<string[]>(row.regularOnly, []),
+  }));
 }
+
+// Classe comum presencial em outra escola pública da rede: a dupla matrícula vale entre escolas.
+function regularElsewhere(network: readonly NetworkSnapshot[], schoolId: string): (keys: string[]) => string | null {
+  const index = new Map<string, string>();
+  for (const snapshot of network) {
+    if (snapshot.schoolId === schoolId || !["municipal", "estadual"].includes(snapshot.info.dependency)) continue;
+    for (const person of snapshot.persons.filter((item) => item.regular)) for (const key of identityKeys(person)) if (!index.has(key)) index.set(key, snapshot.name);
+  }
+  return (keys) => keys.map((key) => index.get(key)).find((name) => name !== undefined) ?? null;
+}
+
+// Cobertura de uma escola contra a referência guardada (null sem arquivo aplicado).
+export async function schoolCoverage(schoolId: string, network?: readonly NetworkSnapshot[]): Promise<{ coverage: Coverage; importedAt: Date; persons: SnapshotPerson[]; info: SchoolInfo } | null> {
+  const all = network ?? await networkSnapshots();
+  const snapshot = all.find((item) => item.schoolId === schoolId);
+  if (!snapshot) return null;
+  const coverage = verifyCoverage(await schoolStudents(schoolId), snapshot.persons, new Set(snapshot.regularOnly), regularElsewhere(all, schoolId));
+  return { coverage, importedAt: snapshot.importedAt, persons: snapshot.persons, info: snapshot.info };
+}
+
+// Estimativa do AEE que o FNDE considera para a rede municipal, pelos arquivos aplicados.
+export const aeeEstimate = (network: readonly NetworkSnapshot[], countOnly?: string) =>
+  networkAeeEstimate(network.map((snapshot) => ({ id: snapshot.schoolId, name: snapshot.name, info: snapshot.info, persons: snapshot.persons })), countOnly);
 
 // Verifica todas as escolas com referência. Avisa a coordenação e a gestão da
 // escola quando o número de pendências muda (duas verificações por dia não
 // repetem o mesmo aviso).
 export async function runVerification(trigger: "agendada" | "manual", actorName: string) {
-  const snapshots = await prisma.censusSnapshot.findMany({ select: { schoolId: true, school: { select: { name: true } } } });
+  const network = await networkSnapshots();
   const results: SchoolResult[] = [];
-  for (const snapshot of snapshots) {
-    const result = await schoolCoverage(snapshot.schoolId);
+  for (const snapshot of network) {
+    const result = await schoolCoverage(snapshot.schoolId, network);
     if (!result) continue;
     const { coverage } = result;
-    results.push({ schoolId: snapshot.schoolId, school: snapshot.school.name, aee: coverage.rows.length, confirmed: coverage.confirmed, pending: coverage.pending, percent: coverage.percent });
+    results.push({ schoolId: snapshot.schoolId, school: snapshot.name, aee: coverage.rows.length, confirmed: coverage.confirmed, pending: coverage.pending, percent: coverage.percent });
   }
   const previous = await prisma.censusCheck.findFirst({ where: { ok: true }, orderBy: { at: "desc" }, select: { schools: true } });
   const before = new Map(parseJson<SchoolResult[]>(previous?.schools, []).map((item) => [item.schoolId, item.pending]));
