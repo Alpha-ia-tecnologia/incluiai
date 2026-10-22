@@ -1509,6 +1509,119 @@ if (!ONLY_WAIT) {
     check("pílulas: são da equipe (a família não vê)", !familyHelp.includes("Formação em pílulas") && new URL(family.page.url()).pathname === "/ajuda");
     await family.ctx.close();
   }
+  // ---------- 21. Censo Escolar: importação, revisão, dupla matrícula e monitor ----------
+  // Arquivo de migração (leiaute 2025, número oficial de campos) da escola da
+  // coordenação: Dante com classe comum e AEE, Ravi só no AEE, uma aluna nova e
+  // Lívia, que estuda em outra escola da rede (revisão: ignorar com motivo).
+  {
+    const line = (count, values) => Array.from({ length: count }, (_, index) => values[index + 1] ?? "").join("|");
+    const person = (code, inep, name, birth) => line(108, { 1: "30", 2: "21000001", 3: code, 4: inep, 6: name, 7: birth, 17: "1", 27: "1" });
+    const enroll = (code, klass, caa) => line(32, { 1: "60", 2: "21000001", 3: code, 5: klass, ...(caa ? { 18: "1" } : {}) });
+    const file = [
+      line(56, { 1: "00", 2: "21000001", 3: "1", 6: "EMEF MARIA FIRMINA DOS REIS" }),
+      line(70, { 1: "20", 2: "21000001", 3: "T2B", 5: "2 ANO B", 14: "1", 16: "0", 25: "302" }),
+      line(70, { 1: "20", 2: "21000001", 3: "SRM", 5: "SALA DE RECURSOS MULTIFUNCIONAIS", 14: "0", 16: "1" }),
+      person("P1", "210000000001", "DANTE OLIVEIRA", "12/03/2019"),
+      person("P2", "210000000002", "RAVI ALMEIDA", "25/01/2017"),
+      person("P3", "210000000003", "ALUNA NOVA DO CENSO", "15/08/2018"),
+      person("P4", "", "LIVIA SANTOS", "02/07/2014"),
+      enroll("P1", "T2B"), enroll("P1", "SRM", true), enroll("P2", "SRM"), enroll("P3", "T2B"), enroll("P3", "SRM", true), enroll("P4", "T2B"),
+      "99|",
+    ].join("\r\n");
+    const filePath = join(mkdtempSync(join(tmpdir(), "censo-")), "migracao.txt");
+    writeFileSync(filePath, file, "latin1");
+
+    const { ctx, page, errors } = await newSession();
+    await login(page, "coordenacao@escola.edu.br");
+    await page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
+    const schoolHref = await page.evaluate(() => document.querySelector('main a[href^="/censo/escolas/"]')?.getAttribute("href"));
+    check("censo: a coordenação abre a própria escola", Boolean(schoolHref));
+    await page.goto(`${BASE}${schoolHref}`, { waitUntil: "networkidle2" });
+    const upload = await page.$('input[type="file"][name="file"]');
+    await upload.uploadFile(filePath);
+    await clickByText(page, "Ler o arquivo e ver a prévia");
+    await page.waitForFunction(() => location.pathname.startsWith("/censo/importacoes/"), { timeout: 30000 }).catch(() => {});
+    await settle(page);
+    let body = await textOf(page);
+    check("censo: prévia do arquivo com a edição do leiaute", body.includes("Prévia do Censo: EMEF MARIA FIRMINA DOS REIS") && body.includes("leiaute 2025"), body.slice(0, 200));
+    check("censo: Dante conciliado pelo nome e nascimento (ou pelo ID INEP já gravado)", /Dante Oliveira[\s\S]*(ID INEP: de vazio para 210000000001|Sem mudança)/.test(body) || body.includes("Sem mudança no cadastro"));
+    check("censo: a aluna de outra escola da rede pede revisão", body.includes("LIVIA SANTOS") && body.includes("outra escola da rede"));
+    check("censo: aplicar fica bloqueado com revisão pendente", await page.evaluate(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Aplicar e guardar"))?.disabled === true));
+    await page.evaluate(() => { document.querySelector('input[name="decision"][value="ignore"]').checked = true; });
+    await page.$eval('textarea[name="reason"]', (area) => { area.value = "Estuda em outra escola da rede."; });
+    await clickByText(page, "Salvar a decisão");
+    await page.waitForFunction(() => document.body.innerText.includes("Ignorados (1)"), { timeout: 20000 }).catch(() => {});
+    check("censo: a revisão registra o motivo", (await textOf(page)).includes("Estuda em outra escola da rede."));
+    await page.waitForFunction(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Aplicar e guardar"))?.disabled === false, { timeout: 10000 }).catch(() => {});
+    await clickByText(page, "Aplicar e guardar como referência");
+    await page.waitForFunction(() => location.pathname.startsWith("/censo/escolas/"), { timeout: 30000 }).catch(() => {});
+    await settle(page);
+    body = await textOf(page);
+    check("censo: aplicado, com a referência da escola", body.includes("Arquivo aplicado") && body.includes("Conferido com o arquivo aplicado"));
+    check("censo: dupla matrícula não confirmada para quem está só no AEE", /Matrícula no AEE sem classe comum[\s\S]*Ravi Almeida/.test(body));
+    check("censo: Dante confirmado com classe comum e AEE", await page.evaluate(() => [...document.querySelectorAll("details")].some((item) => item.textContent.includes("Confirmados") && item.textContent.includes("Dante Oliveira"))));
+    await page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
+    await clickByText(page, "Verificar agora");
+    await page.waitForFunction(() => document.body.innerText.includes("Verificação registrada"), { timeout: 20000 }).catch(() => {});
+    await page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
+    body = await textOf(page);
+    check("censo: verificação manual no histórico", body.includes("manual, por Ana Coordenadora"));
+    check("censo: contagens da escola (educação especial, AEE e dupla matrícula)", body.includes("Educação especial no Censo") && body.includes("Dupla matrícula por etapa: Ensino fundamental"));
+    await page.goto(`${BASE}/avisos`, { waitUntil: "networkidle2" });
+    check("censo: a coordenação recebe o aviso da pendência", (await textOf(page)).includes("Censo:"));
+    check("censo: sem erros de cliente (coordenação)", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    // A Secretaria vê números, informa o FNDE e põe a janela em hoje, com uma
+    // verificação daqui a dois minutos (horário de Brasília): o agendador roda sozinho.
+    const network = await newSession();
+    await login(network.page, "secretaria@municipio.gov.br");
+    await network.page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
+    body = await textOf(network.page);
+    check("censo: a Secretaria vê números, sem nomes", body.includes("Contagens da rede") && !/Dante|Ravi|Aluna Nova/.test(body) && !(await network.page.$('main a[href^="/censo/escolas/"]')));
+    await network.page.$eval("#fnde-aee", (input) => { input.value = "136"; });
+    await network.page.$eval("#fnde-ano", (input) => { input.value = "2026"; });
+    await clickExact(network.page, "Salvar");
+    await network.page.waitForFunction(() => document.body.innerText.includes("Número do FNDE salvo"), { timeout: 20000 }).catch(() => {});
+    await network.page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
+    check("censo: comparação com o FNDE, sem afirmar perda", /O FNDE considerou \d+ matrículas de AEE a mais/.test(await textOf(network.page)));
+    const brasilia = (minutes) => {
+      const date = new Date(Date.now() + minutes * 60_000);
+      return { day: date.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }), time: date.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }) };
+    };
+    const soon = brasilia(2);
+    const setWindow = (start, end, times) => network.page.evaluate((values) => {
+      document.querySelector("details summary")?.click();
+      document.querySelector("#censo-inicio").value = values.start;
+      document.querySelector("#censo-fim").value = values.end;
+      document.querySelectorAll('input[name="times"]').forEach((input, index) => { input.value = values.times[index] ?? ""; });
+      document.querySelector('input[name="enabled"]').checked = true;
+    }, { start, end, times });
+    await setWindow(soon.day, soon.day, [soon.time]);
+    await clickByText(network.page, "Salvar a janela");
+    await network.page.waitForFunction(() => document.body.innerText.includes("Janela salva"), { timeout: 20000 }).catch(() => {});
+    await network.page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
+    check("censo: monitor ativo com a próxima verificação", (await textOf(network.page)).includes(`Próxima verificação: ${soon.day.split("-").reverse().join("/")} às ${soon.time}`));
+    let scheduled = false;
+    for (let attempt = 0; attempt < 24 && !scheduled; attempt += 1) {
+      await sleep(10000);
+      await network.page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
+      scheduled = (await textOf(network.page)).includes("· agendada ·");
+    }
+    check("censo: a verificação agendada roda sozinha no horário", scheduled);
+    await setWindow("2027-05-26", "2027-08-31", ["08:00", "16:00"]);
+    await clickByText(network.page, "Salvar a janela");
+    await network.page.waitForFunction(() => document.body.innerText.includes("Janela salva"), { timeout: 20000 }).catch(() => {});
+    check("censo: sem erros de cliente (Secretaria)", network.errors.length === 0, network.errors.join("; "));
+    await network.ctx.close();
+
+    const teacher = await newSession();
+    await login(teacher.page, "professor@escola.edu.br");
+    await teacher.page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
+    check("censo: o professor não abre", new URL(teacher.page.url()).pathname === "/");
+    await teacher.ctx.close();
+    unlinkSync(filePath);
+  }
 }
 
 await browser.close();

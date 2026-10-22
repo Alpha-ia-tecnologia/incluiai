@@ -23,7 +23,7 @@ export default async function NoticesPage() {
   if (unread.size) await prisma.notification.updateMany({ where: { userId: user.id, readAt: null }, data: { readAt: new Date() } });
   return (
     <>
-      <PageHeader title="Avisos" lede="O que mudou no acompanhamento: materiais aprovados, relatórios, revisões do plano e respostas da família." />
+      <PageHeader title="Avisos" lede="O que mudou no acompanhamento: materiais aprovados, relatórios, revisões do plano, respostas da família e pendências do Censo Escolar." />
       <div className="grid max-w-3xl gap-6">
         {notices.length ? (
           <ul className="grid gap-2">

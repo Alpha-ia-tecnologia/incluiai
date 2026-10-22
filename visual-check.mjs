@@ -6,7 +6,7 @@
 // Os endereços com id (estudante, material, planejamento) são achados nas próprias telas.
 import puppeteer from "puppeteer-core";
 import { createRequire } from "node:module";
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -124,12 +124,26 @@ await account("professor@escola.edu.br", "professor", async (page) => {
 
 await account("coordenacao@escola.edu.br", "coordenacao", async (page) => {
   const accountLink = await firstLink(page, "/usuarios", 'a[href^="/usuarios/c"]');
-  return [["painel", "/painel"], ["dossie", "/dossie"], ["dossie_pendentes", "/dossie?filtro=pendentes"], ["cadastros", "/cadastros"], ["jornada", "/jornada"], ["estudantes", "/estudantes"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
+  // Censo: a escola e uma prévia do arquivo de exemplo (fica aberta até a próxima importação).
+  const censusSchool = await firstLink(page, "/censo", 'main a[href^="/censo/escolas/"]');
+  let censusPreview = null;
+  if (censusSchool) {
+    await page.goto(`${BASE}${censusSchool}`, { waitUntil: "networkidle2" });
+    const sample = join(mkdtempSync(join(tmpdir(), "censo-")), "migracao.txt");
+    // O arquivo precisa ter o código INEP que a escola já tem (o E2E grava um).
+    const code = (await page.$eval("#escola-inep", (input) => input.value).catch(() => "")) || "12345678";
+    writeFileSync(sample, (await import("./src/lib/educacenso.fixture.mjs")).sampleFile(2025).replaceAll("|12345678|", `|${code}|`), "latin1");
+    await (await page.$('input[type="file"][name="file"]'))?.uploadFile(sample);
+    await page.evaluate(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Ler o arquivo"))?.click());
+    await page.waitForFunction(() => location.pathname.startsWith("/censo/importacoes/"), { timeout: 30000 }).catch(() => {});
+    censusPreview = page.url().includes("/censo/importacoes/") ? new URL(page.url()).pathname : null;
+  }
+  return [["censo", "/censo"], censusSchool && ["censo_escola", censusSchool], censusPreview && ["censo_previa", censusPreview], ["painel", "/painel"], ["dossie", "/dossie"], ["dossie_pendentes", "/dossie?filtro=pendentes"], ["cadastros", "/cadastros"], ["jornada", "/jornada"], ["estudantes", "/estudantes"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
 });
 
 await account("secretaria@municipio.gov.br", "secretaria", async (page) => {
   const accountLink = await firstLink(page, "/usuarios", 'a[href^="/usuarios/c"]');
-  return [["inicio", "/"], ["painel", "/painel"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
+  return [["inicio", "/"], ["painel", "/painel"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["censo", "/censo"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
 });
 
 await account("familia@email.com", "familia", async (page) => {

@@ -218,6 +218,40 @@ As pílulas ficam em **Ajuda** e no **Saiba mais** ao lado do passo corresponden
 
 A versão 1 (`src/lib/learning-pills.ts`) é um rascunho para a equipe pedagógica revisar. Os textos são próprios.
 
+## Censo Escolar (Educacenso)
+
+O INEP não tem API pública. A troca oficial é o **arquivo de migração** (TXT com campos separados por `|`, em ISO-8859-1), que a escola exporta do Educacenso ou do sistema de gestão. Em **Censo Escolar**, no menu:
+
+- **Importação:**
+    - A coordenação ou a gestão da escola envia o arquivo. A plataforma lê os registros 00 (escola), 20 (turma), 30 (pessoa física) e 60 (matrícula).
+    - O leiaute é o de 2025 ou o de 2026, reconhecido pelo número de campos de cada registro. As posições foram conferidas nas planilhas oficiais do INEP ("Layout de Importação e Exportação do Educacenso" 2025, versão 2, e 2026) e ficam em `LAYOUT`, em `src/lib/educacenso.ts`.
+- **Prévia e conciliação:**
+    - Cada aluno do público da educação especial ou com matrícula no AEE é conciliado com o cadastro da escola. A ordem é: ID INEP, CPF, nome com nascimento e, por fim, nome único.
+    - A prévia mostra quem será cadastrado, o que muda (nome, nascimento, ID INEP, CPF, AEE) e quem está com AEE na plataforma mas fora do arquivo.
+    - Homônimos, nascimento inválido e alguém igual em outra escola da rede (possível transferência) vão para revisão. A equipe escolhe vincular, cadastrar ou ignorar com motivo.
+    - Nada é gravado até **Aplicar**. A aplicação roda numa transação e entra no histórico de acessos. Quem é cadastrado pelo arquivo entra com a etapa estimada pela idade e com ano, turno e responsável "A informar".
+- **Dupla matrícula:** para cada estudante com AEE na plataforma, a referência da escola diz se ele está no Censo:
+    - com classe comum e AEE (a dupla matrícula que conta no Fundeb);
+    - sem matrícula no AEE;
+    - só no AEE, sem classe comum (classe especial não conta como comum);
+    - sem a marcação de educação especial;
+    - fora do arquivo.
+  A escola pode informar o ID INEP de quem não foi encontrado.
+- **Conciliação das contagens:**
+    - Por escola e na rede: educação especial no Censo, matrículas no AEE, dupla matrícula (por etapa agregada), AEE sem classe comum, educação especial sem AEE e estudantes com AEE na plataforma.
+    - A Secretaria informa quantas matrículas de AEE o FNDE considerou no Fundeb, e a plataforma compara com os arquivos. A diferença pede conferência e não comprova perda.
+- **Verificação na janela do Censo:**
+    - O monitor confere todas as escolas nos horários configurados, por padrão às 8h e às 16h de Brasília, dentro da janela. A janela padrão vai de 26/05/2027 a 31/08/2027, e a Secretaria a ajusta.
+    - O agendador sobe com o servidor (`src/instrumentation.ts`) e usa uma trava no banco, para duas instâncias não verificarem juntas. Se o servidor estava parado no horário, ele verifica ao voltar. `CENSUS_MONITOR=0` desliga.
+    - Quando a pendência de uma escola muda, a coordenação e a gestão recebem um aviso.
+- **Quem vê o quê:** a coordenação e a gestão veem os nomes da própria escola. A Secretaria vê só números (com "menos de 5" nas pendências) e configura a janela e o número do FNDE.
+- **Dados:**
+    - O arquivo não fica guardado. A referência da escola guarda só os alunos do público do AEE (nome, ID INEP, CPF, nascimento, matrículas e etapa).
+    - Os tipos de deficiência não são guardados: a plataforma não precisa deles.
+    - Ao aplicar ou descartar, a prévia perde os dados das pessoas.
+
+Regras puras em `src/lib/educacenso.ts` e `src/lib/census-rules.ts`, com testes.
+
 ## Habilidades da BNCC
 
 O objetivo do Plano de ensino e o planejamento com DUA ligam-se a habilidades da BNCC escolhidas na base oficial (`prisma/data/bncc.json`, 1.580 códigos de educação infantil, fundamental e médio), e não digitadas à mão:

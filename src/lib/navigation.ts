@@ -2,7 +2,7 @@ export type NavigationItem = {
   href: string;
   label: string;
   shortLabel: string;
-  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help" | "evidence";
+  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help" | "evidence" | "census";
   exact?: boolean;
   section?: "routine" | "management" | "help";
 };
@@ -52,6 +52,8 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
     links.push(
       { ...dashboard, section: "management" },
       { ...dossier, section: "management" },
+      // Censo Escolar (Educacenso): importação, conciliação e dupla matrícula do AEE.
+      { href: "/censo", label: "Censo Escolar", shortLabel: "Censo", icon: "census", section: "management" },
       { href: "/cadastros", label: "Escolas e turmas", shortLabel: "Cadastros", icon: "schools", section: "management" },
       { href: "/usuarios", label: "Pessoas e acessos", shortLabel: "Acessos", icon: "accounts", section: "management" },
     );

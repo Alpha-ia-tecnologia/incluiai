@@ -11,8 +11,12 @@ model School {
   id       String        @id @default(cuid())
   name     String
   region   String
+  // Censo Escolar: código INEP da escola, para ligar o arquivo do Educacenso à escola.
+  inepCode String?       @unique
   students Student[]
   classes  SchoolClass[]
+  censusSnapshot CensusSnapshot?
+  censusImports  CensusImport[]
 }
 
 // Turma cadastrada — alimenta as sugestões no cadastro de aluno e o
@@ -46,6 +50,11 @@ model Student {
   accessibilityNotes  String?
   status              String   @default("ativo") // ativo | transferido | inativo
   avatarHue           Int      @default(200)
+  // Censo Escolar: identificadores para conciliar com o arquivo do Educacenso e a
+  // situação na última referência da escola (JSON: matrícula no AEE e na classe comum).
+  inepId              String?
+  cpf                 String?
+  census              String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -950,4 +959,74 @@ model FamilyCheckIn {
   createdAt  DateTime @default(now())
 
   @@unique([studentId, weekStart])
+}
+
+// Censo Escolar (Educacenso): referência da escola, o último arquivo de migração
+// aplicado. Guarda só o público da educação especial (JSON SnapshotPerson[]), sem o
+// arquivo, e os estudantes do cadastro que estavam no arquivo fora desse público.
+model CensusSnapshot {
+  id             String   @id @default(cuid())
+  schoolId       String   @unique
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  inepCode       String
+  fileSchoolName String
+  persons        String
+  regularOnly    String   @default("[]")
+  counts         String // JSON CensusCounts
+  importedById   String
+  importedByName String
+  importedAt     DateTime @default(now())
+}
+
+// Importação em prévia: o que o arquivo traz e as decisões da revisão. Ao aplicar
+// ou descartar, os dados das pessoas saem e fica só o resumo.
+model CensusImport {
+  id             String    @id @default(cuid())
+  schoolId       String
+  school         School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  fileSchoolCode String
+  fileSchoolName String
+  persons        String // JSON CensusPerson[] do público da educação especial
+  regularOnly    String    @default("[]")
+  stats          String // JSON: linhas, registros lidos, pessoas no arquivo, avisos
+  decisions      String    @default("[]")
+  status         String    @default("previa") // previa | aplicada | descartada
+  result         String? // JSON: criados, atualizados, ignorados
+  createdById    String
+  createdByName  String
+  createdAt      DateTime  @default(now())
+  appliedAt      DateTime?
+
+  @@index([schoolId, createdAt])
+}
+
+// Verificação dos estudantes do AEE contra a referência de cada escola.
+model CensusCheck {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  trigger   String // agendada | manual
+  actorName String
+  ok        Boolean // false = nenhuma escola com referência
+  confirmed Int
+  pending   Int
+  schools   String // JSON: por escola, confirmados e pendências
+}
+
+// Monitor da janela do Censo (um por rede): horários de Brasília, trava para
+// duas instâncias não verificarem juntas e o número de matrículas de AEE do FNDE.
+model CensusMonitor {
+  id          String    @id @default("rede")
+  enabled     Boolean   @default(true)
+  periodStart String
+  periodEnd   String
+  times       String // JSON: ["08:00", "16:00"]
+  fndeAee     Int?
+  fndeYear    Int?
+  nextRunAt   DateTime?
+  lockedBy    String?
+  lockedUntil DateTime?
+  lastRunAt   DateTime?
+  lastStatus  String?
+  updatedBy   String?
+  updatedAt   DateTime  @updatedAt
 }
