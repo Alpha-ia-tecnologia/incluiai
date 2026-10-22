@@ -69,7 +69,7 @@ export function StudentNextStepLink({ progress }: { progress: StudentJourneyInpu
     );
   }
   return (
-    <Link href={next.href} title={next.description} className={`student-head-cta ${primaryButtonCls} shrink-0`}>
+    <Link href={next.href} title={next.description} className={`student-head-cta ${primaryButtonCls} max-w-full shrink-0`}>
       <span className="sr-only">Próximo passo: </span>{next.label} <ArrowRight size={16} aria-hidden />
     </Link>
   );

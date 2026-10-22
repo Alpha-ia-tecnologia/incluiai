@@ -12,6 +12,7 @@ import { hasApiKey } from "@/lib/env";
 import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantPopup } from "./assistant/assistant-popup";
 import { NavigationProgress } from "./navigation-progress";
+import { TextSizeControl } from "./text-size-control";
 
 const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, accounts: UserCog, family: Heart, care: Stethoscope, help: CircleHelp };
 
@@ -57,12 +58,13 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
             <details className="relative z-30">
               <summary className="flex min-h-11 list-none items-center gap-2 rounded-full bg-surface-muted/70 py-1.5 pl-1.5 pr-3 text-sm [&::-webkit-details-marker]:hidden">
                 <span className="flex size-8 items-center justify-center rounded-full bg-lilac-warm text-xs font-semibold">{initials}</span>
-                <span className="max-w-24 truncate">{firstName(user.name)}</span><ChevronDown size={14} aria-hidden />
+                <span className="shell-user-name max-w-24 truncate">{firstName(user.name)}</span><ChevronDown size={14} aria-hidden />
               </summary>
               <div className="absolute right-0 top-full mt-2 w-60 rounded-2xl border border-line bg-paper-raised p-4 shadow-e2">
                 <p className="text-sm font-medium">{user.name}</p><p className="mt-1 text-xs text-ink-soft">{ROLES[user.role] ?? user.role}</p>
                 <Link href="/ajuda" className="mt-3 flex min-h-11 items-center gap-2 rounded-lg p-2 text-sm hover:bg-brand-soft"><CircleHelp size={18} aria-hidden /> Ajuda e primeiros passos</Link>
                 <Link href="/conta/seguranca" className="flex min-h-11 items-center gap-2 rounded-lg p-2 text-sm hover:bg-brand-soft"><ShieldCheck size={18} aria-hidden /> Segurança da conta</Link>
+                <div className="mt-2 border-t border-line px-2 pt-3"><TextSizeControl /></div>
                 <form action={logout} className="mt-2 border-t border-line pt-2"><button type="submit" className="flex min-h-11 w-full items-center gap-2 rounded-lg p-2 text-sm hover:bg-coral-soft"><LogOut size={18} aria-hidden /> Sair da plataforma</button></form>
               </div>
             </details>

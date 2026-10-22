@@ -1,5 +1,7 @@
 import Image from "next/image";
 import { ConsentCard } from "@/components/consent-card";
+import { ReadAloud } from "@/components/read-aloud";
+import { TextSizeControl } from "@/components/text-size-control";
 import { studentConsent } from "@/lib/consent";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -78,6 +80,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
         character="care"
         title={`Acompanhamento de ${firstName}`}
         lede="O que a escola está trabalhando, os avanços recentes e o espaço para a família registrar o que observa em casa."
+        actions={<><ReadAloud targetId="conteudo" label="Ouvir esta página" /><TextSizeControl /></>}
       />
       {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />) : null}
 

@@ -39,7 +39,7 @@ const levelText = (level: number) => `${SUPPORT_NAMES[Math.round(Math.min(5, Mat
 const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
 export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${TONE_CLASSES[tone]}`}>{children}</span>;
+  return <span className={`status-pill inline-flex max-w-full items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${TONE_CLASSES[tone]}`}>{children}</span>;
 }
 
 // Quadro cinza que agrupa cartões, como no painel.

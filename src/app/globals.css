@@ -152,6 +152,17 @@ select:not([multiple]):not([size]) {
 select:not([multiple]):not([size]):disabled { opacity: 0.6; }
 /* Cabeçalho preso (ficha do estudante): o foco do teclado não some embaixo dele. */
 html { scroll-padding-top: var(--sticky-offset, 0px); }
+/* Tamanho do texto escolhido pela pessoa (menu com o nome, portal da família):
+   tudo o que está em rem cresce junto, na tela e na impressão. */
+html[data-text-scale="2"] { font-size: 112.5%; }
+html[data-text-scale="3"] { font-size: 125%; }
+/* Com o texto ampliado, palavra longa quebra em vez de empurrar a tela para o
+   lado, e no celular o nome no menu fica só para o leitor de tela. */
+html[data-text-scale] body { overflow-wrap: anywhere; hyphens: auto; }
+html[data-text-scale] .status-pill { white-space: normal; }
+@media (max-width: 399px) {
+  html[data-text-scale] .shell-user-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 
 .app-frame {
   display: flex; min-height: calc(100dvh - 36px); max-width: 1680px; margin: 18px auto; padding: 16px;
@@ -165,7 +176,7 @@ html { scroll-padding-top: var(--sticky-offset, 0px); }
 }
 .rail-link {
   display: flex; min-height: 48px; width: 100%; align-items: center; gap: 12px;
-  padding: 12px; border-radius: 12px; color: var(--ink); font-size: 14px; line-height: 1.4;
+  padding: 12px; border-radius: 12px; color: var(--ink); font-size: 0.875rem; line-height: 1.4;
   transition: background 160ms ease;
 }
 .rail-link:hover { background: var(--brand-soft); }
@@ -174,12 +185,12 @@ html { scroll-padding-top: var(--sticky-offset, 0px); }
 .mobile-nav-item {
   display: flex; min-height: 56px; min-width: 0; flex: 1; flex-direction: column;
   align-items: center; justify-content: center; gap: 5px; border-radius: 12px; padding: 8px 3px;
-  font-size: 12px; line-height: 1.3; text-align: center;
+  font-size: 0.75rem; line-height: 1.3; text-align: center;
 }
 .mobile-nav-item[aria-current="page"], .mobile-nav-item[data-active="true"] { background: var(--brand); color: white; }
 .mobile-menu { min-width: 0; flex: 1; }
 .mobile-menu-panel { position: fixed; left: 16px; right: 16px; bottom: calc(98px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 130px); overflow-y: auto; border: 1px solid var(--line); border-radius: 22px; padding: 18px; background: var(--paper-raised); box-shadow: var(--shadow-e2); }
-.task-action { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 12px 20px; background: var(--brand); color: white; font-size: 14px; font-weight: 500; line-height: 1.4; text-align: center; transition: background 160ms ease; }
+.task-action { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 12px 20px; background: var(--brand); color: white; font-size: 0.875rem; font-weight: 500; line-height: 1.4; text-align: center; transition: background 160ms ease; }
 .task-action:hover { background: var(--brand-strong); }
 .task-action-secondary { background: var(--brand-soft); color: var(--brand-strong); }
 .task-action-secondary:hover { background: var(--lilac); }
@@ -203,7 +214,7 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
   .dash-card { border-radius: 22px; background: var(--paper-raised); padding: 20px; }
   .dash-hero { border-radius: 30px; background: linear-gradient(160deg, var(--lilac-soft) 0%, var(--brand-soft) 55%, var(--paper-raised) 100%); }
   .hatch { background-image: repeating-linear-gradient(120deg, rgb(0 0 0 / 0.1) 0 1.5px, transparent 1.5px 5px); }
-  .pill-action { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--brand); padding: 0 24px; color: white; font-size: 14px; font-weight: 500; transition: background 160ms ease; }
+  .pill-action { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--brand); padding: 0 24px; color: white; font-size: 0.875rem; font-weight: 500; transition: background 160ms ease; }
   .pill-action:hover { background: var(--brand-strong); }
   .circle-link { display: inline-flex; width: 36px; height: 36px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); transition: background 160ms ease, color 160ms ease, border-color 160ms ease; }
   .circle-link:hover { border-color: var(--brand); background: var(--brand); color: white; }
@@ -214,7 +225,7 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
 /* Assistente: botão flutuante e painel, acima da navegação do celular. Ficam
    na camada de componentes para os utilitários (hidden, print:hidden) valerem. */
 @layer components {
-  .assistant-fab { position: fixed; right: 22px; bottom: 22px; z-index: 45; display: inline-flex; min-height: 52px; align-items: center; gap: 8px; border-radius: 999px; padding: 0 18px 0 16px; background: var(--brand); color: white; font-size: 14px; font-weight: 500; box-shadow: var(--shadow-e2); transition: background 160ms ease, transform 160ms ease; }
+  .assistant-fab { position: fixed; right: 22px; bottom: 22px; z-index: 45; display: inline-flex; min-height: 52px; align-items: center; gap: 8px; border-radius: 999px; padding: 0 18px 0 16px; background: var(--brand); color: white; font-size: 0.875rem; font-weight: 500; box-shadow: var(--shadow-e2); transition: background 160ms ease, transform 160ms ease; }
   .assistant-fab:hover { background: var(--brand-strong); transform: translateY(-1px); }
   .assistant-panel { position: fixed; right: 22px; bottom: 86px; z-index: 46; display: flex; width: min(420px, calc(100vw - 44px)); height: min(680px, calc(100dvh - 120px)); flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: var(--paper); box-shadow: 0 24px 70px rgb(60 40 90 / 0.22); container-type: size; }
   /* Botão fechado: anel vazado = resposta em preparo; ponto cheio = pronta;
@@ -245,15 +256,15 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
   .student-head { position: sticky; top: 0; z-index: 25; margin: 0 -8px 24px; padding: 8px 8px 0; background: var(--paper); }
   .student-head[data-compact="true"] { box-shadow: 0 10px 18px -16px rgb(60 40 90 / 0.35); }
   .student-head[data-compact="true"] .student-head-detail { display: none; }
-  .student-head[data-compact="true"] .student-head-avatar { width: 36px; height: 36px; font-size: 16px; }
-  .student-head[data-compact="true"] .student-head-name { font-size: 20px; }
+  .student-head[data-compact="true"] .student-head-avatar { width: 36px; height: 36px; font-size: 1rem; }
+  .student-head[data-compact="true"] .student-head-name { font-size: 1.25rem; }
   /* Abas numa linha que rola de lado; a borda esmaece do lado em que há mais abas. */
   .tab-strip { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; scroll-behavior: smooth; }
   .tab-strip::-webkit-scrollbar { display: none; }
   .tab-strip[data-fade="end"] { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); }
   .tab-strip[data-fade="start"] { -webkit-mask-image: linear-gradient(90deg, transparent, #000 48px); mask-image: linear-gradient(90deg, transparent, #000 48px); }
   .tab-strip[data-fade="both"] { -webkit-mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent); }
-  .tab-link { position: relative; display: inline-flex; min-height: 44px; flex-shrink: 0; align-items: center; white-space: nowrap; border-radius: 12px 12px 0 0; padding: 0 11px; font-size: 14px; color: var(--ink-soft); transition: color 160ms ease, background 160ms ease; }
+  .tab-link { position: relative; display: inline-flex; min-height: 44px; flex-shrink: 0; align-items: center; white-space: nowrap; border-radius: 12px 12px 0 0; padding: 0 11px; font-size: 0.875rem; color: var(--ink-soft); transition: color 160ms ease, background 160ms ease; }
   .tab-link:hover { color: var(--ink); background: var(--surface-muted); }
   .tab-link:focus-visible { outline-offset: -3px; }
   .tab-link[aria-current="page"] { color: var(--brand-strong); font-weight: 500; }

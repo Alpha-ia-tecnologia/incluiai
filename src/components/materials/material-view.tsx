@@ -10,6 +10,7 @@ import type { TraceStep } from "@/lib/agents/schemas";
 import { cardPictogram } from "@/lib/pictograms";
 import { MaterialImagesButton, SendActivityButton } from "./material-actions";
 import { Pictogram } from "./pictogram";
+import { ReadAloud } from "@/components/read-aloud";
 
 // Um material de apoio completo. O mesmo componente serve à página (com ações)
 // e à impressão (printMode: sem botões, cartões grandes e marca de sugestão).
@@ -124,6 +125,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
         </div>
         {!printMode ? (
           <div className="flex flex-wrap items-center gap-2 print:hidden">
+            <ReadAloud targetId={`material-${material.id}`} label="Ouvir o material" />
             {actions && !approved ? (
               <form action={approve}>
                 <button type="submit" className={primaryButtonCls}>

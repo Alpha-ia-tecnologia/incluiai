@@ -21,6 +21,8 @@ node prisma/seed.mjs     # dados + 6 usuários de demonstração (senha: demo123
 npm run dev              # http://localhost:3000
 ```
 
+Testes: `npm run test:unit` (regras puras), `BASE=http://127.0.0.1:3214 node e2e-test.mjs` (jornadas no navegador) e `BASE=… node visual-check.mjs [pasta]` (todas as telas: acessibilidade com axe, sem rolagem horizontal a 320 px, um único h1 e sem erro de cliente; `TEXT_SCALE=3` repete tudo com o texto no tamanho maior). Os dois últimos rodam contra um build (`next build` + `next start`) com um banco de demonstração.
+
 Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 - `ANTHROPIC_API_KEY` liga os agentes de IA (modelo padrão `claude-opus-5-5`; troque com `ANTHROPIC_MODEL`).
 - **Autorizações da família** (`/familia/[id]`, cartão Autorizações): a IA só recebe dados de um estudante cuja família autorizou o uso (sem isso, plano, atividades, materiais e apoios do DUA saem pelas regras da plataforma e o assistente não consulta o estudante), e o terapeuta só vê o estudante e envia orientações com a conexão autorizada. A família pode retirar as autorizações a qualquer momento; cada decisão fica no histórico de acessos.
@@ -77,6 +79,11 @@ Planejamento da atividade **da turma** com o Desenho Universal para a Aprendizag
 - Testes: `npm run test:unit` (regras puras) e `npm run test:e2e` (seção 8).
 
 O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](./docs/dua.md).
+
+## Acessibilidade de leitura
+
+- **Ouvir:** os materiais de apoio e o portal da família têm um botão que lê o conteúdo em voz alta, com três velocidades. Usa a voz do próprio navegador e prefere uma que roda no aparelho; se só houver voz pela internet (o texto iria ao serviço do navegador), pede confirmação antes, como no ditado. Regras puras em `src/lib/speech-text.ts`.
+- **Tamanho do texto:** padrão, grande (112,5%) ou maior (125%), no menu com o nome e no portal da família. Fica guardado no navegador e vale na tela e na impressão; com o texto ampliado, palavras longas quebram para nada passar da largura do celular. As cores e os tokens não mudam.
 
 ## Controle de acesso (necessidade de saber — item 7)
 

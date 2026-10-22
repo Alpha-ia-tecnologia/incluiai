@@ -1174,6 +1174,34 @@ if (!ONLY_WAIT) {
     check("planilha: professor não importa", !new URL(teacher.page.url()).pathname.startsWith("/estudantes/importar"), `url=${teacher.page.url()}`);
     await teacher.ctx.close();
   }
+  // ---------- 12. Leitura em voz alta e tamanho do texto ----------
+  // No portal da família: "Ouvir esta página" e o tamanho do texto, que fica
+  // guardado no navegador e vale depois de recarregar.
+  {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "familia@email.com");
+    const hasRead = await page.evaluate(() => [...document.querySelectorAll("button")].some((button) => button.textContent.includes("Ouvir esta página")));
+    check("acessibilidade: botão Ouvir no portal da família", hasRead);
+    // O botão visível (o do menu com o nome fica fechado); repete até a página ficar interativa.
+    const pick = (label) => page.waitForFunction((name) => {
+      [...document.querySelectorAll(`button[aria-label="${name}"]`)].find((button) => button.checkVisibility())?.click();
+      return name === "Texto maior" ? document.documentElement.dataset.textScale === "3" : !document.documentElement.dataset.textScale;
+    }, { timeout: 15000, polling: 500 }, label).catch(() => {});
+    await pick("Texto maior");
+    const scaled = await page.evaluate(() => document.documentElement.dataset.textScale);
+    await page.reload({ waitUntil: "networkidle2" });
+    const kept = await page.evaluate(() => ({ scale: document.documentElement.dataset.textScale, pressed: document.querySelector('button[aria-label="Texto maior"]')?.getAttribute("aria-pressed"), size: getComputedStyle(document.documentElement).fontSize }));
+    check("acessibilidade: texto maior vale na hora e depois de recarregar", scaled === "3" && kept.scale === "3" && kept.pressed === "true" && kept.size === "20px", JSON.stringify({ scaled, ...kept }));
+    await pick("Texto no tamanho padrão");
+    check("acessibilidade: volta ao tamanho padrão", await page.evaluate(() => !document.documentElement.dataset.textScale && getComputedStyle(document.documentElement).fontSize === "16px"));
+    // Sem voz em português no Chrome de teste, o botão explica em vez de falhar calado.
+    await clickByText(page, "Ouvir esta página");
+    await sleep(500);
+    const reaction = await page.evaluate(() => document.body.innerText.includes("Parar a leitura") || document.body.innerText.includes("não tem voz em português") || document.body.innerText.includes("só tem voz pela internet"));
+    check("acessibilidade: Ouvir lê, pede confirmação ou explica a falta de voz", reaction);
+    check("acessibilidade: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  }
 }
 
 await browser.close();
