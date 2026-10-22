@@ -30,6 +30,7 @@ Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 - `REQUIRE_2FA=1` (recomendado em produção): a equipe da escola e a da rede só entram com a verificação em duas etapas; quem ainda não ligou liga logo depois da senha, em `/login/duas-etapas`. Sem a variável, cada pessoa liga quando quiser em **Segurança da conta** (`/conta/seguranca`, no menu com o nome). Família e terapeuta podem ligar, sem obrigação.
 - `DEEPSEEK_API_KEY` **com** `DEEPSEEK_ENABLED=1` liga o DeepSeek como fallback quando o Claude falha (sem a ligação explícita, a chave sozinha não basta) (modelo padrão `deepseek-flash`; troque com `DEEPSEEK_MODEL`). **LGPD:** a DeepSeek processa e armazena dados na China; cada uso fica registrado no histórico de acessos visto pela família.
 - `OPENAI_API_KEY` liga as imagens de apoio das atividades (pictogramas), pela OpenAI (modelo padrão `gpt-image-2.5-flare`; troque com `OPENAI_IMAGE_MODEL`).
+- `SMTP_URL` (ex.: `smtps://usuario:senha@smtp.prefeitura.gov.br`) **com** `EMAIL_FROM` ligam o e-mail dos avisos, para quem escolher recebê-lo. `APP_URL` é o endereço da plataforma que vai no link do e-mail.
 
 ### Contas de demonstração (senha `demo123`)
 
@@ -142,6 +143,23 @@ A Portaria MEC nº 421/2026 (art. 11, IV) pede que o PEI registre as devolutivas
 4. **Depois de validado:** o relatório não muda mais, porque guarda os registros como estavam. Ele aparece no portal da família, entra na linha do tempo e no histórico de acessos, e tem versão para imprimir ou salvar em PDF.
 
 O painel conta os estudantes com relatório validado nos últimos 6 meses. Regras puras em `src/lib/period-report.ts`, com testes.
+
+## Contato ativo com a família
+
+O sino no topo de cada tela leva a **Avisos** e mostra quantos avisos são novos. Abrir a página marca os avisos como lidos.
+
+- **A família é avisada quando:**
+    - um material de apoio é aprovado;
+    - o plano de ensino é revisado;
+    - o relatório do período é validado.
+- **A equipe (AEE e coordenação da escola) é avisada quando:**
+    - a família responde a pergunta da semana;
+    - o terapeuta envia uma orientação.
+- **Pergunta da semana:** no portal, a família marca como foi a semana em casa (dormiu bem, teve uma conquista, teve um dia difícil…) e pode escrever mais. A resposta entra na linha do tempo e aparece no diário, para quem vai registrar a aula. Até domingo, a família pode mudar a resposta. Em **Avisos**, a família pode desligar a pergunta.
+- **E-mail, opcional:** só sai com `SMTP_URL` e `EMAIL_FROM` configurados e para quem escolheu recebê-lo em **Avisos**. O e-mail diz apenas que há novidade e leva o link: nunca o nome, a escola ou o assunto do estudante. O aviso no portal vale mesmo quando o e-mail falha.
+- **WhatsApp:** fica para depois, quando houver conta oficial da rede.
+
+Regras puras em `src/lib/family-contact.ts`, com testes.
 
 ## Habilidades da BNCC
 

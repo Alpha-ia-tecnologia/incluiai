@@ -1,3 +1,4 @@
+import { notifyFamily, notifyTeam } from "./notifications";
 import { prisma } from "./prisma";
 import { canAccessStudent, canEditStudentRecord, type SessionUser } from "./auth";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
@@ -110,6 +111,7 @@ export async function saveIntersectorReport(user: SessionUser, studentId: string
   await prisma.accessLog.create({
     data: { studentId, actor: user.name, role: "terapeuta", action: "criou", detail: "Relatório de articulação intersetorial" },
   });
+  await notifyTeam(studentId, "terapeuta_relatorio", `/estudantes/${studentId}`);
   return report;
 }
 
@@ -165,6 +167,7 @@ export async function reviewStudentPlan(user: SessionUser, studentId: string, pl
     prisma.timelineEvent.create({ data: { studentId, type: "plano", title: "Plano revisado", description: `${onTime ? "Revisão no prazo" : "Revisão fora do prazo"}. ${summary}`.slice(0, 600) } }),
     prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "revisou", detail: "Plano individual" } }),
   ]);
+  await notifyFamily(studentId, "plano_revisado", `/familia/${studentId}`);
 }
 
 // Encerrar o plano: o plano e as revisões ficam no histórico; os objetivos

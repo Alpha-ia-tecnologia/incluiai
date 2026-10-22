@@ -1,3 +1,4 @@
+import { notifyFamily } from "./notifications";
 import type { FunctionalProfile, Student } from "@prisma/client";
 import { aiAllowedFor, imagesAllowedFor } from "./consent";
 import { prisma } from "./prisma";
@@ -125,6 +126,7 @@ export async function approveStudentMaterial(user: SessionUser, studentId: strin
   const material = await loadOwnMaterial(user, studentId, materialId);
   await prisma.material.update({ where: { id: material.id }, data: { status: "aprovado", approvedBy: user.name, approvedAt: new Date() } });
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "editou", detail: `Material de apoio aprovado para uso: ${material.title}` } });
+  await notifyFamily(studentId, "material_aprovado", `/familia/${studentId}#materiais`);
 }
 
 export async function addMaterialImages(user: SessionUser, studentId: string, materialId: string) {

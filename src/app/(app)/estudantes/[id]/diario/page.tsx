@@ -1,8 +1,9 @@
+import { recentCheckIn } from "@/lib/notifications";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStudentPage, canEditStudentRecord } from "@/lib/auth";
 import { createDiaryEntry } from "@/actions/diary";
-import { formatDate } from "@/lib/format";
+import { formatDate, parseJson } from "@/lib/format";
 import { PARTICIPATION, CRITERION_MET, ROLES } from "@/lib/scale";
 import { axisDate, supportSeries, supportTrend, TREND_TEXT, weeklyCounts } from "@/lib/series";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
@@ -46,6 +47,8 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
   const weeks = weeklyCounts(entries.map((entry) => entry.date), 8);
   const recentRecords = weeks.reduce((sum, week) => sum + week.value, 0);
   const objectiveIds = new Set(entries.flatMap((entry) => (entry.objectiveId ? [entry.objectiveId] : [])));
+  // A resposta da família à pergunta da semana, para quem vai registrar a aula.
+  const checkIn = await recentCheckIn(id);
   // Com um único objetivo em todos os registros, o gráfico mostra também o início e a meta dele.
   const singleObjective = objectiveIds.size === 1 && entries.every((entry) => entry.objectiveId) ? entries[0].objective : null;
 
@@ -56,6 +59,14 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
         lede="Um registro de cada vez ajuda a entender o que funciona para este estudante. Preencha as três partes abaixo e salve no diário de acompanhamento."
         actions={entries.length > 0 ? <a href="#historico-registros" className="inline-flex min-h-11 items-center rounded-full border border-line bg-paper px-4 py-2 text-sm font-medium text-brand-strong hover:bg-brand-soft">Ver registros anteriores</a> : undefined}
       />
+
+      {checkIn ? (
+        <Card className="mb-6 max-w-3xl bg-sky-soft/60">
+          <SectionTitle>Da família, nesta semana</SectionTitle>
+          <p className="text-sm leading-relaxed text-ink">{parseJson<string[]>(checkIn.answers, []).join(", ") || "Sem opções marcadas."}{checkIn.note ? ` "${checkIn.note}"` : ""}</p>
+          <p className="mt-1 text-xs text-ink-soft">Respondido por {checkIn.authorName} em {formatDate(checkIn.createdAt)}.</p>
+        </Card>
+      ) : null}
 
       <Card className="mb-8 max-w-3xl">
         <SectionTitle>Novo registro</SectionTitle>

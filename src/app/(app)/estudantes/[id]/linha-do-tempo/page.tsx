@@ -12,7 +12,7 @@ import { CountChips, DataBoard, DataCard } from "@/components/data-viz";
 import { ColumnChart } from "@/components/charts";
 import {
   ClipboardList, FileText, HeartHandshake, Users, ArrowLeftRight,
-  AlertTriangle, Trophy, Package, Layers, CalendarCheck, CalendarX, type LucideIcon,
+  AlertTriangle, Trophy, Package, Layers, CalendarCheck, CalendarX, House, type LucideIcon,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +26,7 @@ const TYPE_META: Record<string, { icon: LucideIcon; tone: "brand" | "amber" | "c
   alerta: { icon: AlertTriangle, tone: "coral" },
   conquista: { icon: Trophy, tone: "green" },
   recurso: { icon: Package, tone: "amber" },
+  familia: { icon: House, tone: "neutral" },
   // Lidos dos registros do DUA e da frequência do AEE, sem criar evento novo.
   dua: { icon: Layers, tone: "brand" },
   aee_realizado: { icon: CalendarCheck, tone: "green" },

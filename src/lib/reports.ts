@@ -1,4 +1,5 @@
 import "server-only";
+import { notifyFamily } from "./notifications";
 import { prisma } from "./prisma";
 import type { SessionUser } from "./auth";
 import { recordChange } from "./access-log";
@@ -124,6 +125,7 @@ export async function validateReport(user: SessionUser, studentId: string, repor
     prisma.timelineEvent.create({ data: { studentId, type: "avaliacao", title: "Relatório do período validado", description: `${periodLabel(data)}, por ${user.name}. A família vê no portal.` } }),
   ]);
   await recordChange(user, studentId, "validou", `Relatório do período (${periodLabel(data)})`);
+  await notifyFamily(studentId, "relatorio_validado", `/familia/${studentId}/relatorios/${reportId}`);
   return null;
 }
 

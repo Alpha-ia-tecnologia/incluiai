@@ -13,10 +13,11 @@ import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantPopup } from "./assistant/assistant-popup";
 import { NavigationProgress } from "./navigation-progress";
 import { TextSizeControl } from "./text-size-control";
+import { NoticeBell } from "./notice-bell";
 
 const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, accounts: UserCog, family: Heart, care: Stethoscope, help: CircleHelp };
 
-export function Shell({ user, children }: { user: SessionUser; children: ReactNode }) {
+export function Shell({ user, notices = { unread: 0, latest: null }, children }: { user: SessionUser; notices?: { unread: number; latest: string | null }; children: ReactNode }) {
   // Iniciais sem títulos e observações entre parênteses: "Carla (mãe de Dante)" → "C".
   const initials = user.name.replace(/\([^)]*\)/g, " ").split(/\s+/).filter((part) => /^\p{L}/u.test(part) && !part.includes(".")).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || user.name[0];
   const links = getNavigation(user.role, user.studentIds);
@@ -54,6 +55,7 @@ export function Shell({ user, children }: { user: SessionUser; children: ReactNo
             <span className="hidden text-sm text-ink-soft lg:inline">Cada pessoa, uma possibilidade.</span>
           </Link>
           <div className="flex items-center gap-2">
+            <NoticeBell unread={notices.unread} latest={notices.latest} />
             <Link href="/ajuda" className="hidden min-h-11 items-center gap-2 rounded-full px-3 text-sm text-brand hover:bg-brand-soft sm:flex"><CircleHelp size={18} aria-hidden /> Preciso de ajuda</Link>
             <details className="relative z-30">
               <summary className="flex min-h-11 list-none items-center gap-2 rounded-full bg-surface-muted/70 py-1.5 pl-1.5 pr-3 text-sm [&::-webkit-details-marker]:hidden">

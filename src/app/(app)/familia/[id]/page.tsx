@@ -1,3 +1,6 @@
+import { weekStart } from "@/lib/family-contact";
+import { answerCheckIn } from "@/actions/notifications";
+import { CheckInForm } from "@/components/notice-forms";
 import Image from "next/image";
 import { ConsentCard } from "@/components/consent-card";
 import { ReadAloud } from "@/components/read-aloud";
@@ -65,9 +68,11 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
 
   const isFamily = user.role === "familia";
-  const [consent, reports] = await Promise.all([
+  const [consent, reports, prefs, checkIn] = await Promise.all([
     studentConsent(student.id),
     prisma.studentReport.findMany({ where: { studentId: student.id, status: "validado" }, orderBy: { periodEnd: "desc" }, take: 6, select: { id: true, data: true, validatedAt: true, validatedByName: true } }),
+    prisma.user.findUnique({ where: { id: user.id }, select: { weeklyCheckIn: true } }),
+    prisma.familyCheckIn.findUnique({ where: { studentId_weekStart: { studentId: student.id, weekStart: weekStart() } }, select: { answers: true, note: true } }),
   ]);
   if (isFamily) await recordJourneyMark(user.id, "familia_inicio");
   const journey = isFamily ? await loadJourney(user) : null;
@@ -88,6 +93,13 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
         actions={<><ReadAloud targetId="conteudo" label="Ouvir esta página" /><TextSizeControl /></>}
       />
       {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />) : null}
+
+      {user.role === "familia" && user.studentIds.includes(id) && prefs?.weeklyCheckIn ? (
+        <Card className="mb-6 max-w-3xl border-brand/30" id="pergunta-da-semana">
+          <SectionTitle>Pergunta da semana</SectionTitle>
+          <CheckInForm action={answerCheckIn.bind(null, id)} firstName={firstName} previous={checkIn ? { answers: parseJson<string[]>(checkIn.answers, []), note: checkIn.note ?? "" } : null} />
+        </Card>
+      ) : null}
 
       <section aria-label={`Resumo do acompanhamento de ${firstName}`} className="mb-6">
         <DataBoard className="sm:grid-cols-2">

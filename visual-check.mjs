@@ -110,7 +110,7 @@ await account("aee@escola.edu.br", "aee", async (page) => {
     ...tabs, material && ["material", material], material && ["material_imprimir", `${material}/imprimir`],
     report && ["relatorio", report], report && ["relatorio_imprimir", `${report}/imprimir`],
     student && ["adaptar", `${student}/atividades/adaptar`], adapted && ["adaptada", adapted], adapted && ["adaptada_imprimir", `${adapted}/imprimir`],
-    ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["estudante_naoexiste", "/estudantes/naoexiste"],
+    ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], ["estudante_naoexiste", "/estudantes/naoexiste"],
   ];
 });
 
@@ -129,7 +129,7 @@ await account("coordenacao@escola.edu.br", "coordenacao", async (page) => {
 
 await account("secretaria@municipio.gov.br", "secretaria", async (page) => {
   const accountLink = await firstLink(page, "/usuarios", 'a[href^="/usuarios/c"]');
-  return [["inicio", "/"], ["painel", "/painel"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
+  return [["inicio", "/"], ["painel", "/painel"], ["avisos", "/avisos"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
 });
 
 await account("familia@email.com", "familia", async (page) => {
@@ -137,10 +137,10 @@ await account("familia@email.com", "familia", async (page) => {
   const portal = new URL(page.url()).pathname;
   const material = await firstLink(page, portal, 'a[href*="/materiais/"]');
   const report = await firstLink(page, portal, 'a[href*="/relatorios/"]');
-  return [["portal", portal], ["jornada", "/jornada"], ["conta_seguranca", "/conta/seguranca"], material && ["material", material], report && ["relatorio", report]];
+  return [["portal", portal], ["jornada", "/jornada"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], material && ["material", material], report && ["relatorio", report]];
 });
 
-await account("terapeuta@clinica.com.br", "terapeuta", async () => [["portal", "/terapeuta"], ["jornada", "/jornada"]]);
+await account("terapeuta@clinica.com.br", "terapeuta", async () => [["portal", "/terapeuta"], ["jornada", "/jornada"], ["avisos", "/avisos"]]);
 
 await browser.close();
 console.log(problems ? `\n${problems} tela(s) com problema` : "\nTodas as telas passaram.");

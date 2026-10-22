@@ -108,6 +108,7 @@ export const TIMELINE_TYPES: Record<string, string> = {
   alerta: "Alerta",
   conquista: "Conquista",
   recurso: "Recurso",
+  familia: "Família",
 };
 
 export const ROLES: Record<string, string> = {

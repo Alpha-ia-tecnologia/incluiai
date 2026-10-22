@@ -1381,6 +1381,61 @@ if (!ONLY_WAIT) {
     check("sondagem: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
+  // ---------- 18. Contato ativo com a família: avisos e pergunta da semana ----------
+  // A validação do relatório (seção 14) avisou a família. A família responde a
+  // pergunta da semana (ou muda a resposta já dada) e o AEE vê no diário.
+  {
+    const NOTE = `Foi ao parque com o avô (${Date.now()}).`;
+    const family = await newSession();
+    await login(family.page, "familia@email.com");
+    const portal = new URL(family.page.url()).pathname;
+    const bell = () => family.page.evaluate(() => document.querySelector('header a[href="/avisos"]')?.getAttribute("aria-label") ?? "");
+    const before = await bell();
+    check("avisos: o sino mostra os avisos novos da família", /^Avisos: \d+ novos?$/.test(before), before);
+    await family.page.click('header a[href="/avisos"]');
+    await family.page.waitForFunction(() => location.pathname === "/avisos", { timeout: 15000 }).catch(() => {});
+    await settle(family.page);
+    let body = await textOf(family.page);
+    check("avisos: a família vê o relatório validado", body.includes("O relatório do período de Dante está disponível"));
+    check("avisos: abrir a página zera o sino", (await bell()) === "Avisos", await bell());
+    check("avisos: sem e-mail configurado, a preferência explica", body.includes("o e-mail não está configurado nesta instalação"));
+
+    // Preferência: sem a pergunta da semana, o portal não a mostra.
+    await family.page.$eval('input[name="weeklyCheckIn"]', (box) => { box.checked = false; });
+    await clickByText(family.page, "Salvar as preferências");
+    await family.page.waitForFunction(() => document.body.innerText.includes("Preferências salvas"), { timeout: 15000 }).catch(() => {});
+    await family.page.goto(`${BASE}${portal}`, { waitUntil: "networkidle2" });
+    check("pergunta da semana: some quando a família desliga", !(await family.page.$("#pergunta-da-semana")));
+    await family.page.goto(`${BASE}/avisos`, { waitUntil: "networkidle2" });
+    await family.page.$eval('input[name="weeklyCheckIn"]', (box) => { box.checked = true; });
+    await clickByText(family.page, "Salvar as preferências");
+    await family.page.waitForFunction(() => document.body.innerText.includes("Preferências salvas"), { timeout: 15000 }).catch(() => {});
+
+    await family.page.goto(`${BASE}${portal}`, { waitUntil: "networkidle2" });
+    const answered = (await textOf(family.page)).includes("Você já contou como foi esta semana");
+    if (answered) await family.page.$eval("#pergunta-da-semana summary", (summary) => summary.click());
+    await family.page.evaluate(() => document.querySelectorAll('#pergunta-da-semana input[name="answers"]').forEach((box) => { box.checked = ["Dormiu bem", "Teve uma conquista"].includes(box.value); }));
+    await family.page.$eval("#checkin-nota", (area, value) => { area.value = value; }, NOTE);
+    await clickByText(family.page, answered ? "Atualizar a resposta" : "Enviar para a escola");
+    await family.page.waitForFunction(() => document.body.innerText.includes("Obrigado! A escola vai ver"), { timeout: 15000 }).catch(() => {});
+    check(`pergunta da semana: a família ${answered ? "muda a resposta" : "responde"}`, (await textOf(family.page)).includes("Obrigado! A escola vai ver"));
+    await family.page.goto(`${BASE}${portal}`, { waitUntil: "networkidle2" });
+    body = await textOf(family.page);
+    check("pergunta da semana: o portal resume a resposta e deixa mudar", body.includes("Você já contou como foi esta semana") && body.includes(NOTE) && body.includes("Mudar a resposta"));
+    check("avisos: sem erros de cliente (família)", family.errors.length === 0, family.errors.join("; "));
+    await family.ctx.close();
+
+    const { ctx, page, errors } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    const dante = portal.replace("/familia/", "/estudantes/");
+    await page.goto(`${BASE}${dante}/diario`, { waitUntil: "networkidle2" });
+    body = await textOf(page);
+    check("pergunta da semana: o AEE vê a resposta no diário", body.includes("Da família, nesta semana") && body.includes("Dormiu bem, Teve uma conquista") && body.includes(NOTE));
+    await page.goto(`${BASE}/avisos`, { waitUntil: "networkidle2" });
+    check("avisos: a equipe é avisada da resposta da família", (await textOf(page)).includes("A família de Dante respondeu a pergunta da semana"));
+    check("avisos: sem erros de cliente (equipe)", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  }
 }
 
 await browser.close();

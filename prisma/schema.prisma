@@ -62,6 +62,7 @@ model Student {
   reports               StudentReport[]
   adaptedTasks          AdaptedTask[]
   assessments           Assessment[]
+  checkIns              FamilyCheckIn[]
   intersectorReports IntersectorReport[]
   materials          Material[]
   caseStudy          CaseStudy?
@@ -131,12 +132,17 @@ model User {
   mustChangePassword Boolean   @default(false)
   passwordChangedAt  DateTime?
   lastLoginAt        DateTime?
+  // Avisos (item 6): também por e-mail só se a pessoa quiser; a família escolhe
+  // se recebe a pergunta da semana no portal.
+  notifyByEmail      Boolean   @default(false)
+  weeklyCheckIn      Boolean   @default(true)
 
   journeyMarks  JourneyMark[]
   conversations AssistantConversation[]
   sessions      Session[]
   studentLinks  StudentLink[]
   accountEvents AccountEvent[]
+  notifications Notification[]
 }
 
 // Histórico da conta (seção 14): quem criou, alterou, redefiniu a senha,
@@ -913,4 +919,35 @@ model Assessment {
   appliedAt         DateTime @default(now())
 
   @@index([studentId, appliedAt])
+}
+
+// Aviso no portal (item 6): material aprovado, relatório validado, plano revisado
+// (família); pergunta da semana respondida, orientação do terapeuta (equipe).
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId String?
+  kind      String
+  title     String
+  href      String
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId, readAt, createdAt])
+}
+
+// Pergunta da semana à família: como foi a semana em casa (uma resposta por semana).
+model FamilyCheckIn {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId     String
+  authorName String
+  weekStart  String // AAAA-MM-DD da segunda-feira
+  answers    String // JSON: opções marcadas
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@unique([studentId, weekStart])
 }

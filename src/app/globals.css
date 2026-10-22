@@ -160,6 +160,10 @@ html[data-text-scale="3"] { font-size: 125%; }
    lado, e no celular o nome no menu fica só para o leitor de tela. */
 html[data-text-scale] body { overflow-wrap: anywhere; hyphens: auto; }
 html[data-text-scale] .status-pill { white-space: normal; }
+/* Celular estreito: o sino e as iniciais cabem no topo; o nome fica para o leitor de tela. */
+@media (max-width: 359px) {
+  .shell-user-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 @media (max-width: 399px) {
   html[data-text-scale] .shell-user-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
