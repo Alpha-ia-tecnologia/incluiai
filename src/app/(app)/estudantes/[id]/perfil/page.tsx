@@ -5,6 +5,7 @@ import { upsertProfile } from "@/actions/profile";
 import { parseJson } from "@/lib/format";
 import { SUPPORT_LEVELS, CHANNELS, BARRIERS, SENSORY_AREAS, SENSORY_LABELS, SENSORY_VALUES } from "@/lib/scale";
 import { ButtonLink, PageHeader, Card, SectionTitle } from "@/components/ui";
+import { PillLink } from "@/components/pill-link";
 import { ProfileChat } from "@/components/profile-chat";
 import type { ProfileAnswers } from "@/components/profile-chat";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
@@ -114,9 +115,12 @@ export default async function ProfilePage({
           title="Como aprende"
           lede="Conte como o estudante se comunica, do que gosta e quais apoios ajudam no dia a dia. Responda uma pergunta por vez."
           actions={
-            <ButtonLink href={`/estudantes/${id}/perfil?modo=formulario`} variant="quiet">
-              <ListChecks size={16} aria-hidden /> Abrir formulário completo
-            </ButtonLink>
+            <div className="flex flex-wrap items-center gap-2">
+              <PillLink slug="comunicacao-alternativa" />
+              <ButtonLink href={`/estudantes/${id}/perfil?modo=formulario`} variant="quiet">
+                <ListChecks size={16} aria-hidden /> Abrir formulário completo
+              </ButtonLink>
+            </div>
           }
         />
 
@@ -142,9 +146,12 @@ export default async function ProfilePage({
         title="Como aprende"
         lede="Preencha ou revise as informações sobre a aprendizagem. Em cada atividade, escolha o apoio de que o estudante precisa hoje."
         actions={
-          <ButtonLink href={`/estudantes/${id}/perfil`} variant="quiet">
-            <MessageSquareText size={16} aria-hidden /> Responder uma pergunta por vez
-          </ButtonLink>
+          <div className="flex flex-wrap items-center gap-2">
+            <PillLink slug="comunicacao-alternativa" />
+            <ButtonLink href={`/estudantes/${id}/perfil`} variant="quiet">
+              <MessageSquareText size={16} aria-hidden /> Responder uma pergunta por vez
+            </ButtonLink>
+          </div>
         }
       />
       {suggestionNote}

@@ -8,6 +8,7 @@ import { hasApiKey } from "@/lib/env";
 import { isAIEnabled } from "@/lib/agents/model";
 import { adaptForStudent } from "@/actions/adapted-tasks";
 import { Card, PageHeader } from "@/components/ui";
+import { PillLink } from "@/components/pill-link";
 import { ConsentNote } from "@/components/consent-note";
 import { AdaptForm } from "@/components/adapted/adapt-form";
 import { linkCls } from "@/components/form-styles";
@@ -26,7 +27,7 @@ export default async function AdaptTaskPage({ params }: { params: Promise<{ id: 
   return (
     <>
       <Link href={`/estudantes/${id}/atividades`} className={`mb-4 inline-flex min-h-11 items-center gap-2 text-sm ${linkCls}`}><ArrowLeft size={16} aria-hidden /> Atividades</Link>
-      <PageHeader level={2} title="Adaptar uma atividade ou prova da turma" lede="Envie a foto ou o PDF da folha que a turma vai usar (ou cole o texto). A plataforma adapta a apresentação ao jeito de aprender do estudante, e você revisa antes de usar." />
+      <PageHeader level={2} title="Adaptar uma atividade ou prova da turma" lede="Envie a foto ou o PDF da folha que a turma vai usar (ou cole o texto). A plataforma adapta a apresentação ao jeito de aprender do estudante, e você revisa antes de usar." actions={<PillLink slug="adaptar-prova" />} />
       <Card className="max-w-3xl">
         <ConsentNote show={isAIEnabled() && !aiOn} />
         <AdaptForm action={adaptForStudent.bind(null, id)} canRead={aiOn && hasApiKey("ANTHROPIC_API_KEY")} aiOn={aiOn} objectives={objectives} adaptLabel="Adaptar para o estudante" />

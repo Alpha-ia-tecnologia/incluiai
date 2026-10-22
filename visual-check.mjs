@@ -110,7 +110,7 @@ await account("aee@escola.edu.br", "aee", async (page) => {
     ...tabs, material && ["material", material], material && ["material_imprimir", `${material}/imprimir`],
     report && ["relatorio", report], report && ["relatorio_imprimir", `${report}/imprimir`],
     student && ["adaptar", `${student}/atividades/adaptar`], adapted && ["adaptada", adapted], adapted && ["adaptada_imprimir", `${adapted}/imprimir`],
-    ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["estudante_naoexiste", "/estudantes/naoexiste"],
+    ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["pilula_sondagem", "/ajuda/pilulas/sondagem"], ["pilula_estudo", "/ajuda/pilulas/estudo-de-caso"], ["pilula_prova", "/ajuda/pilulas/adaptar-prova"], ["estudante_naoexiste", "/estudantes/naoexiste"],
   ];
 });
 

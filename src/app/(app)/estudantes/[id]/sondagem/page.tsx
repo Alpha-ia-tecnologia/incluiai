@@ -8,6 +8,7 @@ import { ITEMS, compareAreas, objectiveSuggestions, observed, reassessmentDue, r
 import { supportInfo } from "@/lib/scale";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
+import { PillLink } from "@/components/pill-link";
 import { BnccTag } from "@/components/bncc-tag";
 import { AreaComparison } from "@/components/assessment/area-comparison";
 import { linkCls, primaryButtonCls } from "@/components/form-styles";
@@ -29,7 +30,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
   if (!baseline || !latest) {
     return (
       <>
-        <PageHeader level={2} title="Sondagem" lede="Itens observáveis, um por um, com o apoio de que o estudante precisa. A primeira aplicação é a linha de base; as seguintes mostram a evolução." actions={apply} />
+        <PageHeader level={2} title="Sondagem" lede="Itens observáveis, um por um, com o apoio de que o estudante precisa. A primeira aplicação é a linha de base; as seguintes mostram a evolução." actions={<div className="flex flex-wrap items-center gap-2"><PillLink slug="sondagem" />{apply}</div>} />
         <Card className="max-w-3xl"><p className="text-sm leading-relaxed text-ink-soft">Ainda não há sondagem. O melhor momento para a linha de base é ao concluir o estudo de caso; depois, reaplique a cada revisão do plano (12 semanas).</p></Card>
       </>
     );
@@ -41,7 +42,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
 
   return (
     <>
-      <PageHeader level={2} title="Sondagem" lede="Avançar é precisar de menos apoio no mesmo item. A sondagem não classifica o estudante por diagnóstico: mostra por onde começar." actions={apply} />
+      <PageHeader level={2} title="Sondagem" lede="Avançar é precisar de menos apoio no mesmo item. A sondagem não classifica o estudante por diagnóstico: mostra por onde começar." actions={<div className="flex flex-wrap items-center gap-2"><PillLink slug="sondagem" />{apply}</div>} />
       <div className="grid min-w-0 max-w-3xl gap-6">
         <p className="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
           Linha de base em {formatDate(baseline.appliedAt)}{assessments.length > 1 ? `; última aplicação em ${formatDate(latest.appliedAt)}` : ""}.

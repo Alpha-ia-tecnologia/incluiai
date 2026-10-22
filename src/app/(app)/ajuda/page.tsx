@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { Character } from "@/components/character";
-import { ArrowRight, BookOpen, CircleHelp, Route } from "lucide-react";
+import { ArrowRight, BookOpen, CircleHelp, GraduationCap, Route } from "lucide-react";
+import { PILLS, readingMinutes } from "@/lib/learning-pills";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,23 @@ export default async function HelpPage() {
           {steps.map((step, index) => <li key={step.title} className="flex gap-3 rounded-2xl border border-line bg-paper-raised p-5 sm:gap-5 sm:p-6"><span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft font-medium text-brand-strong">{index + 1}</span><div className="min-w-0"><h3 className="text-xl font-medium">{step.title}</h3><p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.text}</p><Link href={step.href} className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline">{step.action}<ArrowRight size={16} className="shrink-0" aria-hidden /></Link></div></li>)}
         </ol>
       </section>
+      {family || therapist ? null : (
+        <section id="pilulas" className="mt-10" aria-labelledby="pills-title">
+          <h2 id="pills-title" className="mb-2 flex items-center gap-2 text-xl font-medium"><GraduationCap size={21} aria-hidden /> Formação em pílulas</h2>
+          <p className="mb-4 text-sm leading-relaxed text-ink-soft">Textos de até 2 minutos sobre o que mais aparece na rotina. Também ficam ao lado de cada passo, em Saiba mais.</p>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {PILLS.map((pill) => (
+              <li key={pill.slug}>
+                <Link href={`/ajuda/pilulas/${pill.slug}`} className="flex h-full min-h-11 flex-col rounded-2xl border border-line bg-paper-raised p-4 hover:border-brand">
+                  <span className="text-base font-medium">{pill.title}</span>
+                  <span className="mt-1 text-sm leading-relaxed text-ink-soft">{pill.summary}</span>
+                  <span className="mt-2 text-xs font-medium text-brand-strong">Leitura de {readingMinutes(pill)} min</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <section className="mt-10" aria-labelledby="questions-title">
         <h2 id="questions-title" className="mb-4 flex items-center gap-2 text-xl font-medium"><BookOpen size={21} aria-hidden /> Dúvidas do dia a dia</h2>
         <div className="space-y-3">{questions.map((item) => <details key={item.question} className="rounded-2xl border border-line bg-paper-raised"><summary className="cursor-pointer px-5 py-4 text-base font-medium">{item.question}</summary><p className="px-5 pb-5 text-sm leading-relaxed text-ink-soft">{item.answer}</p></details>)}</div>

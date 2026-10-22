@@ -7,6 +7,7 @@ import { classOptions, listPlannings } from "@/lib/dua/plannings";
 import { REVIEW_STATE_LABEL, SHARING_LABEL, type ReviewState } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHero, SectionTitle } from "@/components/ui";
+import { PillLink } from "@/components/pill-link";
 import { NewPlanningForm } from "@/components/dua/new-planning-form";
 import { ReviewBadge, inputCls, labelCls, secondaryCls } from "@/components/dua/dua-ui";
 import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
@@ -58,6 +59,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
         character="planning"
         title="Planejamento com DUA"
         lede="Desenho Universal para a Aprendizagem: planeje a atividade da turma considerando, desde o início, as diferentes formas de acessar, participar e mostrar o que aprendeu."
+        actions={<PillLink slug="dua" />}
       />
 
       <div className="mb-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">

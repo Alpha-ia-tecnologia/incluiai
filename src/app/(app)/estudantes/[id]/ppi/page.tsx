@@ -12,6 +12,7 @@ import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "@/lib/case-st
 import type { CaseAnalysis, PlanProposal, TraceStep } from "@/lib/agents/schemas";
 import { ACCESSIBILITY_RESOURCE_OPTIONS, AEE_STRATEGY_OPTIONS, COMMON_ROOM_STRATEGY_OPTIONS, DEADLINE_WEEKS, INITIAL_SITUATION_OPTIONS } from "@/lib/form-options";
 import { PageHeader, Card, SectionTitle, Badge, SupportPill, AIDisclaimer } from "@/components/ui";
+import { PillLink } from "@/components/pill-link";
 import { PendingButton } from "@/components/pending-button";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ObjectiveFields } from "@/components/objective-fields";
@@ -190,7 +191,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       <PageHeader level={2}
         title="Plano de ensino (PPI)"
         lede={`Criado em ${formatDate(plan.createdAt)} · data de revisão: ${formatDate(plan.reviewDate)}`}
-        actions={overdue ? <Badge tone="coral">Hora de revisar com a equipe</Badge> : <Badge tone="green">Plano ativo</Badge>}
+        actions={<div className="flex flex-wrap items-center gap-2"><PillLink slug="objetivo-bncc" />{overdue ? <Badge tone="coral">Hora de revisar com a equipe</Badge> : <Badge tone="green">Plano ativo</Badge>}</div>}
       />
 
       {/* O próximo passo segue a regra da jornada (botão no cabeçalho da ficha). Só

@@ -195,6 +195,29 @@ Em **Dossiê de evidências**, no menu:
 
 O dossiê aponta onde está o registro e não substitui a análise da equipe nem um parecer jurídico. Regras puras em `src/lib/evidence.ts`, com testes.
 
+## Formação em pílulas
+
+Seis textos curtos, de até 2 minutos:
+
+- estudo de caso em quatro etapas;
+- comunicação alternativa no dia a dia;
+- objetivo observável ligado à BNCC;
+- DUA;
+- adaptar a prova sem mudar o que ela avalia;
+- sondagem.
+
+Cada pílula tem:
+
+- por que importa;
+- como fazer;
+- um exemplo;
+- o que evitar;
+- onde fazer na plataforma.
+
+As pílulas ficam em **Ajuda** e no **Saiba mais** ao lado do passo correspondente: estudo de caso, Como aprende, plano de ensino, planejamento com DUA, adaptação e sondagem. Também podem ser ouvidas. São para a equipe da escola e da rede.
+
+A versão 1 (`src/lib/learning-pills.ts`) é um rascunho para a equipe pedagógica revisar. Os textos são próprios.
+
 ## Habilidades da BNCC
 
 O objetivo do Plano de ensino e o planejamento com DUA ligam-se a habilidades da BNCC escolhidas na base oficial (`prisma/data/bncc.json`, 1.580 códigos de educação infantil, fundamental e médio), e não digitadas à mão:

@@ -1482,6 +1482,33 @@ if (!ONLY_WAIT) {
     check("dossiê da escola: o professor da sala comum não abre", new URL(teacher.page.url()).pathname === "/");
     await teacher.ctx.close();
   }
+  // ---------- 20. Formação em pílulas ----------
+  // A equipe acha as pílulas na Ajuda e no "Saiba mais" ao lado do passo; a família não.
+  {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    await page.goto(`${BASE}/ajuda`, { waitUntil: "networkidle2" });
+    check("pílulas: seis na Ajuda", (await textOf(page)).includes("Formação em pílulas") && await page.evaluate(() => document.querySelectorAll('#pilulas a[href^="/ajuda/pilulas/"]').length === 6));
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    const dante = await page.evaluate(() => [...document.querySelectorAll("article")].find((card) => card.textContent.includes("Dante"))?.querySelector('a[href^="/estudantes/c"]')?.getAttribute("href")?.match(/^\/estudantes\/[^/?#]+/)?.[0]);
+    await page.goto(`${BASE}${dante}/sondagem`, { waitUntil: "networkidle2" });
+    const more = await page.evaluate(() => [...document.querySelectorAll("main a")].find((link) => link.textContent.trim().startsWith("Saiba mais"))?.getAttribute("href"));
+    check("pílulas: Saiba mais ao lado da sondagem", more === "/ajuda/pilulas/sondagem", String(more));
+    await page.goto(`${BASE}/ajuda/pilulas/sondagem`, { waitUntil: "networkidle2" });
+    const body = await textOf(page);
+    check("pílulas: por que, como fazer, exemplo e onde fazer", ["Sondagem: linha de base e reavaliação", "Por que importa", "Como fazer", "Um exemplo", "Cuidado com", "Na plataforma"].every((part) => body.includes(part)) && /Leitura de \d min/.test(body));
+    check("pílulas: dá para ouvir a pílula", await page.evaluate(() => [...document.querySelectorAll("button")].some((button) => button.textContent.includes("Ouvir esta pílula"))));
+    check("pílulas: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    const family = await newSession();
+    await login(family.page, "familia@email.com");
+    await family.page.goto(`${BASE}/ajuda`, { waitUntil: "networkidle2" });
+    const familyHelp = await textOf(family.page);
+    await family.page.goto(`${BASE}/ajuda/pilulas/dua`, { waitUntil: "networkidle2" });
+    check("pílulas: são da equipe (a família não vê)", !familyHelp.includes("Formação em pílulas") && new URL(family.page.url()).pathname === "/ajuda");
+    await family.ctx.close();
+  }
 }
 
 await browser.close();

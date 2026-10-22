@@ -8,6 +8,7 @@ import { CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, parseCaseStudy, sectionProgr
 import { splitItems } from "@/lib/form-options";
 import { formatDate } from "@/lib/format";
 import { Badge, ButtonLink, Card, PageHeader } from "@/components/ui";
+import { PillLink } from "@/components/pill-link";
 import { Character } from "@/components/character";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { PrintButton } from "@/components/print-button";
@@ -98,6 +99,7 @@ export default async function CaseStudyPage({
           actions={
             <div className="flex flex-wrap items-center gap-2 print:hidden">
               {/* O botão de imprimir é compartilhado: aqui ganha o alvo de 44 px e a pílula. */}
+              <PillLink slug="estudo-de-caso" />
               <PrintButton label="Imprimir relatório" />
               {canEdit ? (
                 <ButtonLink href={`/estudantes/${id}/estudo-de-caso?editar=1`} variant="secondary">
@@ -178,6 +180,7 @@ export default async function CaseStudyPage({
         level={2}
         title="Estudo de caso"
         lede={`Reúna o que a família, a escola e o próprio estudante contam para entender as necessidades de ${firstName} antes de planejar. Você pode salvar e continuar depois.`}
+        actions={<PillLink slug="estudo-de-caso" />}
       />
 
       {salvo ? (
