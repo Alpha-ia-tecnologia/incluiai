@@ -1,4 +1,6 @@
 import { prisma } from "./prisma";
+import { bnccSkill } from "./bncc";
+import { componentLabel } from "./bncc-core";
 import { canAccessStudent, isNetworkRole, type SessionUser } from "./auth";
 import { objectiveTrend, studentAlerts, type StudentAlert, type Trend } from "./insights";
 import { getStudentNextStep } from "./student-journey";
@@ -424,6 +426,15 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
         return { key, label, value: list.length, achieved: list.filter(({ objective }) => objective.status === "alcancado").length };
       })),
       criterion: labeledRows(countBy(periodEntries, (entry) => entry.criterionMet), CRITERION_MET),
+      // Objetivos ligados à BNCC, por componente curricular (campo de experiência no infantil).
+      bncc: {
+        linked: objectives.filter(({ objective }) => objective.bnccCode).length,
+        total: objectives.length,
+        byComponent: byValue([...countBy(objectives, ({ objective }) => {
+          const skill = bnccSkill(objective.bnccCode);
+          return skill ? componentLabel(skill) : null;
+        })].map(([key, value]) => ({ key, label: key, value }))),
+      },
     },
     records: {
       series: timeBuckets(period, start, now, entries[0] ? entries.reduce((min, entry) => (entry.date < min ? entry.date : min), entries[0].date) : null)

@@ -14,7 +14,7 @@ const strategy = (id, description, principles, extra = {}) => ({
 // Planejamento pronto para validar: objetivo, critério, barreira e uma opção ligada a eles.
 const complete = () => ({
   ...emptyDuaContent("Compreensão de uma narrativa"),
-  objective: { learning: "Identificar dois personagens principais e ordenar três acontecimentos da história.", curriculum: "EF15LP03" },
+  objective: { learning: "Identificar dois personagens principais e ordenar três acontecimentos da história.", curriculum: "EF15LP03", bnccCodes: [] },
   criteria: [{ id: "c1", description: "Diz ou aponta os dois personagens principais." }],
   barriers: [
     { id: "b1", description: "Instruções longas, apresentadas em uma única etapa", category: "instrucoes", status: "prevista", origin: { kind: "professor" } },

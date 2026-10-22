@@ -855,6 +855,17 @@ if (!ONLY_WAIT) {
       const saved = await page.waitForFunction(() => document.body.innerText.includes("Tudo salvo"), { timeout: 20000 }).then(() => true, () => false);
       check("DUA: objetivo e critério com salvamento automático", Boolean(criterion) && saved, criterion ? "sem “Tudo salvo”" : "campo Critério 1 não apareceu");
 
+      // 8b'. Habilidade da BNCC sugerida pelo texto do objetivo (base oficial, sem IA).
+      await clickByText(page, "Sugerir pelo objetivo");
+      const suggestion = await page.waitForFunction(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Usar esta habilidade")), { timeout: 15000 }).catch(() => null);
+      let picked = "";
+      if (suggestion) {
+        picked = await suggestion.evaluate((button) => button.querySelector(".font-mono")?.textContent ?? "");
+        await suggestion.evaluate((button) => button.click());
+      }
+      const kept = picked ? await page.waitForFunction((code) => [...document.querySelectorAll("li .font-mono")].some((item) => item.textContent === code) && document.body.innerText.includes("Tudo salvo"), { timeout: 20000 }, picked).then(() => true, () => false) : false;
+      check("DUA: habilidade da BNCC sugerida pelo objetivo e guardada", kept, picked ? `código ${picked}` : "sem sugestão");
+
       // 8c. Etapa 2: barreira pela sugestão de barreira comum.
       await clickByText(page, "Contexto e barreiras");
       const barrierChip = "Exigência de uma única forma de resposta";
@@ -1201,6 +1212,47 @@ if (!ONLY_WAIT) {
     check("acessibilidade: Ouvir lê, pede confirmação ou explica a falta de voz", reaction);
     check("acessibilidade: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
+  }
+  // ---------- 13. Objetivo do plano com habilidade da BNCC ----------
+  // Busca pelo código na base oficial, com as do ano do estudante primeiro; o plano
+  // mostra o código com o texto da habilidade; o painel conta por componente.
+  {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    // O primeiro estudante com plano aberto para novos objetivos.
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    const students = await page.evaluate(() => [...new Set([...document.querySelectorAll('a[href^="/estudantes/c"]')].map((link) => link.getAttribute("href").match(/^\/estudantes\/[^/?#]+/)?.[0]).filter(Boolean))]);
+    let form = null;
+    for (const student of students) {
+      await page.goto(`${BASE}${student}/ppi`, { waitUntil: "networkidle2" });
+      form = await page.$("#novo-objetivo");
+      if (form) break;
+    }
+    if (!form) console.log("SKIP  BNCC no objetivo: nenhum estudante com plano aberto para novos objetivos");
+    else {
+      await page.type('#novo-objetivo input[type="search"]', "EF01LP");
+      const result = await page.waitForFunction(() => [...document.querySelectorAll("#novo-objetivo button")].find((button) => button.textContent.includes("Usar esta habilidade")), { timeout: 15000 }).catch(() => null);
+      const code = result ? await result.evaluate((button) => button.querySelector(".font-mono")?.textContent ?? "") : "";
+      // Clique direto: na janela de teste (800×600) a barra de navegação do celular cobre a lista.
+      if (result) await result.evaluate((button) => button.click());
+      check("BNCC: busca pelo código e escolhe a habilidade", /^EF01LP\d{2}$/.test(code) && await page.evaluate((c) => [...document.querySelectorAll('#novo-objetivo input[name="bnccCode"]')].some((input) => input.value === c), code), `código=${code}`);
+      // Primeira opção de cada lista obrigatória (pelo rótulo, como faz a pessoa).
+      for (const label of ["O que o estudante vai fazer", "Com qual apoio ou condição", "Como saberemos que conseguiu"]) {
+        const value = await page.evaluate((l) => [...[...document.querySelectorAll("label")].find((item) => item.textContent.includes(l))?.control?.options ?? []].find((option) => option.value && !option.value.startsWith("__"))?.value ?? "", label);
+        if (value) await choose(page, label, value);
+      }
+      await clickByText(page, "Salvar objetivo no plano");
+      await page.waitForFunction((c) => document.body.innerText.includes(`BNCC ${c} ·`), { timeout: 20000 }, code).catch(() => {});
+      check("BNCC: o plano mostra o código com o texto da habilidade", await page.evaluate((c) => document.body.innerText.includes(`BNCC ${c} ·`), code));
+    }
+    check("BNCC: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    const coord = await newSession();
+    await login(coord.page, "coordenacao@escola.edu.br");
+    await coord.page.goto(`${BASE}/painel`, { waitUntil: "networkidle2" });
+    check("BNCC: painel conta objetivos por componente", (await textOf(coord.page)).includes("Objetivos por componente da BNCC"));
+    await coord.ctx.close();
   }
 }
 

@@ -8,6 +8,7 @@ import {
   type DuaContent, type DuaOrigin, type OriginKind, type ReviewState, type Sharing,
 } from "./domain";
 import { canPlanDua, collaboratorIds, planningAccess, readablePlanningsWhere } from "./access";
+import { validBnccCode } from "../bncc";
 import { DuaError, NOT_FOUND, audit, clip, contentOf, latestVersion, loadPlanningFor } from "./shared";
 
 // Planejamento coletivo e suas versões (RF02, seção 7). Validada, a versão não
@@ -172,7 +173,8 @@ export function reconcileContent(previous: DuaContent, incoming: Partial<DuaCont
   });
   return {
     title: clip(raw.title, 160),
-    objective: { learning: clip(raw.objective.learning, 2000), curriculum: clip(raw.objective.curriculum, 300) },
+    // Só habilidades que existem na base oficial da BNCC.
+    objective: { learning: clip(raw.objective.learning, 2000), curriculum: clip(raw.objective.curriculum, 300), bnccCodes: [...new Set(raw.objective.bnccCodes.map(validBnccCode).filter((code) => code !== null))].slice(0, 10) },
     criteria,
     context: { audience: clip(raw.context.audience, 300), organization: clip(raw.context.organization, 1200), resources: texts(raw.context.resources), notes: clip(raw.context.notes, 2000) },
     barriers,

@@ -590,6 +590,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <CardHeader title="Critério de sucesso" hint={`Registros de aula · ${periodText}.`} />
                 <StackedBar segments={withSegmentColors(l.criterion)} />
               </div>
+              <div className="dash-card">
+                <CardHeader title="Objetivos por componente da BNCC" hint={l.bncc.total ? `${l.bncc.linked} de ${l.bncc.total} objetivos ligados a uma habilidade da BNCC.` : undefined} />
+                <BarList rows={l.bncc.byComponent} empty="Nenhum objetivo ligado à BNCC ainda." />
+              </div>
             </div>
           </Section>
 

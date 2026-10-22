@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { buildObjectiveDescription } from "@/lib/objective";
+import { validBnccCode } from "@/lib/bncc";
 import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
 import { assertCaseStudyConcluded, assertNoActivePlan, closeStudentPlan, reviewStudentPlan, setObjectiveStatus } from "@/lib/records";
 
@@ -48,6 +49,10 @@ export async function createObjective(studentId: string, planId: string, formDat
   if (!action || !condition || !criterion) {
     throw new Error("Ação, condição e critério são obrigatórios para um objetivo observável.");
   }
+  // Habilidade da BNCC só da base oficial: código inexistente não é gravado.
+  const bnccInput = String(formData.get("bnccCode") ?? "").trim();
+  const bnccCode = validBnccCode(bnccInput);
+  if (bnccInput && !bnccCode) throw new Error("Código da BNCC não encontrado. Escolha a habilidade pela busca.");
 
   const description = buildObjectiveDescription({
     studentName: student.name,
@@ -58,7 +63,7 @@ export async function createObjective(studentId: string, planId: string, formDat
     data: {
       planId,
       action, condition, criterion, deadlineWeeks, description,
-      bnccCode: String(formData.get("bnccCode") ?? "").trim() || null,
+      bnccCode,
       dimension: String(formData.get("dimension") ?? "comunicacao"),
       currentSupport,
       targetSupport: Number(formData.get("targetSupport") ?? Math.max(0, currentSupport - 1)),

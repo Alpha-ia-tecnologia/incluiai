@@ -15,6 +15,7 @@ import { PageHeader, Card, SectionTitle, Badge, SupportPill, AIDisclaimer } from
 import { PendingButton } from "@/components/pending-button";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ObjectiveFields } from "@/components/objective-fields";
+import { BnccTag } from "@/components/bncc-tag";
 import { Archive, ArrowRight, CalendarCheck, Sparkles, Trash2 } from "lucide-react";
 import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canEditStudentRecord } from "@/lib/auth";
 import { canPlanDua } from "@/lib/dua/access";
@@ -308,7 +309,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
                 <Badge>{DIMENSIONS[obj.dimension] ?? obj.dimension}</Badge>
-                {obj.bnccCode ? <Badge>BNCC {obj.bnccCode}</Badge> : null}
+                {obj.bnccCode ? <BnccTag code={obj.bnccCode} detail /> : null}
                 {/* Com registro de aula, a escala abaixo mostra início, último registro e meta. */}
                 {latest ? null : (
                   <>
@@ -379,7 +380,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <SectionTitle>Definir um objetivo de aprendizagem</SectionTitle>
           <p className="mb-5 text-sm leading-relaxed text-ink-soft">Descreva a aprendizagem, o apoio e o resultado esperado. Ao salvar, essas respostas formam a frase do objetivo. Os campos com * são obrigatórios.</p>
           <form action={addObjective} className="grid min-w-0 gap-4 sm:grid-cols-2">
-            <ObjectiveFields {...fieldStyle} />
+            <ObjectiveFields {...fieldStyle} studentId={id} />
             <ChoiceField name="condition" label="Com qual apoio ou condição? *" options={CONDITION_SUGGESTIONS} required otherPlaceholder="Ex.: com apoio de um colega" {...fieldStyle} />
             <ChoiceField name="criterion" label="Como saberemos que conseguiu? *" options={CRITERION_SUGGESTIONS} required otherPlaceholder="Ex.: 3 de 4 tentativas" {...fieldStyle} />
             <ChoiceField name="deadlineWeeks" label="Prazo para acompanhar" options={DEADLINE_WEEKS} defaultValue="6" required otherType="number" otherMin={1} otherMax={52} otherPlaceholder="Semanas" {...fieldStyle} />
@@ -526,7 +527,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
                   <span className="block text-sm leading-relaxed text-ink">{buildObjectiveDescription({ studentName, ...objective })}</span>
                   <span className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-ink-soft">
                     <Badge>{DIMENSIONS[objective.dimension] ?? objective.dimension}</Badge>
-                    {objective.bnccCode ? <Badge>BNCC {objective.bnccCode}</Badge> : null}
+                    {objective.bnccCode ? <BnccTag code={objective.bnccCode} /> : null}
                     <SupportPill level={objective.currentSupport} /> → <SupportPill level={objective.targetSupport} />
                   </span>
                   <span className="mt-2 block text-xs leading-relaxed text-ink-soft">{objective.rationale}</span>

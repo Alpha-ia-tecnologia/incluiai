@@ -80,6 +80,16 @@ Planejamento da atividade **da turma** com o Desenho Universal para a Aprendizag
 
 O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](./docs/dua.md).
 
+## Habilidades da BNCC
+
+O objetivo do Plano de ensino e o planejamento com DUA ligam-se a habilidades da BNCC escolhidas na base oficial (`prisma/data/bncc.json`, 1.580 códigos de educação infantil, fundamental e médio), e não digitadas à mão:
+
+- **Busca:** por código (EF01LP) ou palavra (letras, contar). As habilidades do ano do estudante aparecem primeiro: no infantil, pela faixa etária; no fundamental, pelo ano.
+- **Sugestão pelo texto do objetivo:** por palavras em comum, pesando mais as raras e o componente da área escolhida (leitura e escrita → Língua Portuguesa; matemática → Matemática). É feita por regras, sem IA, e nada sai da plataforma.
+- **Conferência:** código que não existe na base não é gravado, nem quando vem de uma proposta da IA.
+- **Onde aparece:** o plano mostra o código com o componente e o texto oficial, e o painel de indicadores conta os objetivos por componente.
+- **Fonte:** o texto é o do PDF homologado pelo MEC, conferido código a código. A estrutura dos dados vem do projeto [bncc-dados](https://github.com/bncc-dev/bncc-dados) (CC BY 4.0). Detalhes em `prisma/data/README.md`.
+
 ## Acessibilidade de leitura
 
 - **Ouvir:** os materiais de apoio e o portal da família têm um botão que lê o conteúdo em voz alta, com três velocidades. Usa a voz do próprio navegador e prefere uma que roda no aparelho; se só houver voz pela internet (o texto iria ao serviço do navegador), pede confirmação antes, como no ditado. Regras puras em `src/lib/speech-text.ts`.
@@ -126,6 +136,7 @@ Em **Estudantes › Importar planilha** (`/estudantes/importar`), a gestão e a 
 - `material-content.ts` (puro, com testes) — os 6 tipos de material de apoio, o conteúdo (cartões com descrição do pictograma, como usar, atividades para aplicar, porquê de cada adaptação), as verificações e o motor de regras; `material-generate.ts` — geração pela IA (`agents/material-agent.ts`) ou pelas regras, aprovação, imagens por cartão (`images/material-images.ts`) e "levar para Atividades"
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
 - `auth.ts` — sessão, hash e controle de acesso por perfil
+- `bncc-core.ts` (puro, com testes) e `bncc.ts` — base da BNCC: recorte pelo estudante, busca e sugestão de habilidades
 - `user-admin.ts` (puro, com testes) e `accounts.ts` — gestão de contas: escopo de quem gerencia, vínculos, senha temporária e histórico
 - `totp.ts` (puro, com testes dos vetores da RFC 6238) e `two-factor.ts` — verificação em duas etapas: código do aplicativo, QR code desenhado no servidor (biblioteca `qrcode`, nada sai para serviço externo) e códigos de recuperação
 

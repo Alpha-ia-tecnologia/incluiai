@@ -75,7 +75,8 @@ export type DuaStrategy = {
 export type DuaContent = {
   title: string;
   // Objetivo de aprendizagem ≠ meio de acesso ≠ forma de resposta ≠ apoio (3.1).
-  objective: { learning: string; curriculum: string };
+  // bnccCodes: habilidades da base oficial; curriculum: outra referência (currículo municipal).
+  objective: { learning: string; curriculum: string; bnccCodes: string[] };
   criteria: DuaCriterion[];
   context: { audience: string; organization: string; resources: string[]; notes: string };
   barriers: DuaBarrier[];
@@ -85,7 +86,7 @@ export type DuaContent = {
 
 export const emptyDuaContent = (title = ""): DuaContent => ({
   title,
-  objective: { learning: "", curriculum: "" },
+  objective: { learning: "", curriculum: "", bnccCodes: [] },
   criteria: [],
   context: { audience: "", organization: "", resources: [], notes: "" },
   barriers: [],
@@ -101,7 +102,11 @@ export function normalizeContent(value: Partial<DuaContent> | null | undefined):
   if (!value) return base;
   return {
     title: String(value.title ?? ""),
-    objective: { learning: String(value.objective?.learning ?? ""), curriculum: String(value.objective?.curriculum ?? "") },
+    objective: {
+      learning: String(value.objective?.learning ?? ""),
+      curriculum: String(value.objective?.curriculum ?? ""),
+      bnccCodes: Array.isArray(value.objective?.bnccCodes) ? [...new Set(value.objective.bnccCodes.map((code) => String(code).toUpperCase()))].slice(0, 10) : [],
+    },
     criteria: Array.isArray(value.criteria) ? value.criteria : [],
     context: {
       audience: String(value.context?.audience ?? ""),

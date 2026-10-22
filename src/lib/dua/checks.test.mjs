@@ -11,7 +11,7 @@ const OBJECTIVE = "Identificar dois personagens principais e ordenar três acont
 
 const context = (extra = {}) => ({
   purpose: "opcoes",
-  objective: { learning: OBJECTIVE, curriculum: "EF15LP03" },
+  objective: { learning: OBJECTIVE, curriculum: "EF15LP03", bnccCodes: [] },
   criteria: [{ id: "c1", description: "Diz ou aponta os dois personagens principais." }],
   barriers: [
     { id: "b1", description: "Instruções longas, apresentadas em uma única etapa", category: "instrucoes", status: "prevista" },

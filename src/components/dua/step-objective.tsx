@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import type { DuaContent } from "@/lib/dua/domain";
 import { Field, hintCls, inputCls, labelCls, secondaryCls, textareaCls } from "./dua-ui";
+import { BnccPicker } from "@/components/bncc-picker";
 
 export type StepProps = { content: DuaContent; update: (next: DuaContent) => void; readOnly: boolean };
 
@@ -21,7 +22,16 @@ export function StepObjective({ content, update, readOnly }: StepProps) {
       <Field id="dua-objetivo" label="O que os estudantes precisam aprender?" required hint="A aprendizagem pretendida: o que se quer desenvolver ou compreender. Não descreva aqui como a informação será apresentada nem como o estudante vai responder.">
         <textarea id="dua-objetivo" aria-describedby="dua-objetivo-dica" className={textareaCls} value={content.objective.learning} readOnly={readOnly} onChange={(event) => set({ objective: { ...content.objective, learning: event.target.value } })} maxLength={2000} placeholder="Ex.: identificar dois personagens principais e ordenar três acontecimentos de uma história." />
       </Field>
-      <Field id="dua-curriculo" label="Habilidade ou referência curricular (quando houver)" hint="Ex.: código da BNCC ou a habilidade do currículo municipal.">
+      <BnccPicker
+        multiple
+        label="Habilidades da BNCC (quando houver)"
+        hint="Busque por código ou palavra, ou peça uma sugestão pelo que os estudantes precisam aprender."
+        value={content.objective.bnccCodes}
+        onChange={(bnccCodes) => set({ objective: { ...content.objective, bnccCodes } })}
+        readOnly={readOnly}
+        suggestFrom={() => content.objective.learning}
+      />
+      <Field id="dua-curriculo" label="Outra referência curricular (quando houver)" hint="Ex.: a habilidade do currículo municipal.">
         <input id="dua-curriculo" aria-describedby="dua-curriculo-dica" className={inputCls} value={content.objective.curriculum} readOnly={readOnly} onChange={(event) => set({ objective: { ...content.objective, curriculum: event.target.value } })} maxLength={300} />
       </Field>
 

@@ -10,7 +10,7 @@ export function VersionSummary({ content }: { content: DuaContent }) {
       </div>
       <div className="min-w-0">
         <dt className="font-medium text-ink">O que os estudantes precisam aprender</dt>
-        <dd className="break-words text-ink-soft">{content.objective.learning || "Ainda não definido"}{content.objective.curriculum ? ` · ${content.objective.curriculum}` : ""}</dd>
+        <dd className="break-words text-ink-soft">{content.objective.learning || "Ainda não definido"}{content.objective.bnccCodes.length ? ` · BNCC ${content.objective.bnccCodes.join(", ")}` : ""}{content.objective.curriculum ? ` · ${content.objective.curriculum}` : ""}</dd>
       </div>
       <div className="min-w-0">
         <dt className="font-medium text-ink">Critérios observáveis</dt>

@@ -1,5 +1,6 @@
 "use server";
 
+import { validBnccCode } from "@/lib/bncc";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -56,7 +57,8 @@ export async function activatePlanDraft(studentId: string, formData: FormData) {
             criterion: objective.criterion,
             deadlineWeeks: objective.deadlineWeeks,
             description: buildObjectiveDescription({ studentName: student.name, ...objective }),
-            bnccCode: objective.bnccCode,
+            // O código proposto pela IA só entra se existir na base oficial.
+            bnccCode: validBnccCode(objective.bnccCode),
             dimension: objective.dimension,
             currentSupport: objective.currentSupport,
             targetSupport: objective.targetSupport,

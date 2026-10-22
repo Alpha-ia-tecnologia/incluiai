@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+﻿import { BnccTag } from "@/components/bncc-tag";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insights";
 import { meetingQuestions } from "@/lib/materials";
@@ -117,7 +118,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                       <span>Apoio atual:</span> <SupportPill level={obj.currentSupport} />
                       <span>→ apoio esperado:</span> <SupportPill level={obj.targetSupport} />
-                      {obj.bnccCode ? <Badge>BNCC {obj.bnccCode}</Badge> : null}
+                      {obj.bnccCode ? <BnccTag code={obj.bnccCode} /> : null}
                     </div>
                     {pedagogical ? (
                       points.length >= 2 ? (
