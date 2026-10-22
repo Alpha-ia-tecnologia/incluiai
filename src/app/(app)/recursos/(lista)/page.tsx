@@ -72,7 +72,7 @@ export default async function ResourcesPage({
   return (
     <>
       <section aria-labelledby="resources-title" className="mb-8 grid grid-cols-[minmax(0,1fr)_80px] items-center gap-x-4 gap-y-3 rounded-3xl bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-x-7 sm:p-7 lg:grid-cols-[minmax(0,1fr)_176px]">
-        <h1 id="resources-title" className="min-w-0 font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-4xl">Recursos para incluir.</h1>
+        <h1 id="resources-title" className="min-w-0 font-display text-3xl font-bold leading-[1.15] tracking-tight text-ink sm:text-4xl">Recursos para incluir.</h1>
         <Character variant="ideas" className="w-20 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-40 lg:w-44" preload />
         <p className="col-span-2 max-w-2xl text-sm leading-relaxed text-ink-soft sm:col-span-1">Explore o banco municipal de recursos inclusivos: atividades, adaptações e novas possibilidades para aprender.</p>
       </section>

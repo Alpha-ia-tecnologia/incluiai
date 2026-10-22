@@ -88,7 +88,7 @@ function FactorCard({ title, value, tone, status, text, href, trend }: Factor) {
         <Link href={href} className="circle-link !size-8" aria-label={`Ver detalhes: ${title}`}><ArrowUpRight size={15} aria-hidden /></Link>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="font-display text-3xl font-normal leading-none tracking-tight text-ink">{value}</p>
+        <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink">{value}</p>
         <StatusPill tone={tone}>{status}</StatusPill>
       </div>
       <p className="mt-2.5 text-xs leading-relaxed text-ink-soft">{text}</p>
@@ -107,7 +107,7 @@ function AiStat({ label, value, detail, wide = false, children }: { label: strin
   return (
     <div className={`min-w-0 rounded-2xl bg-surface-muted/70 p-3.5 ${wide ? "col-span-2" : ""}`}>
       <dt className="text-xs leading-snug text-ink-soft">{label}</dt>
-      <dd className="mt-1.5 font-display text-2xl font-normal leading-none tracking-tight text-ink tabular-nums">{value}</dd>
+      <dd className="mt-1.5 font-display text-2xl font-semibold leading-none tracking-tight text-ink tabular-nums">{value}</dd>
       {detail ? <dd className="mt-1 text-xs leading-snug text-ink-soft">{detail}</dd> : null}
       {children ? <dd className="mt-2">{children}</dd> : null}
     </div>
@@ -131,7 +131,7 @@ function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denomina
         <div className="min-w-0">
           {value === null
             ? <p className="text-sm font-medium leading-snug text-ink-soft">{noBaseText}</p>
-            : <p className="font-display text-3xl font-normal leading-none tracking-tight text-ink">{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</p>}
+            : <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink">{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</p>}
           <p className="mt-2 text-sm text-ink">{numerator} de {denominator} {unit}</p>
         </div>
       </div>
@@ -285,7 +285,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-normal tracking-tight text-ink sm:text-3xl">Painel de indicadores</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-3xl">Painel de indicadores</h1>
           <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
             <span className="font-medium text-ink">{scope.schoolName ?? "Toda a rede"}</span>
             {o.students ? <> · <span data-testid="total-estudantes">{plural(o.students, "estudante", "estudantes")}</span> ({o.withAEE} no AEE) · {plural(o.schools, "escola", "escolas")} · {plural(o.classes, "turma", "turmas")}</> : null}
@@ -347,7 +347,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <HatchedGauge value={gauge.value} label={`${GAUGES[gaugeKey]}: ${gauge.value === null ? "sem dados" : `${gauge.value}%`}, em uma escala de 0 a 100%.`} />
                   <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
                     <StatusPill tone={gauge.pill.tone}>{gauge.pill.text}{"deltaText" in gauge && gauge.deltaText ? <span className="sr-only">: {gauge.deltaText}</span> : null}</StatusPill>
-                    <p className="mt-1 font-display text-5xl font-normal leading-none tracking-tight text-ink sm:text-5xl">{gauge.value ?? "—"}{gauge.value !== null ? <span className="text-[0.5em]">%</span> : null}</p>
+                    <p className="mt-1 font-display text-5xl font-bold leading-none tracking-tight text-ink sm:text-5xl">{gauge.value ?? "—"}{gauge.value !== null ? <span className="text-[0.5em]">%</span> : null}</p>
                   </div>
                 </div>
                 <p className="mx-auto mt-4 max-w-sm text-xs leading-relaxed text-ink-soft">{gauge.description}</p>
@@ -375,7 +375,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       const complete = step.done === o.students;
                       return (
                         <li key={step.key} className="stepper-item">
-                          <span className={`relative z-10 flex size-[34px] items-center justify-center rounded-full text-xs font-semibold ${complete ? "bg-brand text-white" : step.done > 0 ? "border-2 border-signal-lime bg-signal-lime-soft text-ink-strong" : "border-2 border-dashed border-[#cfc9c0] bg-paper-raised text-ink-soft"}`}>
+                          <span className={`relative z-10 flex size-[34px] items-center justify-center rounded-full text-xs font-semibold ${complete ? "bg-brand text-white" : step.done > 0 ? "border-2 border-signal-lime bg-signal-lime-soft text-ink-strong" : "border-2 border-dashed border-[#bfd0d8] bg-paper-raised text-ink-soft"}`}>
                             {complete ? <Check size={17} strokeWidth={3} aria-hidden /> : step.done}
                           </span>
                           <span className="mt-2 text-xs text-ink-soft">Etapa {step.step}</span>
@@ -495,7 +495,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         {([["No início", support.initial, "rounded-full border-2 border-ink-strong bg-white"], ["Agora", support.latest, "rounded-full bg-ink-strong"], ["Meta", support.target, "rotate-45 rounded-[2px] border-2 border-ink-strong bg-white"]] as const).map(([label, value, marker]) => (
                           <div key={label} className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-1.5 rounded-full bg-surface-muted/70 py-1.5 pl-2.5 pr-3 text-xs">
                             <dt className="inline-flex items-center gap-1.5 self-center text-ink-soft"><span aria-hidden className={`inline-block size-2.5 shrink-0 ${marker}`} />{label}</dt>
-                            <dd className="font-display text-base leading-none tracking-tight text-ink tabular-nums">{decimal(value)}</dd>
+                            <dd className="font-display font-bold text-base leading-none tracking-tight text-ink tabular-nums">{decimal(value)}</dd>
                             <dd className="text-ink-soft">{supportInfo(Math.round(value)).label}</dd>
                           </div>
                         ))}
@@ -533,9 +533,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </div>
                 <MonthGrid years={cal.years} />
                 <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
-                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border-2 border-[#e2f6a6] bg-signal-lime" />Com registro</li>
+                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border-2 border-[#cfe6b4] bg-signal-lime" />Com registro</li>
                   <li className="flex items-center gap-1.5"><span aria-hidden className="flex size-3 items-center justify-center rounded-full bg-signal-orange" />Mês letivo sem registro</li>
-                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-dashed border-[#cfc9c0]" />Mês atual</li>
+                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-dashed border-[#bfd0d8]" />Mês atual</li>
                   <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-line bg-paper" />Recesso (janeiro)</li>
                 </ul>
               </section>
@@ -593,7 +593,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
               <div className="dash-card">
                 <CardHeader title="Sondagem" hint={`Com linha de base: ${smallNumber(l.assessment.withBaseline)} de ${plural(l.assessment.total, "estudante", "estudantes")}. Em dia: reaplicada nas últimas 12 semanas.`} />
-                <p className="font-display text-3xl font-normal tracking-tight text-ink"><span className="tabular-nums">{smallNumber(l.assessment.upToDate)}</span> <span className="text-base text-ink-soft">em dia</span></p>
+                <p className="font-display text-3xl font-bold tracking-tight text-ink"><span className="tabular-nums">{smallNumber(l.assessment.upToDate)}</span> <span className="text-base text-ink-soft">em dia</span></p>
                 {l.assessment.improved.some((row) => row.value > 0) ? (
                   <ul className="mt-3 grid gap-1 text-sm text-ink-soft">
                     {l.assessment.improved.filter((row) => row.value > 0).map((row) => <li key={row.label}><span className="text-ink">{row.label}:</span> {smallNumber(row.value)} com menos apoio que na linha de base</li>)}
@@ -602,7 +602,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
               <div className="dash-card">
                 <CardHeader title="Relatórios do período" hint="Estudantes com relatório validado e publicado para a família nos últimos 6 meses." />
-                <p className="font-display text-3xl font-normal tracking-tight text-ink"><span className="tabular-nums">{l.reports.covered}</span> <span className="text-base text-ink-soft">de {plural(l.reports.total, "estudante", "estudantes")}</span></p>
+                <p className="font-display text-3xl font-bold tracking-tight text-ink"><span className="tabular-nums">{l.reports.covered}</span> <span className="text-base text-ink-soft">de {plural(l.reports.total, "estudante", "estudantes")}</span></p>
               </div>
               <div className="dash-card">
                 <CardHeader title="Objetivos por componente da BNCC" hint={l.bncc.total ? `${l.bncc.linked} de ${l.bncc.total} objetivos ligados a uma habilidade da BNCC.` : undefined} />

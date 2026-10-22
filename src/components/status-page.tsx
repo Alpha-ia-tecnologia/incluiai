@@ -14,7 +14,7 @@ export function StatusPage({ character, eyebrow, title, children, actions }: {
     <section className="page-hero mx-auto grid w-full max-w-3xl items-center gap-6 rounded-3xl bg-brand-soft p-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-10">
       <div className="min-w-0">
         <p className="text-sm font-medium text-brand-strong">{eyebrow}</p>
-        <h1 className="mt-2 font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-4xl">{title}</h1>
+        <h1 className="mt-2 font-display text-3xl font-bold leading-[1.15] tracking-tight text-ink sm:text-4xl">{title}</h1>
         <div className="mt-3 max-w-xl text-sm leading-relaxed text-ink-soft sm:text-base">{children}</div>
         <div className="mt-6 flex flex-wrap gap-2">{actions}</div>
       </div>

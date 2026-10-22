@@ -2,7 +2,7 @@ import { memo } from "react";
 import type { ArtState } from "@/lib/assistant/garden-scenes";
 import styles from "./garden-wait.module.css";
 
-// Desenho do canteiro (viewBox 96×96): traço preto sobre círculo lilás, como
+// Desenho do canteiro (viewBox 96×96): traço preto sobre círculo azul-claro, como
 // os personagens. Todas as partes ficam sempre no DOM e mudam por atributos
 // data-*; as transições ficam no CSS e não se repetem ao reabrir o painel.
 // Elementos com atributo transform nunca são animados: anima-se o filho.

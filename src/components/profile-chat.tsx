@@ -570,7 +570,7 @@ export function ProfileChat({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display font-semibold text-ink">Perfil guiado</h2>
-                {/* Verde só quando há o que revisar; em andamento é a conversa guiada, em lilás. */}
+                {/* Verde só quando há o que revisar; em andamento é a conversa guiada, em azul. */}
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${done ? "bg-green-soft text-green" : "bg-brand-soft text-brand-strong"}`}>
                   {done ? "Pronto para revisar" : "Conversa guiada"}
                 </span>

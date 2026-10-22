@@ -29,7 +29,7 @@ export function AdaptedView({ content, highlight, icons, largeText = false, item
   return (
     <div className={`grid min-w-0 gap-5 ${largeText ? "text-lg print:text-xl" : "text-base"}`}>
       <div>
-        <h3 className="break-words font-display text-2xl font-normal tracking-tight text-ink">{content.title}</h3>
+        <h3 className="break-words font-display text-2xl font-semibold tracking-tight text-ink">{content.title}</h3>
         {content.instructions.length ? <ul className="mt-2 grid gap-1 text-ink-soft">{content.instructions.map((line) => <li key={line}>{line}</li>)}</ul> : null}
       </div>
       {pages.map((page, pageIndex) => (

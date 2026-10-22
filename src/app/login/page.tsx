@@ -36,7 +36,7 @@ export default async function LoginPage() {
               <span className="size-1.5 rounded-full bg-brand" aria-hidden="true" />
               Um espaço para cada possibilidade
             </span>
-            <h1 className="font-display text-3xl font-normal leading-[1.12] tracking-[-0.045em] text-ink sm:text-4xl">
+            <h1 className="font-display text-3xl font-bold leading-[1.12] tracking-[-0.045em] text-ink sm:text-4xl">
               Que bom ter<br />você por aqui.
             </h1>
             <p className="mb-8 mt-4 max-w-xs text-sm leading-relaxed text-ink-soft">Entre na plataforma e acompanhe os próximos passos de uma educação mais inclusiva.</p>
@@ -61,7 +61,7 @@ export default async function LoginPage() {
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_96px] items-center gap-3 sm:grid-cols-[minmax(0,1fr)_180px] lg:grid-cols-[minmax(0,1fr)_144px] xl:grid-cols-[minmax(0,1fr)_180px]">
-            <p className="font-display text-3xl font-normal leading-[1.14] tracking-[-0.045em] text-ink sm:text-4xl lg:text-3xl xl:text-4xl">Muitas conexões.<br />Um só propósito.</p>
+            <p className="font-display text-3xl font-bold leading-[1.14] tracking-[-0.045em] text-ink sm:text-4xl lg:text-3xl xl:text-4xl">Muitas conexões.<br />Um só propósito.</p>
             <Character variant="care" className="w-full" preload />
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-soft">Toda trajetória é única. Juntos, construímos caminhos para que cada estudante possa aprender e se desenvolver.</p>

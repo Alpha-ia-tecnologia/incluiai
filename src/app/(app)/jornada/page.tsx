@@ -48,7 +48,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
       <header className="mb-7 flex items-center justify-between gap-5">
         <div className="min-w-0 max-w-2xl">
           <p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-strong"><Route size={18} aria-hidden /> Minha jornada</p>
-          <h1 className="font-display text-3xl leading-tight tracking-tight sm:text-4xl">{journey.title}</h1>
+          <h1 className="font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{journey.title}</h1>
           <p className="mt-3 text-base leading-relaxed text-ink-soft">{journey.intro}</p>
           {chapters.length ? (
             <div className="mt-5 max-w-md">
@@ -205,7 +205,7 @@ function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
         <RingStat id={id} value={viz.pct} label={item.label} size={84} color={TONE_COLOR[viz.tone]} />
         <div className="min-w-0">
           <h3 className="text-sm font-medium leading-snug text-ink">{item.label}</h3>
-          <p className="mt-1 font-display text-3xl leading-none tracking-tight text-ink tabular-nums">{item.value}</p>
+          <p className="mt-1 font-display font-bold text-3xl leading-none tracking-tight text-ink tabular-nums">{item.value}</p>
           {item.hint ? <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{item.hint}</p> : null}
         </div>
       </article>

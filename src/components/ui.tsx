@@ -80,8 +80,8 @@ export function PageHeader({ title, lede, actions, level = 1 }: { title: string;
     <div className={`${level === 1 ? "mb-8" : "mb-6"} flex flex-wrap items-end justify-between gap-4`}>
       <div className="max-w-2xl">
         <Heading className={level === 1
-          ? "font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-4xl"
-          : "font-display text-2xl font-normal leading-tight tracking-tight text-ink sm:text-3xl"}>{title}</Heading>
+          ? "font-display text-2xl font-bold leading-[1.15] tracking-tight text-ink sm:text-4xl"
+          : "font-display text-2xl font-semibold leading-tight tracking-tight text-ink sm:text-3xl"}>{title}</Heading>
         {lede ? <p className="mt-3 text-sm leading-relaxed text-ink-soft">{lede}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
@@ -89,7 +89,7 @@ export function PageHeader({ title, lede, actions, level = 1 }: { title: string;
   );
 }
 
-// Herói das telas principais: faixa lilás com o título, o personagem do assunto
+// Herói das telas principais: faixa azul-clara com o título, o personagem do assunto
 // e, se houver, ações e números (HeroStat). O personagem é decorativo; no
 // celular fica pequeno acima do título, para títulos longos não encostarem nele.
 export function PageHero({ title, lede, eyebrow, character, actions, children, preload = false }: {
@@ -105,7 +105,7 @@ export function PageHero({ title, lede, eyebrow, character, actions, children, p
     <section className="page-hero mb-8 grid min-w-0 gap-y-3 rounded-3xl bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-8 sm:p-8">
       <div className="min-w-0 sm:row-start-1">
         {eyebrow ? <p className="mb-2 flex items-center gap-2 text-sm font-medium text-brand-strong">{eyebrow}</p> : null}
-        <h1 className="font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-4xl">{title}</h1>
+        <h1 className="font-display text-2xl font-bold leading-[1.15] tracking-tight text-ink sm:text-4xl">{title}</h1>
         {lede ? <div className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-soft sm:text-base">{lede}</div> : null}
         {actions ? <div className="mt-5 flex flex-wrap gap-2">{actions}</div> : null}
         {children ? <div className="mt-5">{children}</div> : null}
@@ -119,7 +119,7 @@ export function PageHero({ title, lede, eyebrow, character, actions, children, p
 export function HeroStat({ value, label }: { value: ReactNode; label: string }) {
   return (
     <div className="min-w-0 rounded-xl bg-paper-raised px-4 py-3">
-      <p className="font-display text-2xl leading-none tracking-tight text-ink tabular-nums">{value}</p>
+      <p className="font-display font-bold text-2xl leading-none tracking-tight text-ink tabular-nums">{value}</p>
       <p className="mt-1.5 text-xs leading-snug text-ink-soft">{label}</p>
     </div>
   );

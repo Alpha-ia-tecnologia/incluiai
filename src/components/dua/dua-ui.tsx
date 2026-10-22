@@ -5,7 +5,7 @@ import { hintCls, labelCls } from "@/components/form-styles";
 import { ORIGIN_LABEL, REVIEW_STATE_LABEL, type DuaOrigin, type ReviewState } from "@/lib/dua/domain";
 
 // Peças visuais do planejamento com DUA, no padrão das telas do IncluiEdu
-// (rótulos visíveis, lilás só em ação e marca).
+// (rótulos visíveis, azul só em ação e marca).
 
 // Campos e botões vêm do kit único da plataforma (src/components/form-styles.ts).
 export { inputCls, textareaCls, labelCls, hintCls, linkCls, primaryButtonCls as buttonCls, quietButtonCls as secondaryCls } from "@/components/form-styles";

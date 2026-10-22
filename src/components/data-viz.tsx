@@ -92,7 +92,7 @@ export function StatTile({ label, value, unit, hint, tone, status, trend, chart,
         {href ? <Link href={href} className="circle-link !size-8" aria-label={linkLabel ?? `Ver detalhes: ${label}`}><ArrowUpRight size={15} aria-hidden /></Link> : null}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="font-display text-3xl font-normal leading-none tracking-tight text-ink tabular-nums">{value}{unit ? <span className="ml-0.5 text-xl text-ink-soft">{unit}</span> : null}</p>
+        <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink tabular-nums">{value}{unit ? <span className="ml-0.5 text-xl text-ink-soft">{unit}</span> : null}</p>
         {status && tone ? <StatusPill tone={tone}>{status}</StatusPill> : null}
         {trend}
       </div>
@@ -182,7 +182,7 @@ export function RingStat({ id, value, label, size = 112, color = SIGNAL.lime, ch
   const pct = value === null ? 0 : Math.min(100, Math.max(0, value));
   return (
     <HatchedDonut id={id} size={size} thickness={Math.round(size / 8)} label={value === null ? `${label}: sem base para cálculo` : `${label}: ${pct}%`} segments={[{ key: "feito", label, value: pct, color }, { key: "falta", label: "restante", value: 100 - pct, color: SIGNAL.track }]}>
-      {children ?? <span className="font-display text-2xl leading-none text-ink tabular-nums">{value === null ? "—" : `${pct}%`}</span>}
+      {children ?? <span className="font-display font-bold text-2xl leading-none text-ink tabular-nums">{value === null ? "—" : `${pct}%`}</span>}
     </HatchedDonut>
   );
 }

@@ -115,7 +115,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
             <Badge tone="neutral">{material.source === "ia" ? "Criado com IA" : "Criado pelas regras"}</Badge>
             {material.context ? <Badge tone="neutral">{MATERIAL_CONTEXT_LABEL[material.context as MaterialContext] ?? material.context}</Badge> : null}
           </div>
-          <h2 id={`material-${material.id}-titulo`} className="mt-2 break-words font-display text-2xl font-normal leading-tight tracking-tight text-ink sm:text-3xl">{material.title}</h2>
+          <h2 id={`material-${material.id}-titulo`} className="mt-2 break-words font-display text-2xl font-semibold leading-tight tracking-tight text-ink sm:text-3xl">{material.title}</h2>
           <p className="mt-1 text-xs text-ink-soft">
             Criado em {formatDate(material.createdAt)}
             {material.topic ? ` · situação: ${material.topic}` : ""}

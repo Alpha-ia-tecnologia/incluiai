@@ -35,7 +35,7 @@ export default async function FamilyMaterialPage({ params }: { params: Promise<{
         <PrintButton label="Imprimir material" />
       </div>
       {/* O título do material é h2 no componente; a página tem o seu h1. */}
-      <h1 className="mb-4 font-display text-3xl font-normal leading-tight tracking-tight text-ink">Material de apoio para casa</h1>
+      <h1 className="mb-4 font-display text-3xl font-bold leading-tight tracking-tight text-ink">Material de apoio para casa</h1>
       <MaterialView studentId={id} material={material} objective={objective?.description ?? null} imagesOn={false} canEdit={false} printHref={null} />
     </>
   );

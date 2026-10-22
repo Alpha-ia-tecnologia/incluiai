@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Noto_Sans } from "next/font/google";
 import "./globals.css";
 import { TEXT_SCALE_SCRIPT } from "@/components/text-size-control";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Noto Sans: a fonte da apresentação da plataforma.
+const noto = Noto_Sans({
+  variable: "--font-noto",
   subsets: ["latin"],
 });
 
@@ -25,7 +26,7 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: o script abaixo marca o tamanho do texto escolhido
     // antes de o React assumir a página.
-    <html lang="pt-BR" className={`${inter.variable} ${jetbrains.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${noto.variable} ${jetbrains.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: TEXT_SCALE_SCRIPT }} />
       </head>

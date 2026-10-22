@@ -26,7 +26,7 @@ export function SkeletonBoard({ cards = 3, className = "" }: { cards?: number; c
 }
 
 // Tela inteira carregando. kind = o formato da área: "page" (título e quadro),
-// "hero" (faixa lilás, quadro) ou "tab" (só o conteúdo de uma aba).
+// "hero" (faixa azul-clara, quadro) ou "tab" (só o conteúdo de uma aba).
 export function LoadingScreen({ label = "Carregando a página", kind = "page" }: { label?: string; kind?: "page" | "hero" | "tab" }) {
   return (
     <div role="status" aria-live="polite">

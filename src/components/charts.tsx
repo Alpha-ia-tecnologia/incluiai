@@ -9,15 +9,15 @@ import type { MonthState } from "@/lib/dashboard";
 
 // Mesmos valores dos tokens --signal-* em globals.css.
 export const SIGNAL = {
-  lime: "#c4ee4b",
-  yellow: "#f4e35a",
+  lime: "#7cb93a",
+  yellow: "#f5be0b",
   orange: "#f4693a",
-  cyan: "#93d7e4",
-  track: "#ecebe7",
-  ink: "#151515",
+  cyan: "#4fb3e3",
+  track: "#e3ecef",
+  ink: "#06243a",
 };
 const HATCH = "repeating-linear-gradient(120deg, rgb(0 0 0 / 0.1) 0 1.5px, transparent 1.5px 5px)";
-const GAUGE_STOPS: [number, string][] = [[0, "#e8503a"], [0.35, "#f39a3b"], [0.6, "#f2d24c"], [0.8, "#c4ee4b"], [1, "#98db4c"]];
+const GAUGE_STOPS: [number, string][] = [[0, "#e8503a"], [0.35, "#f39a3b"], [0.6, "#f5be0b"], [0.8, "#a2cc78"], [1, "#7cb93a"]];
 const SCALE_GRADIENT = `linear-gradient(90deg, ${GAUGE_STOPS.map(([at, color]) => `${color} ${at * 100}%`).join(", ")})`;
 
 export type ChartSegment = { key: string; label: string; value: number; color: string };
@@ -254,9 +254,9 @@ const MONTH_STATE_TEXT: Record<MonthState, (records: number) => string> = {
 function MonthDot({ state, records, label }: { state: MonthState; records: number; label: string }) {
   const text = `${label}: ${MONTH_STATE_TEXT[state](records)}`;
   const base = "mx-auto flex size-[18px] items-center justify-center rounded-full sm:size-[22px]";
-  const dot = state === "registro" ? <span className={`${base} border-[3px] border-[#e2f6a6] bg-signal-lime`} />
+  const dot = state === "registro" ? <span className={`${base} border-[3px] border-[#cfe6b4] bg-signal-lime`} />
     : state === "sem_registro" ? <span className={`${base} bg-signal-orange text-ink-strong`}><X size={11} strokeWidth={3} /></span>
-      : state === "aberto" ? <span className={`${base} border-2 border-dashed border-[#cfc9c0]`} />
+      : state === "aberto" ? <span className={`${base} border-2 border-dashed border-[#bfd0d8]`} />
         : state === "recesso" ? <span className={`${base} border border-line bg-paper`} />
           : <span className="mx-auto block size-1.5 rounded-full bg-line" />;
   return <span title={text} className="block">{dot}<span className="sr-only">{text}</span></span>;

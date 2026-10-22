@@ -138,7 +138,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                     <h2 id="etapas-resumo" className="text-base font-medium tracking-tight text-ink">Em que etapa estão</h2>
                     <p className="mt-1 text-xs leading-relaxed text-ink-soft">Pelo próximo passo sugerido de cada estudante desta lista.</p>
                   </div>
-                  <p className="text-xs text-ink-soft"><span className="font-display text-2xl leading-none text-ink tabular-nums">{inRoutine}</span> de {rows.length} na rotina de registros</p>
+                  <p className="text-xs text-ink-soft"><span className="font-display font-bold text-2xl leading-none text-ink tabular-nums">{inRoutine}</span> de {rows.length} na rotina de registros</p>
                 </div>
                 <ol className="grid grid-cols-5 gap-1">
                   {byStep.map((step, index) => (

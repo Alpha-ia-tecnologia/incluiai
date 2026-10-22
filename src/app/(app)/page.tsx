@@ -20,7 +20,7 @@ export default async function SchoolDashboard() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (["familia", "terapeuta"].includes(user.role) && !user.studentIds.length) {
-    return <><h1 className="mb-6 font-display text-3xl tracking-tight">Boas-vindas, {firstName(user.name)}</h1><EmptyState character="care" title="Seu acesso ainda precisa ser vinculado a um estudante" hint="Peça à equipe da escola para conferir seu cadastro. Depois disso, o acompanhamento aparecerá aqui." action={<Link className="task-action" href="/ajuda">Consultar a ajuda</Link>} /></>;
+    return <><h1 className="mb-6 font-display text-3xl font-bold tracking-tight">Boas-vindas, {firstName(user.name)}</h1><EmptyState character="care" title="Seu acesso ainda precisa ser vinculado a um estudante" hint="Peça à equipe da escola para conferir seu cadastro. Depois disso, o acompanhamento aparecerá aqui." action={<Link className="task-action" href="/ajuda">Consultar a ajuda</Link>} /></>;
   }
   if (user.role === "familia") redirect(user.studentIds.length === 1 ? `/familia/${user.studentIds[0]}` : "/familia");
   if (user.role === "terapeuta") redirect("/terapeuta");
@@ -85,7 +85,7 @@ export default async function SchoolDashboard() {
         <section className="mb-7 flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="mb-3 text-sm text-ink-soft">Olá, {firstName(user.name)}.</p>
-            <h1 className="max-w-xl font-display text-3xl leading-[1.12] tracking-tight sm:text-4xl">O que vamos fazer hoje?</h1>
+            <h1 className="max-w-xl font-display text-3xl font-bold leading-[1.12] tracking-tight sm:text-4xl">O que vamos fazer hoje?</h1>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-soft">Escolha uma tarefa para começar. Vamos orientar você em cada etapa.</p>
           </div>
           {journey.welcomed ? <Character variant="learning" className="hidden w-32 shrink-0 sm:block xl:w-36" preload /> : null}
@@ -192,7 +192,7 @@ export default async function SchoolDashboard() {
           <h2 id="attention-title" className="mb-3 text-base font-medium">Precisa de atenção</h2>
           {!nominal ? (
             <Link href="/painel#atencao" className="block rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft transition-colors hover:bg-brand-soft">
-              <span className="font-display text-2xl text-ink tabular-nums">{withAlerts.length}</span> {withAlerts.length === 1 ? "estudante com aviso" : "estudantes com aviso"} de acompanhamento na rede. Veja por escola no painel.
+              <span className="font-display font-bold text-2xl text-ink tabular-nums">{withAlerts.length}</span> {withAlerts.length === 1 ? "estudante com aviso" : "estudantes com aviso"} de acompanhamento na rede. Veja por escola no painel.
             </Link>
           ) : withAlerts.length ? <ul className="space-y-3">{withAlerts.slice(0, 3).map(({ student, alerts }) => (
             <li key={student.id}><Link href={`/estudantes/${student.id}`} className="block rounded-2xl bg-paper-raised p-4 transition-colors hover:bg-brand-soft"><span className="flex items-center justify-between gap-2 text-sm font-medium">{student.name}<ArrowRight size={16} className="shrink-0" aria-hidden /></span><span className="mt-2 block text-sm leading-relaxed text-ink-soft">{!student.diaryEntries.length && alerts[0].kind === "sem_registro" ? "Ainda sem registro de aula." : alerts[0].message}</span></Link></li>

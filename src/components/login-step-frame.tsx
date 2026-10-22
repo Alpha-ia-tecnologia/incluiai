@@ -21,7 +21,7 @@ export function LoginStepFrame({ badge, icon, title, lede, children }: { badge: 
           {icon}
           {badge}
         </span>
-        <h1 className="font-display text-3xl font-normal leading-[1.12] tracking-[-0.045em] text-ink">{title}</h1>
+        <h1 className="font-display text-3xl font-bold leading-[1.12] tracking-[-0.045em] text-ink">{title}</h1>
         <p className="mb-8 mt-3 text-sm leading-relaxed text-ink-soft">{lede}</p>
 
         {children}

@@ -1,17 +1,23 @@
 # Padrão visual do IncluiEdu
 
 Regras para manter a aplicação com a mesma cara em todas as telas. A identidade
-(lilás, neutros quentes, personagens e a fonte Inter) não muda; o que estas
-regras organizam é o uso dela.
+segue a apresentação da plataforma (outubro de 2026): azul-marinho e azul,
+superfícies azul-claras, a faixa azul-claro, amarelo e verde, personagens em
+azul-claro e a fonte Noto Sans, com títulos e números em negrito. Estas regras
+organizam o uso dela.
 
 ## Cores
 
 - Só os tokens de `src/app/globals.css`. Nada de hex novo nos componentes.
-- **Lilás** (`brand`, `brand-strong`, `brand-soft`, `lilac`): marca e ações, em
-  toda a aplicação, inclusive no Painel.
+- **Azul** (`brand`, `brand-strong`, `brand-soft`, `lilac`, nome que ficou dos
+  tokens antigos): marca e ações, em toda a aplicação, inclusive no Painel.
+  Texto e títulos em azul-marinho (`ink`).
+- **Azul-claro, amarelo e verde da apresentação** (`accent-sky`, `signal-yellow`,
+  `signal-lime`): só preenchimento (faixas, gráficos, selos), com texto marinho
+  por cima. Sobre branco, não chegam a 4.5:1.
 - **Verde, âmbar e coral**: estado (alcançado, atenção, alerta).
-- **Lima, amarelo e laranja** (`signal-*`): só em dados (bom, intermediário,
-  atenção), sempre com o valor também em texto.
+- **Verde, amarelo e laranja** (`signal-*`): só em dados (bom, intermediário,
+  atenção), sempre com o valor também em texto e com `ink-strong` por cima.
 - **Céu, verde-água, pêssego, sálvia e rosa**: categorias (tipos de tarefa,
   temas do calendário).
 
@@ -25,7 +31,7 @@ Uma escala só, nada abaixo de 12 px:
 | `text-sm` | 14 | texto de interface |
 | `text-base` | 16 | leitura, títulos de cartão |
 | `text-xl` | 20 | títulos de seção |
-| `text-2xl` | 24 | título de aba, número em anel |
+| `text-2xl` | 24 | título de aba, número em anel, título de página no celular (em negrito, palavras longas como "Acompanhamento" não cabem a 32 px) |
 | `text-3xl` | 32 | número de cartão, título no celular |
 | `text-4xl` | 40 | título de página |
 | `text-5xl` | 56 | número em destaque (medidor do Painel) |
@@ -49,7 +55,7 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
 - **`src/components/form-styles.ts`:** `inputCls`, `textareaCls`, `labelCls`,
   `hintCls`, `choiceCls`, `linkCls` e os botões:
   - `primaryButtonCls`: a ação da tela;
-  - `secondaryButtonCls`: lilás claro;
+  - `secondaryButtonCls`: azul-claro;
   - `quietButtonCls`: com borda, para cancelar, filtrar e navegar;
   - `dangerButtonCls`: excluir.
 
@@ -57,7 +63,7 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
 - **`src/components/ui.tsx`:**
   - `PageHeader`: `level={2}` para o título de uma aba dentro da ficha do
     estudante, que já tem o h1 com o nome;
-  - `PageHero`: faixa lilás com o personagem, nas telas principais;
+  - `PageHero`: faixa azul-clara com o personagem, nas telas principais;
   - `HeroStat`;
   - `EmptyState`: com `character` e `action`;
   - `Button` e `ButtonLink`;
@@ -65,7 +71,7 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
 - **Lista de seleção:** o `<select>` nativo ganha a seta e o espaço da
   plataforma por uma regra global; basta usar `inputCls`.
 - **Carregando:**
-  - **Barra lilás no topo** (`src/components/navigation-progress.tsx`): aparece
+  - **Barra azul no topo** (`src/components/navigation-progress.tsx`): aparece
     a cada clique em qualquer tela.
   - **Esqueleto no formato da tela** (`src/components/skeleton.tsx`, via
     `loading.tsx`): só no Painel, nos Recursos, no Calendário e no Assistente.

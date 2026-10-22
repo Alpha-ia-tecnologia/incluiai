@@ -37,7 +37,7 @@ const ICONS: Record<PictogramKey, LucideIcon> = {
   estrela: Star,
 };
 
-// print-color-adjust: o fundo lilás sai também no papel (o navegador corta fundos por padrão).
+// print-color-adjust: o fundo azul-claro sai também no papel (o navegador corta fundos por padrão).
 export function Pictogram({ pictogram, className = "w-full" }: { pictogram: PictogramKey; className?: string }) {
   const Icon = ICONS[pictogram];
   return (

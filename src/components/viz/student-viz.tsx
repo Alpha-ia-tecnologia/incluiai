@@ -75,7 +75,7 @@ export function ParticipationDonut({ id, entries, size = 120 }: { id: string; en
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-5">
       <HatchedDonut id={id} segments={segments} size={size} thickness={Math.round(size / 7.5)} label={`Participação em ${total} ${total === 1 ? "registro" : "registros"}: ${segments.map((segment) => `${segment.label.toLowerCase()} ${segment.value}`).join(", ")}`}>
-        <span className="font-display text-2xl leading-none tracking-tight text-ink tabular-nums">{full === null ? "—" : `${full}%`}</span>
+        <span className="font-display font-bold text-2xl leading-none tracking-tight text-ink tabular-nums">{full === null ? "—" : `${full}%`}</span>
         <span className="mt-1 text-xs leading-tight text-ink-soft">toda a<br />atividade</span>
       </HatchedDonut>
       <div className="min-w-0 flex-1 basis-40"><Legend segments={segments} /></div>

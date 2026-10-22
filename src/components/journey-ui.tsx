@@ -92,7 +92,7 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
     <section aria-labelledby="jornada-resumo-titulo" className="rounded-2xl bg-paper-raised p-5">
       <div className="flex min-w-0 items-center gap-4">
         <RingStat id="jornada-resumo" value={percentOf(journey.completed, total)} label="Capítulos concluídos da jornada" size={76}>
-          <span className="font-display text-xl leading-none text-ink tabular-nums">{journey.completed}<span className="text-sm text-ink-soft">/{total}</span></span>
+          <span className="font-display font-bold text-xl leading-none text-ink tabular-nums">{journey.completed}<span className="text-sm text-ink-soft">/{total}</span></span>
         </RingStat>
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Minha jornada</p>

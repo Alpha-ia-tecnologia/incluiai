@@ -212,7 +212,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <div className="flex min-w-0 flex-wrap items-center gap-4">
             <RingStat id="ppi-prazo" value={elapsedPct} label="Tempo do plano já percorrido" size={96} color={TONE_COLOR[reviewTone]} />
             <div className="min-w-0 flex-1 basis-40">
-              <p className="font-display text-3xl leading-none tracking-tight text-ink tabular-nums">
+              <p className="font-display font-bold text-3xl leading-none tracking-tight text-ink tabular-nums">
                 {daysLeft === 0 ? "Hoje" : Math.abs(daysLeft)}
                 {daysLeft !== 0 ? <span className="ml-1 text-xl text-ink-soft">{Math.abs(daysLeft) === 1 ? "dia" : "dias"}</span> : null}
               </p>
@@ -228,7 +228,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           {plan.objectives.length ? (
             <div className="flex min-w-0 flex-wrap items-center gap-4">
               <HatchedDonut id="ppi-objetivos" segments={objectiveStatus} size={96} thickness={13} label={`Objetivos do plano: ${objectiveStatus.map((segment) => `${segment.label.toLowerCase()} ${segment.value}`).join(", ")}`}>
-                <span className="font-display text-2xl leading-none text-ink tabular-nums">{plan.objectives.length}</span>
+                <span className="font-display font-bold text-2xl leading-none text-ink tabular-nums">{plan.objectives.length}</span>
                 <span className="mt-0.5 text-xs text-ink-soft">{plan.objectives.length === 1 ? "objetivo" : "objetivos"}</span>
               </HatchedDonut>
               <div className="min-w-0 flex-1 basis-40"><Legend segments={objectiveStatus} /></div>

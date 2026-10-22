@@ -26,7 +26,7 @@ export default async function PrintDossierPage({ params }: { params: Promise<{ i
       <article aria-labelledby="dossie-titulo" className="grid min-w-0 gap-6">
         <header className="min-w-0">
           <p className="text-sm text-ink-soft">{evidence.school} · {evidence.className}</p>
-          <h2 id="dossie-titulo" className="mt-1 break-words font-display text-2xl font-normal tracking-tight text-ink sm:text-3xl">Dossiê de evidências: {evidence.name}</h2>
+          <h2 id="dossie-titulo" className="mt-1 break-words font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Dossiê de evidências: {evidence.name}</h2>
           <p className="mt-1 text-sm text-ink-soft">Gerado em {formatDate(new Date())} por {user.name}. {ok} em dia, {conferir} para conferir e {pendente} {pendente === 1 ? "pendente" : "pendentes"}.</p>
           <p className="mt-1 text-xs text-ink-soft">Decreto nº 12.686/2025, com a redação do Decreto nº 12.773/2025, e Portaria MEC nº 421/2026.</p>
         </header>

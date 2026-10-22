@@ -1,14 +1,14 @@
 # Personagens IncluiEdu
 
-Ilustrações adaptadas da referência fornecida pelo usuário com a ferramenta integrada `image_gen` (sem CLI). Paleta lilás, linhas pretas e fundo transparente. A referência contém cinco personagens distintos; o personagem com a lista se repete na imagem original.
+Ilustrações adaptadas da referência fornecida pelo usuário com a ferramenta integrada `image_gen` (sem CLI). Paleta lilás na origem, linhas pretas e fundo transparente. Em outubro de 2026, o lilás foi trocado pelo azul-claro da apresentação girando o matiz (mesma claridade; preto e branco intactos), sem gerar as imagens de novo. A referência contém cinco personagens distintos; o personagem com a lista se repete na imagem original.
 
 ## Arquivos e uso
 
-- `public/illustrations/characters/planning.png`: Pessoa segurando uma lista de acompanhamento; planejamento de turmas.
-- `public/illustrations/characters/care.png`: Pessoa acolhendo um coração; área editorial do login.
-- `public/illustrations/characters/learning.png`: Pessoa com um lápis; boas-vindas no painel.
-- `public/illustrations/characters/ideas.png`: Pessoa com uma lâmpada; banco de recursos.
-- `public/illustrations/characters/resources.png`: Pessoa segurando uma janela de conteúdo; atalho para recursos e estados vazios.
+- `public/illustrations/characters/planning-azul.png`: Pessoa segurando uma lista de acompanhamento; planejamento de turmas.
+- `public/illustrations/characters/care-azul.png`: Pessoa acolhendo um coração; área editorial do login.
+- `public/illustrations/characters/learning-azul.png`: Pessoa com um lápis; boas-vindas no painel.
+- `public/illustrations/characters/ideas-azul.png`: Pessoa com uma lâmpada; banco de recursos.
+- `public/illustrations/characters/resources-azul.png`: Pessoa segurando uma janela de conteúdo; atalho para recursos e estados vazios.
 
 Renderização em `src/components/character.tsx` com `next/image`, carregamento adaptado ao tamanho, espaço reservado para evitar mudanças de layout e texto alternativo vazio por serem imagens decorativas. As imagens não entram na versão impressa.
 

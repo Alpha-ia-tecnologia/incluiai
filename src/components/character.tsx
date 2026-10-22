@@ -1,11 +1,11 @@
 import Image from "next/image";
 
 const CHARACTER_IMAGES = {
-  planning: "/illustrations/characters/planning.png",
-  care: "/illustrations/characters/care.png",
-  learning: "/illustrations/characters/learning.png",
-  ideas: "/illustrations/characters/ideas.png",
-  resources: "/illustrations/characters/resources.png",
+  planning: "/illustrations/characters/planning-azul.png",
+  care: "/illustrations/characters/care-azul.png",
+  learning: "/illustrations/characters/learning-azul.png",
+  ideas: "/illustrations/characters/ideas-azul.png",
+  resources: "/illustrations/characters/resources-azul.png",
 } as const;
 
 export type CharacterVariant = keyof typeof CHARACTER_IMAGES;
