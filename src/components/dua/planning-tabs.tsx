@@ -8,6 +8,7 @@ const TABS = [
   { slug: "apoios", label: "Apoios individuais" },
   { slug: "aplicacao", label: "Aplicação e evidências" },
   { slug: "materiais", label: "Materiais" },
+  { slug: "niveis", label: "Níveis" },
   { slug: "historico", label: "Versões e histórico" },
 ];
 

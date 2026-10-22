@@ -2,12 +2,17 @@ import type { z } from "zod/v4";
 
 // Contrato comum dos provedores de IA usados pelos agentes.
 
+// Arquivo enviado junto do pedido (foto ou PDF da atividade da turma), em base64.
+// Só o Claude lê anexos; o texto do pedido continua passando pela anonimização.
+export type AgentAttachment = { kind: "image"; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"; data: string } | { kind: "pdf"; data: string };
+
 export type AgentRequest<T> = {
   agent: string;
   system: string;
   prompt: string;
   schema: z.ZodType<T>;
   effort?: "low" | "medium" | "high";
+  attachments?: AgentAttachment[];
 };
 
 export type AgentModel = <T>(request: AgentRequest<T>) => Promise<T>;

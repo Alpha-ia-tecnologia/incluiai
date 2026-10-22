@@ -80,6 +80,32 @@ Planejamento da atividade **da turma** com o Desenho Universal para a Aprendizag
 
 O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](./docs/dua.md).
 
+## Adaptar a atividade ou a prova da turma
+
+Na aba **Atividades** do estudante, **Adaptar a atividade da turma**:
+
+1. **Enviar:** o professor envia a foto ou o PDF da folha (até 10 MB) ou cola o texto, e diz se é atividade ou prova.
+2. **Ler o arquivo:** a IA transcreve o texto (o Claude lê imagem e PDF; nomes de pessoas viram [nome]). O professor confere o texto antes de seguir.
+3. **Adaptar:** a plataforma adapta a apresentação ao perfil "Como aprende" do estudante. As opções são linguagem simples, uma ordem por linha, comando em destaque, ícone da forma de responder, resposta por escolha, menos questões por página e letra ampliada.
+4. **Revisar:** o original e a versão adaptada aparecem lado a lado. O professor ajusta cada questão e aprova.
+5. **Usar:** a folha sai para imprimir ou salvar em PDF, sem o apoio do professor, ou em **Word** (.docx).
+
+**Regra da prova:** adaptar a forma, não o que é avaliado. A habilidade da BNCC do objetivo acompanha a versão adaptada.
+
+**Salvaguardas:**
+- Ler foto ou PDF e adaptar com IA só acontece com a autorização da família. Sem ela, o professor cola o texto e a plataforma aplica as regras que não precisam de IA: questões separadas, uma ordem por linha, comando em destaque e a forma de responder de cada questão.
+- O arquivo não é guardado.
+- Cada envio à IA entra no histórico de acessos que a família vê.
+
+## A mesma atividade em três níveis (DUA)
+
+No planejamento com DUA, a aba **Níveis** gera, a partir da atividade da turma (texto, foto ou PDF), três versões: **com mais apoio**, **padrão** e **com desafio**.
+
+- As três têm o mesmo tema, o mesmo objetivo e a mesma habilidade da BNCC.
+- Sem IA, a plataforma gera os níveis por regras: o padrão é a atividade organizada; com mais apoio, uma ordem por linha e o apoio de cada questão; com desafio, explicar ou criar uma pergunta parecida.
+- Cada nível é ajustado, aprovado e impresso à parte, e a folha não diz o nível.
+- Regras puras em `src/lib/task-adaptation.ts`, com testes.
+
 ## Relatório do período (devolutiva à família)
 
 A Portaria MEC nº 421/2026 (art. 11, IV) pede que o PEI registre as devolutivas às famílias. Na aba **Relatórios** do estudante:

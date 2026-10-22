@@ -89,6 +89,8 @@ class RetryableOutputError extends AgentOutputError {}
 const MAX_ATTEMPTS = 2;
 
 export const deepseekAgentModel: AgentModel = async <T>(request: AgentRequest<T>) => {
+  // O DeepSeek não lê imagem nem PDF: a leitura do arquivo fica só com o Claude.
+  if (request.attachments?.length) throw new AgentOutputError(`${request.agent}: o DeepSeek não lê imagem nem PDF.`);
   const schema = JSON.stringify(z.toJSONSchema(request.schema));
   for (let attempt = 1; ; attempt++) {
     try {

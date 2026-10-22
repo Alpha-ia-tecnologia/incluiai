@@ -102,12 +102,14 @@ await account("aee@escola.edu.br", "aee", async (page) => {
   const resource = await firstLink(page, "/recursos", 'a[href^="/recursos/c"]');
   const material = student ? await firstLink(page, `${student}/materiais`, `a[href^="${student}/materiais/c"]`) : null;
   const report = student ? await firstLink(page, `${student}/relatorios`, `a[href^="${student}/relatorios/c"]`) : null;
+  const adapted = student ? await firstLink(page, `${student}/atividades`, `a[href^="${student}/atividades/adaptadas/c"]`) : null;
   const tabs = student ? ["", "/perfil", "/estudo-de-caso", "/ppi", "/diario", "/linha-do-tempo", "/atividades", "/materiais", "/atendimentos-aee", "/dua", "/relatorios"].map((tab) => [`estudante${tab.replaceAll("/", "_")}`, `${student}${tab}`]) : [];
   return [
     ["inicio", "/"], ["estudantes", "/estudantes"], ["estudantes_novo", "/estudantes/novo"], ["jornada", "/jornada"], ["assistente", "/assistente"],
     ["calendario", "/calendario"], ["ajuda", "/ajuda"], ["recursos", "/recursos"], resource && ["recurso", resource],
     ...tabs, material && ["material", material], material && ["material_imprimir", `${material}/imprimir`],
     report && ["relatorio", report], report && ["relatorio_imprimir", `${report}/imprimir`],
+    student && ["adaptar", `${student}/atividades/adaptar`], adapted && ["adaptada", adapted], adapted && ["adaptada_imprimir", `${adapted}/imprimir`],
     ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["estudante_naoexiste", "/estudantes/naoexiste"],
   ];
 });
@@ -116,7 +118,8 @@ await account("professor@escola.edu.br", "professor", async (page) => {
   const planning = await firstLink(page, "/planejamento", 'a[href^="/planejamento/c"]');
   const plan = planning?.match(/^\/planejamento\/[^/?#]+/)?.[0];
   const material = plan ? await firstLink(page, `${plan}/materiais`, `a[href^="${plan}/materiais/c"]`) : null;
-  return [["inicio", "/"], ...(plan ? ["", "/apoios", "/aplicacao", "/materiais", "/historico"].map((tab) => [`planejamento${tab.replaceAll("/", "_")}`, `${plan}${tab}`]) : []), material && ["planejamento_material", material]];
+  const level = plan ? await firstLink(page, `${plan}/niveis`, `a[href^="${plan}/niveis/c"]`) : null;
+  return [["inicio", "/"], level && ["nivel_imprimir", level], ...(plan ? ["", "/apoios", "/aplicacao", "/materiais", "/niveis", "/historico"].map((tab) => [`planejamento${tab.replaceAll("/", "_")}`, `${plan}${tab}`]) : []), material && ["planejamento_material", material]];
 });
 
 await account("coordenacao@escola.edu.br", "coordenacao", async (page) => {

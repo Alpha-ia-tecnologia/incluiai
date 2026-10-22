@@ -18,7 +18,18 @@ export const claudeAgentModel: AgentModel = async <T>(request: AgentRequest<T>) 
     fallbacks: "default",
     thinking: { type: "adaptive" },
     system: request.system,
-    messages: [{ role: "user", content: request.prompt }],
+    // Anexos (foto ou PDF) vão antes do texto do pedido.
+    messages: [{
+      role: "user",
+      content: request.attachments?.length
+        ? [
+          ...request.attachments.map((file) => (file.kind === "pdf"
+            ? { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: file.data } }
+            : { type: "image" as const, source: { type: "base64" as const, media_type: file.mediaType, data: file.data } })),
+          { type: "text" as const, text: request.prompt },
+        ]
+        : request.prompt,
+    }],
     output_config: { effort: request.effort ?? "medium", format: betaZodOutputFormat(request.schema) },
   });
 

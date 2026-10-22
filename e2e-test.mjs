@@ -1297,6 +1297,63 @@ if (!ONLY_WAIT) {
     check("relatório: sem erros de cliente (família)", family.errors.length === 0, family.errors.join("; "));
     await family.ctx.close();
   }
+  // ---------- 15. Adaptar a prova da turma (sem IA: pelas regras) ----------
+  {
+    const PROVA = ["1) Leia o texto. Depois, circule os animais que vivem na água.", "2) Ligue cada animal ao lugar onde ele vive.", "3) Qual é o alimento da vaca?", "a) capim", "b) carne", "c) peixe", "4) Desenhe um animal que você conhece."].join("\n");
+    const { ctx, page, errors } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    const dante = await page.evaluate(() => [...document.querySelectorAll("article")].find((card) => card.textContent.includes("Dante"))?.querySelector('a[href^="/estudantes/c"]')?.getAttribute("href")?.match(/^\/estudantes\/[^/?#]+/)?.[0]);
+    await page.goto(`${BASE}${dante}/atividades`, { waitUntil: "networkidle2" });
+    const entry = await page.evaluate(() => [...document.querySelectorAll("a")].find((link) => link.textContent.includes("Adaptar a atividade da turma"))?.getAttribute("href"));
+    check("adaptar: atalho na aba Atividades", Boolean(entry));
+    await page.goto(`${BASE}${entry}`, { waitUntil: "networkidle2" });
+    await page.click('input[name="kind"][value="prova"]');
+    await page.type('input[name="title"]', "Prova de Ciências E2E");
+    await page.type('textarea[name="text"]', PROVA);
+    await clickByText(page, "Adaptar para o estudante");
+    await page.waitForFunction(() => /\/atividades\/adaptadas\/c[^/]+$/.test(location.pathname), { timeout: 30000 }).catch(() => {});
+    await settle(page);
+    let body = await textOf(page);
+    check("adaptar: prova adaptada em rascunho, com original e versão adaptada", body.includes("Prova adaptada") && body.includes("Rascunho") && body.includes("Original da turma") && body.includes("Versão adaptada"), page.url());
+    check("adaptar: mantém as questões e mostra o apoio do professor", body.includes("Qual é o alimento da vaca?") && body.includes("capim") && body.includes("Para o professor:"));
+    check("adaptar: a prova continua avaliando o mesmo", body.includes("mesmos da prova da turma"));
+    const word = await page.evaluate(async () => {
+      const href = [...document.querySelectorAll("a")].find((link) => link.textContent.includes("Baixar em Word"))?.getAttribute("href");
+      const response = await fetch(href);
+      return { type: response.headers.get("content-type"), size: (await response.arrayBuffer()).byteLength };
+    });
+    check("adaptar: baixa em Word (.docx)", String(word.type).includes("wordprocessingml") && word.size > 2000, JSON.stringify(word));
+    await clickByText(page, "Aprovar para usar");
+    await page.waitForFunction(() => document.body.innerText.includes("Aprovada por"), { timeout: 20000 }).catch(() => {});
+    check("adaptar: o professor aprova", (await textOf(page)).includes("Aprovada por"));
+    const print = await page.evaluate(() => [...document.querySelectorAll("a")].find((link) => link.textContent.includes("Imprimir ou salvar em PDF"))?.getAttribute("href"));
+    await page.goto(`${BASE}${print}`, { waitUntil: "networkidle2" });
+    body = await textOf(page);
+    check("adaptar: folha para imprimir sem o apoio do professor", body.includes("Qual é o alimento da vaca?") && !body.includes("Para o professor:"));
+    check("adaptar: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    // ---------- 16. A mesma atividade em três níveis (DUA) ----------
+    const teacher = await newSession();
+    await login(teacher.page, "professor@escola.edu.br");
+    await teacher.page.goto(`${BASE}/planejamento`, { waitUntil: "networkidle2" });
+    const planning = await teacher.page.evaluate(() => [...document.querySelectorAll('a[href^="/planejamento/c"]')].map((link) => link.getAttribute("href").match(/^\/planejamento\/[^/?#]+/)?.[0]).find(Boolean));
+    await teacher.page.goto(`${BASE}${planning}/niveis`, { waitUntil: "networkidle2" });
+    await teacher.page.type('input[name="title"]', "Animais e onde vivem");
+    await teacher.page.type('textarea[name="text"]', PROVA);
+    await clickByText(teacher.page, "Gerar os três níveis");
+    await teacher.page.waitForFunction(() => location.search.includes("lote="), { timeout: 30000 }).catch(() => {});
+    await settle(teacher.page);
+    body = await textOf(teacher.page);
+    check("níveis: gera com mais apoio, padrão e com desafio", ["Com mais apoio", "Padrão", "Com desafio"].every((label) => body.includes(label)) && body.includes("explique como chegou à resposta"));
+    const levelPrint = await teacher.page.evaluate(() => [...document.querySelectorAll("a")].find((link) => link.textContent.includes("Imprimir"))?.getAttribute("href"));
+    await teacher.page.goto(`${BASE}${levelPrint}`, { waitUntil: "networkidle2" });
+    body = await textOf(teacher.page);
+    check("níveis: a folha impressa não diz o nível", !/Com mais apoio|Com desafio/.test(body) && body.includes("Ligue cada animal"));
+    check("níveis: sem erros de cliente", teacher.errors.length === 0, teacher.errors.join("; "));
+    await teacher.ctx.close();
+  }
 }
 
 await browser.close();

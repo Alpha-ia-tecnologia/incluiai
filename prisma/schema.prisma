@@ -60,6 +60,7 @@ model Student {
   consent               Consent?
   userLinks             StudentLink[]
   reports               StudentReport[]
+  adaptedTasks          AdaptedTask[]
   intersectorReports IntersectorReport[]
   materials          Material[]
   caseStudy          CaseStudy?
@@ -613,6 +614,7 @@ model DuaPlanning {
   updatedAt     DateTime  @updatedAt
 
   versions     DuaPlanningVersion[]
+  adaptedTasks AdaptedTask[]
   applications DuaApplication[]
   supports     DuaSupport[]
   materials    DuaMaterial[]
@@ -860,4 +862,36 @@ model StudentReport {
   updatedAt       DateTime  @updatedAt
 
   @@index([studentId, periodEnd])
+}
+
+// Atividade ou prova da turma adaptada (item 1 do plano): para um estudante
+// (studentId) ou, no planejamento com DUA, em três níveis (planningId + level,
+// as três com o mesmo batchId). Adapta a forma, não o que é avaliado; o
+// professor revisa e aprova. O arquivo enviado (foto ou PDF) não é guardado.
+model AdaptedTask {
+  id            String       @id @default(cuid())
+  studentId     String?
+  student       Student?     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  planningId    String?
+  planning      DuaPlanning? @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  level         String? // mais_apoio | padrao | desafio (só no DUA)
+  batchId       String? // as três versões de níveis feitas juntas
+  kind          String // atividade | prova
+  title         String
+  sourceText    String // texto da atividade original, conferido pelo professor
+  options       String       @default("[]") // JSON: adaptações pedidas (ADAPT_OPTIONS)
+  content       String // JSON: AdaptedContent (src/lib/task-adaptation.ts)
+  bnccCode      String?
+  objectiveId   String?
+  source        String // ia | regras
+  status        String       @default("rascunho") // rascunho | aprovada
+  approvedBy    String?
+  approvedAt    DateTime?
+  createdById   String
+  createdByName String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([studentId, createdAt])
+  @@index([planningId, batchId])
 }

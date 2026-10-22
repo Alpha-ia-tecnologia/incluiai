@@ -23,7 +23,7 @@ const WIDE_IMAGE_KINDS = new Set(["sequencia", "cartoes"]);
 type ActivityWithImage = Activity & { image: { altText: string; kind: string; createdAt: Date } | null };
 import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS, REJECT_REASON_OPTIONS } from "@/lib/form-options";
-import { ArrowRight, Clock, ImagePlus, Trash2, Wand2 } from "lucide-react";
+import { ArrowRight, Clock, FileUp, ImagePlus, Trash2, Wand2 } from "lucide-react";
 import { inputCls, labelCls, primaryButtonCls as linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
@@ -189,7 +189,11 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
 
   const generate = generateActivities.bind(null, id);
   // IA e imagens só com a autorização da família; o aviso explica quando falta.
-  const [aiOn, imagesOn] = await Promise.all([aiAllowedFor(id), imagesAllowedFor(id)]);
+  const [aiOn, imagesOn, adapted] = await Promise.all([
+    aiAllowedFor(id),
+    imagesAllowedFor(id),
+    prisma.adaptedTask.findMany({ where: { studentId: id }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, title: true, kind: true, status: true, createdAt: true } }),
+  ]);
   const consentMissing = isAIEnabled() && !aiOn;
   const suggested = activities.filter((a) => a.status === "sugerida");
   const others = activities.filter((a) => a.status !== "sugerida");
@@ -220,6 +224,24 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
           </DataBoard>
         </section>
       ) : null}
+
+      <Card className="mb-6 max-w-3xl print:hidden">
+        <SectionTitle>Atividade ou prova da turma</SectionTitle>
+        <p className="mb-4 text-sm leading-relaxed text-ink-soft">Já tem a folha que a turma vai usar? Envie a foto, o PDF ou o texto: a plataforma adapta a apresentação para este estudante (na prova, sem mudar o que é avaliado), e você revisa antes de usar.</p>
+        <Link href={`/estudantes/${id}/atividades/adaptar`} className={linkCls}><FileUp size={16} aria-hidden /> Adaptar a atividade da turma</Link>
+        {adapted.length ? (
+          <ul className="mt-5 grid gap-2">
+            {adapted.map((task) => (
+              <li key={task.id}>
+                <Link href={`/estudantes/${id}/atividades/adaptadas/${task.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-2.5 text-sm hover:bg-brand-soft">
+                  <span className="min-w-0 font-medium text-ink">{task.kind === "prova" ? "Prova" : "Atividade"}: {task.title}</span>
+                  <span className="text-xs text-ink-soft">{task.status === "aprovada" ? "Aprovada" : "Rascunho"} · {formatDate(task.createdAt)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </Card>
 
       <Card className="mb-6 max-w-3xl border-brand/30">
         <SectionTitle>O que vamos trabalhar?</SectionTitle>
