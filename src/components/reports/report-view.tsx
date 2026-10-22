@@ -7,6 +7,7 @@ import { supportInfo } from "@/lib/scale";
 // O relatório do período como a família e a equipe leem (tela e impressão).
 // O parecer entra por `opinion` (validado) ou fica a cargo do editor (rascunho).
 
+const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 const STATUS_LABEL: Record<string, string> = { ativo: "Em andamento", alcancado: "Alcançado", em_revisao: "Em revisão" };
 
 function Objective({ objective }: { objective: ReportObjective }) {
@@ -64,6 +65,18 @@ export function ReportView({ data, opinion, status, validatedByName, validatedAt
         <h3 id="relatorio-objetivos" className="mb-2 text-base font-medium text-ink">Objetivos do plano de ensino</h3>
         {data.objectives.length ? <ul className="grid min-w-0 gap-3">{data.objectives.map((objective, index) => <Objective key={index} objective={objective} />)}</ul> : <p className="text-sm text-ink-soft">O plano não tinha objetivos neste período.</p>}
       </section>
+
+      {data.assessment?.length ? (
+        <section aria-labelledby="relatorio-sondagem" className="min-w-0">
+          <h3 id="relatorio-sondagem" className="mb-2 text-base font-medium text-ink">Sondagem: apoio médio por área</h3>
+          <p className="mb-2 text-xs text-ink-soft">Escala de 0 (independente) a 5 (apoio físico total): menor é melhor.</p>
+          <ul className="grid gap-1 text-sm text-ink">
+            {data.assessment.map((row) => (
+              <li key={row.label}><span className="font-medium">{row.label}:</span> {row.start !== null && row.end !== null && row.start !== row.end ? `${decimal(row.start)} no começo, ${decimal(row.end)} no fim` : decimal((row.end ?? row.start) as number)}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section aria-labelledby="relatorio-aee" className="min-w-0">
         <h3 id="relatorio-aee" className="mb-2 text-base font-medium text-ink">Atendimento educacional especializado</h3>

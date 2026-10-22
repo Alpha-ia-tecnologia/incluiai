@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const TABS = [
   { slug: "", label: "Resumo" },
   { slug: "estudo-de-caso", label: "Estudo de caso" },
+  { slug: "sondagem", label: "Sondagem" },
   { slug: "perfil", label: "Como aprende" },
   { slug: "ppi", label: "Plano de ensino" },
   { slug: "atividades", label: "Atividades" },
@@ -20,9 +21,9 @@ const TABS = [
 ];
 
 // Seções que ficam ocultas para quem não acessa o detalhe pedagógico (família e terapeuta).
-const PEDAGOGICAL_ONLY = new Set(["estudo-de-caso", "dua", "atendimentos-aee"]);
+const PEDAGOGICAL_ONLY = new Set(["estudo-de-caso", "sondagem", "dua", "atendimentos-aee"]);
 // Leitura sem edição (Secretaria com motivo registrado): as abas de consulta.
-const READ_ONLY_TABS = new Set(["", "estudo-de-caso", "ppi", "atendimentos-aee", "linha-do-tempo", "materiais", "relatorios"]);
+const READ_ONLY_TABS = new Set(["", "estudo-de-caso", "sondagem", "ppi", "atendimentos-aee", "linha-do-tempo", "materiais", "relatorios"]);
 
 type Fade = "start" | "end" | "both" | undefined;
 

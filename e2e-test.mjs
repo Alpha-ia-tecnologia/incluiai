@@ -1354,6 +1354,33 @@ if (!ONLY_WAIT) {
     check("níveis: sem erros de cliente", teacher.errors.length === 0, teacher.errors.join("; "));
     await teacher.ctx.close();
   }
+  // ---------- 17. Sondagem: linha de base ou reavaliação ----------
+  {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    const dante = await page.evaluate(() => [...document.querySelectorAll("article")].find((card) => card.textContent.includes("Dante"))?.querySelector('a[href^="/estudantes/c"]')?.getAttribute("href")?.match(/^\/estudantes\/[^/?#]+/)?.[0]);
+    await page.goto(`${BASE}${dante}/sondagem/aplicar`, { waitUntil: "networkidle2" });
+    // Poucos itens: recusa.
+    await page.evaluate(() => document.querySelectorAll('select[name^="item-"]').forEach((select) => { select.value = ""; }));
+    await clickByText(page, "Salvar a sondagem");
+    await page.waitForSelector('[role="alert"]', { timeout: 15000 }).catch(() => {});
+    check("sondagem: pede pelo menos 5 itens observados", (await textOf(page)).includes("Observe pelo menos 5 itens"));
+    const levels = { "com-01": "1", "com-02": "3", "com-04": "2", "le-01": "0", "le-02": "1", "le-03": "2", "le-08": "4", "ma-01": "4", "int-03": "5" };
+    await page.evaluate((values) => {
+      document.querySelectorAll('select[name^="item-"]').forEach((select) => { select.value = ""; });
+      for (const [id, value] of Object.entries(values)) document.querySelector(`select[name="item-${id}"]`).value = value;
+    }, levels);
+    await clickByText(page, "Salvar a sondagem");
+    await page.waitForFunction(() => location.pathname.endsWith("/sondagem"), { timeout: 20000 }).catch(() => {});
+    await settle(page);
+    const body = await textOf(page);
+    check("sondagem: salva e mostra o apoio por área", body.includes("Apoio por área") && body.includes("Comunicação e linguagem") && /Linha de base em/.test(body));
+    check("sondagem: referência na BNCC para planejar", body.includes("Leitura e escrita: habilidades do 1º ano") && body.includes("Matemática: ainda antes das habilidades do 1º ano"));
+    check("sondagem: sugestões de objetivo com a habilidade da BNCC", body.includes("Sugestões de objetivo") && body.includes("Espera a sua vez.") && body.includes("BNCC EF01MA02"));
+    check("sondagem: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  }
 }
 
 await browser.close();

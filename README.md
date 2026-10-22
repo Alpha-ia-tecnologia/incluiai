@@ -106,6 +106,28 @@ No planejamento com DUA, a aba **Níveis** gera, a partir da atividade da turma 
 - Cada nível é ajustado, aprovado e impresso à parte, e a folha não diz o nível.
 - Regras puras em `src/lib/task-adaptation.ts`, com testes.
 
+## Sondagem com linha de base e reavaliação
+
+Na aba **Sondagem** do estudante, a equipe registra 51 itens observáveis em seis áreas:
+
+- comunicação e linguagem;
+- leitura e escrita;
+- matemática;
+- autonomia e autocuidado;
+- interação e autorregulação;
+- motor e sensorial.
+
+Cada item recebe o nível de apoio da escala única da plataforma, de 0 (independente) a 5 (apoio físico total), ou fica como não observado. Avançar é precisar de menos apoio no mesmo item.
+
+- **Quando:** a primeira aplicação é a linha de base. A reavaliação acontece a cada revisão do plano (12 semanas) e começa com as respostas anteriores.
+- **Resultado:**
+    - o apoio médio por área, na linha de base e agora;
+    - em leitura, escrita e matemática, o ano de referência na BNCC para planejar: o maior ano em que todos os itens observados até ele saem com até instrução verbal;
+    - sugestões de objetivo, com os itens que ainda pedem modelo ou mais apoio, com a habilidade da BNCC.
+- **O que não faz:** não classifica o estudante por diagnóstico.
+- **Relatório e painel:** o relatório do período mostra a sondagem do período. O painel mostra quantos estudantes têm a sondagem em dia e, por área, quantos precisam de menos apoio que na linha de base, com "menos de 5" para números pequenos.
+- **Instrumento:** a versão 1 (`src/lib/assessment.ts`, com testes que conferem os códigos da BNCC na base oficial) é um rascunho para a equipe pedagógica revisar. Os itens são próprios, e nenhum foi copiado de instrumentos com direitos autorais.
+
 ## Relatório do período (devolutiva à família)
 
 A Portaria MEC nº 421/2026 (art. 11, IV) pede que o PEI registre as devolutivas às famílias. Na aba **Relatórios** do estudante:

@@ -7,6 +7,8 @@ import { parseCaseStudy } from "./case-study";
 import { splitItems } from "./form-options";
 import { DIMENSIONS } from "./scale";
 import { brDate, draftOpinion, opinionProblem, supportAt, topItems, type ReportData } from "./period-report";
+import { compareAreas } from "./assessment";
+import { answersOf } from "./assessments";
 
 // Relatório do período: a fotografia dos registros (sem dados clínicos do
 // estudo de caso), o parecer do AEE e a validação. Regras puras em period-report.ts.
@@ -29,8 +31,15 @@ export async function collectReportData(studentId: string, start: string, end: s
       familyNotes: { where: { date: { gte: from, lte: to } }, select: { id: true } },
       intersectorReports: { where: { createdAt: { gte: from, lte: to } }, select: { id: true } },
       consent: { select: { therapistLink: true } },
+      assessments: { where: { appliedAt: { lte: to } }, orderBy: { appliedAt: "asc" }, select: { appliedAt: true, answers: true } },
     },
   });
+  // Sondagem: a última antes do período (ou a primeira dentro dele) contra a última do período.
+  const inside = student.assessments.filter((item) => item.appliedAt >= from);
+  const before = student.assessments.filter((item) => item.appliedAt < from).at(-1) ?? inside[0];
+  const assessment = inside.length && before
+    ? compareAreas(answersOf(before.answers), answersOf(inside.at(-1)!.answers)).filter((row) => row.start !== null || row.end !== null).map(({ label, start, end }) => ({ label, start, end }))
+    : null;
   const inPeriod = student.diaryEntries.filter((entry) => entry.date >= from);
   const caseStudy = parseCaseStudy(student.caseStudy?.content);
   const objectives = student.plans.flatMap((plan) => plan.objectives).map((objective) => {
@@ -64,6 +73,7 @@ export async function collectReportData(studentId: string, start: string, end: s
     familyNotes: student.familyNotes.length,
     // Relatórios do terapeuta só contam com a conexão autorizada pela família.
     therapistReports: student.consent?.therapistLink ? student.intersectorReports.length : 0,
+    assessment,
   };
 }
 

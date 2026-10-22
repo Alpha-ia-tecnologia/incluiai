@@ -61,6 +61,7 @@ model Student {
   userLinks             StudentLink[]
   reports               StudentReport[]
   adaptedTasks          AdaptedTask[]
+  assessments           Assessment[]
   intersectorReports IntersectorReport[]
   materials          Material[]
   caseStudy          CaseStudy?
@@ -894,4 +895,22 @@ model AdaptedTask {
 
   @@index([studentId, createdAt])
   @@index([planningId, batchId])
+}
+
+// Sondagem (item 3 do plano): itens observáveis com o nível de apoio da escala
+// única; a primeira é a linha de base e as seguintes, reavaliações (a cada
+// revisão do plano). O instrumento tem versão para comparar resultados antigos.
+model Assessment {
+  id                String   @id @default(cuid())
+  studentId         String
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  instrumentVersion String
+  kind              String // linha_de_base | reavaliacao
+  answers           String // JSON: { [itemId]: 0-5 | null (não observado) }
+  notes             String?
+  appliedById       String
+  appliedByName     String
+  appliedAt         DateTime @default(now())
+
+  @@index([studentId, appliedAt])
 }

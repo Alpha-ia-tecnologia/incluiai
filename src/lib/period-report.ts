@@ -25,6 +25,8 @@ export type ReportData = {
   materials: string[];
   familyNotes: number;
   therapistReports: number;
+  // Sondagem no período (apoio médio por área no começo e no fim); ausente em relatórios antigos.
+  assessment?: { label: string; start: number | null; end: number | null }[] | null;
 };
 
 const DAY = 86_400_000;
@@ -86,6 +88,8 @@ export function draftOpinion(data: ReportData): string {
       ? `Em ${advanced.length} de ${data.objectives.length} objetivos, passou a precisar de menos apoio: ${advanced.map((objective) => objective.description.replace(/\.$/, "")).join("; ")}.`
       : followed.length ? `Os ${data.objectives.length} objetivos do plano seguem em acompanhamento, ainda sem redução do apoio no período.` : "Os objetivos do plano ainda não têm registros de aula neste período.");
   }
+  const improvedAreas = (data.assessment ?? []).filter((row) => row.start !== null && row.end !== null && row.end < row.start).map((row) => row.label.toLowerCase());
+  if (improvedAreas.length) parts.push(`Na sondagem, passou a precisar de menos apoio em ${improvedAreas.join(", ")}.`);
   if (data.strategies.length) parts.push(`O que mais ajudou: ${data.strategies.join(", ")}.`);
   if (data.familyNotes) parts.push(`A família registrou ${data.familyNotes} ${data.familyNotes === 1 ? "observação" : "observações"} de casa no período.`);
   // Sem ponto depois do colchete: quem completa termina a frase.

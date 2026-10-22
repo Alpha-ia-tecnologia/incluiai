@@ -57,6 +57,8 @@ test("rascunho do parecer a partir dos registros", () => {
   assert.match(draftOpinion({ ...data, aee: { done: 0, absences: 0, cancelled: 0 } }), /não há atendimentos do AEE registrados/);
   assert.match(draftOpinion({ ...data, aee: { done: 0, absences: 3, cancelled: 0 } }), /não teve atendimento do AEE realizado: foram 3 faltas\./);
   assert.match(text, /período\]$/);
+  const withAssessment = draftOpinion({ ...data, assessment: [{ label: "Comunicação e linguagem", start: 3.5, end: 2 }, { label: "Matemática", start: 2, end: 2 }] });
+  assert.match(withAssessment, /Na sondagem, passou a precisar de menos apoio em comunicação e linguagem\./);
 });
 
 test("parecer pronto para validar", () => {

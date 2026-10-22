@@ -1,6 +1,8 @@
 import { prisma } from "./prisma";
 import { bnccSkill } from "./bncc";
 import { componentLabel } from "./bncc-core";
+import { AREAS, compareAreas, reassessmentDue } from "./assessment";
+import { answersOf } from "./assessments";
 import { canAccessStudent, isNetworkRole, type SessionUser } from "./auth";
 import { objectiveTrend, studentAlerts, type StudentAlert, type Trend } from "./insights";
 import { getStudentNextStep } from "./student-journey";
@@ -184,6 +186,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
         profile: { select: { expressiveChannel: true, barriers: true, sensoryProfile: true, readingSupport: true, writingSupport: true } },
         plans: { include: { objectives: true } },
         reports: { where: { status: "validado" }, select: { validatedAt: true } },
+        assessments: { orderBy: { appliedAt: "asc" }, select: { appliedAt: true, answers: true } },
         diaryEntries: { orderBy: { date: "asc" } },
         activities: { select: { status: true, source: true, context: true, createdAt: true, rejectReason: true } },
         familyNotes: { select: { date: true } },
@@ -427,6 +430,17 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
         return { key, label, value: list.length, achieved: list.filter(({ objective }) => objective.status === "alcancado").length };
       })),
       criterion: labeledRows(countBy(periodEntries, (entry) => entry.criterionMet), CRITERION_MET),
+      // Sondagem: em dia (até 12 semanas) e, por área, quantos precisam de menos apoio que na linha de base.
+      assessment: (() => {
+        const withTwo = students.filter((student) => student.assessments.length >= 2);
+        const changes = withTwo.map((student) => compareAreas(answersOf(student.assessments[0].answers), answersOf(student.assessments.at(-1)!.answers)));
+        return {
+          upToDate: count((student) => !reassessmentDue(student.assessments.at(-1)?.appliedAt ?? null, now)),
+          withBaseline: count((student) => student.assessments.length > 0),
+          total,
+          improved: AREAS.map((area) => ({ label: area.label, value: changes.filter((rows) => (rows.find((row) => row.area === area.key)?.change ?? 0) > 0).length })),
+        };
+      })(),
       // Estudantes com relatório do período validado nos últimos 6 meses (devolutiva à família).
       reports: {
         covered: count((student) => student.reports.some((report) => report.validatedAt && now.getTime() - report.validatedAt.getTime() <= 183 * 24 * 60 * 60 * 1000)),

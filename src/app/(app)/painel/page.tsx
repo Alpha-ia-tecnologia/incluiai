@@ -1,3 +1,4 @@
+import { smallNumber } from "@/lib/assessment";
 import Link from "next/link";
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
@@ -589,6 +590,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="dash-card">
                 <CardHeader title="Critério de sucesso" hint={`Registros de aula · ${periodText}.`} />
                 <StackedBar segments={withSegmentColors(l.criterion)} />
+              </div>
+              <div className="dash-card">
+                <CardHeader title="Sondagem" hint={`Com linha de base: ${smallNumber(l.assessment.withBaseline)} de ${plural(l.assessment.total, "estudante", "estudantes")}. Em dia: reaplicada nas últimas 12 semanas.`} />
+                <p className="font-display text-3xl font-normal tracking-tight text-ink"><span className="tabular-nums">{smallNumber(l.assessment.upToDate)}</span> <span className="text-base text-ink-soft">em dia</span></p>
+                {l.assessment.improved.some((row) => row.value > 0) ? (
+                  <ul className="mt-3 grid gap-1 text-sm text-ink-soft">
+                    {l.assessment.improved.filter((row) => row.value > 0).map((row) => <li key={row.label}><span className="text-ink">{row.label}:</span> {smallNumber(row.value)} com menos apoio que na linha de base</li>)}
+                  </ul>
+                ) : null}
               </div>
               <div className="dash-card">
                 <CardHeader title="Relatórios do período" hint="Estudantes com relatório validado e publicado para a família nos últimos 6 meses." />
