@@ -1631,6 +1631,53 @@ if (!ONLY_WAIT) {
     await teacher.ctx.close();
     unlinkSync(filePath);
   }
+  // ---------- 22. VLibras: botão de Libras e texto anonimizado antes de ir ao governo ----------
+  // O tradutor do governo é simulado aqui (nada chega a ele); o widget vem do jsDelivr.
+  {
+    const { ctx, page, errors } = await newSession();
+    const sent = [];
+    const analytics = [];
+    const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "POST" };
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      const url = request.url();
+      if (url.includes("traducao2.vlibras.gov.br")) {
+        if (request.method() === "POST") sent.push(request.postData() ?? "");
+        return request.respond({ status: 200, contentType: "text/plain", headers: cors, body: "ESTUDANTE" });
+      }
+      if (url.includes("posthog.com")) { analytics.push(url); return request.abort(); }
+      return request.continue();
+    });
+    await login(page, "aee@escola.edu.br");
+    await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
+    const dante = await page.evaluate(() => [...document.querySelectorAll("article")].find((card) => card.textContent.includes("Dante"))?.querySelector('a[href^="/estudantes/c"]')?.getAttribute("href")?.match(/^\/estudantes\/[^/?#]+/)?.[0]);
+    await page.goto(`${BASE}${dante}`, { waitUntil: "networkidle2" });
+    check("vlibras: botão de Libras na tela", await page.waitForSelector("#vlibras-access-wrapper", { timeout: 30000 }).then(() => true, () => false));
+    const reply = await page.evaluate(async () => {
+      const response = await fetch("https://traducao2.vlibras.gov.br/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "Dante Oliveira e a mãe, Carla, na EMEF Maria Firmina dos Reis. CPF 111.222.333-44, nascido em 12/03/2019." }) });
+      return { status: response.status, text: await response.text() };
+    });
+    const body = sent.at(-1) ?? "";
+    check("vlibras: o texto chega ao tradutor sem nome, CPF, data e escola", reply.status === 200 && reply.text === "ESTUDANTE" && body.includes("o estudante") && !/Dante|Oliveira|Carla|Maria Firmina|111\.222|12\/03\/2019/.test(body), body);
+    const statistics = await page.evaluate(async () => (await fetch("https://us.i.posthog.com/e/", { method: "POST", body: "{}" })).status);
+    check("vlibras: a estatística de uso (PostHog) não sai", statistics === 204 && analytics.length === 0, `${statistics} ${analytics.length}`);
+    const review = await page.evaluate(async () => (await fetch("https://traducao2.vlibras.gov.br/review", { method: "POST", body: "{}" })).status);
+    check("vlibras: outros pedidos ao tradutor são bloqueados", review === 403 && sent.length === 1, `${review} ${sent.length}`);
+    check("vlibras: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    // A troca usa só os nomes que a pessoa já vê: assim não revela quem está cadastrado.
+    const family = await newSession();
+    await login(family.page, "familia@email.com");
+    const familyText = await family.page.evaluate(async () => (await (await fetch("/api/libras/anonimizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "Dante e Ravi Almeida" }) })).json()).text);
+    check("vlibras: a família só tem trocados os nomes que já vê", familyText === "o estudante e Ravi Almeida", familyText);
+    await family.ctx.close();
+    const visitor = await newSession();
+    await visitor.page.goto(`${BASE}/login`, { waitUntil: "networkidle2" });
+    const visitorText = await visitor.page.evaluate(async () => (await (await fetch("/api/libras/anonimizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "Dante Oliveira, 12/03/2019" }) })).json()).text);
+    check("vlibras: sem sessão, troca só documentos, datas e contatos", visitorText === "Dante Oliveira, (informação omitida)", visitorText);
+    await visitor.ctx.close();
+  }
 }
 
 await browser.close();

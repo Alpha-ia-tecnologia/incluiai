@@ -285,6 +285,25 @@ O objetivo do Plano de ensino e o planejamento com DUA ligam-se a habilidades da
 - **Ouvir:** os materiais de apoio e o portal da família têm um botão que lê o conteúdo em voz alta, com três velocidades. Usa a voz do próprio navegador e prefere uma que roda no aparelho; se só houver voz pela internet (o texto iria ao serviço do navegador), pede confirmação antes, como no ditado. Regras puras em `src/lib/speech-text.ts`.
 - **Tamanho do texto:** padrão, grande (112,5%) ou maior (125%), no menu com o nome e no portal da família. Fica guardado no navegador e vale na tela e na impressão; com o texto ampliado, palavras longas quebram para nada passar da largura do celular. As cores e os tokens não mudam.
 
+## Tradução para Libras (VLibras)
+
+Todas as telas têm o botão de Libras do VLibras, o tradutor do governo federal, de código aberto (LGPL-3.0). O botão fica no meio da lateral direita e, com um clique num texto, o avatar traduz.
+
+- **Versão fixa:** o widget é a versão 7.12.2, carregada por endereço com versão (`src/lib/vlibras-core.ts`). Uma atualização do governo não muda o envio sem conferência.
+- **Dados pessoais trocados antes do envio:**
+    - O widget manda o texto ao tradutor (`traducao2.vlibras.gov.br`) com um `fetch`. A plataforma intercepta esse pedido (`src/components/vlibras.tsx`).
+    - O texto passa por `/api/libras/anonimizar`, que troca nomes, documentos, datas e contatos por termos como "o estudante" e "um familiar". São as regras do anonimizador da IA.
+    - Só o texto trocado segue para o governo. Se a troca falhar, nada é enviado.
+- **Cada pessoa, os seus nomes:** a troca usa só os nomes que a pessoa já pode ver:
+    - família e terapeuta: os estudantes vinculados;
+    - equipe: a própria escola;
+    - rede: todos.
+
+  Assim a troca não revela quem está cadastrado. Sem sessão, como na tela de entrada, troca só documentos, datas e contatos.
+- **Sem estatística no exterior:** os pedidos do widget ao PostHog (estatística de uso, nos Estados Unidos) e os demais pedidos ao tradutor, como a revisão de tradução, são bloqueados. A plataforma envia `Referrer-Policy: strict-origin-when-cross-origin`: outros sites recebem só o domínio, nunca o caminho da página.
+- **Limite:** nomes que a plataforma não conhece em texto livre (um vizinho, um médico citado à mão) podem passar. Por isso o portal da família avisa, no cartão "Autorizações", o que vai para o governo ao traduzir.
+- **Instalação sem internet:** `NEXT_PUBLIC_VLIBRAS=0` desliga o botão.
+
 ## Controle de acesso (necessidade de saber — item 7)
 
 `src/lib/auth.ts` centraliza sessão e permissões (as regras puras da sessão ficam em `src/lib/session-core.ts`). Cada rota valida o perfil: a família e o terapeuta só alcançam os estudantes vinculados à conta (`canAccessStudent`; tabela `StudentLink`, com mais de um estudante por conta: irmãos, ou um terapeuta com vários pacientes, que trocam de estudante no próprio portal) e não abrem a ficha da equipe (`/estudantes/[id]`): cada um usa o seu portal (`/familia/[id]` e `/terapeuta`), a **Secretaria vê a rede em números** (painel com avisos por escola, sem nomes; a lista de estudantes só mostra resultados a partir de uma busca de 3 letras) e abre a ficha de um estudante **só para leitura, informando o motivo** (`/acesso-nominal/[id]`: vale 8 horas e aparece no histórico que a família consulta), os **dados clínicos** do estudo de caso (diagnóstico informado, saúde, acompanhamentos externos e com quem mora) ficam com o AEE e a coordenação, o painel de indicadores mostra a rede inteira só a perfis de rede (a equipe escolar vê a própria escola, e as listas com nomes trazem apenas estudantes que a pessoa já acessa), e o terapeuta não vê diário pedagógico nem dados administrativos. O `AccessLog` (exposto à família, com nome, papel, ação e data) registra cada aba da ficha aberta (uma vez a cada 30 minutos por pessoa e aba, `src/lib/access-log.ts`), os registros de aula, as decisões sobre atividades (que também guardam quem decidiu), as mudanças de objetivo, as revisões e o encerramento do plano, além das ações do assistente. O diário guarda o autor real (da sessão) além do papel declarado.

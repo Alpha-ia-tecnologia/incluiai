@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono, Noto_Sans } from "next/font/google";
 import "./globals.css";
 import { TEXT_SCALE_SCRIPT } from "@/components/text-size-control";
+import { VLibras } from "@/components/vlibras";
 
 // Noto Sans: a fonte da apresentação da plataforma.
 const noto = Noto_Sans({
@@ -30,7 +31,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: TEXT_SCALE_SCRIPT }} />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <VLibras />
+      </body>
     </html>
   );
 }

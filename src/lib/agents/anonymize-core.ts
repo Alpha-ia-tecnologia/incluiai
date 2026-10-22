@@ -53,6 +53,8 @@ export function nameTokens(name: string): string[] {
 
 export type AnonymizationTerms = {
   student: string;
+  // Outros estudantes que também viram "o estudante" (ex.: a tradução para Libras, sem um estudante em foco).
+  students?: string[];
   classmates?: string[];
   family?: string[];
   professionals?: string[];
@@ -76,6 +78,7 @@ export function createAnonymizer(terms: AnonymizationTerms): Anonymizer {
     for (const token of allParts ? tokens : tokens.slice(0, 1)) entries.push([token, category, true]);
   };
   addPerson(terms.student, "estudante", true);
+  for (const name of terms.students ?? []) addPerson(name, "estudante", false);
   for (const name of terms.classmates ?? []) addPerson(name, "colega", false);
   for (const name of terms.family ?? []) addPerson(name, "familiar", false);
   for (const name of terms.professionals ?? []) addPerson(name, "profissional", false);

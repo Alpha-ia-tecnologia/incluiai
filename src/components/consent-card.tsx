@@ -57,6 +57,7 @@ export function ConsentCard({ studentId, firstName, consent, canDecide }: {
         })}
       </ul>
       {consent.updatedAt ? <p className="mt-3 text-xs text-ink-soft">Última decisão em {formatDate(consent.updatedAt)}{consent.updatedBy ? ` por ${consent.updatedBy}` : ""}.</p> : null}
+      <p className="mt-3 text-xs leading-relaxed text-ink-soft"><span className="font-medium text-ink">Tradução para Libras:</span> quem usa o botão de Libras (VLibras) envia o texto escolhido ao tradutor do governo federal. Antes do envio, a plataforma troca nomes, documentos, datas e contatos por termos como &ldquo;o estudante&rdquo;.</p>
     </Card>
   );
 }

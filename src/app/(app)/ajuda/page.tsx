@@ -43,11 +43,13 @@ export default async function HelpPage() {
     { question: "O que é o plano de ensino ou PPI?", answer: "É o Plano Pedagógico Individual: reúne o que será trabalhado com o estudante, o apoio necessário e os critérios para acompanhar a aprendizagem. Na plataforma, você o encontra em Plano de ensino." },
     { question: "O que significa AEE?", answer: "Atendimento Educacional Especializado. Na plataforma, é um dos contextos em que a equipe pode planejar atividades e acompanhar o estudante." },
   ];
+  const libras = { question: "Como funciona a tradução para Libras?", answer: "O botão de Libras, no meio da lateral direita da tela, abre o VLibras, o tradutor do governo federal: clique num texto para o avatar traduzir. Antes de o texto sair da plataforma, nomes, documentos, datas e contatos são trocados por termos como “o estudante”. É tradução automática e não substitui o intérprete de Libras." };
   const questions = family || therapist ? [
     { question: "Meu estudante não apareceu. O que faço?", answer: "Peça à equipe da escola para conferir o vínculo do seu acesso com o estudante. Você não precisa criar um novo cadastro por conta própria." },
     { question: "Como volto ao meu acompanhamento?", answer: family ? "Use Meu filho no menu. No celular, essa opção fica na parte inferior da tela." : "Use Orientações no menu. No celular, essa opção fica na parte inferior da tela." },
     { question: "Os campos são salvos enquanto eu digito?", answer: "Não. Revise o que escreveu e use o botão de envio antes de sair da página. Depois, confira seu registro no histórico." },
-  ] : commonQuestions;
+    libras,
+  ] : [...commonQuestions, libras];
 
   return (
     <div className="mx-auto max-w-5xl">
