@@ -59,6 +59,21 @@ O desenvolvimento e os testes usam SQLite; a produção, PostgreSQL. O schema de
 - O cliente do Prisma é gerado para o banco do `DATABASE_URL` antes de `npm run dev`, `npm run build` e depois do `npm install`. O `DATABASE_URL` da linha de comando vence o do `.env`: é assim que os testes usam o SQLite.
 - No PostgreSQL, a busca de texto vai com `mode: "insensitive"` (`src/lib/db-text.ts`), para não diferenciar maiúsculas, como no SQLite.
 
+
+## Implantação no EasyPanel
+
+O `Dockerfile` monta a imagem com Node 24 e o cliente do Prisma para PostgreSQL. O build não conecta ao banco. A cada subida, o contêiner aplica as migrações pendentes (`db:tabelas`) e só então inicia a plataforma.
+
+1. No mesmo projeto do serviço Postgres, crie um serviço **App** com a fonte no GitHub (`Alpha-ia-tecnologia/incluiai`, branch `main`) e o build por **Dockerfile**.
+2. Em **Environment**:
+   - `DATABASE_URL="postgresql://incluiedu:SENHA@HOST_INTERNO:5432/incluiai?sslmode=require"`. O host interno está na aba Credentials do Postgres. O banco exige SSL em toda conexão que não vem da própria máquina dele, inclusive na rede interna do EasyPanel.
+   - `APP_URL`: o endereço público, que vai nos links dos e-mails.
+   - Recomendado: `REQUIRE_2FA=1`.
+   - Opcionais: as chaves de IA e o `SMTP_URL`.
+3. Em **Domains**, aponte o domínio para a porta 3000. O EasyPanel emite o certificado HTTPS, e o cookie da sessão só trafega por HTTPS.
+4. Clique em **Deploy**. No log, `No pending migrations to apply` e depois `Ready` indicam que a plataforma subiu.
+
+Os comandos `db:*`, como `npm run db:admin`, também rodam no **Console** do serviço, com o banco do ambiente.
 ## Mapa de funcionalidades → proposta
 
 | Rota | Funcionalidade | Item |
