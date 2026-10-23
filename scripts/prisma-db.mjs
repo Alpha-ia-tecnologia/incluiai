@@ -15,6 +15,9 @@
 //       Nova migração do PostgreSQL com as mudanças do schema desde a última.
 //   node scripts/prisma-db.mjs admin --nome "Nome" --email email@municipio.gov.br
 //       Primeira conta da Secretaria, com senha temporária (troca no 1º acesso).
+//   node scripts/prisma-db.mjs contas-teste [--apagar]
+//       Uma conta por perfil (@incluiedu.test), numa escola de teste com um
+//       estudante de teste; --apagar remove tudo isso antes do uso real.
 //
 // O DATABASE_URL da linha de comando vence o do .env (os testes usam o SQLite).
 import { execFileSync } from "node:child_process";
@@ -34,6 +37,11 @@ const PRISMA_CLI = createRequire(import.meta.url).resolve("prisma/build/index.js
 const fail = (message) => {
   console.error(`\n✗ ${message}\n`);
   process.exit(1);
+};
+
+const option = (args, flag) => {
+  const index = args.indexOf(flag);
+  return index >= 0 ? (args[index + 1] ?? "").trim() : "";
 };
 
 // .env sem sobrescrever o que veio da linha de comando.
@@ -149,30 +157,87 @@ function migration(name) {
   console.log(`✓ Migração criada em ${dir}. Aplique com: npm run db:tabelas`);
 }
 
+// Senha temporária legível (sem 0/O, 1/l).
+function temporaryPassword() {
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  return [...randomBytes(14)].map((byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+// Mesmo formato do login (src/lib/auth.ts): scrypt com sal.
+function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(password, salt, 32).toString("hex")}`;
+}
+
 async function admin(args) {
-  const option = (flag) => {
-    const index = args.indexOf(flag);
-    return index >= 0 ? (args[index + 1] ?? "").trim() : "";
-  };
-  const name = option("--nome");
-  const email = option("--email").toLowerCase();
+  const name = option(args, "--nome");
+  const email = option(args, "--email").toLowerCase();
   if (name.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail('Informe nome e e-mail: npm run db:admin -- --nome "Seu nome" --email voce@municipio.gov.br');
   generate();
   const { PrismaClient } = await import("@prisma/client");
   const db = new PrismaClient();
   try {
     if (await db.user.findUnique({ where: { email }, select: { id: true } })) fail(`Já existe uma conta com ${email}.`);
-    // Senha temporária legível (sem 0/O, 1/l): troca obrigatória no primeiro acesso.
-    const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-    const password = [...randomBytes(14)].map((byte) => alphabet[byte % alphabet.length]).join("");
-    const salt = randomBytes(16).toString("hex");
+    // Troca obrigatória da senha no primeiro acesso.
+    const password = temporaryPassword();
     const user = await db.user.create({
-      data: { name, email, role: "secretaria", passwordHash: `${salt}:${scryptSync(password, salt, 32).toString("hex")}`, mustChangePassword: true },
+      data: { name, email, role: "secretaria", passwordHash: hashPassword(password), mustChangePassword: true },
     });
     await db.accountEvent.create({ data: { userId: user.id, actorName: "Configuração inicial", actorRole: "sistema", action: "criou", detail: "Primeira conta da Secretaria" } });
     console.log(`\n✓ Conta criada: ${name} <${email}>, perfil Secretaria.`);
     console.log(`  Senha temporária: ${password}`);
     console.log("  Ela é pedida para troca no primeiro acesso. Anote agora: não aparece de novo.\n");
+  } finally {
+    await db.$disconnect();
+  }
+}
+
+// Contas de teste num domínio reservado (RFC 2606): nenhum e-mail sai daqui.
+const TEST_DOMAIN = "incluiedu.test";
+const TEST_SCHOOL = "Escola de Teste (apagar antes do uso real)";
+const SCHOOL_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]);
+
+async function removeTestAccounts(db) {
+  const users = await db.user.deleteMany({ where: { email: { endsWith: `@${TEST_DOMAIN}` } } });
+  const school = await db.school.findFirst({ where: { name: TEST_SCHOOL }, select: { id: true } });
+  // Os estudantes da escola de teste levam junto tudo o que foi registrado para eles.
+  const students = school ? await db.student.deleteMany({ where: { schoolId: school.id } }) : { count: 0 };
+  if (school) await db.school.delete({ where: { id: school.id } });
+  console.log(`✓ Apagados: ${users.count} contas de teste, ${students.count} estudante(s) e ${school ? "a escola de teste" : "nenhuma escola"}.`);
+}
+
+async function testAccounts(args) {
+  generate();
+  const { PrismaClient } = await import("@prisma/client");
+  const { ROLES } = await import("../src/lib/scale.ts");
+  const db = new PrismaClient();
+  try {
+    if (args.includes("--apagar")) return await removeTestAccounts(db);
+    if (await db.user.count({ where: { email: { endsWith: `@${TEST_DOMAIN}` } } })) fail("As contas de teste já existem. Para recriar, apague antes: npm run db:contas-teste -- --apagar");
+    const school = (await db.school.findFirst({ where: { name: TEST_SCHOOL } }))
+      ?? (await db.school.create({ data: { name: TEST_SCHOOL, region: "Zona urbana", classes: { create: { name: "Turma Teste", gradeYear: "3º ano", shift: "manha" } } } }));
+    const student = (await db.student.findFirst({ where: { schoolId: school.id, name: "Estudante de Teste" } }))
+      ?? (await db.student.create({
+        data: { name: "Estudante de Teste", birthDate: new Date("2017-03-15T12:00:00Z"), stage: "anos_iniciais", gradeYear: "3º ano", className: "Turma Teste", shift: "manha", schoolId: school.id, hasAEE: true, aeeFrequency: "2x por semana", guardianName: "Responsável de Teste" },
+      }));
+    // Uma senha para todas, sem troca no primeiro acesso: são contas só para testar.
+    const password = temporaryPassword();
+    const created = [];
+    for (const [role, label] of Object.entries(ROLES)) {
+      const email = `${role.replace("_", ".")}@${TEST_DOMAIN}`;
+      const user = await db.user.create({
+        data: {
+          name: `Teste: ${label}`, email, role, passwordHash: hashPassword(password),
+          schoolId: SCHOOL_ROLES.has(role) ? school.id : null,
+          ...(role === "familia" || role === "terapeuta" ? { studentLinks: { create: { studentId: student.id } } } : {}),
+        },
+      });
+      await db.accountEvent.create({ data: { userId: user.id, actorName: "Contas de teste", actorRole: "sistema", action: "criou", detail: "Conta de teste" } });
+      created.push(`  ${label.padEnd(28)} ${email}`);
+    }
+    console.log(`\n✓ ${created.length} contas de teste, na "${TEST_SCHOOL}" com o "Estudante de Teste":\n${created.join("\n")}`);
+    console.log(`\n  Senha de todas: ${password}`);
+    console.log("  Antes do uso real, apague tudo: npm run db:contas-teste -- --apagar\n");
   } finally {
     await db.$disconnect();
   }
@@ -185,4 +250,5 @@ else if (command === "configurar") configure();
 else if (command === "tabelas") tables();
 else if (command === "migracao") migration(rest[0]);
 else if (command === "admin") await admin(rest);
-else fail("Comandos: gerar, configurar, tabelas, migracao <nome>, admin --nome … --email …");
+else if (command === "contas-teste") await testAccounts(rest);
+else fail("Comandos: gerar, configurar, tabelas, migracao <nome>, admin --nome … --email …, contas-teste [--apagar]");

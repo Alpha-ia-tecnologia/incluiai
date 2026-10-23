@@ -144,7 +144,8 @@ export const FAMILY_MEMBER_OPTIONS = [
 ];
 
 // ---------- Cadastros e matrícula ----------
-export const REGION_OPTIONS = ["Centro", "Zona Norte", "Zona Sul", "Zona Leste", "Zona Oeste", "Zona Rural"];
+// Localização da escola como no Educacenso; as regiões já cadastradas na rede entram junto.
+export const REGION_OPTIONS = ["Zona urbana", "Zona rural"];
 
 export const CLASS_NAME_OPTIONS = ["Turma A", "Turma B", "Turma C", "Turma D", "Turma E", "Turma F"];
 

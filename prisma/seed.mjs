@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { randomBytes, scryptSync } from "node:crypto";
-import { RESOURCE_CATALOG } from "./resource-catalog.mjs";
+import { DEMO_RESOURCE_USAGE, RESOURCE_CATALOG } from "./resource-catalog.mjs";
 
 // Os dados de demonstração APAGAM tudo antes de criar os exemplos: num banco
 // PostgreSQL (produção), só com SEED_DEMO_OK=1, para um banco de testes.
@@ -400,12 +400,15 @@ async function main() {
     ],
   });
 
-  // ---- Banco municipal de recursos ----
+  // ---- Banco municipal de recursos (com o uso fictício da demonstração) ----
   for (const entry of RESOURCE_CATALOG) {
     const { activities, ...resource } = entry;
+    const [timesUsed, positiveOutcomes] = DEMO_RESOURCE_USAGE[entry.title] ?? [0, 0];
     await prisma.resource.create({
       data: {
         ...resource,
+        timesUsed,
+        positiveOutcomes,
         activities: {
           create: activities.map((item, position) => ({ ...item, position })),
         },
@@ -435,7 +438,7 @@ async function main() {
   for (const c of contas) {
     await prisma.user.create({
       data: {
-        name: c.name, email: c.email, role: c.role, passwordHash: hashPassword("demo123"), schoolId: c.schoolId ?? null,
+        name: c.name, email: c.email, role: c.role, passwordHash: hashPassword("demo123"), schoolId: c.schoolId ?? null, demo: true,
         ...(c.studentId ? { studentLinks: { create: { studentId: c.studentId } } } : {}),
       },
     });

@@ -18,6 +18,8 @@ const activity = (
   evidenceCriterion,
 });
 
+// Catálogo inicial do banco de recursos: só o conteúdo. Uso e boa resposta
+// começam em zero e crescem com cada aplicação registrada na plataforma.
 export const RESOURCE_CATALOG = [
   {
     title: "Rotina visual de chegada",
@@ -27,8 +29,6 @@ export const RESOURCE_CATALOG = [
     accessibilityNeed: "Apoio visual",
     resourceType: "atividade",
     complexity: "baixa",
-    timesUsed: 34,
-    positiveOutcomes: 29,
     activities: [
       activity(
         "Cheguei e organizei",
@@ -60,8 +60,6 @@ export const RESOURCE_CATALOG = [
     accessibilityNeed: "CAA",
     resourceType: "caa",
     complexity: "media",
-    timesUsed: 27,
-    positiveOutcomes: 24,
     activities: [
       activity(
         "Pedidos funcionais durante a aula",
@@ -93,8 +91,6 @@ export const RESOURCE_CATALOG = [
     accessibilityNeed: "Adaptação pedagógica",
     resourceType: "plano_de_aula",
     complexity: "baixa",
-    timesUsed: 18,
-    positiveOutcomes: 16,
     activities: [
       activity(
         "Ditado temático graduado",
@@ -126,8 +122,6 @@ export const RESOURCE_CATALOG = [
     accessibilityNeed: "Tecnologia assistiva",
     resourceType: "tecnologia_assistiva",
     complexity: "alta",
-    timesUsed: 6,
-    positiveOutcomes: 6,
     activities: [
       activity(
         "Calibrar tempo de varredura",
@@ -159,8 +153,6 @@ export const RESOURCE_CATALOG = [
     accessibilityNeed: "Apoio visual",
     resourceType: "atividade",
     complexity: "baixa",
-    timesUsed: 12,
-    positiveOutcomes: 9,
     activities: [
       activity(
         "Conhecer a mudança com antecedência",
@@ -185,15 +177,13 @@ export const RESOURCE_CATALOG = [
     ],
   },
   {
-    title: "Chamada sem sino: experiência da EMEF M. Firmina",
-    description: "Relato de prática: substituição do sino por aviso visual reduziu desregulação em 3 turmas.",
+    title: "Transições sem sino: avisos visuais",
+    description: "Troca do sino por avisos visuais e contagem regressiva, para mudanças de atividade previsíveis e com menos sobrecarga auditiva.",
     stage: "anos_iniciais",
     skillArea: "Regulação",
     accessibilityNeed: "Sensorial auditiva",
-    resourceType: "experiencia_exitosa",
+    resourceType: "atividade",
     complexity: "baixa",
-    timesUsed: 8,
-    positiveOutcomes: 8,
     activities: [
       activity(
         "Transição com contagem visual",
@@ -218,3 +208,13 @@ export const RESOURCE_CATALOG = [
     ],
   },
 ];
+
+// Uso e boa resposta só da base de demonstração (seed.mjs).
+export const DEMO_RESOURCE_USAGE = {
+  "Rotina visual de chegada": [34, 29],
+  "Prancha de comunicação: rotina escolar": [27, 24],
+  "Ditado com corpus de interesse": [18, 16],
+  "Configuração de varredura por acionador": [6, 6],
+  "História social: troca de professor": [12, 9],
+  "Transições sem sino: avisos visuais": [8, 8],
+};

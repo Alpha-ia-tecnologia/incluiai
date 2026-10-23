@@ -2,23 +2,33 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, BookOpen, Building2, GraduationCap, Heart, School, ShieldCheck, Sparkles, Sprout, Users } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { LoginForm } from "@/components/login-form";
 import { Character } from "@/components/character";
 
 export const dynamic = "force-dynamic";
 
-const DEMO_ACCOUNTS = [
-  { role: "Secretaria de Educação", email: "secretaria@municipio.gov.br", icon: Building2, color: "var(--sky-soft)" },
-  { role: "Coordenação pedagógica", email: "coordenacao@escola.edu.br", icon: School, color: "var(--sage-soft)" },
-  { role: "Professor(a) da sala comum", email: "professor@escola.edu.br", icon: GraduationCap, color: "var(--teal-soft)" },
-  { role: "Professor(a) do AEE", email: "aee@escola.edu.br", icon: BookOpen, color: "var(--peach-soft)" },
-  { role: "Terapeuta (rede de saúde)", email: "terapeuta@clinica.com.br", icon: Heart, color: "var(--rose-soft)" },
-  { role: "Família", email: "familia@email.com", icon: Users, color: "var(--brand-soft)" },
+// Um cartão por perfil. Com contas de demonstração no banco, o cartão mostra o
+// e-mail; num banco real, diz o que cada perfil acompanha.
+const PROFILES = [
+  { role: "secretaria", label: "Secretaria de Educação", scope: "A rede inteira e os indicadores", icon: Building2, color: "var(--sky-soft)" },
+  { role: "coordenacao", label: "Coordenação pedagógica", scope: "Os estudantes e o painel da escola", icon: School, color: "var(--sage-soft)" },
+  { role: "professor_sala", label: "Professor(a) da sala comum", scope: "A turma e o planejamento com DUA", icon: GraduationCap, color: "var(--teal-soft)" },
+  { role: "professor_aee", label: "Professor(a) do AEE", scope: "Estudo de caso, plano e atendimentos", icon: BookOpen, color: "var(--peach-soft)" },
+  { role: "terapeuta", label: "Terapeuta (rede de saúde)", scope: "O perfil funcional do paciente", icon: Heart, color: "var(--rose-soft)" },
+  { role: "familia", label: "Família", scope: "O acompanhamento do filho(a)", icon: Users, color: "var(--brand-soft)" },
 ];
 
 export default async function LoginPage() {
   const user = await getCurrentUser();
   if (user) redirect("/");
+  const demoAccounts = await prisma.user.findMany({ where: { demo: true, deactivatedAt: null }, select: { email: true, role: true } });
+  const demo = demoAccounts.length > 0;
+  const cards = PROFILES.flatMap((profile) => {
+    if (!demo) return [{ ...profile, key: profile.role, detail: profile.scope }];
+    const account = demoAccounts.find((item) => item.role === profile.role);
+    return account ? [{ ...profile, key: account.email, detail: account.email }] : [];
+  });
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-3 sm:p-6 lg:p-8">
@@ -67,23 +77,29 @@ export default async function LoginPage() {
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-soft">Toda trajetória é única. Juntos, construímos caminhos para que cada estudante possa aprender e se desenvolver.</p>
 
           <div className="mb-4 mt-9 flex flex-wrap items-end justify-between gap-3">
-            <h2 id="demo-title" className="text-sm font-medium text-ink">Explore a plataforma</h2>
-            <span className="text-xs text-ink-soft">Contas de demonstração</span>
+            <h2 id="demo-title" className="text-sm font-medium text-ink">{demo ? "Explore a plataforma" : "Um espaço para cada perfil"}</h2>
+            <span className="text-xs text-ink-soft">{demo ? "Contas de demonstração" : "Quem usa a plataforma"}</span>
           </div>
           <ul className="grid gap-2.5 sm:grid-cols-2">
-            {DEMO_ACCOUNTS.map(({ role, email, icon: Icon, color }) => (
-              <li key={email} className="min-w-0 rounded-2xl p-4 text-ink" style={{ backgroundColor: color }}>
+            {cards.map(({ key, label, detail, icon: Icon, color }) => (
+              <li key={key} className="min-w-0 rounded-2xl p-4 text-ink" style={{ backgroundColor: color }}>
                 <span className="mb-4 flex size-8 items-center justify-center rounded-full bg-white/75">
                   <Icon size={17} strokeWidth={1.6} aria-hidden="true" />
                 </span>
-                <p className="text-sm font-medium leading-snug">{role}</p>
-                <p className="mt-1.5 break-all text-xs leading-relaxed text-ink/75">{email}</p>
+                <p className="text-sm font-medium leading-snug">{label}</p>
+                <p className={`mt-1.5 text-xs leading-relaxed text-ink/75 ${demo ? "break-all" : ""}`}>{detail}</p>
               </li>
             ))}
           </ul>
-          <p className="mt-5 text-xs leading-relaxed text-ink-soft">
-            Cada perfil tem seu espaço. A senha de todas as contas é <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">demo123</strong>.
-          </p>
+          {demo ? (
+            <p className="mt-5 text-xs leading-relaxed text-ink-soft">
+              Cada perfil tem seu espaço. A senha de todas as contas é <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">demo123</strong>.
+            </p>
+          ) : (
+            <p className="mt-5 text-xs leading-relaxed text-ink-soft">
+              Primeiro acesso? A conta é criada pela Secretaria de Educação ou pela gestão da escola, que entrega uma senha temporária; na primeira entrada, você cria a sua. Esqueceu a senha? Peça uma nova a quem criou a sua conta.
+            </p>
+          )}
         </aside>
       </div>
     </main>

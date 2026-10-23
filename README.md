@@ -33,6 +33,8 @@ Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 
 ### Contas de demonstração (senha `demo123`)
 
+Só o seed cria estas contas, marcadas no banco (`User.demo`). A tela de entrada lista as que existem; num banco real não há nenhuma, e a tela explica como funciona o primeiro acesso.
+
 | Perfil | E-mail | O que vê |
 |---|---|---|
 | Secretaria | `secretaria@municipio.gov.br` | Rede inteira + painel de indicadores |
@@ -47,11 +49,12 @@ Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 O desenvolvimento e os testes usam SQLite; a produção, PostgreSQL. O schema de referência continua em `prisma/schema.prisma`. O do PostgreSQL (`prisma/postgresql/schema.prisma`) é gerado a partir dele, porque o Prisma não troca o tipo de banco por variável de ambiente, e as migrações ficam em `prisma/postgresql/migrations`.
 
 1. No `.env`, preencha `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD`. A senha vai **entre aspas**: sem elas, o que vem depois de um `#` é lido como comentário. `POSTGRES_SSL=sim` exige conexão criptografada; use `nao` só com o banco na mesma máquina. Quem já tem o endereço completo pode colá-lo no `DATABASE_URL` (`postgresql://usuario:senha@host:5432/banco`) e deixar os campos vazios.
-2. `npm run db:configurar` testa a conexão, troca o `DATABASE_URL` do `.env` pelo do PostgreSQL (o do SQLite fica comentado, para voltar), cria as tabelas e carrega o catálogo de atividades e recursos. Avisa quando a conexão com um servidor de fora vai sem criptografia (`sslmode=disable`).
+2. `npm run db:configurar` testa a conexão, troca o `DATABASE_URL` do `.env` pelo do PostgreSQL (o do SQLite fica comentado, para voltar), cria as tabelas e carrega o catálogo de atividades e recursos, com o uso zerado: os números crescem com cada aplicação registrada na plataforma (`npm run db:resources` atualiza o catálogo e corrige bancos carregados com os números da demonstração). Avisa quando a conexão com um servidor de fora vai sem criptografia (`sslmode=disable`).
 3. `npm run db:admin -- --nome "Seu nome" --email voce@municipio.gov.br` cria a primeira conta da Secretaria. A senha temporária aparece uma vez só e é trocada no primeiro acesso; as outras contas se criam na plataforma, em Pessoas e acessos.
 4. `npm run build && npm start`.
 
 - **Mudou o schema?** Edite `prisma/schema.prisma`, gere a migração com `npm run db:migracao -- nome-da-mudanca` (compara com a última, sem precisar de banco) e aplique em cada servidor com `npm run db:tabelas`.
+- **Contas de teste:** `npm run db:contas-teste` cria uma conta por perfil (`@incluiedu.test`, domínio que não entrega e-mail) numa escola de teste com um estudante de teste, todas com uma senha mostrada uma vez. Antes do uso real, `npm run db:contas-teste -- --apagar` remove as contas, a escola e tudo o que foi registrado nela.
 - `node prisma/seed.mjs` apaga todos os dados. Num PostgreSQL, só roda com `SEED_DEMO_OK=1`, para um banco de testes.
 - O cliente do Prisma é gerado para o banco do `DATABASE_URL` antes de `npm run dev`, `npm run build` e depois do `npm install`. O `DATABASE_URL` da linha de comando vence o do `.env`: é assim que os testes usam o SQLite.
 - No PostgreSQL, a busca de texto vai com `mode: "insensitive"` (`src/lib/db-text.ts`), para não diferenciar maiúsculas, como no SQLite.

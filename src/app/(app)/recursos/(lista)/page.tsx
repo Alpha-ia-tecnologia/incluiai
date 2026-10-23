@@ -114,7 +114,11 @@ export default async function ResourcesPage({
         </form>
       </Card>
       {resources.length === 0 ? (
-        <EmptyState character="resources" title="Nenhum recurso encontrado" hint="Ajuste ou limpe os filtros para ver o catálogo completo." />
+        q || filters.etapa || filters.tipo ? (
+          <EmptyState character="resources" title="Nenhum recurso encontrado" hint="Ajuste ou limpe os filtros para ver o catálogo completo." />
+        ) : (
+          <EmptyState character="resources" title="O banco de recursos ainda está vazio" hint="Os recursos aparecem aqui assim que o catálogo da rede for carregado." />
+        )
       ) : (
         <div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">

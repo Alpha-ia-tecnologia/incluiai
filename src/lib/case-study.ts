@@ -199,7 +199,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
       {
         key: "sintese", label: "Síntese do caso", type: "textarea", requiredToConclude: true, wide: true,
         hint: "Em poucas linhas: quem é o estudante, o que o estudo mostrou e por onde começar.",
-        placeholder: "Ex.: Dante se comunica pela prancha e aprende melhor com apoio visual e temas de dinossauros. A prioridade é ampliar a comunicação funcional e a autonomia na rotina.",
+        placeholder: "Ex.: O estudante se comunica pela prancha e aprende melhor com apoio visual e temas de dinossauros. A prioridade é ampliar a comunicação funcional e a autonomia na rotina.",
       },
       { key: "reavaliacao", label: "Quando reavaliar o caso", type: "choice", options: ["Em 3 meses", "Em 6 meses", "No fim do ano letivo"] },
     ],

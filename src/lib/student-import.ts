@@ -145,6 +145,7 @@ export function readStudentSheet(text: string, today: Date = new Date()): { rows
     const errors: string[] = [];
     const name = cell("name").replace(/\s+/g, " ");
     if (name.length < 3) errors.push("nome em branco ou curto demais");
+    if (TEMPLATE_EXAMPLES.has(normalize(name))) errors.push("linha de exemplo do modelo: apague antes de importar");
     const birthDate = dateOf(cell("birthDate"));
     if (!birthDate) errors.push("nascimento inválido (use DD/MM/AAAA)");
     else if (birthDate > todayIso) errors.push("nascimento no futuro");
@@ -194,3 +195,6 @@ export const IMPORT_TEMPLATE = "﻿" + [
   "Exemplo Estudante Um;15/03/2018;Anos iniciais;2º ano;Turma A;Manhã;Nome do Responsável;(98) 90000-0000;sim;2x por semana;não",
   "Exemplo Estudante Dois;02/09/2014;;6º ano;Turma B;Tarde;Nome da Responsável;;não;;não",
 ].join("\r\n") + "\r\n";
+
+// As linhas do modelo mostram o formato; não são estudantes e não entram no cadastro.
+const TEMPLATE_EXAMPLES = new Set(["exemplo_estudante_um", "exemplo_estudante_dois"]);

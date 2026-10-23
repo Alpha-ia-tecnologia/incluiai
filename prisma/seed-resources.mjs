@@ -1,14 +1,26 @@
 import { PrismaClient } from "@prisma/client";
-import { RESOURCE_CATALOG } from "./resource-catalog.mjs";
+import { DEMO_RESOURCE_USAGE, RESOURCE_CATALOG } from "./resource-catalog.mjs";
 
 const prisma = new PrismaClient();
 
+// Títulos de versões anteriores do catálogo (o recurso é o mesmo, com o texto revisto).
+const RENAMED = { "Chamada sem sino: experiência da EMEF M. Firmina": "Transições sem sino: avisos visuais" };
+
 async function main() {
+  for (const [before, after] of Object.entries(RENAMED)) {
+    if (await prisma.resource.findFirst({ where: { title: after }, select: { id: true } })) continue;
+    await prisma.resource.updateMany({ where: { title: before }, data: { title: after } });
+  }
+
   for (const entry of RESOURCE_CATALOG) {
     const { activities, ...resourceData } = entry;
     let resource = await prisma.resource.findFirst({ where: { title: entry.title } });
 
     if (resource) {
+      // Versões anteriores gravavam o uso da demonstração como se fosse real; quem
+      // ainda está exatamente nesses números nunca foi aplicado na plataforma.
+      const [demoUsed, demoPositive] = DEMO_RESOURCE_USAGE[entry.title] ?? [];
+      const demoNumbers = resource.timesUsed === demoUsed && resource.positiveOutcomes === demoPositive;
       resource = await prisma.resource.update({
         where: { id: resource.id },
         data: {
@@ -18,6 +30,7 @@ async function main() {
           accessibilityNeed: resourceData.accessibilityNeed,
           resourceType: resourceData.resourceType,
           complexity: resourceData.complexity,
+          ...(demoNumbers ? { timesUsed: 0, positiveOutcomes: 0 } : {}),
         },
       });
     } else {

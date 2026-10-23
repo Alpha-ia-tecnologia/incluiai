@@ -145,6 +145,9 @@ model User {
   // se recebe a pergunta da semana no portal.
   notifyByEmail      Boolean   @default(false)
   weeklyCheckIn      Boolean   @default(true)
+  // Conta de demonstração (só o seed cria, senha demo123): a tela de entrada
+  // lista estas contas; num banco real não há nenhuma.
+  demo               Boolean   @default(false)
 
   journeyMarks  JourneyMark[]
   conversations AssistantConversation[]

@@ -19,7 +19,6 @@ import { primaryButtonCls } from "@/components/form-styles";
 import {
   ACCESSIBILITY_NOTE_OPTIONS,
   AEE_FREQUENCY_OPTIONS,
-  CLASS_NAME_OPTIONS,
   GRADES_BY_STAGE,
   GRADE_YEAR_OPTIONS,
   splitItems,
@@ -114,12 +113,10 @@ function buildSteps(schools: SchoolOption[]): Step[] {
     {
       field: "className",
       question: "Qual é a turma?",
-      hint: "Escolha uma turma da escola ou informe outra em Outro.",
+      hint: "Escolha uma turma cadastrada na escola ou escreva o nome em Outro.",
       kind: "options",
-      optionsFor: (answers, schoolList) => {
-        const registered = schoolList.find((school) => school.value === answers.schoolId)?.classes ?? [];
-        return toOptions(registered.length ? registered.map((item) => item.name) : CLASS_NAME_OPTIONS);
-      },
+      // Só as turmas da escola no banco; sem nenhuma, o nome vai em Outro.
+      optionsFor: (answers, schoolList) => toOptions((schoolList.find((school) => school.value === answers.schoolId)?.classes ?? []).map((item) => item.name)),
       allowOther: true,
       placeholder: "Ex.: Turma Girassol",
       required: true,

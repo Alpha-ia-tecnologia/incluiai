@@ -34,8 +34,14 @@ test("etapa, data e turno", () => {
   assert.equal(shiftOf("Noturno"), "Noite");
 });
 
-test("o modelo para baixar passa inteiro", () => {
-  const { rows, problem } = readStudentSheet(IMPORT_TEMPLATE, today);
+test("o modelo para baixar: formato certo, mas os exemplos não viram estudantes", () => {
+  const examples = readStudentSheet(IMPORT_TEMPLATE, today);
+  assert.deepEqual(examples.rows.map((row) => [row.values, row.errors]), [
+    [null, ["linha de exemplo do modelo: apague antes de importar"]],
+    [null, ["linha de exemplo do modelo: apague antes de importar"]],
+  ]);
+  // Com nomes de verdade, as mesmas linhas passam inteiras.
+  const { rows, problem } = readStudentSheet(IMPORT_TEMPLATE.replaceAll("Exemplo Estudante", "Estudante"), today);
   assert.equal(problem, null);
   assert.equal(rows.length, 2);
   assert.deepEqual(rows.map((row) => row.errors), [[], []]);
