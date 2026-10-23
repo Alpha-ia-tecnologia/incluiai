@@ -2,6 +2,13 @@ import { PrismaClient } from "@prisma/client";
 import { randomBytes, scryptSync } from "node:crypto";
 import { RESOURCE_CATALOG } from "./resource-catalog.mjs";
 
+// Os dados de demonstração APAGAM tudo antes de criar os exemplos: num banco
+// PostgreSQL (produção), só com SEED_DEMO_OK=1, para um banco de testes.
+if (/^postgres(ql)?:\/\//.test(process.env.DATABASE_URL ?? "") && process.env.SEED_DEMO_OK !== "1") {
+  console.error("\n✗ Este script apaga todos os dados. Num banco PostgreSQL, rode só num banco de testes, com SEED_DEMO_OK=1.\n");
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 const j = JSON.stringify;
 const hashPassword = (pw) => {

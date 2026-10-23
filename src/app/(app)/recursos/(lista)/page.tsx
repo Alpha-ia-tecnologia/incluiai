@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { textContains } from "@/lib/db-text";
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -55,10 +56,10 @@ export default async function ResourcesPage({
       ...(q
         ? {
             OR: [
-              { title: { contains: q } },
-              { description: { contains: q } },
-              { skillArea: { contains: q } },
-              { accessibilityNeed: { contains: q } },
+              { title: textContains(q) },
+              { description: textContains(q) },
+              { skillArea: textContains(q) },
+              { accessibilityNeed: textContains(q) },
             ],
           }
         : {}),

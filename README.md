@@ -8,7 +8,7 @@ Plataforma de acompanhamento do Atendimento Educacional Especializado (AEE) e ge
 
 - **Next.js 16** (App Router, Server Components e Server Actions) + TypeScript
 - **Tailwind CSS 4** com o **tema visual IncluiEdu**, no padrão da apresentação da plataforma (azul-marinho nos textos, azul para marca e ações, superfícies azul-claras, a faixa azul-claro, amarelo e verde, cores semânticas para estado — verde, âmbar, coral — e cinco cores suaves para categorias — céu, verde-água, pêssego, sálvia, rosa —, todas com contraste ≥ 4.5:1; tipografia Noto Sans + JetBrains Mono, navegação lateral compacta e adaptação para celular) — tokens em `src/app/globals.css`
-- **Prisma 6 + SQLite** (troque o datasource para PostgreSQL em produção)
+- **Prisma 6**: SQLite no desenvolvimento e nos testes, PostgreSQL em produção (veja [Banco de dados em produção](#banco-de-dados-em-produção-postgresql))
 - **Autenticação** própria: sessão guardada no servidor (o cookie httpOnly leva só um código aleatório; vale 8 h, cai após 2 h sem uso e é apagada ao sair), senha com scrypt e limite de 5 tentativas erradas por e-mail em 15 minutos, e verificação em duas etapas por aplicativo autenticador (TOTP, RFC 6238, com códigos de recuperação), obrigatória para a equipe com `REQUIRE_2FA=1`
 - **Agentes de IA opcionais** orquestrados com **LangGraph** (`@langchain/langgraph`), chamando o Claude pelo SDK oficial (`@anthropic-ai/sdk`) com saída estruturada (Zod) — geram propostas de plano (PPI) e atividades. Sem chave, o motor de regras determinísticas + templates assume
 
@@ -16,8 +16,7 @@ Plataforma de acompanhamento do Atendimento Educacional Especializado (AEE) e ge
 
 ```bash
 npm install
-npx prisma db push       # cria o banco SQLite (prisma/dev.db)
-node prisma/seed.mjs     # dados + 6 usuários de demonstração (senha: demo123)
+npm run db:setup         # banco SQLite (prisma/dev.db) + 6 usuários de demonstração (senha: demo123)
 npm run dev              # http://localhost:3000
 ```
 
@@ -42,6 +41,20 @@ Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
 | Professor(a) do AEE | `aee@escola.edu.br` | Estudantes da sua escola |
 | Terapeuta | `terapeuta@clinica.com.br` | Apenas perfil funcional + articulação do seu paciente |
 | Família | `familia@email.com` | Apenas o próprio filho(a) |
+
+## Banco de dados em produção (PostgreSQL)
+
+O desenvolvimento e os testes usam SQLite; a produção, PostgreSQL. O schema de referência continua em `prisma/schema.prisma`. O do PostgreSQL (`prisma/postgresql/schema.prisma`) é gerado a partir dele, porque o Prisma não troca o tipo de banco por variável de ambiente, e as migrações ficam em `prisma/postgresql/migrations`.
+
+1. No `.env`, preencha `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD`. A senha vai **entre aspas**: sem elas, o que vem depois de um `#` é lido como comentário. `POSTGRES_SSL=sim` exige conexão criptografada; use `nao` só com o banco na mesma máquina. Quem já tem o endereço completo pode colá-lo no `DATABASE_URL` (`postgresql://usuario:senha@host:5432/banco`) e deixar os campos vazios.
+2. `npm run db:configurar` testa a conexão, troca o `DATABASE_URL` do `.env` pelo do PostgreSQL (o do SQLite fica comentado, para voltar), cria as tabelas e carrega o catálogo de atividades e recursos. Avisa quando a conexão com um servidor de fora vai sem criptografia (`sslmode=disable`).
+3. `npm run db:admin -- --nome "Seu nome" --email voce@municipio.gov.br` cria a primeira conta da Secretaria. A senha temporária aparece uma vez só e é trocada no primeiro acesso; as outras contas se criam na plataforma, em Pessoas e acessos.
+4. `npm run build && npm start`.
+
+- **Mudou o schema?** Edite `prisma/schema.prisma`, gere a migração com `npm run db:migracao -- nome-da-mudanca` (compara com a última, sem precisar de banco) e aplique em cada servidor com `npm run db:tabelas`.
+- `node prisma/seed.mjs` apaga todos os dados. Num PostgreSQL, só roda com `SEED_DEMO_OK=1`, para um banco de testes.
+- O cliente do Prisma é gerado para o banco do `DATABASE_URL` antes de `npm run dev`, `npm run build` e depois do `npm install`. O `DATABASE_URL` da linha de comando vence o do `.env`: é assim que os testes usam o SQLite.
+- No PostgreSQL, a busca de texto vai com `mode: "insensitive"` (`src/lib/db-text.ts`), para não diferenciar maiúsculas, como no SQLite.
 
 ## Mapa de funcionalidades → proposta
 
@@ -76,7 +89,7 @@ Planejamento da atividade **da turma** com o Desenho Universal para a Aprendizag
 - Quem planeja: professores, profissional de apoio (não valida), coordenação e gestão. A secretaria vê só os indicadores. Família e terapeuta não acessam.
 - A versão validada não muda: editar abre a versão seguinte. Aceitar uma sugestão não valida o planejamento.
 - Sugestões com IA (Claude e DeepSeek) saem com o contexto anonimizado e conferido de novo; sem chave, as regras da plataforma sugerem, com a mesma revisão por bloco.
-- Banco existente: `npx prisma db push` (só tabelas novas) e reinicie o `npm run dev`.
+- Banco existente: `npm run db:tabelas` (só tabelas novas) e reinicie o `npm run dev`.
 - Testes: `npm run test:unit` (regras puras) e `npm run test:e2e` (seção 8).
 
 O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](./docs/dua.md).
@@ -361,5 +374,5 @@ Em **Estudantes › Importar planilha** (`/estudantes/importar`), a gestão e a 
 
 - Provedor de identidade gerenciado e criptografia em repouso
 - Transcrição de voz por IA no servidor (hoje via Web Speech API do navegador)
-- Migração para PostgreSQL, hospedagem segura, RIPD e DPO
+- Hospedagem segura, RIPD e DPO
 - Integração com o sistema de gestão escolar e o Educacenso

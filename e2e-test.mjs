@@ -352,7 +352,8 @@ if (!ONLY_WAIT) {
     const { ctx, page, errors } = await newSession();
     await login(page, "familia@email.com");
     await typeOther(page, "O que aconteceu?", "Teste E2E: pediu água pela prancha no jantar.");
-    await clickByText(page, "Enviar");
+    // O botão do próprio formulário: numa base nova, a pergunta da semana vem antes com "Enviar para a escola".
+    await page.evaluate(() => [...document.querySelectorAll("fieldset")].find((item) => item.querySelector("legend")?.textContent.includes("O que aconteceu?")).closest("form").querySelector('button[type="submit"]').click());
     await page.waitForFunction(() => document.body.innerText.includes("pediu água pela prancha no jantar"), { timeout: 20000 }).catch(() => {});
     check("família registra conquista de casa", await page.evaluate(() => document.body.innerText.includes("pediu água pela prancha no jantar")));
     check("família vê log de acessos (LGPD)", await page.evaluate(() => document.body.innerText.toLowerCase().includes("quem acessou os dados")));

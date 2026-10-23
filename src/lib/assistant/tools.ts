@@ -1,4 +1,5 @@
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { textContains } from "@/lib/db-text";
 import type { BetaRunnableTool } from "@anthropic-ai/sdk/lib/tools/BetaRunnableTool";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
@@ -130,7 +131,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
     }),
     async (args) => {
       const students = await prisma.student.findMany({
-        where: { id: { in: ctx.studentIds }, ...(args.turma ? { className: { contains: args.turma } } : {}) },
+        where: { id: { in: ctx.studentIds }, ...(args.turma ? { className: textContains(args.turma) } : {}) },
         orderBy: { name: "asc" },
         include: {
           caseStudy: { select: { status: true } },
@@ -418,9 +419,9 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
     async (args) => {
       const resources = await prisma.resource.findMany({
         where: {
-          ...(args.busca ? { OR: [{ title: { contains: args.busca } }, { description: { contains: args.busca } }, { skillArea: { contains: args.busca } }] } : {}),
-          ...(args.etapa ? { stage: { contains: args.etapa } } : {}),
-          ...(args.tipo ? { resourceType: { contains: args.tipo } } : {}),
+          ...(args.busca ? { OR: [{ title: textContains(args.busca) }, { description: textContains(args.busca) }, { skillArea: textContains(args.busca) }] } : {}),
+          ...(args.etapa ? { stage: textContains(args.etapa) } : {}),
+          ...(args.tipo ? { resourceType: textContains(args.tipo) } : {}),
         },
         orderBy: [{ timesUsed: "desc" }, { title: "asc" }],
         take: 10,

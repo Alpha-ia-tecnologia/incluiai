@@ -134,7 +134,7 @@ Modelos novos em `prisma/schema.prisma`:
 A mudança é aditiva (só tabelas novas). Num banco que já existe, rode:
 
 ```bash
-npx prisma db push
+npm run db:tabelas
 ```
 
 Depois reinicie o `npm run dev`: em desenvolvimento, o cliente do Prisma fica guardado na memória do servidor e não enxerga as tabelas novas até reiniciar.
