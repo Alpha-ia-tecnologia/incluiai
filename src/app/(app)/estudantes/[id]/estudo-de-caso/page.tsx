@@ -189,9 +189,11 @@ export default async function CaseStudyPage({
         </p>
       ) : null}
 
+      {/* Dois filhos só: o aviso dos campos clínicos fica dentro do formulário, senão ocupa a coluna larga e empurra o formulário para a de 260 px.
+          As colunas também vão fixas em cada filho, para um bloco novo neste grid não repetir o problema. */}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
-        {clinicalNote}
-        <form action={save} className="min-w-0 space-y-5">
+        <form action={save} className="min-w-0 space-y-5 xl:col-start-1">
+          {clinicalNote}
           {!caseStudy ? (
             <Card className="bg-surface-muted">
               <h3 className="mb-2 flex items-center gap-2 text-base font-medium"><ClipboardList size={18} className="text-brand-strong" aria-hidden /> Como fazer o estudo de caso</h3>
@@ -252,7 +254,7 @@ export default async function CaseStudyPage({
           </div>
         </form>
 
-        <nav aria-label="Partes do estudo de caso" className="hidden self-start xl:sticky xl:top-[calc(var(--sticky-offset,0px)_+_16px)] xl:block">
+        <nav aria-label="Partes do estudo de caso" className="hidden self-start xl:sticky xl:top-[calc(var(--sticky-offset,0px)_+_16px)] xl:col-start-2 xl:row-start-1 xl:block">
           <p className="mb-3 text-sm font-medium">Partes do estudo</p>
           <ol className="space-y-1">
             {sections.map((section, index) => {
