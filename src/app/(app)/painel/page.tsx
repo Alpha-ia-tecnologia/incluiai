@@ -118,8 +118,8 @@ function AiStat({ label, value, detail, wide = false, children }: { label: strin
 // Sem denominador, mostra "sem base" (nunca 0%).
 // O anel é azul-claro (informação) e fica fora da leitura de tela: o valor,
 // ou "sem base", já está escrito ao lado. Sem base, o anel fica sem arco.
-function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denominator, value, noBaseText, footer }: {
-  ringId: string; label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null; noBaseText: string; footer: string;
+function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denominator, value, noBaseText }: {
+  ringId: string; label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null; noBaseText: string;
 }) {
   return (
     <article className="dash-card flex min-w-0 flex-col">
@@ -136,7 +136,6 @@ function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denomina
         </div>
       </div>
       <p className="mt-3 text-xs leading-relaxed text-ink-soft">{definition}</p>
-      <p className="mt-auto pt-3 text-xs leading-relaxed text-ink-soft">{footer}</p>
     </article>
   );
 }
@@ -402,7 +401,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 id="atencao-titulo" className="text-base font-medium tracking-tight">{nominal ? "Estudantes" : "Avisos por escola"}</h2>
-                    <p className="mt-1 text-xs text-ink-soft">{nominal ? "Ordenados por avisos. Só aparecem estudantes aos quais você tem acesso." : "Números por escola, sem nomes. Para abrir a ficha de um estudante, busque em Estudantes e informe o motivo."}</p>
+                    <p className="mt-1 text-xs text-ink-soft">{nominal ? "Ordenados por avisos." : "Números por escola, sem nomes. Para abrir uma ficha, busque em Estudantes e informe o motivo."}</p>
                   </div>
                   {nominal ? <Link href="/estudantes" className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line px-3.5 text-sm text-ink transition-colors hover:border-ink-strong">Ver todos <ArrowRight size={15} aria-hidden /></Link> : null}
                 </div>
@@ -474,7 +473,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {nominal && a.students.length > tableRows.length ? <p className="mt-2 text-xs text-ink-soft">Mostrando {tableRows.length} de {a.students.length}. <Link href="/estudantes" className="font-medium text-ink underline">Ver todos os estudantes</Link></p> : null}
                 <p className="mt-3 rounded-2xl bg-surface-muted/70 px-3.5 py-2.5 text-xs leading-relaxed text-ink-soft">
                   <span className="font-medium text-ink">Avisos em {scope.schoolName ?? "toda a rede"}:</span>{" "}
-                  {a.byKind.map((kind) => `${kind.value} ${ALERT_LABELS[kind.key].charAt(0).toLowerCase()}${ALERT_LABELS[kind.key].slice(1)}`).join(" · ")}.{nominal ? " O botão ↗ leva ao próximo passo de cada estudante." : ""}
+                  {a.byKind.map((kind) => `${kind.value} ${ALERT_LABELS[kind.key].charAt(0).toLowerCase()}${ALERT_LABELS[kind.key].slice(1)}`).join(" · ")}.
                 </p>
               </section>
 
@@ -513,7 +512,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         <span className="mt-1 text-xs leading-tight text-ink-soft">{o.fullParticipation} de {o.records}<br />plenas</span>
                       </HatchedDonut>
                       <div className="min-w-[150px] flex-1">
-                        <p className="mb-3 text-xs leading-relaxed text-ink-soft">Registre a cada aula: o ritmo dos registros mostra o que está funcionando.</p>
                         <Legend segments={participation} />
                       </div>
                     </div>
@@ -526,7 +524,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <div>
                     <h2 id="meses-titulo" className="text-base font-medium tracking-tight">Meses com registro de aula</h2>
                     <p className="mt-1 text-xs leading-relaxed text-ink-soft">
-                      {cal.schoolMonths ? `Houve registro em ${cal.monthsWithRecords} de ${plural(cal.schoolMonths, "mês letivo", "meses letivos")} desde o primeiro registro.` : "Ainda não há registros de aula."} Histórico completo, sem o filtro de período.
+                      {cal.schoolMonths ? `Houve registro em ${cal.monthsWithRecords} de ${plural(cal.schoolMonths, "mês letivo", "meses letivos")} desde o primeiro registro.` : "Ainda não há registros de aula."} Todo o histórico, sem o filtro de período.
                     </p>
                   </div>
                   {cal.gaps ? <StatusPill tone="alert">{plural(cal.gaps, "mês sem registro", "meses sem registro")}</StatusPill> : cal.schoolMonths ? <StatusPill tone="good">Sem lacunas</StatusPill> : null}
@@ -545,7 +543,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <h2 id="ia-titulo" className="text-base font-medium tracking-tight">Inteligência artificial</h2>
-                  <p className="mt-1 text-xs leading-relaxed text-ink-soft">A IA propõe e o professor decide. Nomes, contatos e documentos são trocados por marcadores antes do envio.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-soft">A IA propõe e o professor decide. Dados pessoais viram marcadores antes do envio.</p>
                 </div>
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-lime-soft text-ink-strong"><ShieldCheck size={17} aria-hidden /></span>
               </div>
@@ -572,15 +570,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <AiStat label="Envios à IA de reserva" value={ai.deepseekSends} />
               </dl>
               </div>
-              <p className="mt-2 text-xs leading-relaxed text-ink-soft">Números de {periodText}. Cada envio à IA de reserva fica no histórico de acessos que a família consulta.</p>
+              <p className="mt-2 text-xs leading-relaxed text-ink-soft">Números de {periodText}.</p>
               <Link href="/estudantes?acao=preparar" className="pill-action mt-4 sm:w-fit"><Sparkles size={16} aria-hidden /> Preparar uma atividade</Link>
             </section>
           </section>
 
-          <Section id="objetivos" title="Objetivos e aprendizagem" description="Avançar é precisar de menos apoio para a mesma tarefa, na escala de 0 (independente) a 5 (apoio físico total).">
+          <Section id="objetivos" title="Objetivos e aprendizagem" description="Avançar é precisar de menos apoio na mesma tarefa (0 é independente; 5, apoio físico total).">
             <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
               <div className="dash-card">
-                <CardHeader title="Como estão os objetivos" hint="Tendência dos últimos registros de cada objetivo em acompanhamento." />
+                <CardHeader title="Como estão os objetivos" />
                 <StackedBar segments={withSegmentColors(l.trends)} empty="Nenhum objetivo em acompanhamento." />
               </div>
               <div className="dash-card">
@@ -601,7 +599,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 ) : null}
               </div>
               <div className="dash-card">
-                <CardHeader title="Relatórios do período" hint="Estudantes com relatório validado e publicado para a família nos últimos 6 meses." />
+                <CardHeader title="Relatórios do período" hint="Validados para a família nos últimos 6 meses." />
                 <p className="font-display text-3xl font-bold tracking-tight text-ink"><span className="tabular-nums">{l.reports.covered}</span> <span className="text-base text-ink-soft">de {plural(l.reports.total, "estudante", "estudantes")}</span></p>
               </div>
               <div className="dash-card">
@@ -611,10 +609,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </Section>
 
-          <Section id="aulas" title="Aulas e registros" description="Cada registro em 3 toques mostra participação, apoio necessário e o que funcionou.">
+          <Section id="aulas" title="Aulas e registros">
             <div className="grid gap-3.5 xl:grid-cols-3">
               <div className="dash-card xl:col-span-2">
-                <CardHeader title={r.weekly ? "Registros por semana" : "Registros por mês"} hint={`${PERIODS[period]}. Queda sustentada no ritmo de registros antecipa o abandono do acompanhamento.`} />
+                <CardHeader title={r.weekly ? "Registros por semana" : "Registros por mês"} hint={`${PERIODS[period]}.`} />
                 {r.series.some((row) => row.value > 0) ? <ColumnChart rows={r.series} caption={r.weekly ? "Registros de aula por semana" : "Registros de aula por mês"} /> : <p className="text-sm text-ink-soft">Nenhum registro de aula · {periodText}.</p>}
               </div>
               <div className="dash-card">
@@ -622,7 +620,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <BarList rows={r.byAuthor.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} />
               </div>
               <div className="dash-card xl:col-span-3">
-                <CardHeader title="Estratégias que mais funcionaram" hint={`Marcadas como “o que funcionou” nos registros · ${periodText}. O número é quantas vezes cada uma foi marcada.`} />
+                <CardHeader title="Estratégias que mais funcionaram" hint={`Vezes marcada em “o que funcionou” · ${periodText}.`} />
                 {r.strategies.length ? (
                   // Duas colunas com a mesma escala, na ordem do ranking (de cima para baixo).
                   <div className="grid min-w-0 gap-x-8 gap-y-3 md:grid-cols-2">
@@ -634,10 +632,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </Section>
 
-          <Section id="atividades" title="Atividades" description={`Atividades criadas · ${periodText}: sugeridas pelo motor de regras ou pelos agentes de IA, ou escritas pelo professor.`}>
+          <Section id="atividades" title="Atividades" description={`Criadas · ${periodText}.`}>
             <div className="grid gap-3.5 md:grid-cols-2">
               <div className="dash-card">
-                <CardHeader title="Situação das atividades" hint={`${plural(act.created, "atividade criada", "atividades criadas")} no período.`} />
+                <CardHeader title="Situação das atividades" />
                 {act.created ? (
                   <div className="flex flex-wrap items-center gap-5">
                     <HatchedDonut id="rosca-atividades" segments={statusSegments} label={`Atividades: ${statusSegments.map((segment) => `${segment.label} ${segment.value}`).join(", ")}`} size={132} thickness={17}>
@@ -653,7 +651,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <BarList rows={act.byContext} empty="Nenhuma atividade criada no período." />
               </div>
               <div className="dash-card">
-                <CardHeader title="Origem e adesão" hint="Adesão: aceitas ou aplicadas entre as que o professor já avaliou." />
+                <CardHeader title="Origem e adesão" hint="Adesão: aceitas ou aplicadas entre as avaliadas." />
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <caption className="sr-only">Atividades por origem e adesão</caption>
@@ -679,7 +677,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </div>
               </div>
               <div className="dash-card">
-                <CardHeader title="Por que as sugestões são rejeitadas" hint="Rejeição é dado para melhorar as sugestões, não reclamação." />
+                <CardHeader title="Por que as sugestões são rejeitadas" />
                 {/* Amarelo, não laranja: rejeitar é decisão do professor, não alarme. */}
                 <BarList rows={act.rejectReasons.map((reason) => ({ label: `“${reason.label}”`, value: reason.value }))} color={SIGNAL.yellow} empty="Nenhuma sugestão rejeitada no período." />
               </div>
@@ -687,17 +685,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </Section>
 
           {dua ? (
-            <Section id="dua" title="Planejamento com DUA — uso e documentação" description={`Como a equipe está usando o planejamento com Desenho Universal para a Aprendizagem · ${duaPeriod} · ${dua.scopeLabel}.`}>
+            <Section id="dua" title="Planejamento com DUA — uso e documentação" description={`${duaPeriod} · ${dua.scopeLabel}.`}>
               <p className="mb-3.5 max-w-3xl rounded-2xl bg-surface-muted px-4 py-3 text-sm leading-relaxed text-ink">
-                <strong className="font-medium">Estes números medem uso e documentação, não aprendizagem.</strong> Não existe nota, selo nem “conformidade DUA”: nenhum número aqui avalia professor, escola ou estudante. Quando não há o que contar no período, aparece “{dua.noBaseText.toLowerCase()}”, e não 0%.
+                <strong className="font-medium">Medem uso e documentação, não aprendizagem:</strong> nenhum número avalia professor, escola ou estudante. Sem o que contar, aparece “{dua.noBaseText.toLowerCase()}”, e não 0%.
                 {canPlanDua(user) ? <> <Link href="/planejamento" className="font-medium text-ink underline">Abrir o planejamento</Link></> : null}
               </p>
               <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                 {dua.indicators.map(({ key, ...indicator }) => (
-                  <DuaIndicatorCard key={key} ringId={`anel-dua-${key}`} {...indicator} noBaseText={dua.noBaseText} footer={`${duaPeriod} · ${dua.scopeLabel}`} />
+                  <DuaIndicatorCard key={key} ringId={`anel-dua-${key}`} {...indicator} noBaseText={dua.noBaseText} />
                 ))}
                 <div className="dash-card min-w-0">
-                  <CardHeader title="Decisões sobre as sugestões" hint={`Blocos de sugestão (IA ou regras) revisados pela equipe · ${duaPeriod} · ${dua.scopeLabel}.`} />
+                  <CardHeader title="Decisões sobre as sugestões" hint="Blocos de sugestão revisados pela equipe." />
                   <StackedBar segments={duaDecisions} empty={`${dua.noBaseText}: nenhum bloco de sugestão revisado.`} />
                   {dua.decisions.total ? <p className="mt-3 text-xs text-ink-soft">{dua.decisions.aceito} aceitos sem alteração, {dua.decisions.editado} aceitos com edição e {dua.decisions.recusado} recusados, de {plural(dua.decisions.total, "bloco revisado", "blocos revisados")}.</p> : null}
                 </div>
@@ -705,7 +703,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </Section>
           ) : null}
 
-          <Section id="perfil" title="Perfil dos estudantes" description="Dados agregados, sem identificar ninguém: orientam formação, compra de recursos e adaptação dos ambientes.">
+          <Section id="perfil" title="Perfil dos estudantes" description="Dados agregados, sem identificar ninguém.">
             {p.caa.withoutResources > 0 ? (
               <div className="mb-3.5 flex items-start gap-3 rounded-2xl bg-signal-yellow-soft p-4 sm:p-5">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-yellow text-ink-strong"><Lightbulb size={17} aria-hidden /></span>
@@ -717,15 +715,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
               {p.bySchool.length > 1 ? <div className="dash-card"><CardHeader title="Estudantes por escola" /><BarList rows={p.bySchool} /></div> : null}
               <div className="dash-card"><CardHeader title="Etapa de ensino" /><BarList rows={p.byStage} /></div>
-              <div className="dash-card"><CardHeader title="Canais de comunicação" hint="Indica a demanda por comunicação alternativa (CAA)." /><BarList rows={p.channels} empty="Nenhum perfil preenchido." /></div>
+              <div className="dash-card"><CardHeader title="Canais de comunicação" /><BarList rows={p.channels} empty="Nenhum perfil preenchido." /></div>
               <div className="dash-card"><CardHeader title="Barreiras ativas" /><BarList rows={p.barriers} color={SIGNAL.yellow} empty="Nenhuma barreira registrada." /></div>
-              <div className="dash-card"><CardHeader title="Hipersensibilidade sensorial" hint="Orienta a adaptação de salas e eventos." /><BarList rows={p.hypersensitivity} color={SIGNAL.cyan} empty="Nenhuma hipersensibilidade registrada." /></div>
+              <div className="dash-card"><CardHeader title="Hipersensibilidade sensorial" /><BarList rows={p.hypersensitivity} color={SIGNAL.cyan} empty="Nenhuma hipersensibilidade registrada." /></div>
             </div>
             {p.withoutProfile ? <p className="mt-3 px-1 text-xs text-ink-soft">{plural(p.withoutProfile, "estudante ainda não tem", "estudantes ainda não têm")} o perfil de aprendizagem preenchido e não entram nestes números.</p> : null}
             {p.practices.length ? (
               <>
                 <h3 className="mb-1 mt-7 px-1 text-base font-medium">Banco de práticas por perfil</h3>
-                <p className="mb-3.5 px-1 text-sm text-ink-soft">Estratégias que funcionaram em aulas com boa resposta, agrupadas por perfil · {periodText}.</p>
+                <p className="mb-3.5 px-1 text-sm text-ink-soft">Estratégias de aulas com boa resposta, por perfil · {periodText}.</p>
                 <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                   {p.practices.map((cluster) => (
                     <div key={cluster.label} className="dash-card">
@@ -741,7 +739,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             ) : null}
           </Section>
 
-          <Section id="familia" title="Família e rede de apoio" description="Participação da família e articulação com saúde e assistência social.">
+          <Section id="familia" title="Família e rede de apoio">
             <div className="grid gap-3.5 lg:grid-cols-3">
               <div className="grid gap-3.5 sm:grid-cols-2 lg:col-span-2">
                 <StatTile label="Conquistas registradas pela família" value={f.notes} hint={PERIODS[period]} />
@@ -750,7 +748,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   chart={<ShareRing id="anel-familia-registros" part={f.records} whole={o.records} label="Registros de aula feitos em casa" caption={`dos ${plural(o.records, "registro", "registros")} de aula do período foram feitos em casa.`} />}
                 />
                 <StatTile
-                  label="Famílias com acesso à plataforma" value={`${f.withAccess} de ${o.students}`} hint="Acompanham o plano e as conquistas pelo celular."
+                  label="Famílias com acesso à plataforma" value={`${f.withAccess} de ${o.students}`}
                   chart={<ShareRing id="anel-familia-acesso" part={f.withAccess} whole={o.students} label="Famílias com acesso à plataforma" caption="dos estudantes têm a família com acesso." />}
                 />
                 <StatTile
@@ -787,7 +785,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 ) : <p className="text-sm text-ink-soft">Nenhum uso registrado ainda.</p>}
               </div>
               <div className="dash-card">
-                <CardHeader title="Próximas datas inclusivas" hint="Para planejar ações de conscientização com a comunidade escolar." href="/calendario" linkLabel="Abrir o calendário inclusivo" />
+                <CardHeader title="Próximas datas inclusivas" href="/calendario" linkLabel="Abrir o calendário inclusivo" />
                 {upcomingDates.length ? (
                   <ul className="space-y-1.5">
                     {upcomingDates.map((event) => (
@@ -806,14 +804,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </Section>
 
           {scope.network ? (
-            <Section id="equipe" title="Equipe e privacidade" description="Quem usa a plataforma e o registro de acessos exigido pela LGPD.">
+            <Section id="equipe" title="Equipe e privacidade">
               <div className="grid gap-3.5 lg:grid-cols-2">
                 <div className="dash-card">
                   <CardHeader title="Pessoas com acesso" hint={scope.schoolId ? "Equipe da escola e famílias e terapeutas dos estudantes dela." : "Todos os usuários cadastrados na rede."} />
                   <BarList rows={team.byRole.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} color={SIGNAL.cyan} empty="Nenhum usuário cadastrado." />
                 </div>
                 <div className="dash-card">
-                  <CardHeader title="Acessos registrados" hint={`${plural(team.actors, "pessoa acessou", "pessoas acessaram")} dados de estudantes · ${periodText}. A família consulta o histórico do próprio filho.`} />
+                  <CardHeader title="Acessos registrados" hint={`${plural(team.actors, "pessoa acessou", "pessoas acessaram")} dados de estudantes · ${periodText}.`} />
                   <BarList rows={team.access.map((row) => ({ ...row, label: ACCESS_LABELS[row.key] }))} color={SIGNAL.cyan} empty="Nenhum acesso registrado no período." />
                 </div>
               </div>

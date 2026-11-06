@@ -9,13 +9,13 @@ import { loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS } from "@/lib/scale";
-import { PageHero, Card, SectionTitle, EmptyState } from "@/components/ui";
+import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { MultiChoiceField } from "@/components/choice-field";
 import {
   ACCESSIBILITY_RESOURCE_OPTIONS, COMMUNICATION_OPTIONS, FACILITATOR_OPTIONS, POSITIONING_OPTIONS,
   SCHOOL_GUIDANCE_OPTIONS, SHARED_GOAL_OPTIONS, STRATEGIES_TO_TRY_OPTIONS,
 } from "@/lib/form-options";
-import { Check, FileText, Stethoscope } from "lucide-react";
+import { Check, FileText } from "lucide-react";
 import { DataBoard, MiniColumns, StatTile, StatusPill } from "@/components/data-viz";
 import { monthlyCounts } from "@/lib/series";
 import { Timeline } from "@/components/viz/timeline";
@@ -42,11 +42,11 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
   if (!(await studentConsent(studentId)).therapistLink) {
     return (
       <>
-        <PageHero character="care" eyebrow={<><Stethoscope size={16} aria-hidden /> Rede de saúde</>} title="Articulação intersetorial" lede="Espaço do terapeuta: apenas informações funcionais relevantes ao ambiente escolar." />
+        <PageHero character="care" title="Articulação intersetorial" lede="Você vê só o perfil funcional e os relatórios de articulação. Os registros clínicos ficam no sistema de saúde." />
         {switcher}
         <Card className="max-w-2xl">
           <SectionTitle>Aguardando a autorização da família</SectionTitle>
-          <p className="text-sm leading-relaxed text-ink-soft">A família ainda não autorizou a conexão com a escola pela plataforma. Quando autorizar, você verá o perfil funcional do estudante e poderá enviar orientações para a equipe.</p>
+          <p className="text-sm leading-relaxed text-ink-soft">Quando a família autorizar a conexão com a escola, você verá o perfil funcional e poderá enviar orientações.</p>
         </Card>
       </>
     );
@@ -83,11 +83,10 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
     <>
       <PageHero
         character="care"
-        eyebrow={<><Stethoscope size={16} aria-hidden /> Rede de saúde</>}
         title="Articulação intersetorial"
-        lede="Espaço do terapeuta: apenas informações funcionais relevantes ao ambiente escolar. Os registros clínicos completos permanecem no sistema de saúde."
+        lede="Você vê só o perfil funcional e os relatórios de articulação. Os registros clínicos ficam no sistema de saúde."
       />
-      {journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />}
+      {journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} character={false} />}
       {switcher}
 
       <section aria-label="Seus relatórios" className="mb-6">
@@ -95,7 +94,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
           <StatTile
             label="Relatórios enviados"
             value={reports.length}
-            hint={latest ? `O último em ${formatDate(latest.createdAt)}. Colunas: relatórios por mês, nos últimos 6 meses.` : "Seu primeiro relatório aparece aqui depois de enviado."}
+            hint={latest ? `O último em ${formatDate(latest.createdAt)}. Por mês, nos últimos 6.` : undefined}
             chart={reports.length ? <MiniColumns points={monthlyCounts(reports.map((report) => report.createdAt), 6)} label="Relatórios enviados por mês, nos últimos 6 meses" /> : undefined}
           />
           <StatTile
@@ -103,7 +102,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
             value={!latest ? "—" : latestSeen ? "Sim" : "Ainda não"}
             tone={latestSeen ? "good" : "mid"}
             status={!latest ? undefined : latestSeen ? "Recebido" : "Aguardando"}
-            hint={!latest ? "Depois do primeiro relatório, você vê aqui quando a equipe abre o acompanhamento." : latestSeen ? `A equipe abriu o acompanhamento de ${firstName} em ${formatDate(latestSeen)}, depois do seu último relatório.` : `A equipe ainda não abriu o acompanhamento de ${firstName} desde o seu último relatório.`}
+            hint={!latest ? "Aparece depois do primeiro relatório." : latestSeen ? `A equipe abriu o acompanhamento em ${formatDate(latestSeen)}.` : "A equipe ainda não abriu o acompanhamento desde o último relatório."}
           />
         </DataBoard>
       </section>
@@ -114,14 +113,11 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
           <strong>{firstName}</strong> — {student.gradeYear}. {p ? `Comunicação: ${CHANNELS[p.expressiveChannel] ?? p.expressiveChannel}.` : "Perfil funcional ainda não preenchido pela escola."}
           {interests.length > 0 ? ` Interesses: ${interests.join(", ")}.` : ""}
         </p>
-        <p className="mt-2 text-xs text-ink-soft">
-          Você vê apenas o perfil funcional e os relatórios de articulação — não tem acesso a notas, diário pedagógico ou dados administrativos.
-        </p>
       </Card>
 
       <Card className="mb-8 max-w-3xl scroll-mt-24" id="novo-relatorio">
         <SectionTitle>Novo relatório de articulação</SectionTitle>
-        <p className="mb-5 text-sm leading-relaxed text-ink-soft">Marque o que se aplica em cada item. Se faltar alguma opção, toque em Outro e escreva. Os itens com * são obrigatórios.</p>
+        <p className="mb-5 text-sm leading-relaxed text-ink-soft">Os itens com * são obrigatórios.</p>
         <form action={create} className="grid gap-6">
           <MultiChoiceField name="communication" label="Formas de comunicação mais eficazes *" options={COMMUNICATION_OPTIONS} required {...fieldStyle} />
           <MultiChoiceField name="accessResources" label="Recursos de acessibilidade utilizados *" options={ACCESSIBILITY_RESOURCE_OPTIONS} required {...fieldStyle} />
@@ -140,7 +136,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
 
       <div id="relatorios" className="scroll-mt-24"><SectionTitle>Relatórios enviados</SectionTitle></div>
       {reports.length === 0 ? (
-        <EmptyState character="care" title="Nenhum relatório ainda" hint="Use o formulário acima para enviar as primeiras orientações para a escola." />
+        <p className="text-sm text-ink-soft">Nenhum relatório enviado.</p>
       ) : (
         <Card className="min-w-0">
           <Timeline
