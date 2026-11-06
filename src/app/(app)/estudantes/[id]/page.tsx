@@ -6,8 +6,9 @@ import { meetingQuestions } from "@/lib/materials";
 import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS, BARRIERS } from "@/lib/scale";
 import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
-import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
+import { canSeeClinicalDetail, canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { parseCaseStudy } from "@/lib/case-study";
+import { guidanceForPlan, parseAccepted } from "@/lib/health-report";
 import type { FunctionalProfile } from "@prisma/client";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
 import { DataBoard, DataCard, StatusPill, SupportBars, SupportChart } from "@/components/data-viz";
@@ -48,6 +49,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
       familyNotes: { orderBy: { date: "desc" }, take: 3 },
       intersectorReports: { orderBy: { createdAt: "desc" }, take: 1 },
       caseStudy: { select: { status: true, content: true } },
+      healthReports: { select: { status: true, reviewedAt: true, accepted: true } },
     },
   });
   const intersector = student.intersectorReports[0];
@@ -57,6 +59,10 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   // contagens) ficam só com a equipe pedagógica.
   const pedagogical = Boolean(user && canSeePedagogicalDetail(user.role));
   const caseSynthesis = parseCaseStudy(student.caseStudy?.content).sintese;
+  // Laudos: as orientações aceitas na revisão, sem termos clínicos, valem para
+  // a equipe pedagógica; o aviso de sugestões a revisar, só para quem vê laudos.
+  const reportGuidance = pedagogical ? guidanceForPlan(student.healthReports.filter((report) => report.reviewedAt).map((report) => parseAccepted(report.accepted))) : [];
+  const reportsToReview = user && canSeeClinicalDetail(user.role) ? student.healthReports.filter((report) => report.status === "lido" && !report.reviewedAt).length : 0;
 
 
   const activePlan = student.plans.find((p) => p.status === "ativo");
@@ -193,6 +199,24 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
             <Link href={`/estudantes/${id}/estudo-de-caso`} className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
               {student.caseStudy?.status === "concluido" ? "Ver relatório completo" : student.caseStudy ? "Continuar estudo de caso" : "Fazer estudo de caso"}
             </Link>
+            {reportsToReview ? (
+              <Link href={`/estudantes/${id}/estudo-de-caso/laudos`} className="flex min-h-11 items-center gap-1.5 border-t border-line pt-2 text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
+                {reportsToReview} {reportsToReview === 1 ? "laudo com sugestões" : "laudos com sugestões"} para revisar <ArrowRight size={14} aria-hidden />
+              </Link>
+            ) : null}
+          </Card>
+        ) : null}
+        {reportGuidance.length ? (
+          <Card>
+            <SectionTitle>Orientações dos laudos</SectionTitle>
+            <ul className="space-y-2">
+              {reportGuidance.slice(0, 6).map((text) => (
+                <li key={text} className="flex items-start gap-2 text-sm leading-relaxed text-ink">
+                  <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" aria-hidden /> {text}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-ink-soft">Lidas pela IA e aceitas pela equipe na revisão do laudo.</p>
           </Card>
         ) : null}
         <Card>

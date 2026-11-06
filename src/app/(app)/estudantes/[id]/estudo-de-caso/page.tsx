@@ -13,6 +13,7 @@ import { Character } from "@/components/character";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { PrintButton } from "@/components/print-button";
 import { OpenDetailsOnPrint } from "@/components/open-details-on-print";
+import { HealthReportsNote } from "@/components/health-report-note";
 import { hintCls, inputCls, labelCls, primaryButtonCls, quietButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
@@ -67,14 +68,15 @@ export default async function CaseStudyPage({
   // Reúne dados da família e da escola: só a equipe pedagógica acessa.
   if (!canSeePedagogicalDetail(user.role)) redirect(`/estudantes/${id}`);
 
-  const [student, caseStudy] = await Promise.all([
+  // Sem permissão para dado clínico, esses campos e os laudos nem chegam à página.
+  const clinical = canSeeClinicalDetail(user.role);
+  const [student, caseStudy, healthReports] = await Promise.all([
     prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true } }),
     prisma.caseStudy.findUnique({ where: { studentId: id } }),
+    clinical ? prisma.healthReport.findMany({ where: { studentId: id }, select: { status: true, reviewedAt: true } }) : Promise.resolve([]),
   ]);
 
   const content: CaseStudyContent = parseCaseStudy(caseStudy?.content);
-  // Sem permissão para dado clínico, esses campos nem chegam à página.
-  const clinical = canSeeClinicalDetail(user.role);
   if (!clinical) for (const key of CLINICAL_CASE_FIELDS) delete content[key];
   const sections = CASE_STUDY_SECTIONS.map((section) => ({ ...section, fields: section.fields.filter((field) => clinical || !CLINICAL_CASE_FIELDS.has(field.key)) }));
   const clinicalNote = clinical ? null : (
@@ -83,6 +85,7 @@ export default async function CaseStudyPage({
   const concluded = caseStudy?.status === "concluido";
   const canEdit = canEditStudentRecord(user.role);
   const firstName = student.name.split(" ")[0];
+  const reportsNote = clinical && canEdit ? <HealthReportsNote studentId={id} reports={healthReports} /> : null;
 
   if (concluded && (editar !== "1" || !canEdit)) {
     // A síntese aparece em destaque no topo; na parte 7 ficam só os encaminhamentos.
@@ -117,6 +120,7 @@ export default async function CaseStudyPage({
           </div>
           <Character variant="planning" className="hidden w-20 sm:block" />
         </Card>
+        {reportsNote}
 
         <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] print:block">
           <nav aria-label="Partes do estudo de caso" className="min-w-0 self-start print:hidden lg:sticky lg:top-[calc(var(--sticky-offset,0px)_+_16px)]">
@@ -188,6 +192,7 @@ export default async function CaseStudyPage({
           <Sprout size={18} aria-hidden className="sprout-mark" /> Rascunho salvo. Continue quando tiver novas informações.
         </p>
       ) : null}
+      {reportsNote}
 
       {/* Dois filhos só: o aviso dos campos clínicos fica dentro do formulário, senão ocupa a coluna larga e empurra o formulário para a de 260 px.
           As colunas também vão fixas em cada filho, para um bloco novo neste grid não repetir o problema. */}

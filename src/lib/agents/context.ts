@@ -5,6 +5,7 @@ import { BARRIERS, CHANNELS, DIMENSIONS, SENSORY_LABELS, SENSORY_VALUES, STAGES,
 import { CASE_STUDY_FIELDS, parseCaseStudy } from "../case-study";
 import { splitItems } from "../form-options";
 import { strategiesThatWorked } from "../insights";
+import { guidanceForPlan, parseAccepted } from "../health-report";
 
 // Monta o contexto enviado aos agentes. Minimização de dados (LGPD): não
 // enviamos nome, data de nascimento, responsável nem escola; do estudo de
@@ -79,13 +80,17 @@ export async function loadPlanContext(studentId: string) {
       caseStudy: true,
       diaryEntries: { orderBy: { date: "asc" } },
       plans: { include: { objectives: true }, orderBy: { createdAt: "desc" } },
+      healthReports: { where: { reviewedAt: { not: null } }, select: { accepted: true } },
     },
   });
+  // Orientações de laudos que a equipe revisou e aceitou, sem termos clínicos.
+  const reportGuidance = guidanceForPlan(student.healthReports.map((report) => parseAccepted(report.accepted)));
   const previousObjectives = student.plans.flatMap((plan) => plan.objectives).slice(0, 6);
   const sections = [
     studentLine(student),
     student.caseStudy ? `\n## Estudo de caso\n${caseStudyText(student.caseStudy.content)}` : "",
     student.profile ? `\n## Como aprende\n${profileText(student.profile)}` : "",
+    reportGuidance.length ? `\n## Orientações para a escola vindas de laudos (aceitas pela equipe)\n${reportGuidance.map((text) => `- ${text}`).join("\n")}` : "",
     `\n## Registros de aula\n${diaryText(student.diaryEntries)}`,
     previousObjectives.length
       ? `\n## Objetivos de planos anteriores\n${previousObjectives.map((objective) => `- ${DIMENSIONS[objective.dimension] ?? objective.dimension}: ${objective.action} (${objective.status === "alcancado" ? "alcançado" : objective.status === "em_revisao" ? "em revisão" : "em andamento"})`).join("\n")}`

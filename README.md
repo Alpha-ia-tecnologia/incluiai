@@ -83,6 +83,7 @@ Os comandos `db:*`, como `npm run db:admin`, também rodam no **Console** do ser
 | `/estudantes` · `/novo` | Prontuário + **geração em lote por turma** | 2, 17.8 |
 | `/estudantes/[id]` | Visão geral: evolução, estratégias, **perguntas para reunião**, articulação intersetorial | 6, 9 |
 | `/estudantes/[id]/estudo-de-caso` | **Estudo de caso** (diagnóstico pedagógico): motivo, histórico escolar, entrevista com a família, escuta do estudante, observação, avaliação pedagógica e síntese; rascunho, conclusão e relatório imprimível. Não exige laudo | — |
+| `/estudantes/[id]/estudo-de-caso/laudos` | **Laudos e relatórios de saúde** (opcionais): o AEE e a coordenação anexam o laudo; a IA lê o texto anonimizado e sugere orientações e campos do estudo de caso, que a equipe revisa antes de juntar | — |
 | `/estudantes/[id]/perfil` | Perfil funcional codificado (escala 0–5, interesses âncora) | 3, 17.2 |
 | `/estudantes/[id]/ppi` | Plano individual + gerador de objetivo observável. Só com o **estudo de caso concluído**, também na proposta da IA ou das regras. **Revisão do plano** (decisão da equipe, próxima data e se saiu no prazo), **encerramento com motivo** e **planos anteriores**; um plano ativo por vez | 4, 6, 17.3-B, 17.9 |
 | `/estudantes/[id]/atividades` | Motor de 3 cartões + **versão imprimível** | 17.3–17.8 |
@@ -111,6 +112,23 @@ Planejamento da atividade **da turma** com o Desenho Universal para a Aprendizag
 - Testes: `npm run test:unit` (regras puras) e `npm run test:e2e` (seção 8).
 
 O que foi feito, onde está e como cada requisito é conferido: [`docs/dua.md`](./docs/dua.md).
+
+## Laudos no estudo de caso
+
+O AEE não depende de laudo, mas, quando a família entrega um, a equipe pode anexá-lo ao estudo de caso (**Estudo de caso › Anexar laudo**):
+
+1. **Anexar:** PDF, JPG ou PNG de até 10 MB, com a confirmação de que a família entregou o documento à escola. O tipo é conferido pelos bytes do arquivo, não pela extensão.
+2. **Ler:** a plataforma extrai o texto do PDF (`unpdf`) e o anonimiza antes do envio. Saem os nomes conhecidos pela plataforma e as linhas de identificação ("Paciente:", "Mãe:"...). Também saem os nomes depois de "Dr."/"Dra.", CRM e outros registros, CPF, RG, cartão do SUS, telefones, datas e endereços. O Claude devolve um resumo pedagógico, orientações para a escola e sugestões para os campos diagnóstico, saúde, acompanhamentos, público do AEE, necessidades, recursos e encaminhamentos, cada uma com o trecho do laudo que a sustenta.
+3. **Revisar:** cada sugestão aparece ao lado do que já está registrado. Nada muda sem a equipe marcar e confirmar. Nos campos de várias respostas, o que é aceito se soma ao que existe. Nos de uma resposta, a troca vem desmarcada.
+4. **Usar:** as orientações aceitas aparecem no Resumo do estudante e entram no contexto da proposta de plano, sem termos clínicos (diagnóstico, CID, remédio).
+
+**Salvaguardas:**
+- Laudo é dado clínico: só o AEE e a coordenação com acesso ao estudante veem os laudos e abrem o arquivo. Para os demais, a rota do arquivo responde 404.
+- A IA só lê o laudo com a autorização da família para IA, e só o Claude lê laudos (o DeepSeek, de reserva nos outros agentes, não recebe dados de saúde). A IA não recebe o arquivo, só o texto anonimizado.
+- Foto e PDF escaneado ficam guardados, sem leitura (não há OCR). A equipe registra o que for útil à mão.
+- Anexar, enviar à IA, abrir o arquivo, juntar ao estudo de caso e excluir entram no histórico de acessos que a família vê.
+- Excluir o laudo apaga o arquivo e a leitura. O que já foi juntado ao estudo de caso continua.
+- Limite da anonimização: um nome que a plataforma não conhece e que aparece solto no texto, fora das linhas de identificação e sem "Dr."/"Dra.", pode chegar à IA.
 
 ## Adaptar a atividade ou a prova da turma
 
@@ -375,6 +393,7 @@ Em **Estudantes › Importar planilha** (`/estudantes/importar`), a gestão e a 
 - `materials.ts` — perguntas para reunião
 - `material-content.ts` (puro, com testes) — os 6 tipos de material de apoio, o conteúdo (cartões com descrição do pictograma, como usar, atividades para aplicar, porquê de cada adaptação), as verificações e o motor de regras; `material-generate.ts` — geração pela IA (`agents/material-agent.ts`) ou pelas regras, aprovação, imagens por cartão (`images/material-images.ts`) e "levar para Atividades"
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
+- `health-report.ts` — laudos do estudo de caso: arquivos aceitos, campos que a leitura pode sugerir, revisão e junção ao estudo de caso; `agents/health-report-reader.ts` — extração do texto do PDF, anonimização própria de laudo e leitura pelo Claude
 - `auth.ts` — sessão, hash e controle de acesso por perfil
 - `bncc-core.ts` (puro, com testes) e `bncc.ts` — base da BNCC: recorte pelo estudante, busca e sugestão de habilidades
 - `user-admin.ts` (puro, com testes) e `accounts.ts` — gestão de contas: escopo de quem gerencia, vínculos, senha temporária e histórico

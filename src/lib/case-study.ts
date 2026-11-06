@@ -91,7 +91,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
         options: ["Fonoaudiologia", "Terapia ocupacional", "Psicologia", "Fisioterapia", "Neurologia", "Psiquiatria", "Psicopedagogia", "CAPS infantil", "Nenhum"],
       },
       {
-        key: "diagnostico", label: "Diagnóstico informado pela família (opcional)", type: "multi", wide: true,
+        key: "diagnostico", label: "Diagnóstico informado pela família ou em laudo (opcional)", type: "multi", wide: true,
         hint: "Não é obrigatório. O AEE é pedagógico e não depende de laudo (Nota Técnica MEC/SECADI/DPEE nº 04/2014).",
         options: ["Deficiência intelectual", "Deficiência física", "Deficiência visual", "Deficiência auditiva ou surdez", "Surdocegueira", "Deficiência múltipla", "Transtorno do espectro autista", "Altas habilidades ou superdotação", "Em investigação", "Sem diagnóstico"],
       },
