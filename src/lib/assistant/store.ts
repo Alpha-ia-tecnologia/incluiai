@@ -131,7 +131,7 @@ async function perform(user: SessionUser, kind: string, args: ActionArgs): Promi
       await setObjectiveStatus(user, studentId, String(args.objectiveId), status);
       revalidatePath("/estudantes/[id]", "layout");
       const label = status === "alcancado" ? "alcançado" : status === "em_revisao" ? "em revisão" : "ativo";
-      return `Objetivo marcado como ${label}. Veja em [Plano de ensino](/estudantes/${studentId}/ppi).`;
+      return `Objetivo marcado como ${label}. Veja em [Plano individual](/estudantes/${studentId}/ppi).`;
     }
     case "contar_conquista": {
       await saveFamilyNote(user, studentId, String(args.note ?? ""), String(args.author ?? "Família"));

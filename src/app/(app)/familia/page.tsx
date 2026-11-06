@@ -33,8 +33,7 @@ export default async function FamilyPortalIndex() {
             <Card className="flex items-center gap-3 transition-shadow group-hover:shadow-md">
               <span
                 aria-hidden
-                className="flex size-10 items-center justify-center rounded-full font-display text-lg font-semibold text-white"
-                style={{ backgroundColor: `oklch(55% 0.11 ${s.avatarHue})` }}
+                className="flex size-10 items-center justify-center rounded-full border-[1.5px] border-ink bg-paper-raised font-display text-lg font-bold text-ink"
               >
                 {s.name[0]}
               </span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { Check, Plus, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { splitItems, type ChoiceOption } from "@/lib/form-options";
 
 const OTHER = "__outro__";
@@ -92,9 +92,12 @@ export function ChoiceField({
 // Múltipla escolha: chips selecionáveis + "Outro" para acrescentar itens.
 // `submit="joined"` envia um único campo com os itens unidos pelo separador;
 // `submit="multiple"` envia um campo por item (ex.: barreiras).
+// `visibleCount` mostra só as primeiras opções e recolhe o resto em "Mais N
+// opções"; as marcadas (ou tocadas nesta visita) nunca ficam escondidas.
 export function MultiChoiceField({
   name, label, options, defaultValue = [], required = false, separator = ";", submit = "joined",
   hint, otherPlaceholder = "Digite e toque em Adicionar", legendClassName = defaultLabelCls, inputClassName = defaultInputCls,
+  visibleCount,
 }: {
   name: string;
   label: string;
@@ -107,9 +110,12 @@ export function MultiChoiceField({
   otherPlaceholder?: string;
   legendClassName?: string;
   inputClassName?: string;
+  visibleCount?: number;
 }) {
   const id = useId();
   const items = options.map(normalize);
+  const [showAll, setShowAll] = useState(false);
+  const [touched, setTouched] = useState<string[]>([]);
   const initialValues = Array.isArray(defaultValue) ? defaultValue : splitItems(defaultValue, separator);
   const matched = initialValues.map((value) => items.find((item) => item.value === value || sameText(item.label, value)));
   const [selected, setSelected] = useState<string[]>(matched.filter(Boolean).map((item) => item!.value));
@@ -148,19 +154,29 @@ export function MultiChoiceField({
   const offCls = "border-line bg-paper-raised text-ink hover:border-brand/50 hover:bg-brand-soft/40";
   const onCls = "border-brand bg-brand-soft font-medium text-brand-strong";
 
+  // Recolher só compensa quando sobram pelo menos 3 opções escondidas.
+  const collapsible = visibleCount !== undefined && items.length > visibleCount + 2;
+  const shown = !collapsible || showAll
+    ? items
+    : items.filter((item, index) => index < visibleCount || selected.includes(item.value) || touched.includes(item.value));
+  const hiddenCount = items.length - shown.length;
+
   return (
     <fieldset className="relative min-w-0" aria-describedby={hint ? `${id}-hint` : undefined}>
       <legend className={legendClassName}>{label}</legend>
       {hint ? <p id={`${id}-hint`} className="-mt-1 mb-2 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
       <div className="flex flex-wrap gap-2">
-        {items.map((item) => {
+        {shown.map((item) => {
           const active = selected.includes(item.value);
           return (
             <label key={item.value} className={`${chipCls} ${active ? onCls : offCls}`}>
               <input
                 type="checkbox"
                 checked={active}
-                onChange={() => setSelected((list) => (active ? list.filter((value) => value !== item.value) : [...list, item.value]))}
+                onChange={() => {
+                  setSelected((list) => (active ? list.filter((value) => value !== item.value) : [...list, item.value]));
+                  setTouched((list) => (list.includes(item.value) ? list : [...list, item.value]));
+                }}
                 className="sr-only"
               />
               {active ? <Check size={14} aria-hidden /> : null}
@@ -168,6 +184,18 @@ export function MultiChoiceField({
             </label>
           );
         })}
+        {collapsible && (showAll || hiddenCount > 0) ? (
+          <button
+            type="button"
+            aria-expanded={showAll}
+            onClick={() => setShowAll((open) => !open)}
+            className="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-medium text-brand-strong hover:bg-brand-soft/60"
+          >
+            {showAll
+              ? <><ChevronUp size={15} aria-hidden /> Menos opções</>
+              : <><ChevronDown size={15} aria-hidden /> Mais {hiddenCount} {hiddenCount === 1 ? "opção" : "opções"}</>}
+          </button>
+        ) : null}
         {custom.map((item) => (
           <span key={item} className={`${chipCls} ${onCls} cursor-default pr-1.5`}>
             <Check size={14} aria-hidden />{item}

@@ -40,9 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# banco local e registros dos servidores de desenvolvimento
-/prisma/*.db
-/prisma/*.db-journal
-/prisma/*.db-wal
-/prisma/*.db-shm
+# banco SQLite local (recriado com npm run db:setup) e logs dos servidores
+/prisma/dev.db*
 *.log

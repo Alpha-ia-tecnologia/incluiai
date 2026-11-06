@@ -8,7 +8,8 @@ import { SHIFTS } from "@/lib/scale";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
 import { ChoiceField } from "@/components/choice-field";
 import { CLASS_NAME_OPTIONS, GRADE_YEAR_OPTIONS, REGION_OPTIONS } from "@/lib/form-options";
-import { School as SchoolIcon, Users, UserPlus, Trash2 } from "lucide-react";
+import { School as SchoolIcon, Users, UserPlus } from "lucide-react";
+import { ConfirmDelete } from "@/components/confirm-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ const inputCls = "min-h-10 w-full rounded-md border border-line bg-paper px-3 py
 const labelCls = "mb-1 block text-xs font-medium text-ink-soft";
 const fieldStyle = { labelClassName: labelCls, inputClassName: inputCls };
 const shiftOptions = Object.entries(SHIFTS).map(([value, label]) => ({ value, label }));
-const btnCls = "rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-e1 transition-all hover:bg-brand-strong hover:shadow-e2 active:translate-y-px";
+const btnCls = "rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-e1 transition-all hover:bg-brand-hover hover:shadow-e2 active:translate-y-px";
 
 export default async function RegistriesPage() {
   const user = await getCurrentUser();
@@ -24,10 +25,15 @@ export default async function RegistriesPage() {
   if (!isNetworkRole(user.role)) redirect("/");
   await recordJourneyMark(user.id, "cadastros");
 
-  const schools = await prisma.school.findMany({
-    include: { classes: { orderBy: { name: "asc" } }, _count: { select: { students: true } } },
-    orderBy: { name: "asc" },
-  });
+  const [schools, perClass] = await Promise.all([
+    prisma.school.findMany({
+      include: { classes: { orderBy: { name: "asc" } }, _count: { select: { students: true } } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.student.groupBy({ by: ["schoolId", "className"], where: { status: "ativo" }, _count: { _all: true } }),
+  ]);
+  // Estudantes ativos por turma: turma com estudantes não pode ser excluída.
+  const studentsInClass = new Map(perClass.map((row) => [`${row.schoolId}|${row.className}`, row._count._all]));
   // Regiões já usadas na rede entram nas opções, além das sugestões padrão.
   const regionOptions = [...new Set([...REGION_OPTIONS, ...schools.map((school) => school.region)])];
 
@@ -35,10 +41,10 @@ export default async function RegistriesPage() {
     <>
       <PageHeader
         title="Cadastros da rede"
-        lede="Escolas, turmas e estudantes — a base do prontuário municipal. Turmas cadastradas alimentam o cadastro de alunos e o planejamento em lote."
+        lede="Escolas, turmas e estudantes da rede. As turmas cadastradas aparecem no cadastro de estudantes e no planejamento para a turma toda."
         actions={
           <Link href="/estudantes/novo" className={`${btnCls} inline-flex items-center gap-1.5`}>
-            <UserPlus size={15} aria-hidden /> Cadastrar aluno
+            <UserPlus size={15} aria-hidden /> Cadastrar estudante
           </Link>
         }
       />
@@ -98,16 +104,20 @@ export default async function RegistriesPage() {
                   <ul className="divide-y divide-line/60">
                     {s.classes.map((c) => {
                       const remove = deleteClass.bind(null, c.id);
+                      const enrolled = studentsInClass.get(`${s.id}|${c.name}`) ?? 0;
+                      const canManage = !user.schoolId || user.schoolId === s.id;
                       return (
-                        <li key={c.id} className="flex items-center gap-2 py-1.5 text-sm text-ink">
+                        <li key={c.id} className="flex flex-wrap items-center gap-2 py-1.5 text-sm text-ink">
                           <span className="font-medium">{c.name}</span>
                           {c.gradeYear ? <span className="text-ink-soft">· {c.gradeYear}</span> : null}
                           <Badge>{SHIFTS[c.shift] ?? c.shift}</Badge>
-                          <form action={remove} className="ml-auto">
-                            <button type="submit" aria-label={`Excluir ${c.name}`} className="rounded-md p-1 text-ink-soft hover:bg-coral-soft hover:text-coral">
-                              <Trash2 size={13} aria-hidden />
-                            </button>
-                          </form>
+                          <span className="ml-auto flex items-center gap-2">
+                            {enrolled > 0 ? (
+                              <span className="text-xs text-ink-soft">{enrolled} {enrolled === 1 ? "estudante" : "estudantes"}</span>
+                            ) : canManage ? (
+                              <ConfirmDelete action={remove} triggerAriaLabel={`Excluir a turma ${c.name}`} question={`Excluir “${c.name}”?`} confirmLabel="Excluir turma" />
+                            ) : null}
+                          </span>
                         </li>
                       );
                     })}

@@ -64,7 +64,7 @@ export function suggestionsFor(role: string): string[] {
   }
   if (["secretaria", "gestao", "coordenacao"].includes(role)) {
     return [
-      "Quais estudantes precisam de atenção?",
+      "Quais estudantes têm passos pendentes?",
       "Como está o acompanhamento este ano?",
       "Que estratégias mais funcionaram na rede?",
       "Quais datas inclusivas vêm aí?",

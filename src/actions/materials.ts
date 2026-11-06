@@ -2,10 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { buildMaterial, type MaterialKind } from "@/lib/materials";
+import { requireStudentTeam } from "@/lib/auth";
+import { buildMaterial, MATERIAL_KINDS, type MaterialKind } from "@/lib/materials";
+
+const KINDS = new Set<string>(MATERIAL_KINDS.map((item) => item.kind));
 
 export async function generateMaterial(studentId: string, formData: FormData) {
-  const kind = String(formData.get("kind") ?? "rotina_visual") as MaterialKind;
+  await requireStudentTeam(studentId);
+  const requested = String(formData.get("kind") ?? "rotina_visual");
+  const kind = (KINDS.has(requested) ? requested : "rotina_visual") as MaterialKind;
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
   const profile = await prisma.functionalProfile.findUnique({ where: { studentId } });
   if (!profile) throw new Error("Preencha o perfil funcional antes de gerar materiais.");
@@ -20,7 +25,10 @@ export async function generateMaterial(studentId: string, formData: FormData) {
   revalidatePath(`/estudantes/${studentId}/materiais`);
 }
 
+// Só a equipe do estudante exclui, e só materiais deste estudante. Se já foi
+// excluído (por exemplo, em outra aba), não há erro: o resultado é o mesmo.
 export async function deleteMaterial(studentId: string, materialId: string) {
-  await prisma.material.delete({ where: { id: materialId } });
+  await requireStudentTeam(studentId);
+  await prisma.material.deleteMany({ where: { id: materialId, studentId } });
   revalidatePath(`/estudantes/${studentId}/materiais`);
 }

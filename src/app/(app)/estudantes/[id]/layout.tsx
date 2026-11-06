@@ -50,24 +50,23 @@ export default async function StudentLayout({
       <Link href="/estudantes" className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline print:hidden">
         <ArrowLeft size={16} aria-hidden /> Voltar para estudantes
       </Link>
-      <div className="mb-4 flex items-start gap-3 rounded-[24px] bg-surface-muted p-4 sm:gap-4 sm:p-5">
+      <div className="mb-4 flex items-start gap-3 rounded-xl bg-surface-muted p-4 sm:gap-4 sm:p-5">
         <span
           aria-hidden
-          className="flex size-12 shrink-0 items-center justify-center rounded-full font-display text-xl font-medium text-ink sm:size-14"
-          style={{ backgroundColor: `oklch(88% 0.07 ${student.avatarHue})` }}
+          className="flex size-12 shrink-0 items-center justify-center rounded-full border-[1.5px] border-ink bg-paper-raised font-display text-xl font-bold text-ink sm:size-14"
         >
           {student.name[0]}
         </span>
         <div className="min-w-0">
-          <h1 className="font-display text-2xl font-medium tracking-tight text-ink sm:text-3xl">{student.name}</h1>
+          <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">{student.name}</h1>
           <p className="mt-1 text-sm text-ink-soft">
             {ageFrom(student.birthDate)} anos · {student.gradeYear} ({student.className}) · {SHIFTS[student.shift] ?? student.shift} · {STAGES[student.stage] ?? student.stage}
           </p>
           <p className="mt-0.5 text-sm text-ink-soft">{student.school.name}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {student.hasAEE ? <Badge tone="brand">AEE {student.aeeFrequency ?? ""}</Badge> : null}
-            {student.supportProfessional ? <Badge tone="green">Profissional de apoio</Badge> : null}
-            {student.accessibilityNotes ? <Badge tone="amber">{student.accessibilityNotes}</Badge> : null}
+            {student.supportProfessional ? <Badge>Profissional de apoio</Badge> : null}
+            {student.accessibilityNotes ? <Badge>{student.accessibilityNotes}</Badge> : null}
           </div>
         </div>
       </div>

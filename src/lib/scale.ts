@@ -15,6 +15,13 @@ export function supportInfo(level: number) {
   return SUPPORT_LEVELS[Math.min(5, Math.max(0, level))];
 }
 
+// Os códigos da escala (VERB, SUP…) são vocabulário interno: o que as pessoas
+// leem traz só o nome do apoio. Também limpa textos antigos gravados com código.
+const SUPPORT_CODE_IN_TEXT = /\s*\((?:IND|SUP|VERB|MOD|FIS-P|FIS-T)\)/g;
+export function withoutSupportCodes<T extends string | null | undefined>(text: T): T {
+  return (typeof text === "string" ? text.replace(SUPPORT_CODE_IN_TEXT, "") : text) as T;
+}
+
 export const CHANNELS: Record<string, string> = {
   fala: "Fala",
   libras: "Libras",
@@ -118,6 +125,8 @@ export const ROLES: Record<string, string> = {
   gestao: "Gestão escolar",
   secretaria: "Secretaria de Educação",
   familia: "Família",
+  terapeuta: "Equipe de saúde",
+  sistema: "Sistema",
 };
 
 export const AI_DISCLAIMER =

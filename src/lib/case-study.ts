@@ -23,6 +23,8 @@ export type CaseStudyField = {
   // Obrigatório apenas para concluir; o rascunho pode ficar incompleto.
   requiredToConclude?: boolean;
   wide?: boolean;
+  // Abre um subgrupo com este título (para partes longas, como a entrevista).
+  group?: string;
 };
 
 export type CaseStudySection = {
@@ -77,9 +79,9 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
     source: "Família ou responsáveis",
     description: "Contexto familiar, desenvolvimento e rotina. Registre apenas o que ajuda a entender a participação na escola.",
     fields: [
-      { key: "entrevistados", label: "Quem participou da entrevista", type: "multi", options: ["Mãe", "Pai", "Avó", "Avô", "Responsável legal", "Cuidador(a)"] },
+      { key: "entrevistados", group: "Quem é a família", label: "Quem participou da entrevista", type: "multi", options: ["Mãe", "Pai", "Avó", "Avô", "Responsável legal", "Cuidador(a)"] },
       { key: "moraCom", label: "Com quem mora", type: "multi", options: ["Mãe", "Pai", "Avós", "Irmãos", "Tios", "Padrasto ou madrasta", "Família acolhedora", "Acolhimento institucional"] },
-      { key: "andou", label: "Quando começou a andar", type: "choice", options: ["Antes de 1 ano", "Entre 1 e 2 anos", "Depois dos 2 anos", "Ainda não anda", "Não sabe informar"] },
+      { key: "andou", group: "Desenvolvimento e saúde", label: "Quando começou a andar", type: "choice", options: ["Antes de 1 ano", "Entre 1 e 2 anos", "Depois dos 2 anos", "Ainda não anda", "Não sabe informar"] },
       { key: "falou", label: "Quando começou a falar", type: "choice", options: ["Até 2 anos", "Entre 2 e 3 anos", "Depois dos 3 anos", "Ainda não fala", "Não sabe informar"] },
       {
         key: "saude", label: "Questões de saúde que afetam a rotina escolar", type: "multi", wide: true,
@@ -91,11 +93,11 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
         options: ["Fonoaudiologia", "Terapia ocupacional", "Psicologia", "Fisioterapia", "Neurologia", "Psiquiatria", "Psicopedagogia", "CAPS infantil", "Nenhum"],
       },
       {
-        key: "diagnostico", label: "Diagnóstico informado pela família (opcional)", type: "multi", wide: true,
+        key: "diagnostico", label: "Diagnóstico informado pela família ou em laudo (opcional)", type: "multi", wide: true,
         hint: "Não é obrigatório. O AEE é pedagógico e não depende de laudo (Nota Técnica MEC/SECADI/DPEE nº 04/2014).",
         options: ["Deficiência intelectual", "Deficiência física", "Deficiência visual", "Deficiência auditiva ou surdez", "Surdocegueira", "Deficiência múltipla", "Transtorno do espectro autista", "Altas habilidades ou superdotação", "Em investigação", "Sem diagnóstico"],
       },
-      { key: "comunicacaoCasa", label: "Como se comunica em casa", type: "multi", wide: true, options: COMMUNICATION_OPTIONS },
+      { key: "comunicacaoCasa", group: "Em casa", label: "Como se comunica em casa", type: "multi", wide: true, options: COMMUNICATION_OPTIONS },
       {
         key: "autonomiaCasa", label: "O que faz sozinho(a) em casa", type: "multi", wide: true,
         options: ["Come sem ajuda", "Veste-se sem ajuda", "Usa o banheiro sem ajuda", "Escova os dentes", "Guarda os brinquedos", "Ajuda em tarefas da casa", "Brinca com outras crianças"],
@@ -171,13 +173,13 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
     description: "O que o estudo mostrou e por onde começar o atendimento.",
     fields: [
       {
-        key: "publicoAlvo", label: "Público da educação especial", type: "choice", requiredToConclude: true,
+        key: "publicoAlvo", group: "Atendimento", label: "Público da educação especial", type: "choice", requiredToConclude: true,
         hint: "Público do AEE: estudantes com deficiência, transtorno do espectro autista ou altas habilidades/superdotação.",
         options: ["Sim: estudante com deficiência", "Sim: transtorno do espectro autista", "Sim: altas habilidades ou superdotação", "Em avaliação pela equipe", "Não é público do AEE: acompanhar na sala comum"],
       },
       { key: "frequenciaAee", label: "Frequência sugerida para o AEE", type: "choice", options: AEE_FREQUENCY_OPTIONS },
       {
-        key: "necessidades", label: "Necessidades educacionais identificadas", type: "multi", requiredToConclude: true, wide: true,
+        key: "necessidades", group: "Apoios e encaminhamentos", label: "Necessidades educacionais identificadas", type: "multi", requiredToConclude: true, wide: true,
         options: [
           "Comunicação alternativa e aumentativa", "Ensino de Libras", "Ensino do braille", "Orientação e mobilidade",
           "Adequação de materiais", "Tecnologia assistiva", "Enriquecimento curricular", "Desenvolvimento da autonomia",
@@ -193,7 +195,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
         options: ["Rede de saúde", "Avaliação oftalmológica", "Avaliação auditiva", "Assistência social (CRAS ou CREAS)", "Conselho Tutelar", "Nenhum"],
       },
       {
-        key: "participantes", label: "Quem participou do estudo de caso", type: "multi", requiredToConclude: true, wide: true,
+        key: "participantes", group: "Fechamento", label: "Quem participou do estudo de caso", type: "multi", requiredToConclude: true, wide: true,
         options: ["Professor(a) do AEE", "Professor(a) da sala comum", "Coordenação pedagógica", "Gestão escolar", "Família", "O próprio estudante", "Profissional de apoio", "Terapeuta"],
       },
       {
@@ -225,4 +227,18 @@ export function sectionProgress(section: CaseStudySection, content: CaseStudyCon
 
 export function missingToConclude(content: CaseStudyContent): CaseStudyField[] {
   return CASE_STUDY_FIELDS.filter((field) => field.requiredToConclude && !content[field.key]?.trim());
+}
+
+export function sectionOfField(key: string): CaseStudySection {
+  return CASE_STUDY_SECTIONS.find((section) => section.fields.some((field) => field.key === key)) ?? CASE_STUDY_SECTIONS[0];
+}
+
+export function isCaseStudySection(id: unknown): id is string {
+  return typeof id === "string" && CASE_STUDY_SECTIONS.some((section) => section.id === id);
+}
+
+// Por onde retomar um rascunho: a primeira parte ainda sem nenhuma resposta;
+// se todas já têm alguma, a síntese (última parte).
+export function resumeSection(content: CaseStudyContent): CaseStudySection {
+  return CASE_STUDY_SECTIONS.find((section) => sectionProgress(section, content).filled === 0) ?? CASE_STUDY_SECTIONS[CASE_STUDY_SECTIONS.length - 1];
 }

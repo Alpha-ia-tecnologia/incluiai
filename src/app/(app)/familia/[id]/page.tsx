@@ -7,7 +7,8 @@ import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-jou
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { PendingButton } from "@/components/pending-button";
 import { parseJson, formatDate } from "@/lib/format";
-import { ROLES } from "@/lib/scale";
+import { ROLES, withoutSupportCodes } from "@/lib/scale";
+import { groupAccessLogs } from "@/lib/display";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
@@ -28,7 +29,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       school: true,
       plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" } } } },
       familyNotes: { orderBy: { date: "desc" } },
-      accessLogs: { orderBy: { createdAt: "desc" }, take: 8 },
+      accessLogs: { orderBy: { createdAt: "desc" }, take: 60 },
       timeline: { where: { type: "conquista" }, orderBy: { date: "desc" }, take: 5 },
       activities: {
         where: { context: "casa", status: { in: ["aceita", "aplicada"] } },
@@ -66,7 +67,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
               <ul className="space-y-2.5">
                 {objectives.map((o) => (
                   <li key={o.id} className="rounded-xl bg-brand-soft/50 px-3.5 py-2.5 text-sm leading-relaxed text-ink">
-                    {o.description}
+                    {withoutSupportCodes(o.description)}
                   </li>
                 ))}
               </ul>
@@ -125,7 +126,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                     <span>
                       <strong>{t.title}</strong>
                       {t.description ? ` — ${t.description}` : ""}
-                      <span className="block text-[11px] text-ink-soft">{formatDate(t.date)}</span>
+                      <span className="block text-xs text-ink-soft">{formatDate(t.date)}</span>
                     </span>
                   </li>
                 ))}
@@ -137,15 +138,18 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             <SectionTitle>
               <span className="flex items-center gap-1.5"><ShieldCheck size={13} aria-hidden /> Quem acessou os dados</span>
             </SectionTitle>
+            <p className="-mt-2 mb-3 text-sm leading-relaxed text-ink-soft">
+              Cada vez que alguém da equipe abre ou muda as informações de {firstName}, fica anotado aqui. É normal ver quem acompanha {firstName} na escola. Se algum acesso parecer estranho, fale com a escola.
+            </p>
             {student.accessLogs.length === 0 ? (
               <p className="text-sm text-ink-soft">Nenhum acesso registrado.</p>
             ) : (
               <ul className="space-y-1.5 text-xs text-ink-soft">
-                {student.accessLogs.map((l) => (
-                  <li key={l.id} className="flex flex-wrap items-center gap-1.5">
-                    <Badge>{ROLES[l.role] ?? l.role}</Badge>
-                    <span>{l.action} {l.detail ? `· ${l.detail}` : ""}</span>
-                    <span className="ml-auto">{formatDate(l.createdAt)}</span>
+                {groupAccessLogs(student.accessLogs, formatDate).slice(0, 8).map((group) => (
+                  <li key={group.key} className="flex flex-wrap items-center gap-1.5">
+                    <Badge>{ROLES[group.role] ?? group.role}</Badge>
+                    <span>{group.sentence}{group.count > 1 ? ` (${group.count} vezes)` : ""}</span>
+                    <span className="ml-auto">{group.date}</span>
                   </li>
                 ))}
               </ul>
@@ -162,7 +166,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             <form action={addNote} className="space-y-4">
               <MultiChoiceField name="note" label="O que aconteceu? *" options={FAMILY_ACHIEVEMENT_OPTIONS} required otherPlaceholder={`Ex.: ${firstName} pediu água durante o jantar`} legendClassName={familyLabelCls} inputClassName={familyInputCls} />
               <ChoiceField name="author" label="Quem observou" options={FAMILY_MEMBER_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: madrinha" labelClassName={familyLabelCls} inputClassName={familyInputCls} />
-              <button type="submit" className="min-h-11 rounded-xl bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-strong">
+              <button type="submit" className="min-h-11 rounded-xl bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-hover">
                 Enviar
               </button>
             </form>
@@ -177,7 +181,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                 {student.familyNotes.map((n) => (
                   <Card key={n.id}>
                     <p className="text-sm leading-relaxed text-ink">“{n.note}”</p>
-                    <p className="mt-1 text-[11px] text-ink-soft">{n.author} · {formatDate(n.date)}</p>
+                    <p className="mt-1 text-xs text-ink-soft">{n.author} · {formatDate(n.date)}</p>
                   </Card>
                 ))}
               </div>

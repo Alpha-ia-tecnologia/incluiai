@@ -60,9 +60,9 @@ export function KpiCard({
             <Icon size={16} aria-hidden />
           </span>
         ) : null}
-        <div className={`font-display text-4xl font-medium leading-none ${tone === "coral" ? "text-coral" : "text-ink"}`}>{value}</div>
+        <div className={`font-display text-4xl font-bold leading-none ${tone === "coral" ? "text-coral" : "text-ink"}`}>{value}</div>
         <div className="mt-1.5 text-xs font-medium text-ink/80">{label}</div>
-        {sub ? <div className="mt-0.5 text-[11px] text-ink/80">{sub}</div> : null}
+        {sub ? <div className="mt-0.5 text-xs text-ink/80">{sub}</div> : null}
       </div>
       {typeof pct === "number" ? <ProgressRing pct={pct} /> : null}
     </Card>
@@ -73,7 +73,7 @@ export function PageHeader({ title, lede, actions }: { title: string; lede?: str
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
-        <h1 className="font-display text-3xl font-normal leading-[1.15] tracking-tight text-ink sm:text-[40px]">{title}</h1>
+        <h1 className="font-display text-3xl font-bold leading-[1.15] text-ink sm:text-[40px]">{title}</h1>
         {lede ? <p className="mt-3 text-sm leading-relaxed text-ink-soft">{lede}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
@@ -109,7 +109,7 @@ const BADGE_TONES: Record<BadgeTone, string> = {
 
 export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${BADGE_TONES[tone]}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${BADGE_TONES[tone]}`}>
       {children}
     </span>
   );
@@ -121,8 +121,7 @@ export function SupportPill({ level }: { level: number }) {
   const hue = ["green", "green", "brand", "amber", "coral", "coral"][Math.min(5, Math.max(0, level))] as BadgeTone;
   return (
     <Badge tone={hue}>
-      <span className="font-semibold">{info.code}</span>
-      <span className="hidden sm:inline">· {info.label}</span>
+      <span className="font-medium">{info.label}</span>
     </Badge>
   );
 }
@@ -137,7 +136,7 @@ export function AIDisclaimer() {
 
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="rounded-[22px] border border-dashed border-line bg-surface-muted/40 px-6 py-12 text-center">
+    <div className="rounded-xl border border-dashed border-line bg-surface-muted/40 px-6 py-12 text-center">
       <Character variant="resources" className="mx-auto mb-4 w-24" />
       <p className="font-medium text-ink">{title}</p>
       {hint ? <p className="mt-1 text-sm text-ink-soft">{hint}</p> : null}
@@ -150,7 +149,7 @@ export function PrimaryButton({ children, className = "", ...rest }: React.Butto
   return (
     <button
       {...rest}
-      className={`inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-e1 transition-all duration-200 hover:bg-brand-strong hover:shadow-e2 active:translate-y-px disabled:pointer-events-none disabled:opacity-60 ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-e1 transition-all duration-200 hover:bg-brand-hover hover:shadow-e2 active:translate-y-px disabled:pointer-events-none disabled:opacity-60 ${className}`}
     >
       {children}
     </button>

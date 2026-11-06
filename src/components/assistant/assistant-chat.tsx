@@ -44,7 +44,7 @@ function Steps({ steps, live }: { steps: ToolStep[]; live: boolean }) {
       {steps.map((step) => {
         const running = live && step.ok === undefined;
         return (
-          <li key={step.id} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${step.ok === false ? "bg-coral-soft text-coral" : running ? "bg-sky-soft text-sky-ink" : "bg-surface-muted text-ink-soft"}`}>
+          <li key={step.id} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${step.ok === false ? "bg-coral-soft text-coral" : running ? "bg-sky-soft text-sky-ink" : "bg-surface-muted text-ink-soft"}`}>
             {running ? <Sprout size={12} aria-hidden /> : step.ok === false ? <CircleAlert size={12} aria-hidden /> : <Check size={12} aria-hidden />}
             {running ? step.label : step.ok === false ? `Falhou: ${step.summary ?? step.label}` : STEP_DONE_LABELS[step.name] ?? step.label}
           </li>
@@ -58,11 +58,11 @@ function ActionCard({ action, busy, onDecide }: { action: ActionView; busy: bool
   const pending = action.status === "pendente";
   return (
     <article className={`my-2 rounded-2xl border p-3.5 ${pending ? "border-brand/40 bg-brand-soft/60" : action.status === "confirmada" ? "border-green/40 bg-green-soft/60" : "border-line bg-surface-muted/60"}`} aria-live="polite">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">{ACTION_KIND_LABELS[action.kind] ?? action.kind} · {pending ? "aguardando sua confirmação" : action.status === "confirmada" ? "confirmada" : "cancelada"}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{ACTION_KIND_LABELS[action.kind] ?? action.kind} · {pending ? "aguardando sua confirmação" : action.status === "confirmada" ? "confirmada" : "cancelada"}</p>
       <p className="mt-1 text-sm leading-relaxed text-ink">{action.summary}</p>
       {pending ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" disabled={busy} onClick={() => onDecide("confirmar")} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-brand px-4 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-60">{busy ? <LoaderCircle size={15} className="animate-spin" aria-hidden /> : <Check size={15} aria-hidden />} Confirmar</button>
+          <button type="button" disabled={busy} onClick={() => onDecide("confirmar")} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-brand px-4 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-60">{busy ? <LoaderCircle size={15} className="animate-spin" aria-hidden /> : <Check size={15} aria-hidden />} Confirmar</button>
           <button type="button" disabled={busy} onClick={() => onDecide("cancelar")} className="inline-flex min-h-10 items-center rounded-full border border-line bg-paper-raised px-4 text-sm text-ink hover:border-ink disabled:opacity-60">Cancelar</button>
         </div>
       ) : action.result ? <div className="mt-2"><Markdown text={action.result} /></div> : null}
@@ -418,7 +418,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
           {messages.map((message, index) => (
             <li key={message.id}>
               {message.role === "usuario" ? (
-                <div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-tr-md bg-brand px-4 py-2.5 text-sm leading-relaxed text-white"><p className="whitespace-pre-wrap">{message.text}</p><p className="mt-1 text-right text-[10px] text-white/70">{formatTime(message.createdAt)}</p></div></div>
+                <div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-tr-md bg-brand px-4 py-2.5 text-sm leading-relaxed text-white"><p className="whitespace-pre-wrap">{message.text}</p><p className="mt-1 text-right text-xs text-white/70">{formatTime(message.createdAt)}</p></div></div>
               ) : message.role === "sistema" ? (
                 <div className="mx-auto max-w-[90%] rounded-xl bg-surface-muted px-3 py-2 text-center text-xs leading-relaxed text-ink-soft">
                   <Markdown text={message.text} />
@@ -431,7 +431,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
                   <div className="min-w-0 max-w-[88%] rounded-2xl rounded-tl-md bg-paper-raised px-4 py-3 shadow-e1">
                     <Steps steps={message.steps} live={false} />
                     <Markdown text={message.text} />
-                    <p className="mt-1 flex items-center gap-1 text-[10px] text-ink-soft">{formatTime(message.createdAt)}{message.id === freshId ? <Sprout size={12} className={message.id === settledId ? "text-brand" : "assistant-sprout-mark text-brand"} onAnimationEnd={() => setSettledId(message.id)} aria-hidden /> : null}</p>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-ink-soft">{formatTime(message.createdAt)}{message.id === freshId ? <Sprout size={12} className={message.id === settledId ? "text-brand" : "assistant-sprout-mark text-brand"} onAnimationEnd={() => setSettledId(message.id)} aria-hidden /> : null}</p>
                   </div>
                 </div>
               )}
@@ -490,11 +490,11 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
           style={{ height: "auto" }}
           onInput={(event) => { const element = event.currentTarget; element.style.height = "auto"; element.style.height = `${Math.min(160, element.scrollHeight)}px`; }}
         />
-        <button type="submit" onClick={(event) => keepFocus(event.detail)} disabled={!enabled || !!live || !input.trim() || long} aria-label="Enviar" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-strong disabled:opacity-50">
+        <button type="submit" onClick={(event) => keepFocus(event.detail)} disabled={!enabled || !!live || !input.trim() || long} aria-label="Enviar" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-hover disabled:opacity-50">
           <ArrowUp size={18} aria-hidden />
         </button>
       </div>
-      <p className={`mt-2 text-[11px] leading-relaxed text-ink-soft ${live ? "assistant-note-busy" : ""}`}>O assistente propõe; você decide. Confira antes de usar com o estudante.</p>
+      <p className={`mt-2 text-xs leading-relaxed text-ink-soft ${live ? "assistant-note-busy" : ""}`}>O assistente propõe; você decide. Confira antes de usar com o estudante.</p>
     </form>
   );
 
@@ -504,7 +504,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
         <header className="flex items-center justify-between gap-2 border-b border-line bg-paper-raised px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-white"><Sparkles size={15} aria-hidden /></span>
-            <div className="min-w-0"><p className="text-sm font-semibold">Assistente</p><p className="truncate text-[11px] text-ink-soft">{conversation?.title ?? "Nova conversa"}</p></div>
+            <div className="min-w-0"><p className="text-sm font-semibold">Assistente</p><p className="truncate text-xs text-ink-soft">{conversation?.title ?? "Nova conversa"}</p></div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <button type="button" onClick={reset} disabled={!!live} aria-label="Nova conversa" title="Nova conversa" className="flex size-9 items-center justify-center rounded-full text-ink-soft hover:bg-surface-muted disabled:opacity-50"><MessageSquarePlus size={18} aria-hidden /></button>
@@ -532,7 +532,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
 
   return (
     <div className="grid min-h-[calc(100dvh-180px)] gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <aside className="flex flex-col rounded-[22px] bg-surface-muted p-3" aria-label="Conversas">
+      <aside className="flex flex-col rounded-xl bg-surface-muted p-3" aria-label="Conversas">
         <button type="button" onClick={reset} disabled={!!live} className="task-action !min-h-11 !py-2"><MessageSquarePlus size={17} aria-hidden /> Nova conversa</button>
         <ul className="mt-3 flex max-h-72 flex-col gap-1 overflow-y-auto lg:max-h-none lg:flex-1">
           {list.length === 0 ? <li className="px-2 py-3 text-xs text-ink-soft">Suas conversas aparecem aqui.</li> : null}
@@ -540,14 +540,14 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
             <li key={item.id} className="group flex items-center gap-1">
               <button type="button" onClick={() => void open(item.id)} aria-current={conversation?.id === item.id ? "true" : undefined} className="min-w-0 flex-1 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-paper-raised aria-[current=true]:bg-paper-raised aria-[current=true]:font-medium">
                 <span className="block truncate">{loadingId === item.id ? "Abrindo..." : item.title}</span>
-                <span className="block text-[11px] text-ink-soft">{formatDay(item.updatedAt)}</span>
+                <span className="block text-xs text-ink-soft">{formatDay(item.updatedAt)}</span>
               </button>
               <button type="button" onClick={() => void remove(item.id)} aria-label={`Apagar a conversa ${item.title}`} className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-soft opacity-0 transition-opacity hover:bg-coral-soft hover:text-coral focus:opacity-100 group-hover:opacity-100"><Trash2 size={15} aria-hidden /></button>
             </li>
           ))}
         </ul>
       </aside>
-      <section className="flex min-h-[60vh] flex-col overflow-hidden rounded-[22px] border border-line bg-paper" aria-label="Conversa com o assistente">
+      <section className="flex min-h-[60vh] flex-col overflow-hidden rounded-xl border border-line bg-paper" aria-label="Conversa com o assistente">
         <header className="flex items-center gap-3 border-b border-line bg-paper-raised px-4 py-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-white"><Sparkles size={17} aria-hidden /></span>
           <div className="min-w-0"><h2 className="truncate text-base font-medium">{conversation?.title ?? "Nova conversa"}</h2><p className="text-xs text-ink-soft">Dúvidas, acompanhamento, planos, atividades e registros.</p></div>

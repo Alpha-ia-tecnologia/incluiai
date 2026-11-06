@@ -74,7 +74,7 @@
 .sun { opacity: 0; }
 .sun[data-on="true"] { opacity: 1; }
 .sunTrack { fill: none; stroke: var(--ink-soft); stroke-dasharray: 0 4.2; stroke-linecap: round; }
-.sunDisc { fill: var(--signal-yellow); stroke: var(--ink); }
+.sunDisc { fill: var(--paper-yellow); stroke: var(--ink); }
 .sunHand { transform-box: view-box; transform-origin: 48px 50px; }
 .rootLine { stroke-dasharray: 1 1; stroke-dashoffset: 1; }
 .rootLine[data-on="true"] { stroke-dashoffset: 0; }
@@ -87,7 +87,7 @@
 .pebble[data-palette="peach"] { fill: var(--peach-soft); stroke: var(--peach-ink); }
 .pebble[data-palette="sage"] { fill: var(--sage-soft); stroke: var(--sage-ink); }
 .pebble[data-palette="rose"] { fill: var(--rose-soft); stroke: var(--rose-ink); }
-.pebble[data-palette="lime"] { fill: var(--signal-lime); stroke: var(--ink-strong); }
+.pebble[data-palette="lime"] { fill: var(--paper-green); stroke: var(--ink-strong); }
 .stone { opacity: 0; fill: var(--surface-muted); stroke: var(--ink-soft); stroke-dasharray: 2 1.5; }
 .stone[data-on="true"] { opacity: 1; }
 .trellis { opacity: 0; transform: translateY(6px); }

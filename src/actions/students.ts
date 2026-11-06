@@ -75,7 +75,7 @@ export async function createStudent(formData: FormData) {
       timeline: {
         create: {
           type: "avaliacao",
-          title: "Cadastro no prontuário municipal",
+          title: "Cadastro na rede municipal",
           description: "Estudante incluído na plataforma.",
         },
       },

@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Archivo, Atkinson_Hyperlegible_Next } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Títulos e números em Archivo condensada (eixo de largura); texto e interface
+// em Atkinson Hyperlegible Next, desenhada para leitura com baixa visão.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
+  axes: ["wdth"],
 });
 
-const jetbrains = JetBrains_Mono({
-  variable: "--font-jetbrains",
+const atkinson = Atkinson_Hyperlegible_Next({
+  variable: "--font-atkinson",
   subsets: ["latin"],
 });
 
@@ -22,7 +25,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${jetbrains.variable} h-full antialiased`}>
+    <html lang="pt-BR" className={`${archivo.variable} ${atkinson.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

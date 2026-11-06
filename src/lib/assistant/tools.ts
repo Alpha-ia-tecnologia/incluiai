@@ -14,7 +14,7 @@ import { isImageGenerationEnabled } from "../images/openai-images";
 import { createActivityImage } from "../images/save";
 import { ALERT_LABELS, TREND_LABELS, loadDashboard } from "../dashboard";
 import { CALENDAR_THEMES, dateRangeLabel, relativeLabel, todayInBrazil, upcomingEvents } from "../commemorative-dates";
-import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, SHIFTS, STAGES, supportInfo } from "../scale";
+import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, SHIFTS, STAGES, supportInfo, withoutSupportCodes } from "../scale";
 import { ageFrom, formatDate, parseJson } from "../format";
 import { isHomeActivityNote } from "../user-journey";
 import type { Pseudonymizer } from "./privacy";
@@ -36,7 +36,7 @@ export type ToolContext = {
 };
 
 
-const support = (level: number) => `${level} (${supportInfo(level).code}, ${supportInfo(level).description.toLowerCase()})`;
+const support = (level: number) => `${level} (${supportInfo(level).label}, ${supportInfo(level).description.toLowerCase()})`;
 const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
@@ -188,7 +188,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
         activePlan
           ? `\n## Plano ativo (revisão em ${formatDate(activePlan.reviewDate)})\n${activePlan.objectives.map((objective) => {
             const insight = objectiveTrend(objective, s.diaryEntries);
-            return `- Objetivo (id ${objective.id}, ${DIMENSIONS[objective.dimension] ?? objective.dimension}, ${objective.status === "alcancado" ? "alcançado" : objective.status === "em_revisao" ? "em revisão" : "ativo"}): ${objective.description} Apoio atual ${support(objective.currentSupport)} → esperado ${support(objective.targetSupport)}. Tendência: ${TREND_LABELS[insight.trend]}. ${insight.message}${insight.lastSupportLevels.length ? ` Últimos níveis de apoio: ${insight.lastSupportLevels.join(" → ")}.` : ""}`;
+            return `- Objetivo (id ${objective.id}, ${DIMENSIONS[objective.dimension] ?? objective.dimension}, ${objective.status === "alcancado" ? "alcançado" : objective.status === "em_revisao" ? "em revisão" : "ativo"}): ${withoutSupportCodes(objective.description)} Apoio atual ${support(objective.currentSupport)} → esperado ${support(objective.targetSupport)}. Tendência: ${TREND_LABELS[insight.trend]}. ${insight.message}${insight.lastSupportLevels.length ? ` Últimos níveis de apoio: ${insight.lastSupportLevels.join(" → ")}.` : ""}`;
           }).join("\n") || "Sem objetivos."}`
           : "\n## Plano\nSem plano ativo.",
         s.planDraft ? `Há uma proposta de plano aguardando revisão (${s.planDraft.source === "ia" ? "agentes de IA" : "motor de regras"}, ${formatDate(s.planDraft.createdAt)}) em /estudantes/${id}/ppi#proposta.` : "",
@@ -366,7 +366,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       const objective = await prisma.objective.findFirst({ where: { id: args.objetivoId, plan: { studentId: id } }, select: { id: true, description: true } });
       if (!objective) throw new Error("Objetivo não encontrado para este estudante.");
       const label = { alcancado: "alcançado", em_revisao: "em revisão", ativo: "ativo" }[args.situacao];
-      return propose(ctx, "marcar_objetivo", `Marcar como ${label} o objetivo: ${objective.description}`, { studentId: id, objectiveId: objective.id, status: args.situacao });
+      return propose(ctx, "marcar_objetivo", `Marcar como ${label} o objetivo: ${withoutSupportCodes(objective.description)}`, { studentId: id, objectiveId: objective.id, status: args.situacao });
     });
 
   const buscarRecursos = define(ctx, "buscar_recursos",
@@ -457,7 +457,7 @@ function familyTools(ctx: ToolContext): BetaRunnableTool[] {
       const objectives = s.plans.flatMap((plan) => plan.objectives);
       return [
         `# ${label} (página: /familia/${studentId})`,
-        `## O que a escola está trabalhando\n${objectives.map((objective) => `- ${objective.description}`).join("\n") || "A escola ainda está montando o plano."}`,
+        `## O que a escola está trabalhando\n${objectives.map((objective) => `- ${withoutSupportCodes(objective.description)}`).join("\n") || "A escola ainda está montando o plano."}`,
         `## Atividades para fazer em casa\n${s.activities.map((a) => `- ${a.title} (${a.durationMinutes} min). Materiais: ${parseJson<string[]>(a.materials, []).join(", ")}. Passos: ${parseJson<string[]>(a.steps, []).map((step, index) => `${index + 1}. ${step}`).join(" ")} Se não der certo: ${a.planB}`).join("\n") || "A escola ainda não enviou atividades para casa."}`,
         `## Conquistas registradas pela escola\n${s.timeline.map((event) => `- ${event.title}${event.description ? `: ${event.description}` : ""} (${formatDate(event.date)})`).join("\n") || "Nenhuma ainda."}`,
         `## O que a família já contou\n${s.familyNotes.map((note) => `- "${note.note}" (${note.author}, ${formatDate(note.date)})${isHomeActivityNote(note.note) ? " [atividade feita em casa]" : ""}`).join("\n") || "Nenhuma observação ainda."}`,

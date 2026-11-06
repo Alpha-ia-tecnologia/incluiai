@@ -57,8 +57,10 @@ function supportLadder(objective: Objective, interest: string) {
   const current = supportInfo(objective.currentSupport);
   const target = supportInfo(objective.targetSupport);
   return {
-    below: `Mais apoio (${current.code}): reduzir opções para 2 ou 3, destacar a resposta correta com cor e oferecer ${current.label.toLowerCase()} imediato.`,
-    target: `Alvo (${target.code}): realizar a tarefa ${target.description.toLowerCase()}, mantendo o tema "${interest}" como âncora.`,
+    below: `Reduzir as opções para 2 ou 3, destacar a resposta correta com cor e oferecer ${current.level === 0 ? "supervisão" : current.label.toLowerCase()} desde o início.`,
+    target: target.level === 0
+      ? `Deixar que realize a tarefa sem ajuda, mantendo o tema "${interest}" como âncora.`
+      : `Oferecer apenas ${target.label.toLowerCase()}, mantendo o tema "${interest}" como âncora.`,
     above: `Menos apoio: retirar a pista, aumentar o número de itens e generalizar para outro contexto (outro colega, outro material, outro momento da rotina).`,
   };
 }

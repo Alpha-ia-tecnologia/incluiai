@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Padrão da categoria — Início</title>
+<style>
+:root{--ink:#0f172a;--soft:#475569;--line:#e2e8f0;--bg:#f8fafc;--accent:#4f46e5;--accent-soft:#eef2ff}
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);display:grid;grid-template-columns:240px 1fr 300px}
+.rail{background:#fff;border-right:1px solid var(--line);padding:24px 14px;display:flex;flex-direction:column;gap:2px}
+.brand{font-weight:700;font-size:20px;margin:0 10px 22px;color:var(--accent)}
+.nav{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border-radius:8px;font-size:14px;color:var(--soft)}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.ico{width:16px;height:16px;border:1.5px solid currentColor;border-radius:4px}
+main{padding:32px 36px;overflow:hidden}
+.top{display:flex;justify-content:space-between;align-items:center}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+.sub{font-size:14px;color:var(--soft);margin-top:4px}
+.btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:14px}
+.hero{margin-top:22px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 24px;display:flex;justify-content:space-between;align-items:center}
+.hero h2{font-size:18px;font-weight:600}.hero p{font-size:14px;color:var(--soft);margin-top:4px;max-width:560px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.kpi b{display:block;font-size:26px;font-weight:700}.kpi span{font-size:13px;color:var(--soft)}
+h3{font-size:16px;font-weight:600;margin:24px 0 10px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14px}
+th{text-align:left;font-weight:600;color:var(--soft);font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:10px 16px;background:#f1f5f9}
+td{padding:14px 16px;border-top:1px solid var(--line)}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+aside{padding:32px 20px;border-left:1px solid var(--line);background:#fff}
+.box{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.box h4{font-size:14px;font-weight:600}.box p{font-size:13px;color:var(--soft);margin-top:8px}
+.char{width:110px;height:110px;border-radius:50%;background:#d6bde9;display:grid;place-items:center;font-size:12px;margin:8px auto 0}
+</style></head><body>
+<nav class="rail" aria-label="Navegação">
+  <div class="brand">IncluiEdu</div>
+  <div class="nav on"><span class="ico"></span>Início</div>
+  <div class="nav"><span class="ico"></span>Estudantes</div>
+  <div class="nav"><span class="ico"></span>Minha jornada</div>
+  <div class="nav"><span class="ico"></span>Assistente</div>
+  <div class="nav"><span class="ico"></span>Atividades e recursos</div>
+  <div class="nav"><span class="ico"></span>Calendário inclusivo</div>
+  <div class="nav"><span class="ico"></span>Painel de indicadores</div>
+  <div class="nav"><span class="ico"></span>Ajuda</div>
+</nav>
+<main>
+  <div class="top"><div><h1>O que vamos fazer hoje, Marcos?</h1><div class="sub">EMEF Maria Firmina dos Reis · 4 estudantes</div></div><span class="btn">+ Registrar uma aula</span></div>
+  <section class="hero"><div><h2>Registrar como foi a aula com Dante</h2><p>Conte como Dante participou, qual apoio foi necessário e o que aconteceu.</p></div><span class="btn">Registrar →</span></section>
+  <div class="kpis">
+    <div class="kpi"><b>4</b><span>estudantes</span></div>
+    <div class="kpi"><b>0</b><span>registros nos últimos 7 dias</span></div>
+    <div class="kpi"><b>15</b><span>sugestões para avaliar</span></div>
+  </div>
+  <h3>Próximo passo por estudante</h3>
+  <table>
+    <thead><tr><th>Estudante</th><th>Turma</th><th>Último registro</th><th>Próximo passo</th></tr></thead>
+    <tbody>
+      <tr><td>Dante Oliveira</td><td>2º ano · B</td><td>17/07/2026</td><td><span class="pill">Registrar como foi a aula</span></td></tr>
+      <tr><td>Kawann Felipe</td><td>5º ano · C</td><td>—</td><td><span class="pill">Conhecer o estudante</span></td></tr>
+      <tr><td>Ravi Almeida</td><td>4º ano · C</td><td>10/07/2026</td><td><span class="pill">Preparar uma atividade</span></td></tr>
+      <tr><td>Ronaldo Pimentel dos Santos</td><td>5º ano · B</td><td>—</td><td><span class="pill">Criar o plano individual</span></td></tr>
+    </tbody>
+  </table>
+</main>
+<aside>
+  <div class="box"><h4>Próximas datas inclusivas</h4><p>16 nov · Dia Nacional de Atenção à Dislexia</p><p>3 dez · Dia Internacional da Pessoa com Deficiência</p></div>
+  <div class="box"><h4>Ideias para sua aula</h4><div class="char">personagem</div></div>
+</aside>
+</body></html>

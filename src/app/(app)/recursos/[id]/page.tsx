@@ -91,7 +91,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
                     {index + 1}
                   </span>
                   <div>
-                    <h2 className="font-display text-xl font-semibold text-ink">{activity.title}</h2>
+                    <h2 className="font-display text-xl font-bold text-ink">{activity.title}</h2>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       <Badge tone="brand">{CONTEXTS[activity.context] ?? activity.context}</Badge>
                       <Badge><Clock size={11} aria-hidden /> {activity.durationMinutes} minutos</Badge>
@@ -128,7 +128,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
                     <ol className="space-y-2">
                       {steps.map((step, stepIndex) => (
                         <li key={step} className="flex gap-2.5 text-sm leading-relaxed text-ink">
-                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-soft font-mono text-[10px] font-semibold text-brand-strong">{stepIndex + 1}</span>
+                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-soft font-mono text-xs font-semibold text-brand-strong">{stepIndex + 1}</span>
                           {step}
                         </li>
                       ))}

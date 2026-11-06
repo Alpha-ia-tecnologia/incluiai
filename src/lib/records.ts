@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { withoutSupportCodes } from "./scale";
 import { canAccessStudent, canSeePedagogicalDetail, isStaffOrNetwork, type SessionUser } from "./auth";
 
 // Gravações do acompanhamento usadas pelos formulários e pelo assistente.
@@ -86,10 +87,10 @@ export async function saveIntersectorReport(user: SessionUser, studentId: string
     data: { studentId, authorName: user.name, ...input, positioning: input.positioning?.trim() || null },
   });
   await prisma.timelineEvent.create({
-    data: { studentId, type: "atendimento", title: "Relatório de Articulação Intersetorial", description: `Registrado por ${user.name} (rede de saúde).` },
+    data: { studentId, type: "atendimento", title: "Orientações da equipe de saúde", description: `Enviadas por ${user.name} (rede de saúde).` },
   });
   await prisma.accessLog.create({
-    data: { studentId, actor: user.name, role: "terapeuta", action: "criou", detail: "Relatório de articulação intersetorial" },
+    data: { studentId, actor: user.name, role: "terapeuta", action: "enviou", detail: "Orientações para a escola" },
   });
   return report;
 }
@@ -100,7 +101,7 @@ export async function setObjectiveStatus(user: SessionUser, studentId: string, o
   if (!objective) throw new Error("Objetivo não encontrado para este estudante.");
   await prisma.objective.update({ where: { id: objectiveId }, data: { status } });
   if (status === "alcancado") {
-    await prisma.timelineEvent.create({ data: { studentId, type: "conquista", title: "Objetivo alcançado", description: objective.description } });
+    await prisma.timelineEvent.create({ data: { studentId, type: "conquista", title: "Objetivo alcançado", description: withoutSupportCodes(objective.description) } });
   }
   return objective;
 }

@@ -13,6 +13,11 @@ async function requireNetworkUser() {
   return user;
 }
 
+// Coordenação e gestão cuidam só da própria escola; a Secretaria, da rede toda.
+function assertSchoolScope(user: { schoolId: string | null }, schoolId: string) {
+  if (user.schoolId && user.schoolId !== schoolId) throw new Error("Você só pode alterar turmas da sua escola.");
+}
+
 export async function createSchool(formData: FormData) {
   await requireNetworkUser();
   const name = String(formData.get("name") ?? "").trim();
@@ -23,10 +28,11 @@ export async function createSchool(formData: FormData) {
 }
 
 export async function createClass(formData: FormData) {
-  await requireNetworkUser();
+  const user = await requireNetworkUser();
   const schoolId = String(formData.get("schoolId") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 60);
   if (!schoolId || !name) throw new Error("Escola e nome da turma são obrigatórios.");
+  assertSchoolScope(user, schoolId);
   await prisma.schoolClass.upsert({
     where: { schoolId_name: { schoolId, name } },
     create: {
@@ -44,8 +50,14 @@ export async function createClass(formData: FormData) {
   revalidatePath("/estudantes/novo");
 }
 
+// Turma com estudantes não é excluída: eles ficariam sem turma no cadastro.
 export async function deleteClass(classId: string) {
-  await requireNetworkUser();
+  const user = await requireNetworkUser();
+  const schoolClass = await prisma.schoolClass.findUnique({ where: { id: classId }, select: { name: true, schoolId: true } });
+  if (!schoolClass) throw new Error("Turma não encontrada.");
+  assertSchoolScope(user, schoolClass.schoolId);
+  const students = await prisma.student.count({ where: { schoolId: schoolClass.schoolId, className: schoolClass.name, status: "ativo" } });
+  if (students > 0) throw new Error("Esta turma ainda tem estudantes. Mude a turma deles antes de excluir.");
   await prisma.schoolClass.delete({ where: { id: classId } });
   revalidatePath("/cadastros");
 }

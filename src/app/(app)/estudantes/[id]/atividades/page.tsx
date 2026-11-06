@@ -4,7 +4,7 @@ import type { Activity } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateActivities, acceptActivity, rejectActivity } from "@/actions/activities";
 import { parseJson, formatDate } from "@/lib/format";
-import { CONTEXTS, ACTIVITY_STATUS } from "@/lib/scale";
+import { CONTEXTS, ACTIVITY_STATUS, withoutSupportCodes } from "@/lib/scale";
 import { PageHeader, Card, SectionTitle, Badge, AIDisclaimer, EmptyState } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { PendingButton } from "@/components/pending-button";
@@ -13,18 +13,24 @@ import { isImageGenerationEnabled } from "@/lib/images/openai-images";
 import { generateActivityImage, removeActivityImage } from "@/actions/activity-images";
 import { ActivityImageForm } from "@/components/activity-image-form";
 
-const WIDE_IMAGE_KINDS = new Set(["sequencia", "cartoes"]);
-
-type ActivityWithImage = Activity & { image: { altText: string; kind: string; createdAt: Date } | null };
 import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS, REJECT_REASON_OPTIONS } from "@/lib/form-options";
 import { ArrowRight, Clock, ImagePlus, Trash2, Wand2 } from "lucide-react";
+
+const WIDE_IMAGE_KINDS = new Set(["sequencia", "cartoes"]);
+// Cada geração grava as 3 sugestões juntas (mesmo horário); até 1 minuto antes
+// da mais recente conta como o mesmo lote.
+const BATCH_WINDOW_MS = 60 * 1000;
+
+type ActivityWithImage = Activity & { image: { altText: string; kind: string; createdAt: Date } | null };
 
 export const dynamic = "force-dynamic";
 
 const inputCls = "min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
 const labelCls = "mb-2 block text-sm font-medium text-ink";
-const linkCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-strong";
+const linkCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-hover";
+const disclosureCls = "rounded-2xl border border-line px-4";
+const disclosureSummaryCls = "flex min-h-12 cursor-pointer items-center py-3 text-sm font-medium text-ink";
 
 const CONTEXT_TONES: Record<string, "brand" | "amber" | "green"> = {
   sala_comum: "brand",
@@ -32,7 +38,9 @@ const CONTEXT_TONES: Record<string, "brand" | "amber" | "green"> = {
   casa: "green",
 };
 
-function ActivityCardView({ activity, studentId, imagesOn }: { activity: ActivityWithImage; studentId: string; imagesOn: boolean }) {
+// `compact`: só o cabeçalho e a ação ficam à vista; passos, materiais e apoios
+// abrem em "Ver passos e apoios". Usado fora do lote de sugestões mais recente.
+function ActivityCardView({ activity, studentId, imagesOn, compact = false }: { activity: ActivityWithImage; studentId: string; imagesOn: boolean; compact?: boolean }) {
   const steps = parseJson<string[]>(activity.steps, []);
   const materials = parseJson<string[]>(activity.materials, []);
   const adaptations = parseJson<{ text: string; rule: string }[]>(activity.adaptations, []);
@@ -42,23 +50,11 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
   const accept = acceptActivity.bind(null, studentId, activity.id);
   const reject = rejectActivity.bind(null, studentId, activity.id);
 
-  return (
-    <Card className={activity.status === "rejeitada" ? "opacity-75" : ""}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            <Badge tone={CONTEXT_TONES[activity.context] ?? "neutral"}>{CONTEXTS[activity.context]}</Badge>
-            <Badge>{ACTIVITY_STATUS[activity.status]}</Badge>
-            {activity.source === "ia" ? <Badge tone="amber">Sugestão dos agentes de IA</Badge> : null}
-          </div>
-          <h3 className="break-words font-medium text-ink">{activity.title}</h3>
-        </div>
-        <span className="flex items-center gap-1 text-sm text-ink-soft"><Clock size={15} aria-hidden /> {activity.durationMinutes} min</span>
-      </div>
-
+  const body = (
+    <>
       {reviewNotes.length && activity.status === "sugerida" ? (
         <div className="mt-4 rounded-xl bg-amber-soft px-4 py-3 text-sm text-amber-900">
-          <p className="font-medium">O agente revisor pediu para você conferir:</p>
+          <p className="font-medium">Antes de usar, confira:</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">{reviewNotes.map((note) => <li key={note}>{note}</li>)}</ul>
         </div>
       ) : null}
@@ -115,12 +111,12 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
         </div>
       </div>
 
-      <details className="mt-4 rounded-xl bg-paper px-4 text-sm">
-        <summary className="min-h-11 cursor-pointer py-3 font-medium text-ink">Ver apoios, adaptações e alternativa para a atividade</summary>
-        <div className="space-y-3 pb-4 leading-relaxed text-ink">
-          <p><span className="font-medium">Se precisar de mais apoio:</span> {activity.supportBelow}</p>
-          <p><span className="font-medium">Apoio planejado:</span> {activity.supportTarget}</p>
-          <p><span className="font-medium">Se conseguir com facilidade:</span> {activity.supportAbove}</p>
+      {compact ? (
+        <div className="mt-4 space-y-3 border-t border-line pt-4 text-sm leading-relaxed text-ink">
+          <p className="font-semibold">Apoios e alternativa</p>
+          <p><span className="font-medium">Se precisar de mais apoio:</span> {withoutSupportCodes(activity.supportBelow)}</p>
+          <p><span className="font-medium">Apoio planejado:</span> {withoutSupportCodes(activity.supportTarget)}</p>
+          <p><span className="font-medium">Se conseguir com facilidade:</span> {withoutSupportCodes(activity.supportAbove)}</p>
           <p><span className="font-medium">Se a atividade não funcionar:</span> {activity.planB}</p>
           {activity.classParticipation ? (
             <p><span className="font-medium">Como a turma participa junto:</span> {activity.classParticipation}</p>
@@ -134,7 +130,53 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
             </div>
           ) : null}
         </div>
-      </details>
+      ) : (
+        <details className="mt-4 rounded-xl bg-paper px-4 text-sm">
+          <summary className="min-h-11 cursor-pointer py-3 font-medium text-ink">Ver apoios, adaptações e alternativa para a atividade</summary>
+          <div className="space-y-3 pb-4 leading-relaxed text-ink">
+          <p><span className="font-medium">Se precisar de mais apoio:</span> {withoutSupportCodes(activity.supportBelow)}</p>
+          <p><span className="font-medium">Apoio planejado:</span> {withoutSupportCodes(activity.supportTarget)}</p>
+          <p><span className="font-medium">Se conseguir com facilidade:</span> {withoutSupportCodes(activity.supportAbove)}</p>
+          <p><span className="font-medium">Se a atividade não funcionar:</span> {activity.planB}</p>
+          {activity.classParticipation ? (
+            <p><span className="font-medium">Como a turma participa junto:</span> {activity.classParticipation}</p>
+          ) : null}
+          {adaptations.length > 0 ? (
+            <div>
+              <p className="font-medium">Adaptações para este estudante:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4">
+                {adaptations.map((a) => <li key={a.rule}>{a.text}</li>)}
+              </ul>
+            </div>
+          ) : null}
+          </div>
+        </details>
+      )}
+    </>
+  );
+
+  return (
+    <Card className={activity.status === "rejeitada" ? "opacity-75" : ""}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            <Badge tone={CONTEXT_TONES[activity.context] ?? "neutral"}>{CONTEXTS[activity.context]}</Badge>
+            {activity.status !== "sugerida" ? <Badge>{ACTIVITY_STATUS[activity.status]}</Badge> : null}
+            {activity.source === "ia" ? <Badge tone="amber">Sugestão dos agentes de IA</Badge> : null}
+          </div>
+          <h3 className="break-words font-medium text-ink">{activity.title}</h3>
+        </div>
+        <span className="flex items-center gap-1 text-sm text-ink-soft">
+          <Clock size={15} aria-hidden /> {activity.durationMinutes} min{compact ? ` · ${formatDate(activity.createdAt)}` : ""}
+        </span>
+      </div>
+
+      {compact ? (
+        <details className="mt-4 rounded-xl bg-paper px-4 text-sm">
+          <summary className="min-h-11 cursor-pointer py-3 font-medium text-ink">Ver passos e apoios</summary>
+          <div className="pb-4">{body}</div>
+        </details>
+      ) : body}
 
       {activity.status === "sugerida" ? (
         <div className="mt-4 space-y-3">
@@ -182,8 +224,13 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
   const generate = generateActivities.bind(null, id);
   const aiOn = isAIEnabled();
   const imagesOn = isImageGenerationEnabled();
+  // Só o lote mais recente fica aberto; o resto fica compacto ou recolhido.
   const suggested = activities.filter((a) => a.status === "sugerida");
-  const others = activities.filter((a) => a.status !== "sugerida");
+  const newest = suggested[0]?.createdAt.getTime() ?? 0;
+  const latestBatch = suggested.filter((a) => newest - a.createdAt.getTime() <= BATCH_WINDOW_MS);
+  const olderSuggested = suggested.slice(latestBatch.length);
+  const chosen = activities.filter((a) => a.status === "aceita" || a.status === "aplicada");
+  const rejected = activities.filter((a) => a.status === "rejeitada");
 
   return (
     <>
@@ -228,9 +275,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
                 <Wand2 size={16} aria-hidden /> Preparar 3 sugestões
               </PendingButton>
               <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-                {aiOn
-                  ? "Três agentes de IA trabalham ao mesmo tempo, um para cada contexto (sala comum, AEE e casa), e um agente revisor confere as regras de adaptação. Leia os passos e escolha o que faz sentido para o estudante."
-                  : "Você receberá uma sugestão para cada contexto, montada pelo motor de regras. Leia os passos e escolha as atividades que fazem sentido para o estudante."}
+                Você recebe uma sugestão para a sala comum, uma para o AEE e uma para casa. Leia os passos e escolha o que faz sentido para o estudante.
               </p>
             </div>
           </form>
@@ -238,28 +283,42 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
         <AIDisclaimer />
       </Card>
 
-      {suggested.length > 0 ? (
-        <>
-          <SectionTitle>Sugestões para você avaliar</SectionTitle>
-          <div className="mb-8 space-y-4">
-            {suggested.map((a) => <ActivityCardView key={a.id} activity={a} studentId={id} imagesOn={imagesOn} />)}
+      {latestBatch.length > 0 ? (
+        <section aria-labelledby="sugestoes-titulo" className="mb-8">
+          <h2 id="sugestoes-titulo" className="mb-1 text-sm font-medium tracking-tight text-ink">Sugestões para você avaliar</h2>
+          <p className="mb-4 text-sm text-ink-soft">Preparadas em {formatDate(latestBatch[0].createdAt)}. Use as que servem e rejeite as que não servem.</p>
+          <div className="space-y-4">
+            {latestBatch.map((a) => <ActivityCardView key={a.id} activity={a} studentId={id} imagesOn={imagesOn} />)}
           </div>
-        </>
+        </section>
       ) : null}
 
-      <SectionTitle>Atividades que você já avaliou</SectionTitle>
-      {others.length === 0 ? (
-        <EmptyState title="Nenhuma atividade avaliada ainda" hint="Prepare sugestões acima, confira os passos e escolha se deseja usar ou rejeitar cada atividade." />
+      {olderSuggested.length > 0 ? (
+        <details className={`mb-8 ${disclosureCls}`}>
+          <summary className={disclosureSummaryCls}>Sugestões anteriores ainda sem avaliação ({olderSuggested.length})</summary>
+          <div className="space-y-4 pb-4">
+            {olderSuggested.map((a) => <ActivityCardView key={a.id} activity={a} studentId={id} imagesOn={imagesOn} compact />)}
+          </div>
+        </details>
+      ) : null}
+
+      <SectionTitle>Atividades escolhidas</SectionTitle>
+      {chosen.length === 0 ? (
+        <EmptyState title="Nenhuma atividade escolhida ainda" hint="Prepare sugestões acima, confira os passos e toque em Usar esta atividade na que servir para a aula." />
       ) : (
         <div className="space-y-4">
-          {others.map((a) => (
-            <div key={a.id}>
-              <ActivityCardView activity={a} studentId={id} imagesOn={imagesOn} />
-              <p className="mt-2 pl-1 text-sm text-ink-soft">Criada em {formatDate(a.createdAt)}</p>
-            </div>
-          ))}
+          {chosen.map((a) => <ActivityCardView key={a.id} activity={a} studentId={id} imagesOn={imagesOn} compact />)}
         </div>
       )}
+
+      {rejected.length > 0 ? (
+        <details className={`mt-8 ${disclosureCls}`}>
+          <summary className={disclosureSummaryCls}>Sugestões rejeitadas ({rejected.length})</summary>
+          <div className="space-y-4 pb-4">
+            {rejected.map((a) => <ActivityCardView key={a.id} activity={a} studentId={id} imagesOn={imagesOn} compact />)}
+          </div>
+        </details>
+      ) : null}
     </>
   );
 }

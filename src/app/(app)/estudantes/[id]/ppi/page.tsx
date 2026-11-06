@@ -1,9 +1,9 @@
 ﻿import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { createPlan, createObjective, markObjectiveStatus } from "@/actions/plan";
+import { createPlan, createObjective, markObjectiveStatus, undoObjectiveStatus } from "@/actions/plan";
 import { activatePlanDraft, discardPlanDraft, generatePlanDraft } from "@/actions/plan-ai";
 import { formatDate } from "@/lib/format";
-import { SUPPORT_LEVELS, DIMENSIONS } from "@/lib/scale";
+import { SUPPORT_LEVELS, DIMENSIONS, withoutSupportCodes } from "@/lib/scale";
 import { CONDITION_SUGGESTIONS, CRITERION_SUGGESTIONS, buildObjectiveDescription } from "@/lib/objective";
 import { isAIEnabled } from "@/lib/agents/model";
 import type { CaseAnalysis, PlanProposal, TraceStep } from "@/lib/agents/schemas";
@@ -12,18 +12,25 @@ import { PageHeader, Card, SectionTitle, Badge, SupportPill, AIDisclaimer } from
 import { PendingButton } from "@/components/pending-button";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ObjectiveFields } from "@/components/objective-fields";
-import { ArrowRight, Bot, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRight, Bot, CheckCircle2, Sparkles, Trash2, Undo2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 const inputCls = "min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink";
 const labelCls = "mb-2 block text-sm font-medium text-ink";
-const buttonCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong";
+const buttonCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-hover";
 const fieldStyle = { labelClassName: labelCls, inputClassName: inputCls };
 const multiStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
-export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PlanPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ objetivo?: string; antes?: string; desfeito?: string }>;
+}) {
   const { id } = await params;
+  const { objetivo, antes, desfeito } = await searchParams;
   const plans = await prisma.plan.findMany({
     where: { studentId: id },
     include: { objectives: { orderBy: { createdAt: "asc" } } },
@@ -62,7 +69,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     if (draft) {
       return (
         <>
-          <PageHeader title="Plano de ensino (PPI)" lede="Revise a proposta, ajuste o que for preciso e escolha os objetivos. O plano só passa a valer quando você o ativar." />
+          <PageHeader title="Plano individual" lede="Revise a proposta, ajuste o que for preciso e escolha os objetivos. O plano só passa a valer quando você o ativar." />
           <ProposalReview
             studentId={id}
             studentName={student.name}
@@ -84,15 +91,15 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
     return (
       <>
-        <PageHeader title="Plano de ensino (PPI)" lede="Reúna o que o estudante já consegue fazer e os apoios que a equipe vai oferecer. Depois, defina os objetivos de aprendizagem." />
+        <PageHeader title="Plano individual" lede="Reúna o que o estudante já consegue fazer e os apoios que a equipe vai oferecer. Depois, defina os objetivos de aprendizagem." />
         <Card className="mb-6 max-w-2xl border-brand/30 bg-brand-soft/40">
           <SectionTitle><span className="flex items-center gap-2"><Bot size={16} aria-hidden /> {aiOn ? "Peça uma proposta aos agentes de IA" : "Peça uma proposta automática"}</span></SectionTitle>
           <p className="text-sm leading-relaxed text-ink-soft">
             {aiOn
-              ? "Três agentes trabalham em sequência: o analista lê o estudo de caso, o planejador propõe objetivos e estratégias e o revisor confere tudo. Você revisa e decide antes de ativar o plano."
+              ? "A IA lê o estudo de caso e como o estudante aprende, propõe objetivos e estratégias e confere a proposta. Você revisa e decide antes de ativar o plano."
               : "O motor de regras monta uma proposta a partir do estudo de caso e de como o estudante aprende. Você revisa e decide antes de ativar o plano."}
           </p>
-          {!aiOn ? <p className="mt-2 text-xs leading-relaxed text-ink-soft">A IA está desligada nesta instalação. Para usar os agentes, configure a chave ANTHROPIC_API_KEY no servidor.</p> : null}
+          {!aiOn ? <p className="mt-2 text-xs leading-relaxed text-ink-soft">A IA está desligada nesta instalação; quem administra a plataforma pode ativá-la.</p> : null}
           {hasData ? (
             <form action={generate} className="mt-4">
               <PendingButton className={buttonCls} pendingText={aiOn ? "Os agentes estão analisando o caso e montando o plano." : "Preparando a proposta…"} wait={aiOn ? "plano" : undefined}>
@@ -112,14 +119,34 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
   const addObjective = createObjective.bind(null, id, plan.id);
   const hasActiveObjectives = plan.objectives.some((objective) => objective.status === "ativo");
+  // Logo depois de marcar um objetivo, a mudança pode ser desfeita.
+  const changed = objetivo ? plan.objectives.find((objective) => objective.id === objetivo) : undefined;
+  const previous = antes === "ativo" || antes === "alcancado" || antes === "em_revisao" ? antes : null;
+  const undo = changed && previous && changed.status !== previous ? undoObjectiveStatus.bind(null, id, changed.id, previous) : null;
+  const STATUS_TEXT: Record<string, string> = { alcancado: "marcado como alcançado", em_revisao: "marcado para revisão", ativo: "voltou a ficar ativo" };
 
   return (
     <>
       <PageHeader
-        title="Plano de ensino (PPI)"
+        title="Plano individual"
         lede={`Criado em ${formatDate(plan.createdAt)} · data de revisão: ${formatDate(plan.reviewDate)}`}
         actions={overdue ? <Badge tone="coral">Hora de revisar com a equipe</Badge> : <Badge tone="green">Plano ativo</Badge>}
       />
+
+      {undo && changed ? (
+        <div role="status" className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-green-soft px-4 py-3 text-sm text-green">
+          <span className="flex items-center gap-2 font-medium"><CheckCircle2 size={18} aria-hidden /> Objetivo {STATUS_TEXT[changed.status] ?? "atualizado"}.</span>
+          <form action={undo}>
+            <button type="submit" className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 font-medium text-green underline underline-offset-4 hover:bg-paper-raised/60">
+              <Undo2 size={16} aria-hidden /> Desfazer
+            </button>
+          </form>
+        </div>
+      ) : desfeito ? (
+        <p role="status" className="mb-6 flex items-center gap-2 rounded-2xl bg-surface-muted px-4 py-3 text-sm font-medium text-ink">
+          <Undo2 size={18} aria-hidden /> Alteração desfeita. O objetivo voltou à situação anterior.
+        </p>
+      ) : null}
 
       <Card className="mb-6 border-brand/30 bg-brand-soft/50">
         <SectionTitle>{hasActiveObjectives ? "Próximo passo: preparar a aula" : "Próximo passo: definir um objetivo"}</SectionTitle>
@@ -158,7 +185,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           return (
             <Card key={obj.id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <p className="max-w-xl text-sm leading-relaxed text-ink">{obj.description}</p>
+                <p className="max-w-xl text-sm leading-relaxed text-ink">{withoutSupportCodes(obj.description)}</p>
                 {obj.status === "alcancado" ? <Badge tone="green">Alcançado</Badge> :
                  obj.status === "em_revisao" ? <Badge tone="amber">Em revisão</Badge> : <Badge tone="brand">Ativo</Badge>}
               </div>

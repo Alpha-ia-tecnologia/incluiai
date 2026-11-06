@@ -68,6 +68,15 @@ export interface StudentAlert {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_DAYS_WITHOUT_ENTRY = 7;
 
+// O que a equipe faz para resolver cada pendência: o próximo passo, e não um
+// aviso. O caminho é relativo à página do estudante.
+export const ALERT_ACTIONS: Record<StudentAlert["kind"], { label: string; path: string }> = {
+  sem_plano: { label: "Criar o plano individual", path: "/ppi" },
+  plano_vencido: { label: "Revisar o plano com a equipe", path: "/ppi" },
+  sem_registro: { label: "Registrar uma aula", path: "/diario" },
+  queda_participacao: { label: "Rever as últimas aulas", path: "/linha-do-tempo" },
+};
+
 export function studentAlerts(input: {
   plans: Plan[];
   entries: DiaryEntry[];

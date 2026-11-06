@@ -1,4 +1,5 @@
 import type { FunctionalProfile, Student } from "@prisma/client";
+import { CHANNELS } from "./scale";
 import { parseJson } from "./format";
 import { supportInfo } from "./scale";
 
@@ -23,7 +24,7 @@ export function meetingQuestions(input: {
   if (input.workedStrategies.length > 0) {
     q.push(`As estratégias que funcionaram (${input.workedStrategies.slice(0, 3).join(", ")}) podem ser generalizadas para outros contextos?`);
   }
-  if (input.hasIntersector) q.push("Como incorporar as orientações do relatório de articulação intersetorial no planejamento?");
+  if (input.hasIntersector) q.push("Como usar no planejamento as orientações da equipe de saúde?");
   if (!input.hasFamilyNote) q.push("O que a família tem observado em casa? Como aproximar o registro familiar?");
   if (q.length === 0) q.push("O acompanhamento está estável — quais metas ampliar para o próximo ciclo?");
   return q;
@@ -71,7 +72,7 @@ export function buildMaterial(kind: MaterialKind, student: Student, profile: Fun
       content: {
         intro: "Leia com o estudante antes da situação. Frases curtas, em 1ª pessoa, tom tranquilo.",
         cards: [
-          { label: `Eu sou o(a) ${first} e vou para a escola.` },
+          { label: `Meu nome é ${first} e eu vou para a escola.` },
           { label: "Na escola tem barulho às vezes. Se ficar alto, eu posso usar meu fone." },
           { label: "Quando a atividade muda, a professora me avisa antes." },
           { label: `Eu gosto de ${theme}. Às vezes a atividade tem ${theme}.` },
@@ -84,7 +85,7 @@ export function buildMaterial(kind: MaterialKind, student: Student, profile: Fun
   return {
     title: `Prancha de comunicação de ${first}`,
     content: {
-      intro: `Cartões de comunicação alternativa (${profile.expressiveChannel}). Imprima, plastifique e organize por temas.`,
+      intro: `Cartões de comunicação alternativa para usar com ${CHANNELS[profile.expressiveChannel] ?? "a comunicação do estudante"}. Imprima, plastifique e organize por temas.`,
       cards: [
         { label: "Sim" }, { label: "Não" }, { label: "Quero" }, { label: "Acabou" },
         { label: "Ajuda" }, { label: "Pausa" }, { label: "Banheiro" }, { label: "Água" },

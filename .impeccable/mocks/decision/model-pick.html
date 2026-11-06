@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Prancha de comunicação — Início</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16161a;--soft:#55555e;--white:#fff;--ground:#f6f6f4;--line:#dcdcd8;--pessoa:#f7d23e;--acao:#4fae5b;--coisa:#f08c2e;--descr:#3a7cc4;--social:#e98bb5}
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;font-family:"Atkinson Hyperlegible",sans-serif;color:var(--ink);background:var(--ground);display:grid;grid-template-columns:240px 1fr 316px}
+.rail{background:var(--ink);color:#fff;padding:28px 16px;display:flex;flex-direction:column;gap:4px}
+.brand{font-weight:700;font-size:24px;margin:0 10px 26px}
+.nav{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 12px;border-radius:12px;font-size:15px}
+.nav.on{background:var(--pessoa);color:var(--ink);font-weight:700}
+.ico{width:18px;height:18px;border:2px solid currentColor;border-radius:50%}
+main{padding:34px 36px;overflow:hidden}
+h1{font-size:44px;font-weight:700;line-height:1.08;letter-spacing:-.01em}
+.today{margin-top:24px;background:var(--white);border:1px solid var(--line);border-radius:20px;padding:26px 28px;display:grid;grid-template-columns:1fr 140px;gap:16px}
+.today h2{font-size:15px;font-weight:700;color:var(--soft)}
+.strip{display:flex;gap:12px;margin-top:12px}
+.cell{width:150px;height:150px;border-radius:14px;border:5px solid;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:19px}
+.cell svg{width:64px;height:64px;stroke:var(--ink);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.plus{align-self:center;font-size:28px;color:var(--soft)}
+.today p{margin-top:16px;font-size:17px;line-height:1.5;max-width:560px}
+.btn{display:inline-flex;align-items:center;gap:10px;min-height:50px;padding:0 24px;border-radius:14px;background:var(--acao);color:var(--ink);font-weight:700;font-size:17px;margin-top:16px}
+.char{width:140px;height:140px;border-radius:50%;background:#d6bde9;align-self:center;display:grid;place-items:center;font-size:12px;border:3px solid var(--ink)}
+h3{font-size:22px;font-weight:700;margin:26px 0 12px}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.bcell{background:#fff;border:4px solid var(--pessoa);border-radius:14px;padding:14px;min-height:170px;display:flex;flex-direction:column}
+.av{width:44px;height:44px;border-radius:50%;border:3px solid var(--ink);display:grid;place-items:center;font-weight:700}
+.bcell b{margin-top:10px;font-size:17px;line-height:1.2}.bcell .sub{font-size:13px;color:var(--soft);margin-top:2px}
+.act{margin-top:auto;display:inline-flex;align-items:center;gap:6px;border:3px solid var(--acao);border-radius:10px;padding:6px 10px;font-weight:700;font-size:14px;width:fit-content}
+aside{padding:34px 22px;background:#fff;border-left:1px solid var(--line)}
+.box{border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.box h4{font-size:17px}
+.stat{display:flex;align-items:baseline;gap:10px;margin-top:10px}.stat b{font-size:30px;min-width:40px}.stat span{font-size:14px;color:var(--soft)}
+.key{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;font-size:13px}
+.key span{display:flex;align-items:center;gap:6px}.key i{width:14px;height:14px;border-radius:4px;border:3px solid}
+</style></head><body>
+<nav class="rail" aria-label="Navegação">
+  <div class="brand">IncluiEdu</div>
+  <div class="nav on"><span class="ico"></span>Início</div>
+  <div class="nav"><span class="ico"></span>Estudantes</div>
+  <div class="nav"><span class="ico"></span>Minha jornada</div>
+  <div class="nav"><span class="ico"></span>Assistente</div>
+  <div class="nav"><span class="ico"></span>Atividades e recursos</div>
+  <div class="nav"><span class="ico"></span>Calendário inclusivo</div>
+  <div class="nav"><span class="ico"></span>Painel de indicadores</div>
+  <div class="nav"><span class="ico"></span>Ajuda</div>
+</nav>
+<main>
+  <h1>O que vamos fazer hoje, Marcos?</h1>
+  <section class="today" aria-label="Hoje">
+    <div>
+      <h2>Hoje, com Dante</h2>
+      <div class="strip">
+        <div class="cell" style="border-color:var(--pessoa)"><svg viewBox="0 0 64 64"><circle cx="32" cy="22" r="11"/><path d="M12 58c2-12 10-18 20-18s18 6 20 18"/></svg>Dante</div>
+        <span class="plus">+</span>
+        <div class="cell" style="border-color:var(--acao)"><svg viewBox="0 0 64 64"><path d="M14 50l8-2 26-26-6-6-26 26z"/><path d="M38 14l6 6"/></svg>registrar</div>
+        <span class="plus">+</span>
+        <div class="cell" style="border-color:var(--coisa)"><svg viewBox="0 0 64 64"><rect x="10" y="14" width="44" height="30" rx="3"/><path d="M22 52h20M32 44v8"/></svg>aula</div>
+      </div>
+      <p>Conte como Dante participou, qual apoio foi necessário e o que aconteceu. São três escolhas.</p>
+      <span class="btn">Registrar uma aula →</span>
+    </div>
+    <div class="char">personagem</div>
+  </section>
+  <h3>Próximo passo por estudante</h3>
+  <div class="board">
+    <div class="bcell"><span class="av">D</span><b>Dante Oliveira</b><span class="sub">2º ano · Turma B</span><span class="act">registrar aula</span></div>
+    <div class="bcell"><span class="av">K</span><b>Kawann Felipe</b><span class="sub">5º ano · Turma C</span><span class="act">conhecer</span></div>
+    <div class="bcell"><span class="av">R</span><b>Ravi Almeida</b><span class="sub">4º ano · Turma C</span><span class="act">preparar atividade</span></div>
+    <div class="bcell"><span class="av">R</span><b>Ronaldo Pimentel</b><span class="sub">5º ano · Turma B</span><span class="act">criar plano</span></div>
+  </div>
+</main>
+<aside>
+  <div class="box"><h4>Seu acompanhamento</h4>
+    <div class="stat"><b>4</b><span>estudantes</span></div>
+    <div class="stat"><b>0</b><span>registros nos últimos 7 dias</span></div>
+    <div class="stat"><b>15</b><span>sugestões para avaliar</span></div>
+  </div>
+  <div class="box"><h4>As cores da prancha</h4>
+    <div class="key">
+      <span><i style="border-color:var(--pessoa)"></i>pessoas</span><span><i style="border-color:var(--acao)"></i>ações</span>
+      <span><i style="border-color:var(--coisa)"></i>coisas</span><span><i style="border-color:var(--descr)"></i>como está</span>
+    </div>
+  </div>
+  <div class="box"><h4>Próximas datas inclusivas</h4><p style="font-size:14px;color:var(--soft);margin-top:8px">16 nov · Dia Nacional de Atenção à Dislexia</p><p style="font-size:14px;color:var(--soft);margin-top:6px">3 dez · Dia Internacional da Pessoa com Deficiência</p></div>
+</aside>
+</body></html>

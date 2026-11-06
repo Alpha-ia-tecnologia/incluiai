@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/*.html"
+        ],
+        "createdAt": "2026-11-06T03:36:39.272Z",
+        "reason": "agent: maquetes arquivadas da página de decisão (new-work), feitas antes do DESIGN.md; não são UI entregue. A direção escolhida na decisão foi a 'assigned', cujas fontes o DESIGN.md já registra"
+      }
+    ]
+  }
+}

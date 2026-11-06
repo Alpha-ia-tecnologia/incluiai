@@ -1,7 +1,8 @@
 ﻿import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
-import { TIMELINE_TYPES } from "@/lib/scale";
+import { TIMELINE_TYPES, withoutSupportCodes } from "@/lib/scale";
+import { timelineTitle } from "@/lib/display";
 import { PageHeader, Badge, EmptyState } from "@/components/ui";
 import {
   ClipboardList, FileText, HeartHandshake, Users, ArrowLeftRight,
@@ -55,8 +56,8 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
                   <span className="text-xs font-medium text-ink-soft">{formatDate(e.date)}</span>
                   <Badge tone={meta.tone}>{TIMELINE_TYPES[e.type]}</Badge>
                 </div>
-                <h3 className="mt-1 font-medium text-ink">{e.title}</h3>
-                {e.description ? <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">{e.description}</p> : null}
+                <h3 className="mt-1 font-medium text-ink">{timelineTitle(e.title)}</h3>
+                {e.description ? <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">{withoutSupportCodes(e.description)}</p> : null}
               </li>
             );
           })}

@@ -101,7 +101,6 @@ const SECTION_META: Record<string, { description: string }> = {
 
 const SUPPORT_OPTIONS: Option[] = SUPPORT_LEVELS.map((item) => ({
   value: String(item.level),
-  code: item.code,
   label: item.label,
   description: item.description,
 }));
@@ -571,8 +570,8 @@ export function ProfileChat({
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-display font-semibold text-ink">Perfil guiado</h2>
-                <span className="rounded-full bg-green-soft px-2 py-0.5 text-[10px] font-semibold text-green">
+                <h2 className="font-display font-bold text-ink">Perfil guiado</h2>
+                <span className="rounded-full bg-green-soft px-2 py-0.5 text-xs font-semibold text-green">
                   {done ? "pronto para revisar" : "em andamento"}
                 </span>
               </div>
@@ -582,7 +581,7 @@ export function ProfileChat({
             </div>
             <div className="hidden text-right sm:block">
               <p className="font-mono text-xs font-semibold text-ink">{progress}%</p>
-              <p className="text-[10px] text-ink-soft">{answeredCount} de {steps.length}</p>
+              <p className="text-xs text-ink-soft">{answeredCount} de {steps.length}</p>
             </div>
           </div>
           <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-line/60">
@@ -596,7 +595,7 @@ export function ProfileChat({
         {!done && current ? (
           <div className="grid min-h-[36rem] lg:grid-cols-[13rem_1fr]">
             <aside className="hidden border-r border-line bg-paper/60 p-4 lg:block">
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
+              <p className="mb-3 text-xs font-semibold text-ink-soft">
                 Etapas do perfil
               </p>
               <ol className="space-y-1">
@@ -617,7 +616,7 @@ export function ProfileChat({
                       }`}
                     >
                       <span
-                        className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                        className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs ${
                           completed
                             ? "bg-green text-white"
                             : active
@@ -641,7 +640,7 @@ export function ProfileChat({
               <div className="border-b border-line/70 px-5 py-3 sm:px-8">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-strong">
+                    <p className="text-xs font-semibold text-brand-strong">
                       Etapa {currentSectionIndex + 1} de {sections.length} · {current.section}
                     </p>
                     <p className="mt-0.5 text-xs text-ink-soft">
@@ -649,7 +648,7 @@ export function ProfileChat({
                     </p>
                   </div>
                   {editingField ? (
-                    <span className="rounded-full bg-amber-soft px-2.5 py-1 text-[10px] font-semibold text-amber">
+                    <span className="rounded-full bg-amber-soft px-2.5 py-1 text-xs font-semibold text-amber">
                       Editando
                     </span>
                   ) : null}
@@ -667,7 +666,7 @@ export function ProfileChat({
                             onClick={() => edit(step)}
                             className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-soft px-3.5 py-2 text-left text-xs text-brand-strong hover:ring-1 hover:ring-brand/30"
                           >
-                            <span className="block text-[10px] font-semibold opacity-70">
+                            <span className="block text-xs font-semibold opacity-70">
                               {step.label}
                             </span>
                             {answerLabel(step, answers[step.field])}
@@ -818,7 +817,7 @@ function AnswerControl({
         value={textDraft}
         onChange={(event) => setTextDraft(event.target.value)}
         placeholder={step.placeholder}
-        className="w-full rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-sm placeholder:text-ink-soft/60 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15"
+        className="w-full rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15"
       />
     </div>
   );
@@ -846,7 +845,7 @@ function AnswerControl({
         </div>
         {otherField}
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-strong">
+          <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-hover">
             Confirmar <ChevronRight size={15} aria-hidden />
           </button>
           {!step.required ? (
@@ -875,12 +874,12 @@ function AnswerControl({
             value={textDraft}
             onChange={(event) => setTextDraft(event.target.value)}
             placeholder={step.placeholder}
-            className="min-h-24 flex-1 resize-y rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-sm placeholder:text-ink-soft/60 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15"
+            className="min-h-24 flex-1 resize-y rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15"
           />
           <button
             type="submit"
             aria-label="Enviar resposta"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-e1 hover:bg-brand-strong"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-e1 hover:bg-brand-hover"
           >
             <Send size={17} aria-hidden />
           </button>
@@ -939,7 +938,7 @@ function AnswerControl({
         <button
           type="button"
           onClick={() => onAnswer([...new Set([...multiDraft, ...splitItems(textDraft, ",")])])}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-strong"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-hover"
         >
           Confirmar seleção <ChevronRight size={15} aria-hidden />
         </button>
@@ -973,7 +972,7 @@ function AnswerControl({
           >
             <span className="flex items-center gap-2 text-sm font-semibold">
               {option.code ? (
-                <span className="inline-flex min-w-10 justify-center rounded-md bg-paper px-1.5 py-0.5 font-mono text-[10px] text-brand-strong">
+                <span className="inline-flex min-w-10 justify-center rounded-md bg-paper px-1.5 py-0.5 font-mono text-xs text-brand-strong">
                   {option.code}
                 </span>
               ) : null}
@@ -1028,7 +1027,7 @@ function AnswerControl({
               className="w-full rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15"
             />
           </div>
-          <button type="submit" aria-label="Confirmar resposta" className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-e1 hover:bg-brand-strong">
+          <button type="submit" aria-label="Confirmar resposta" className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-e1 hover:bg-brand-hover">
             <Send size={17} aria-hidden />
           </button>
         </form>
@@ -1065,7 +1064,7 @@ function Review({
           <ClipboardCheck size={18} aria-hidden />
         </span>
         <div>
-          <h3 className="font-display text-base font-semibold text-green">
+          <h3 className="font-display text-base font-bold text-green">
             Perfil pronto para revisão
           </h3>
           <p className="mt-0.5 text-sm leading-relaxed text-green">
@@ -1079,7 +1078,7 @@ function Review({
           <section key={section} className="rounded-2xl border border-line bg-paper/40 p-4">
             <div className="mb-3">
               <h3 className="text-sm font-semibold text-ink">{section}</h3>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft">
+              <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">
                 {SECTION_META[section]?.description}
               </p>
             </div>
@@ -1089,7 +1088,7 @@ function Review({
                 .map((step) => (
                   <div key={step.field} className="flex items-start gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+                      <dt className="text-xs font-semibold text-ink-soft">
                         {step.label}
                       </dt>
                       <dd className="mt-0.5 break-words text-sm leading-relaxed text-ink">
@@ -1129,7 +1128,7 @@ function Review({
           type="button"
           onClick={onSave}
           disabled={pending}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-strong hover:shadow-e2 disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-e1 hover:bg-brand-hover hover:shadow-e2 disabled:opacity-60"
         >
           <Save size={16} aria-hidden />
           {pending ? "Salvando..." : "Salvar perfil educacional"}

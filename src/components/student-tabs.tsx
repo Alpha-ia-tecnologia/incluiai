@@ -9,7 +9,7 @@ const TABS = [
   { slug: "", label: "Resumo" },
   { slug: "estudo-de-caso", label: "Estudo de caso" },
   { slug: "perfil", label: "Como aprende" },
-  { slug: "ppi", label: "Plano de ensino" },
+  { slug: "ppi", label: "Plano individual" },
   { slug: "atividades", label: "Atividades" },
   { slug: "diario", label: "Registrar aula" },
   { slug: "linha-do-tempo", label: "Evolução" },
@@ -53,21 +53,21 @@ export function StudentTabs({ studentId, showCaseStudy }: { studentId: string; s
           >
             {tabs.map((tab) => <option key={tab.href} value={tab.href}>{tab.label}</option>)}
           </select>
-          <button type="submit" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-brand px-4 text-sm font-medium text-white hover:bg-brand-strong">
+          <button type="submit" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-brand px-4 text-sm font-medium text-white hover:bg-brand-hover">
             Abrir <ArrowRight size={16} aria-hidden />
           </button>
         </div>
       </form>
-      <div className="hidden flex-wrap gap-2 sm:flex">
+      <div className="hidden flex-wrap gap-x-1 border-b border-line sm:flex">
         {tabs.map((tab) => (
           <Link
             key={tab.href}
             href={tab.href}
             aria-current={tab.href === activeHref ? "page" : undefined}
-            className={`inline-flex min-h-11 items-center rounded-full px-4 py-3 text-sm transition-colors ${
+            className={`-mb-px inline-flex min-h-11 items-center border-b-2 px-3.5 text-sm transition-colors ${
               tab.href === activeHref
-                ? "bg-brand font-medium text-white"
-                : "bg-surface-muted text-ink-soft hover:bg-line hover:text-ink"
+                ? "border-ink font-bold text-ink"
+                : "border-transparent text-ink-soft hover:border-line hover:text-ink"
             }`}
           >
             {tab.label}

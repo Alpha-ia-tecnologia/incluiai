@@ -112,9 +112,9 @@ if (!ONLY_WAIT) {
 
   // ---------- 2. Login e roteamento por perfil ----------
   for (const [email, path, h1part] of [
-    ["secretaria@municipio.gov.br", "/", "O que vamos fazer hoje?"],
-    ["professor@escola.edu.br", "/", "O que vamos fazer hoje?"],
-    ["terapeuta@clinica.com.br", "/terapeuta", "Articulação intersetorial"],
+    ["secretaria@municipio.gov.br", "/", "O que vamos fazer hoje"],
+    ["professor@escola.edu.br", "/", "O que vamos fazer hoje"],
+    ["terapeuta@clinica.com.br", "/terapeuta", "Orientações para a escola"],
     ["familia@email.com", "/familia/", "Acompanhamento de"],
   ]) {
     const { ctx, page, errors } = await newSession();
@@ -163,7 +163,7 @@ let danteHref = "";
   for (const [tab, heading] of [
     ["", "Dante"],
     ["/perfil", "Como aprende"],
-    ["/ppi", "Plano de ensino (PPI)"],
+    ["/ppi", "Plano individual"],
     ["/atividades", "Preparar uma atividade"],
     ["/diario", "Registrar aula ou atendimento"],
     ["/linha-do-tempo", "Evolução"],
@@ -253,7 +253,7 @@ if (!ONLY_WAIT) {
     ]) await typeOther(page, legend, txt);
     await clickByText(page, "Enviar para a equipe escolar");
     await page.waitForFunction(() => document.body.innerText.includes("Pareamento com miniaturas"), { timeout: 20000 }).catch(() => {});
-    check("relatório de articulação intersetorial", await page.evaluate(() => document.body.innerText.includes("Pareamento com miniaturas")));
+    check("orientações do terapeuta enviadas à escola", await page.evaluate(() => document.body.innerText.includes("Pareamento com miniaturas")));
     check("terapeuta sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }

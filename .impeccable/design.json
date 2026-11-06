@@ -1,0 +1,674 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T00:00:00Z",
+  "title": "Design System: IncluiEdu",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "Tinta preta quente",
+        "canonical": "#1d1b1a",
+        "purpose": "Texto, títulos, ícones, botão principal e anel de foco.",
+        "tonalRamp": [
+          "#272625",
+          "#484442",
+          "#68625f",
+          "#89807b",
+          "#a59f9c",
+          "#c2bebd",
+          "#dcdbda",
+          "#f3f2f2"
+        ]
+      },
+      "ink-hover": {
+        "role": "primary",
+        "displayName": "Tinta de hover",
+        "canonical": "#3b3531",
+        "purpose": "Hover do botão principal e do botão do assistente.",
+        "tonalRamp": [
+          "#282624",
+          "#494440",
+          "#6b625b",
+          "#8d8077",
+          "#a89f99",
+          "#c3bebb",
+          "#dddbd9",
+          "#f3f2f2"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Tinta suave",
+        "canonical": "#57504a",
+        "purpose": "Texto de apoio e metadados (7,9:1 sobre branco).",
+        "tonalRamp": [
+          "#282624",
+          "#494541",
+          "#6a635c",
+          "#8c8178",
+          "#a7a09a",
+          "#c3bfbc",
+          "#dddbda",
+          "#f3f2f2"
+        ]
+      },
+      "placeholder": {
+        "role": "neutral",
+        "displayName": "Placeholder",
+        "canonical": "#6e6660",
+        "purpose": "Exemplo dentro do campo, 4,5:1 ou mais.",
+        "tonalRamp": [
+          "#282625",
+          "#484441",
+          "#69635e",
+          "#8a817a",
+          "#a6a09b",
+          "#c2bfbc",
+          "#dddbda",
+          "#f3f2f2"
+        ]
+      },
+      "pen": {
+        "role": "primary",
+        "displayName": "Caneta azul",
+        "canonical": "#2b4a9b",
+        "purpose": "Links sublinhados, números e dados de gráfico. No código: brand-strong e chart-data.",
+        "tonalRamp": [
+          "#1a2133",
+          "#293861",
+          "#334e94",
+          "#3c63c8",
+          "#748dce",
+          "#a6b4d8",
+          "#d0d6e7",
+          "#eff1f6"
+        ]
+      },
+      "tack": {
+        "role": "tertiary",
+        "displayName": "Vermelho-tachinha",
+        "canonical": "#c8362f",
+        "purpose": "Só o agora e o fixado: tachinha, ponto da página atual, aro da marca agora.",
+        "tonalRamp": [
+          "#341a19",
+          "#642926",
+          "#99332e",
+          "#cf3d36",
+          "#d2746f",
+          "#dba6a4",
+          "#e8d0cf",
+          "#f6efef"
+        ]
+      },
+      "cork": {
+        "role": "secondary",
+        "displayName": "Cortiça plana",
+        "canonical": "#b88a5c",
+        "purpose": "Fundo da barra lateral e da navegação do celular. Nunca textura.",
+        "tonalRamp": [
+          "#2f261e",
+          "#584531",
+          "#856342",
+          "#b38252",
+          "#c0a181",
+          "#d1bfae",
+          "#e3dbd3",
+          "#f5f2f0"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel",
+        "canonical": "#fdfcfa",
+        "purpose": "Fundo da página.",
+        "tonalRamp": [
+          "#30291d",
+          "#5a4c2f",
+          "#88703e",
+          "#b7944d",
+          "#c3ac7f",
+          "#d2c6ac",
+          "#e4ded3",
+          "#f5f3f0"
+        ]
+      },
+      "paper-raised": {
+        "role": "neutral",
+        "displayName": "Papel de cima",
+        "canonical": "#ffffff",
+        "purpose": "Cartões, folhas, campos, item atual da navegação.",
+        "tonalRamp": [
+          "#262626",
+          "#454545",
+          "#636363",
+          "#828282",
+          "#a1a1a1",
+          "#bfbfbf",
+          "#dbdbdb",
+          "#f2f2f2"
+        ]
+      },
+      "surface-muted": {
+        "role": "neutral",
+        "displayName": "Papel gasto",
+        "canonical": "#f3efe8",
+        "purpose": "Hover de botões sem fundo, fixar pressionado.",
+        "tonalRamp": [
+          "#2d281f",
+          "#554935",
+          "#7f6b48",
+          "#a98d5b",
+          "#baa788",
+          "#cdc3b1",
+          "#e2ddd5",
+          "#f4f3f0"
+        ]
+      },
+      "brand-soft": {
+        "role": "neutral",
+        "displayName": "Papel creme",
+        "canonical": "#efe8dd",
+        "purpose": "Botão secundário, cabeçalho do estudante, avisos neutros.",
+        "tonalRamp": [
+          "#2e281e",
+          "#574933",
+          "#836a44",
+          "#ae8c56",
+          "#bda784",
+          "#cfc3af",
+          "#e3ddd4",
+          "#f4f3f0"
+        ]
+      },
+      "brand-soft-hover": {
+        "role": "neutral",
+        "displayName": "Papel creme escuro",
+        "canonical": "#e6ddcf",
+        "purpose": "Hover do botão secundário.",
+        "tonalRamp": [
+          "#2d281f",
+          "#554835",
+          "#7f6948",
+          "#a98b5b",
+          "#baa688",
+          "#cdc2b1",
+          "#e2ddd5",
+          "#f4f3f0"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Borda de papel",
+        "canonical": "#e3dcd1",
+        "purpose": "Borda de 1px, divisórias, trilho de gráfico.",
+        "tonalRamp": [
+          "#2c2721",
+          "#514839",
+          "#78684e",
+          "#a08964",
+          "#b4a58d",
+          "#cac2b4",
+          "#e0dcd6",
+          "#f4f3f1"
+        ]
+      },
+      "paper-yellow": {
+        "role": "secondary",
+        "displayName": "Amarelo-ofício",
+        "canonical": "#f3cf45",
+        "purpose": "Só o recado de hoje; visto da marca feito.",
+        "tonalRamp": [
+          "#3a3213",
+          "#715f19",
+          "#af9018",
+          "#efc216",
+          "#e7ca5b",
+          "#e6d698",
+          "#ede6c9",
+          "#f7f5ed"
+        ]
+      },
+      "paper-yellow-soft": {
+        "role": "secondary",
+        "displayName": "Amarelo-ofício suave",
+        "canonical": "#fbeeb0",
+        "purpose": "Seleção de texto.",
+        "tonalRamp": [
+          "#3a3312",
+          "#726218",
+          "#b19615",
+          "#f2cb12",
+          "#e9d059",
+          "#e8da97",
+          "#eee7c9",
+          "#f8f6ed"
+        ]
+      },
+      "paper-blue": {
+        "role": "secondary",
+        "displayName": "Papel azul",
+        "canonical": "#9ccbe8",
+        "purpose": "Categoria registrar.",
+        "tonalRamp": [
+          "#182a34",
+          "#264c64",
+          "#2e7099",
+          "#3594cf",
+          "#6facd2",
+          "#a3c6db",
+          "#cfdee8",
+          "#eff3f6"
+        ]
+      },
+      "paper-green": {
+        "role": "secondary",
+        "displayName": "Papel verde",
+        "canonical": "#a9d8a2",
+        "purpose": "Categoria preparar.",
+        "tonalRamp": [
+          "#202f1d",
+          "#365930",
+          "#498740",
+          "#5db550",
+          "#89c180",
+          "#b2d2ad",
+          "#d5e4d3",
+          "#f0f5f0"
+        ]
+      },
+      "paper-pink": {
+        "role": "secondary",
+        "displayName": "Papel rosa",
+        "canonical": "#f2b6c6",
+        "purpose": "Categoria conhecer e ouvir.",
+        "tonalRamp": [
+          "#36171f",
+          "#682235",
+          "#a02747",
+          "#d82c5a",
+          "#d86987",
+          "#dea0b1",
+          "#e9cdd5",
+          "#f6eef0"
+        ]
+      },
+      "paper-lilac": {
+        "role": "secondary",
+        "displayName": "Papel lilás",
+        "canonical": "#cdb8ea",
+        "purpose": "Categoria planejar.",
+        "tonalRamp": [
+          "#241a32",
+          "#412a60",
+          "#5c3592",
+          "#773fc5",
+          "#9a75cc",
+          "#bba7d8",
+          "#dad0e6",
+          "#f2eff5"
+        ]
+      },
+      "state-green": {
+        "role": "tertiary",
+        "displayName": "Verde de estado",
+        "canonical": "#2b6651",
+        "purpose": "Estado bom; chart-good. Token CSS: --green.",
+        "tonalRamp": [
+          "#1d2f29",
+          "#31594b",
+          "#40876e",
+          "#50b491",
+          "#80c1aa",
+          "#add1c4",
+          "#d3e4de",
+          "#f0f5f3"
+        ]
+      },
+      "state-green-soft": {
+        "role": "tertiary",
+        "displayName": "Verde de estado suave",
+        "canonical": "#e4f2e1",
+        "purpose": "Fundo de selo e indicador bom. Token CSS: --green-soft.",
+        "tonalRamp": [
+          "#212f1d",
+          "#385931",
+          "#4d8641",
+          "#62b351",
+          "#8cc081",
+          "#b4d1ae",
+          "#d6e3d3",
+          "#f1f5f0"
+        ]
+      },
+      "state-amber": {
+        "role": "tertiary",
+        "displayName": "Âmbar de estado",
+        "canonical": "#81551e",
+        "purpose": "Estado de atenção. Token CSS: --amber.",
+        "tonalRamp": [
+          "#342818",
+          "#644826",
+          "#99692e",
+          "#cf8b35",
+          "#d2a66f",
+          "#dbc2a3",
+          "#e8ddcf",
+          "#f6f3ef"
+        ]
+      },
+      "state-amber-soft": {
+        "role": "tertiary",
+        "displayName": "Âmbar de estado suave",
+        "canonical": "#fae7ca",
+        "purpose": "Fundo de atenção. Token CSS: --amber-soft.",
+        "tonalRamp": [
+          "#392a14",
+          "#6e4d1c",
+          "#ab721c",
+          "#e8971c",
+          "#e3ae5f",
+          "#e4c79a",
+          "#ecdfcb",
+          "#f7f3ed"
+        ]
+      },
+      "state-coral": {
+        "role": "tertiary",
+        "displayName": "Coral de estado",
+        "canonical": "#923f48",
+        "purpose": "Estado baixo ou pendência; chart-low. Token CSS: --coral.",
+        "tonalRamp": [
+          "#2f1d1f",
+          "#593135",
+          "#864149",
+          "#b3515c",
+          "#c08188",
+          "#d1aeb1",
+          "#e3d3d5",
+          "#f5f0f0"
+        ]
+      },
+      "state-coral-soft": {
+        "role": "tertiary",
+        "displayName": "Coral de estado suave",
+        "canonical": "#f7dee0",
+        "purpose": "Fundo de pendência. Token CSS: --coral-soft.",
+        "tonalRamp": [
+          "#34191b",
+          "#63262b",
+          "#982f37",
+          "#cd3743",
+          "#d17078",
+          "#daa4a8",
+          "#e8cfd1",
+          "#f6efef"
+        ]
+      },
+      "chart-mid": {
+        "role": "tertiary",
+        "displayName": "Âmbar de gráfico",
+        "canonical": "#96651f",
+        "purpose": "Faixa intermediária nos gráficos (3:1 contra trilho e fundo).",
+        "tonalRamp": [
+          "#352918",
+          "#664b24",
+          "#9c6d2b",
+          "#d39031",
+          "#d5aa6c",
+          "#ddc4a2",
+          "#e9dece",
+          "#f6f3ee"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "A pergunta do Início; 38px no celular, 46px a partir de 640px. Uma por tela."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Título do recado de hoje (28px / 34px)."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Títulos de seção no corpo da página."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Títulos das folhas da lateral e de cartões de resumo."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Números do resumo, em caneta azul, algarismos tabulares."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto do recado e parágrafos, até cerca de 42rem."
+      },
+      "body-small": {
+        "displayName": "Body small",
+        "purpose": "Metadados, links, botões, rótulos de seção pequenos."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Piso de 12px: legendas, datas, rodapé da cortiça."
+      }
+    },
+    "shadows": [
+      {
+        "name": "paper-pinned",
+        "value": "0 1px 0 rgb(60 40 20 / 0.08), 0 10px 22px rgb(60 40 20 / 0.12)",
+        "purpose": "Só o recado de hoje."
+      },
+      {
+        "name": "tack",
+        "value": "0 3px 4px rgb(0 0 0 / 0.25)",
+        "purpose": "Só a tachinha do recado e do cartão fixado."
+      },
+      {
+        "name": "shadow-e2",
+        "value": "0 8px 22px rgb(60 40 20 / 0.12)",
+        "purpose": "Camadas flutuantes: navegação do celular, menus, botão do assistente."
+      },
+      {
+        "name": "shadow-glow",
+        "value": "0 0 0 4px rgb(29 27 26 / 0.12)",
+        "purpose": "Campo com foco."
+      }
+    ],
+    "motion": [
+      {
+        "name": "tack-set",
+        "value": "420ms cubic-bezier(0.25, 1, 0.5, 1)",
+        "purpose": "A tachinha assenta o recado uma vez ao carregar; único movimento da tela; desligado com movimento reduzido."
+      },
+      {
+        "name": "state-transition",
+        "value": "160ms ease",
+        "purpose": "Fundo e borda em hover de botões, links de navegação e cartões."
+      },
+      {
+        "name": "ease-alpha",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Marca de resposta do assistente."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "mobile-max",
+        "value": "767px"
+      },
+      {
+        "name": "rail-hidden-max",
+        "value": "1023px"
+      },
+      {
+        "name": "side-narrow-max",
+        "value": "1199px"
+      },
+      {
+        "name": "side-stacked-max",
+        "value": "1279px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Cápsula de tinta para a ação principal de cada bloco.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Registrar uma aula <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a>",
+      "css": ".ds-btn-primary{display:inline-flex;min-height:48px;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 22px;background:var(--brand);color:#fff;font-size:15px;font-weight:700;line-height:1.4;text-decoration:none;transition:background 160ms ease}.ds-btn-primary:hover{background:var(--brand-hover)}.ds-btn-primary:focus-visible{outline:2px solid var(--ink);outline-offset:4px}"
+    },
+    {
+      "name": "Botão secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Cápsula de papel creme com texto em caneta, para a ação ao lado da principal.",
+      "html": "<a class=\"ds-btn-secondary\" href=\"#\">Ver minha jornada</a>",
+      "css": ".ds-btn-secondary{display:inline-flex;min-height:48px;align-items:center;gap:8px;border-radius:999px;padding:12px 22px;background:var(--brand-soft);color:var(--pen);font-size:15px;font-weight:700;text-decoration:none;transition:background 160ms ease}.ds-btn-secondary:hover{background:var(--brand-soft-hover)}.ds-btn-secondary:focus-visible{outline:2px solid var(--ink);outline-offset:4px}"
+    },
+    {
+      "name": "Link de texto",
+      "kind": "custom",
+      "refersTo": "text-link",
+      "description": "Link sublinhado em caneta azul, alvo de 44px.",
+      "html": "<a class=\"ds-link\" href=\"#\">Ver todos</a>",
+      "css": ".ds-link{display:inline-flex;min-height:44px;align-items:center;gap:8px;color:var(--pen);font-size:14px;font-weight:700;text-decoration:underline;text-underline-offset:4px}.ds-link:hover{text-decoration-thickness:2px}.ds-link:focus-visible{outline:2px solid var(--ink);outline-offset:4px}"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo em papel branco, borda fina, foco em tinta.",
+      "html": "<label class=\"ds-field\">Nome do estudante<input class=\"ds-input\" placeholder=\"Ex.: Dante Oliveira\"></label>",
+      "css": ".ds-field{display:grid;gap:8px;font-size:14px;font-weight:700;color:var(--ink)}.ds-input{min-height:48px;border:1px solid var(--line);border-radius:8px;background:var(--paper-raised);padding:0 12px;font-size:16px;color:var(--ink);caret-color:var(--ink);transition:border-color 160ms ease,box-shadow 160ms ease}.ds-input::placeholder{color:var(--placeholder);opacity:1}.ds-input:focus{outline:none;border-color:var(--ink);box-shadow:var(--shadow-glow)}"
+    },
+    {
+      "name": "Navegação de cortiça",
+      "kind": "nav",
+      "refersTo": "nav-rail",
+      "description": "Barra lateral em cortiça plana; página atual em papel com ponto de tachinha.",
+      "html": "<nav class=\"ds-rail\"><a class=\"ds-rail-link\" aria-current=\"page\" href=\"#\">Início</a><a class=\"ds-rail-link\" href=\"#\">Estudantes</a><a class=\"ds-rail-link\" href=\"#\">Minha jornada</a></nav>",
+      "css": ".ds-rail{display:flex;width:248px;flex-direction:column;gap:8px;background:var(--cork);padding:28px 16px 18px}.ds-rail-link{position:relative;display:flex;min-height:48px;align-items:center;padding:12px;border-radius:8px;color:var(--ink);font-size:15px;line-height:1.4;text-decoration:none;transition:background 160ms ease}.ds-rail-link:hover{background:rgb(255 255 255/.4)}.ds-rail-link:focus-visible{outline:2px solid var(--ink);outline-offset:4px}.ds-rail-link[aria-current=page]{background:var(--paper-raised);font-weight:700;padding-right:30px}.ds-rail-link[aria-current=page]::after{content:\"\";position:absolute;right:12px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--tack)}"
+    },
+    {
+      "name": "Recado de hoje",
+      "kind": "card",
+      "refersTo": "today-notice",
+      "description": "Papel amarelo-ofício preso com tachinha; o único recado da tela.",
+      "html": "<section class=\"ds-notice\"><h2 class=\"ds-notice-title\">Você está em dia com Dante</h2><p class=\"ds-notice-text\">Registre cada aula para acompanhar o que está funcionando.</p><a class=\"ds-notice-btn\" href=\"#\">Registrar uma aula</a></section>",
+      "css": ".ds-notice{position:relative;max-width:640px;border-radius:4px;background:var(--paper-yellow);color:var(--ink);padding:36px 32px 32px;box-shadow:0 1px 0 rgb(60 40 20/.08),0 10px 22px rgb(60 40 20/.12)}.ds-notice::before{content:\"\";position:absolute;top:-9px;left:50%;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:var(--tack);box-shadow:0 3px 4px rgb(0 0 0/.25);animation:ds-tack-set 420ms cubic-bezier(.25,1,.5,1) both}@keyframes ds-tack-set{from{transform:translateY(-8px) scale(1.2)}to{transform:none}}@media (prefers-reduced-motion:reduce){.ds-notice::before{animation:none}}.ds-notice-title{margin:0;font-family:var(--font-archivo), system-ui, sans-serif;font-stretch:82%;font-size:34px;font-weight:800;line-height:1.1}.ds-notice-text{margin:12px 0 20px;font-size:16px;line-height:1.625}.ds-notice-btn{display:inline-flex;min-height:48px;align-items:center;border-radius:999px;padding:12px 22px;background:var(--ink);color:#fff;font-size:15px;font-weight:700;text-decoration:none}.ds-notice-btn:hover{background:var(--brand-hover)}.ds-notice-btn:focus-visible{outline:2px solid var(--ink);outline-offset:4px}"
+    },
+    {
+      "name": "Cartão de estudante",
+      "kind": "card",
+      "refersTo": "student-card",
+      "description": "Folha branca com faixa de categoria da etapa atual; fixado ganha tachinha.",
+      "html": "<article class=\"ds-student ds-student--pinned\"><span class=\"ds-student-tab\"></span><div class=\"ds-student-body\"><h3 class=\"ds-student-name\">Kawann Felipe</h3><p class=\"ds-student-meta\">5º ano · Turma C · sem registros de aula</p><a class=\"ds-student-link\" href=\"#\">Conhecer o estudante</a></div></article>",
+      "css": ".ds-student{position:relative;max-width:380px;border:1px solid var(--line);border-radius:6px;background:var(--paper-raised);color:var(--ink);transition:border-color 160ms ease}.ds-student:hover{border-color:rgb(29 27 26/.4)}.ds-student-tab{display:block;height:6px;border-radius:6px 6px 0 0;background:var(--paper-pink)}.ds-student--pinned::before{content:\"\";position:absolute;z-index:1;top:-9px;left:50%;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:var(--tack);box-shadow:0 3px 4px rgb(0 0 0/.25)}.ds-student-body{padding:12px 20px}.ds-student-name{margin:0;font-size:16px;font-weight:700}.ds-student-meta{margin:2px 0 4px;font-size:14px;color:var(--ink-soft)}.ds-student-link{display:inline-flex;min-height:44px;align-items:center;color:var(--pen);font-size:14px;font-weight:700;text-decoration:underline;text-underline-offset:4px}.ds-student-link:focus-visible{outline:2px solid var(--ink);outline-offset:4px}"
+    },
+    {
+      "name": "Marcas de capítulo",
+      "kind": "custom",
+      "refersTo": "chapter-mark",
+      "description": "Estado pela forma: feito, agora, em aberto, aguardando.",
+      "html": "<ol class=\"ds-marks\"><li class=\"ds-mark ds-mark--done\" title=\"feito\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></li><li class=\"ds-mark ds-mark--now\" title=\"agora\">2</li><li class=\"ds-mark\" title=\"em aberto\">3</li><li class=\"ds-mark ds-mark--wait\" title=\"aguardando outra pessoa\">4</li></ol>",
+      "css": ".ds-marks{display:flex;gap:6px;margin:0;padding:0;list-style:none}.ds-mark{display:flex;width:28px;height:28px;box-sizing:border-box;align-items:center;justify-content:center;border-radius:999px;border:1.5px solid var(--ink);background:var(--paper-raised);color:var(--ink);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}.ds-mark--done{border:0;background:var(--ink);color:var(--paper-yellow)}.ds-mark--now{border:3px solid var(--tack)}.ds-mark--wait{border-style:dashed}"
+    },
+    {
+      "name": "Tarefa com aba",
+      "kind": "chip",
+      "refersTo": "task-link",
+      "description": "Atalho de tarefa com quadradinho de papel da categoria.",
+      "html": "<a class=\"ds-task\" href=\"#\"><span class=\"ds-task-tab\"></span><span class=\"ds-task-label\">Preparar uma atividade</span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a>",
+      "css": ".ds-task{display:flex;min-height:56px;max-width:260px;box-sizing:border-box;align-items:center;gap:12px;border:1px solid var(--line);border-radius:6px;background:var(--paper-raised);padding:12px 16px;color:var(--ink);text-decoration:none;transition:border-color 160ms ease}.ds-task:hover{border-color:rgb(29 27 26/.4)}.ds-task:focus-visible{outline:2px solid var(--ink);outline-offset:4px}.ds-task-tab{width:14px;height:14px;flex-shrink:0;border-radius:3px;background:var(--paper-green)}.ds-task-label{flex:1;font-size:14px;font-weight:700;line-height:1.375}.ds-task svg{transition:transform 160ms ease}.ds-task:hover svg{transform:translateX(4px)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "O mural da sala dos professores",
+    "overview": "O IncluiEdu é o mural da equipe: a barra lateral é a cortiça, as superfícies de trabalho são folhas de papel branco presas nela, e o recado de hoje fica fixado no topo em papel amarelo-ofício, com uma tachinha vermelha. Cada estudante é um cartão com a aba de cor da sua etapa; o que a professora fixa sobe ao topo e ganha a mesma tachinha. O sistema fala a língua material de uma sala de professores de escola pública, não a de um software clínico nem a de um portal de governo.\n\nA densidade é de ferramenta de trabalho: poucas cores fortes, muita folha branca, borda fina, cantos pequenos de papel. A cor tem emprego fixo. Os papéis coloridos dizem a família da tarefa, a tachinha diz \"agora\" ou \"fixado\", a caneta azul diz \"link ou dado\", e verde, âmbar e coral só aparecem onde existe estado. Tudo o mais é tinta preta quente sobre papel. Títulos e números usam a Archivo condensada; o texto corrido e a interface usam a Atkinson Hyperlegible Next, desenhada para baixa visão. O único movimento da tela é a tachinha assentando o recado ao carregar.\n\nRejeições confirmadas pelo dono: visual clínico; cara de site do governo (azul institucional de sistema); cortiça como textura; notas tortas; tachinhas espalhadas; visual infantil; o SaaS pastel anterior, de lilás e personagem por toda parte. O padrão de acessibilidade é eMAG + WCAG 2.1 AA.",
+    "keyCharacteristics": [
+      "Cortiça como cor plana só na navegação; papel branco em toda superfície de trabalho.",
+      "Papéis coloridos só em abas e quadradinhos de categoria, com mapa fixo de significado.",
+      "Uma cor só para o agora: o vermelho-tachinha.",
+      "Texto sempre em tinta sobre cortiça e sobre papel colorido; links e dados em caneta azul.",
+      "Borda fina de 1px, cantos de papel de 3 a 8px, sem sombra decorativa.",
+      "Situações como marcas (visto, contorno, tracejado, aro vermelho), nunca como selos coloridos.",
+      "Personagens ilustrados como ativos de marca, recortados, com moderação."
+    ],
+    "rules": [
+      {
+        "name": "The Paper Map Rule",
+        "body": "Azul = registrar, verde = preparar, rosa = conhecer e ouvir, lilás = planejar. Amarelo-ofício só no recado de hoje. Nenhuma outra cor faz papel de categoria, e nenhum papel de categoria vira fundo de área grande.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Tack Rule",
+        "body": "O vermelho-tachinha é reservado ao agora e ao que está fixado. Nunca é cor de categoria, de texto, de erro ou de destaque decorativo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink On Paper Rule",
+        "body": "Sobre cortiça e sobre papel colorido, todo texto é tinta (ink). Cinza e caneta não chegam a 4,5:1 nesses fundos.",
+        "section": "colors"
+      },
+      {
+        "name": "The Pen Means Link Rule",
+        "body": "Caneta azul marca links e dados. Texto corrido e títulos não usam caneta.",
+        "section": "colors"
+      },
+      {
+        "name": "The Meaningful State Rule",
+        "body": "Verde, âmbar e coral só aparecem onde carregam um estado real, sempre acompanhados de texto.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Archivo condensada só em títulos e números; tudo que se lê em frase é Atkinson.",
+        "section": "typography"
+      },
+      {
+        "name": "The 12px Floor Rule",
+        "body": "Nenhum texto abaixo de 12px, inclusive legendas de gráfico e rótulos da navegação do celular.",
+        "section": "typography"
+      },
+      {
+        "name": "The 44px Target Rule",
+        "body": "Todo alvo de toque tem no mínimo 44px de altura (links de texto incluídos, com `min-height`); ações principais e itens de navegação, 48px.",
+        "section": "layout"
+      },
+      {
+        "name": "The Pinned Not Floating Rule",
+        "body": "Só o que está preso no mural ganha sombra de papel; cartões comuns são planos com borda fina. Hover muda a borda (tinta a 40%), não levanta o cartão.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** usar o mapa de papéis sem exceção: azul registrar, verde preparar, rosa conhecer e ouvir, lilás planejar; amarelo-ofício só no recado de hoje.",
+      "**Do** reservar o vermelho-tachinha para o agora e para o que está fixado: tachinha, ponto da página atual, aro da marca \"agora\", pino do botão Fixado.",
+      "**Do** escrever em tinta (#1d1b1a) todo texto sobre cortiça e sobre papel colorido.",
+      "**Do** usar caneta azul para links sublinhados e para dados e números.",
+      "**Do** mostrar situação por forma (visto, aro, contorno, tracejado) e sempre com texto, para funcionar em preto e branco e no leitor de tela.",
+      "**Do** manter os alvos em 44px ou mais, o texto em 12px ou mais e o placeholder em 4,5:1 ou mais (eMAG + WCAG 2.1 AA).",
+      "**Do** manter os personagens ilustrados (`public/illustrations/characters/`) como ativos de marca, recortados, um por bloco.",
+      "**Do** dar borda de 1px e cantos de papel a todo cartão; mudar a borda no hover em vez de levantar o cartão."
+    ],
+    "donts": [
+      "**Don't** usar textura ou foto de cortiça; a cortiça é cor plana e só na navegação.",
+      "**Don't** inclinar notas ou cartões nem espalhar tachinhas: uma no recado, uma em cada cartão fixado, nenhuma decorativa.",
+      "**Don't** usar o vermelho-tachinha como categoria, cor de texto, erro ou destaque.",
+      "**Don't** usar verde, âmbar ou coral onde não houver estado.",
+      "**Don't** pintar áreas grandes com os papéis de categoria nem com lilás; o lilás é uma aba, não o fundo do app.",
+      "**Don't** parecer clínico (branco hospitalar, cruz, azul-saúde) nem site de governo (azul institucional, faixas de barra de governo).",
+      "**Don't** cair no infantil: nada de arco-íris, letras arredondadas lúdicas ou personagem em toda seção.",
+      "**Don't** pôr sombra em cartões em repouso; sombra de papel é só do recado."
+    ]
+  }
+}

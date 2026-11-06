@@ -22,7 +22,8 @@ const criterionChoices = [
   ["parcial", "Realizou uma parte"],
   ["nao", "Ainda não realizou o esperado"],
 ];
-const roleOptions = Object.entries(ROLES).filter(([value]) => value !== "familia").map(([value, label]) => ({ value, label }));
+// Só quem registra aula ou atendimento na escola; família, saúde e sistema têm outros caminhos.
+const roleOptions = Object.entries(ROLES).filter(([value]) => !["familia", "terapeuta", "sistema"].includes(value)).map(([value, label]) => ({ value, label }));
 
 export function DiaryForm({
   saveAction, studentId, objectives, activities, initialActivityId, initialObjectiveId,
@@ -169,7 +170,7 @@ export function DiaryForm({
             <span className="flex items-start gap-2"><CheckCircle2 size={18} className="mt-0.5 shrink-0" aria-hidden />Registro salvo. Ele já aparece no histórico abaixo.</span>
           ) : result === "error" ? "Não foi possível confirmar o salvamento. Suas respostas foram mantidas. Confira o histórico antes de tentar novamente." : "Depois de salvar, você poderá acompanhar este registro no histórico abaixo."}
         </p>
-        <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-strong disabled:cursor-wait disabled:opacity-60 sm:w-auto">
+        <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-hover disabled:cursor-wait disabled:opacity-60 sm:w-auto">
           {pending ? <LoaderCircle size={18} className="animate-spin" aria-hidden /> : null}
           {pending ? "Salvando…" : "Salvar registro"}
         </button>

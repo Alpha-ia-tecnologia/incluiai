@@ -3,7 +3,7 @@ import { canAccessStudent, isNetworkRole, type SessionUser } from "./auth";
 import { objectiveTrend, strategiesThatWorked } from "./insights";
 import { getStudentNextStep } from "./student-journey";
 import { firstName, formatDate, parseJson } from "./format";
-import { CHANNELS } from "./scale";
+import { CHANNELS, supportInfo, withoutSupportCodes } from "./scale";
 import { todayInBrazil, upcomingEvents } from "./commemorative-dates";
 import type { CharacterVariant } from "@/components/character";
 
@@ -61,7 +61,6 @@ const DAY_MS = 86_400_000;
 const HOME_DONE_PREFIX = "Fizemos em casa";
 const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 const listText = (items: string[]) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} e ${items.at(-1)}`);
-const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
 
 export function isHomeActivityNote(note: string): boolean {
@@ -189,6 +188,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     hasObjective: activeObjectives.length > 0,
     hasPreparedActivity: s.activities.length > 0,
     hasDiary: entries.length > 0,
+    caseStudyLedByOthers: !aee,
   });
   const preferred = (["estudo", "conhecer", "planejar", "preparar", entries.length ? "acompanhar" : "registrar"] as const)[next.step - 1];
 
@@ -201,12 +201,14 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
         : `O estudo de caso reúne o que a família, a escola e ${name} contam. Em geral, a professora do AEE conduz; você contribui com o que observa na sala comum.`,
       why: "Entender a história evita planejar a partir de suposições.",
       done: caseDone,
+      // Fora do AEE, o estudo de caso aguarda a professora do AEE.
+      waiting: !aee && !caseDone,
       evidence: caseDone ? "A síntese do caso orienta o plano." : s.caseStudy ? "Em andamento: salvo como rascunho." : null,
       date: caseDone ? s.caseStudy?.concludedAt ?? s.caseStudy?.updatedAt ?? null : null,
       action: { label: caseDone ? "Ver o estudo de caso" : s.caseStudy ? "Continuar o estudo de caso" : "Fazer o estudo de caso", href: `${path}/estudo-de-caso` },
     },
     {
-      key: "conhecer", tone: "sky",
+      key: "conhecer", tone: "rose",
       title: `Conhecer como ${name} aprende`,
       story: `Registre como ${name} se comunica, do que gosta e quais apoios ajudam. Os interesses viram a âncora das atividades.`,
       why: "Atividades que partem dos interesses do estudante prendem a atenção e reduzem as recusas.",
@@ -216,14 +218,14 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: s.profile ? "Ver como aprende" : "Contar como aprende", href: `${path}/perfil` },
     },
     {
-      key: "planejar", tone: "peach",
+      key: "planejar", tone: "lilac",
       title: `Combinar o que ${name} vai aprender`,
-      story: `No plano de ensino, defina com a equipe um objetivo observável: o que ${name} vai fazer, com qual apoio, em qual critério e em quanto tempo.`,
+      story: `No plano individual, defina com a equipe um objetivo observável: o que ${name} vai fazer, com qual apoio, em qual critério e em quanto tempo.`,
       why: "Um objetivo claro mostra se o apoio está diminuindo, sem depender de nota.",
       done: activeObjectives.length > 0,
-      evidence: activeObjectives[0]?.description ?? (activePlan ? "O plano está ativo, ainda sem objetivo." : null),
+      evidence: withoutSupportCodes(activeObjectives[0]?.description) ?? (activePlan ? "O plano está ativo, ainda sem objetivo." : null),
       date: activePlan?.createdAt ?? null,
-      action: { label: activeObjectives.length ? "Abrir o plano de ensino" : "Criar o plano e o objetivo", href: `${path}/ppi` },
+      action: { label: activeObjectives.length ? "Abrir o plano individual" : "Criar o plano e o objetivo", href: `${path}/ppi` },
     },
     {
       key: "preparar", tone: "teal",
@@ -236,7 +238,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: "Preparar uma atividade", href: `${path}/atividades` },
     },
     {
-      key: "registrar", tone: "sage",
+      key: "registrar", tone: "sky",
       title: "Registrar como foi a aula",
       story: `Depois da aula, conte como ${name} participou, qual apoio foi necessário e o que aconteceu. São três escolhas e, se quiser, uma observação.`,
       why: "Cada registro mostra o que funcionou e orienta a próxima aula.",
@@ -246,7 +248,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: "Registrar uma aula", href: `${path}/diario` },
     },
     {
-      key: "acompanhar", tone: "lilac",
+      key: "acompanhar", tone: "sky",
       title: "Ver o que mudou e ajustar",
       story: `Com alguns registros, compare o apoio de que ${name} precisou ao longo das aulas. Quando as evidências mostrarem, marque o objetivo como alcançado ou em revisão e combine o próximo passo com a equipe.`,
       why: "Revisar no tempo certo evita insistir no que não funciona e reconhece cada avanço.",
@@ -269,7 +271,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
   if (withEntries.length) {
     const start = average(withEntries.map((objective) => objective.currentSupport));
     const now = average(withEntries.map((objective) => entries.findLast((entry) => entry.objectiveId === objective.id)!.supportLevel));
-    impact.push({ label: "Nível de apoio", value: `${decimal(start)} → ${decimal(now)}`, hint: "De 5 (apoio físico total) a 0 (independente). Menos é avanço." });
+    impact.push({ label: "Nível de apoio", value: `${supportInfo(Math.round(start)).label} → ${supportInfo(Math.round(now)).label}`, hint: "Nível típico no início e no último registro. Precisar de menos apoio é avanço." });
   }
   const note = s.familyNotes[0];
 
@@ -396,7 +398,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     intro: "Os capítulos acompanham o trabalho da coordenação: conhecer o panorama, garantir planos e revisões, apoiar os registros e aproximar família e saúde.",
     welcome: {
       headline: `Boas-vindas, ${firstName(user.name)}!`,
-      text: `Aqui você acompanha a história de ${place}: quem precisa de atenção, planos em dia, aulas registradas e família e saúde por perto.`,
+      text: `Aqui você acompanha a história de ${place}: quem tem passos pendentes, planos em dia, aulas registradas e família e saúde por perto.`,
     },
     focus: null, chapters,
     impactTitle: "A escola em números",
@@ -615,7 +617,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
   // A escola recebeu: alguém da equipe abriu o resumo do estudante, onde as
   // orientações aparecem, depois do último relatório.
   const seen = last ? await prisma.accessLog.findFirst({
-    where: { studentId: s.id, detail: "Visão geral do prontuário", role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: { gt: last.createdAt } },
+    where: { studentId: s.id, detail: { in: ["Resumo do acompanhamento", "Visão geral do prontuário"] }, role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: { gt: last.createdAt } },
     orderBy: { createdAt: "asc" },
     select: { createdAt: true },
   }) : null;

@@ -60,6 +60,8 @@ model Student {
   materials          Material[]
   caseStudy          CaseStudy?
   planDraft          PlanDraft?
+  pins               PinnedStudent[]
+  healthReports      HealthReport[]
 }
 
 // Proposta de plano preparada pelos agentes (ou pelas regras). Fica separada
@@ -104,6 +106,7 @@ model User {
 
   journeyMarks  JourneyMark[]
   conversations AssistantConversation[]
+  pins          PinnedStudent[]
 }
 
 // Assistente (chat com agente): uma conversa por assunto. O histórico enviado
@@ -418,4 +421,44 @@ model AccessLog {
   action    String // visualizou | criou | editou
   detail    String?
   createdAt DateTime @default(now())
+}
+
+// Estudantes que a pessoa fixou no topo do seu mural (Início). Cada pessoa tem
+// o próprio mural; fixar não muda nada para o resto da equipe.
+model PinnedStudent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, studentId])
+}
+
+// Laudo ou relatório de saúde anexado pela equipe ao estudo de caso. É
+// opcional: o AEE é pedagógico e não depende de laudo. O arquivo fica no banco
+// e só a equipe pedagógica com acesso ao estudante o abre. A IA lê apenas o
+// texto, anonimizado; o que ela sugere só entra no estudo de caso depois da
+// revisão da equipe.
+model HealthReport {
+  id           String    @id @default(cuid())
+  studentId    String
+  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fileName     String
+  mimeType     String // application/pdf | image/jpeg | image/png
+  size         Int
+  data         Bytes
+  status       String    @default("lendo") // lendo | lido | sem_texto | falhou | ia_desligada
+  reading      String? // JSON: leitura da IA (resumo, orientações, sugestões por campo)
+  privacyNote  String? // o que foi trocado por marcadores antes do envio
+  failure      String? // motivo curto quando a leitura falha
+  uploadedBy   String
+  uploadedRole String
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  accepted     String? // JSON: o que a equipe juntou ao estudo de caso
+  createdAt    DateTime  @default(now())
+
+  @@index([studentId, createdAt])
 }

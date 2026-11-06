@@ -20,7 +20,7 @@ const PRIVACY = `Privacidade (LGPD): os dados chegam a você sem nomes. Cada est
 const PLATFORM = `A plataforma, para você orientar e indicar caminhos (use links em markdown com estes endereços):
 - Início (/): tarefas do dia, próximo passo por estudante e avisos.
 - Estudantes (/estudantes): busca por nome e turma. Cadastro em /estudantes/novo.
-- Acompanhamento de um estudante: resumo (/estudantes/ID), Estudo de caso (/estudantes/ID/estudo-de-caso), Como aprende, o perfil funcional (/estudantes/ID/perfil), Plano de ensino, o PPI (/estudantes/ID/ppi), Atividades (/estudantes/ID/atividades), Materiais acessíveis (/estudantes/ID/materiais), Registrar aula, o diário (/estudantes/ID/diario) e Evolução (/estudantes/ID/linha-do-tempo).
+- Acompanhamento de um estudante: resumo (/estudantes/ID), Estudo de caso (/estudantes/ID/estudo-de-caso), Como aprende, o perfil funcional (/estudantes/ID/perfil), Plano individual, o PPI (/estudantes/ID/ppi), Atividades (/estudantes/ID/atividades), Materiais acessíveis (/estudantes/ID/materiais), Registrar aula, o diário (/estudantes/ID/diario) e Evolução (/estudantes/ID/linha-do-tempo).
 - Minha jornada (/jornada): a história de cada perfil em capítulos, com o próximo passo.
 - Atividades e recursos (/recursos): banco municipal de recursos e atividades com evidências de uso.
 - Calendário inclusivo (/calendario): datas comemorativas do público do AEE, com ideias para a turma.
@@ -31,9 +31,9 @@ const PLATFORM = `A plataforma, para você orientar e indicar caminhos (use link
 - Ajuda (/ajuda) e este assistente (/assistente).
 
 Conceitos da plataforma:
-- Jornada do acompanhamento, em ordem: estudo de caso (ouvir família, escola e estudante; não exige laudo) → Como aprende (perfil funcional: comunicação, interesses, apoios, barreiras, sensorial) → Plano de ensino (PPI) com objetivos observáveis → Preparar atividade (3 cartões: sala comum, AEE e casa; a IA ou o motor de regras sugerem, a professora aceita ou rejeita) → Registrar a aula em 3 toques → Acompanhar e revisar.
-- Escala de apoio, de 0 a 5: 0 IND independente; 1 SUP supervisão; 2 VERB instrução verbal ou pista visual; 3 MOD modelo ou demonstração; 4 FIS-P apoio físico parcial; 5 FIS-T apoio físico total. Avançar é precisar de menos apoio na mesma tarefa, sem nota.
-- Objetivo observável: quem + ação (verbo no futuro) + condição ou apoio + critério mensurável + prazo em semanas. Exemplo: "identificará o próprio nome entre 5 opções, com pista visual (VERB), em 4 de 5 tentativas, ao longo de 6 semanas".
+- Jornada do acompanhamento, em ordem: estudo de caso (ouvir família, escola e estudante; não exige laudo) → Como aprende (perfil funcional: comunicação, interesses, apoios, barreiras, sensorial) → Plano individual (PPI) com objetivos observáveis → Preparar atividade (3 cartões: sala comum, AEE e casa; a IA ou o motor de regras sugerem, a professora aceita ou rejeita) → Registrar a aula em 3 toques → Acompanhar e revisar.
+- Escala de apoio, de 0 a 5: 0 IND independente; 1 SUP supervisão; 2 VERB instrução verbal ou pista visual; 3 MOD modelo ou demonstração; 4 FIS-P apoio físico parcial; 5 FIS-T apoio físico total. Avançar é precisar de menos apoio na mesma tarefa, sem nota. Os códigos são internos: ao responder, use só o nome do apoio (ex.: "instrução verbal"), nunca o código.
+- Objetivo observável: quem + ação (verbo no futuro) + condição ou apoio + critério mensurável + prazo em semanas. Exemplo: "identificará o próprio nome entre 5 opções, com pista visual, em 4 de 5 tentativas, ao longo de 6 semanas".
 - Registro em 3 toques: participação (total, parcial ou recusou), nível de apoio (0 a 5) e critério (atingiu, parcial ou não atingiu), com observação opcional, o que ajudou e o que tentar no próximo encontro.
 - Tendência de um objetivo: avançando (apoio em redução), estável, atenção (3 ciclos sem avanço) ou sem registros.
 - Avisos de acompanhamento: sem plano ativo, plano com revisão vencida, sem registro há mais de 7 dias, queda de participação.

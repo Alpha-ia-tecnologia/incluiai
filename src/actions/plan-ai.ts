@@ -67,7 +67,7 @@ export async function activatePlanDraft(studentId: string, formData: FormData) {
     data: {
       studentId,
       type: "plano",
-      title: "PPI elaborado",
+      title: "Plano individual criado",
       description: `Plano criado a partir de proposta ${draft.source === "ia" ? "dos agentes de IA" : "do motor de regras"}, revisada pela equipe, com ${chosen.length} objetivo(s).`,
     },
   });

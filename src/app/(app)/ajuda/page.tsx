@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const teachingSteps = [
   { title: "Fazer o estudo de caso", text: "Abra Estudantes, escolha um nome e entre em Estudo de caso. Registre o que a família, a escola e o próprio estudante contam, observe-o nos espaços da escola e conclua com a síntese e os apoios necessários. Você pode salvar e continuar depois.", href: "/estudantes", action: "Escolher estudante" },
   { title: "Conhecer o estudante", text: "Em Como aprende, conte os interesses, as formas de comunicação e os apoios que ajudam esse estudante. O que o estudo de caso levantou já aparece como sugestão.", href: "/estudantes", action: "Escolher estudante" },
-  { title: "Definir o que ensinar", text: "Em Plano de ensino, crie o plano e adicione um objetivo: uma aprendizagem que você quer acompanhar. Descreva também como perceber que ela foi alcançada.", href: "/estudantes?acao=acompanhar", action: "Abrir acompanhamento" },
+  { title: "Definir o que ensinar", text: "Em Plano individual, crie o plano e adicione um objetivo: uma aprendizagem que você quer acompanhar. Descreva também como perceber que ela foi alcançada.", href: "/estudantes?acao=acompanhar", action: "Abrir acompanhamento" },
   { title: "Preparar a atividade", text: "Com o perfil e o objetivo preenchidos, peça sugestões em Atividades. Leia o passo a passo e aceite a atividade que pretende aplicar. A decisão é sempre do profissional.", href: "/estudantes?acao=preparar", action: "Preparar uma atividade" },
   { title: "Registrar como foi a aula", text: "Depois da aula, escolha a atividade ou o objetivo, informe a participação, o apoio necessário e o resultado observado. Acrescente uma observação se precisar e toque em salvar.", href: "/estudantes?acao=registrar", action: "Registrar uma aula" },
   { title: "Acompanhar e ajustar", text: "Consulte o Resumo para ver resultados e a Evolução para rever os acontecimentos. Use o que funcionou para planejar as próximas aulas e revisar o plano com a equipe.", href: "/estudantes?acao=acompanhar", action: "Ver acompanhamento" },
@@ -39,11 +39,11 @@ export default async function HelpPage() {
     { question: "Preciso preencher tudo de uma vez?", answer: "Você pode usar a plataforma por etapas. Salve o formulário em que estiver trabalhando antes de sair da página. No acompanhamento do estudante, a indicação Próximo passo ajuda a escolher o que fazer em seguida." },
     { question: "Como sei que um registro de aula foi salvo?", answer: "Ao salvar, aguarde a mensagem de confirmação. O novo registro também aparece no histórico da página. Se houver falha, os campos do registro permanecem preenchidos para você tentar novamente." },
     { question: "Posso falar em vez de digitar a observação?", answer: "Nos campos com a opção de ditado, você pode usar o microfone se o navegador oferecer esse recurso. Permita o acesso ao microfone e confira o texto antes de salvar. Se a opção não estiver disponível, digite normalmente." },
-    { question: "O que é o plano de ensino ou PPI?", answer: "É o Plano Pedagógico Individual: reúne o que será trabalhado com o estudante, o apoio necessário e os critérios para acompanhar a aprendizagem. Na plataforma, você o encontra em Plano de ensino." },
+    { question: "O que é o plano individual (PPI)?", answer: "É o Plano Pedagógico Individual: reúne o que será trabalhado com o estudante, o apoio necessário e os critérios para acompanhar a aprendizagem. Na plataforma, você o encontra na aba Plano individual." },
     { question: "O que significa AEE?", answer: "Atendimento Educacional Especializado. Na plataforma, é um dos contextos em que a equipe pode planejar atividades e acompanhar o estudante." },
   ];
   const questions = family || therapist ? [
-    { question: "Meu estudante não apareceu. O que faço?", answer: "Peça à equipe da escola para conferir o vínculo do seu acesso com o estudante. Você não precisa criar um novo cadastro por conta própria." },
+    { question: family ? "Meu filho ou minha filha não aparece. O que faço?" : "O estudante que acompanho não aparece. O que faço?", answer: "Peça à equipe da escola para conferir o vínculo do seu acesso com o estudante. Você não precisa criar um novo cadastro por conta própria." },
     { question: "Como volto ao meu acompanhamento?", answer: family ? "Use Meu filho no menu. No celular, essa opção fica na parte inferior da tela." : "Use Orientações no menu. No celular, essa opção fica na parte inferior da tela." },
     { question: "Os campos são salvos enquanto eu digito?", answer: "Não. Revise o que escreveu e use o botão de envio antes de sair da página. Depois, confira seu registro no histórico." },
   ] : commonQuestions;
@@ -54,7 +54,7 @@ export default async function HelpPage() {
         <div><p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-strong"><CircleHelp size={18} aria-hidden /> Ajuda e primeiros passos</p><h1 className="text-3xl leading-tight tracking-tight sm:text-[40px]">Vamos por partes.</h1><p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft">Você não precisa conhecer todos os recursos para começar. Siga o caminho da sua rotina.</p></div>
         <Character variant="care" className="hidden w-36 sm:block" />
       </div>
-      <Link href="/jornada" className="mb-8 flex items-center gap-4 rounded-[22px] bg-lilac-soft p-5 transition-colors hover:bg-lilac">
+      <Link href="/jornada" className="mb-8 flex items-center gap-4 rounded-xl bg-lilac-soft p-5 transition-colors hover:bg-lilac">
         <Route size={26} className="shrink-0 text-brand-strong" aria-hidden />
         <span className="min-w-0 flex-1"><span className="block text-base font-medium">Prefere um caminho guiado?</span><span className="mt-1 block text-sm leading-relaxed text-ink-soft">Em Minha jornada, a plataforma mostra o que você já fez, com os seus dados, e o próximo passo.</span></span>
         <ArrowRight size={20} className="shrink-0 text-brand-strong" aria-hidden />
@@ -62,7 +62,7 @@ export default async function HelpPage() {
       <section aria-labelledby="steps-title">
         <h2 id="steps-title" className="mb-5 text-xl font-medium">{family ? "Acompanhe e compartilhe conquistas" : therapist ? "Aproxime suas orientações da escola" : managing ? "Acompanhe o trabalho da rede" : "Da primeira informação à próxima aula"}</h2>
         <ol className="space-y-4">
-          {steps.map((step, index) => <li key={step.title} className="flex gap-3 rounded-[22px] border border-line bg-paper-raised p-5 sm:gap-5 sm:p-6"><span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft font-medium text-brand-strong">{index + 1}</span><div className="min-w-0"><h3 className="text-lg font-medium">{step.title}</h3><p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.text}</p><Link href={step.href} className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline">{step.action}<ArrowRight size={16} className="shrink-0" aria-hidden /></Link></div></li>)}
+          {steps.map((step, index) => <li key={step.title} className="flex gap-3 rounded-xl border border-line bg-paper-raised p-5 sm:gap-5 sm:p-6"><span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft font-medium text-brand-strong">{index + 1}</span><div className="min-w-0"><h3 className="text-lg font-medium">{step.title}</h3><p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.text}</p><Link href={step.href} className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline">{step.action}<ArrowRight size={16} className="shrink-0" aria-hidden /></Link></div></li>)}
         </ol>
       </section>
       <section className="mt-10" aria-labelledby="questions-title">

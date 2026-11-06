@@ -24,7 +24,7 @@ function SupportSelect({ name, label, defaultValue }: { name: string; label: str
       <label htmlFor={name} className={labelCls}>{label}</label>
       <select id={name} name={name} defaultValue={defaultValue} className={inputCls}>
         {SUPPORT_LEVELS.map((l) => (
-          <option key={l.level} value={l.level}>{l.level} · {l.code} — {l.label}</option>
+          <option key={l.level} value={l.level}>{l.description}</option>
         ))}
       </select>
     </div>
@@ -244,7 +244,7 @@ export default async function ProfilePage({
           </div>
         </Card>
 
-        <button type="submit" className="rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-strong">
+        <button type="submit" className="rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-hover">
           Salvar informações
         </button>
       </form>

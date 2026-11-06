@@ -45,7 +45,7 @@ export const ALERT_LABELS: Record<StudentAlert["kind"], string> = {
 export const TREND_LABELS: Record<Trend, string> = {
   avancando: "Avançando",
   estavel: "Estável",
-  atencao: "Pede atenção",
+  atencao: "Precisa de ajuste",
   sem_dados: "Ainda sem registros",
 };
 

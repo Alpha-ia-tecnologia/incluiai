@@ -1,21 +1,22 @@
 ﻿import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insights";
+import { ALERT_ACTIONS, objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insights";
 import { meetingQuestions } from "@/lib/materials";
 import { parseJson, formatDate } from "@/lib/format";
-import { CHANNELS, BARRIERS } from "@/lib/scale";
+import { CHANNELS, BARRIERS, supportInfo, withoutSupportCodes } from "@/lib/scale";
 import { logStudentAccess } from "@/actions/students";
 import { canSeePedagogicalDetail, getCurrentUser } from "@/lib/auth";
 import { parseCaseStudy } from "@/lib/case-study";
+import { parseAccepted } from "@/lib/health-report";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
-import { TrendingDown, Minus, AlertTriangle, Sparkles, MessageCircleQuestion } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, Sparkles, MessageCircleQuestion, ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 const TREND_META = {
   avancando: { tone: "green" as const, label: "Avançando", icon: TrendingDown },
   estavel: { tone: "brand" as const, label: "Estável", icon: Minus },
-  atencao: { tone: "coral" as const, label: "Atenção", icon: AlertTriangle },
+  atencao: { tone: "amber" as const, label: "Precisa de ajuste", icon: TrendingUp },
   sem_dados: { tone: "neutral" as const, label: "Sem registros", icon: Minus },
 };
 
@@ -30,14 +31,19 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
       familyNotes: { orderBy: { date: "desc" }, take: 3 },
       intersectorReports: { orderBy: { createdAt: "desc" }, take: 1 },
       caseStudy: { select: { status: true, content: true } },
+      healthReports: { orderBy: { createdAt: "desc" }, select: { status: true, reviewedAt: true, accepted: true } },
     },
   });
   const intersector = student.intersectorReports[0];
   const user = await getCurrentUser();
   const showCaseStudy = Boolean(user && canSeePedagogicalDetail(user.role));
   const caseSynthesis = parseCaseStudy(student.caseStudy?.content).sintese;
+  // Laudos: orientações que a equipe aceitou na revisão e o que ainda espera revisão.
+  const reportGuidance = [...new Set(student.healthReports.flatMap((report) => parseAccepted(report.accepted).guidance))];
+  const reportsToReview = student.healthReports.filter((report) => report.status === "lido" && !report.reviewedAt).length;
+  const reportsHref = `/estudantes/${id}/estudo-de-caso/laudos`;
 
-  await logStudentAccess(id, "Visão geral do prontuário");
+  await logStudentAccess(id, "Resumo do acompanhamento");
 
   const activePlan = student.plans.find((p) => p.status === "ativo");
   const objectives = activePlan?.objectives.filter((o) => o.status === "ativo") ?? [];
@@ -58,12 +64,15 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
     <div className="grid gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
         {alerts.length > 0 ? (
-          <Card className="border-coral/40 bg-coral-soft/40">
-            <SectionTitle>O que precisa de atenção</SectionTitle>
-            <ul className="space-y-1.5">
+          <Card>
+            <SectionTitle>Próximos passos da equipe</SectionTitle>
+            <ul className="divide-y divide-line">
               {alerts.map((a) => (
-                <li key={a.kind} className="flex items-start gap-2 text-sm text-ink">
-                  <AlertTriangle size={15} className="mt-0.5 shrink-0 text-coral" aria-hidden /> {a.message}
+                <li key={a.kind}>
+                  <Link href={`/estudantes/${id}${ALERT_ACTIONS[a.kind].path}`} className="flex min-h-12 items-center justify-between gap-3 py-2 text-sm hover:text-brand-strong">
+                    <span><span className="font-medium text-ink">{ALERT_ACTIONS[a.kind].label}</span><span className="block text-xs text-ink-soft">{a.message}</span></span>
+                    <ArrowRight size={16} className="shrink-0 text-brand-strong" aria-hidden />
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -76,10 +85,10 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
             <div>
               <EmptyState
                 title="Vamos escolher o que trabalhar?"
-                hint="No Plano de ensino, defina uma aprendizagem para acompanhar com o estudante."
+                hint="No plano individual, defina uma aprendizagem para acompanhar com o estudante."
               />
-              <Link href={`/estudantes/${id}/ppi`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong">
-                Abrir plano de ensino
+              <Link href={`/estudantes/${id}/ppi`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-hover">
+                Abrir plano individual
               </Link>
             </div>
           ) : (
@@ -91,7 +100,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 return (
                   <Card key={obj.id}>
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="max-w-xl text-sm leading-relaxed text-ink">{obj.description}</p>
+                      <p className="max-w-xl text-sm leading-relaxed text-ink">{withoutSupportCodes(obj.description)}</p>
                       <Badge tone={meta.tone}><Icon size={12} aria-hidden /> {meta.label}</Badge>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
@@ -99,8 +108,8 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                       <span>→ apoio esperado:</span> <SupportPill level={obj.targetSupport} />
                       {obj.bnccCode ? <Badge>BNCC {obj.bnccCode}</Badge> : null}
                       {insight.lastSupportLevels.length > 0 ? (
-                        <span className="ml-auto font-mono text-[11px]">
-                          últimos registros: {insight.lastSupportLevels.join(" → ")}
+                        <span className="w-full text-xs">
+                          Apoio nos últimos registros: {insight.lastSupportLevels.map((level) => supportInfo(level).label).join(" → ")}
                         </span>
                       ) : null}
                     </div>
@@ -137,6 +146,28 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
             )}
             <Link href={`/estudantes/${id}/estudo-de-caso`} className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
               {student.caseStudy?.status === "concluido" ? "Ver relatório completo" : student.caseStudy ? "Continuar estudo de caso" : "Fazer estudo de caso"}
+            </Link>
+            {reportsToReview ? (
+              <p className="mt-2 border-t border-line pt-3 text-sm leading-relaxed text-ink">
+                {reportsToReview === 1 ? "Um laudo tem sugestões" : `${reportsToReview} laudos têm sugestões`} para revisar.{" "}
+                <Link href={reportsHref} className="inline-flex min-h-11 items-center font-bold text-pen underline underline-offset-4">Revisar sugestões</Link>
+              </p>
+            ) : null}
+          </Card>
+        ) : null}
+        {showCaseStudy && reportGuidance.length ? (
+          <Card>
+            <SectionTitle>Orientações dos laudos</SectionTitle>
+            <ul className="space-y-2">
+              {reportGuidance.slice(0, 6).map((text) => (
+                <li key={text} className="flex items-start gap-2 text-sm leading-relaxed text-ink">
+                  <span className="mt-2 size-1.5 shrink-0 rounded-full bg-ink" aria-hidden /> {text}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-ink-soft">Lidas pela IA e aceitas pela equipe na revisão.</p>
+            <Link href={reportsHref} className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-pen underline underline-offset-4">
+              {reportGuidance.length > 6 ? `Ver todas (${reportGuidance.length})` : "Ver laudos"}
             </Link>
           </Card>
         ) : null}
@@ -186,7 +217,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               {student.familyNotes.map((n) => (
                 <li key={n.id} className="text-sm">
                   <p className="leading-relaxed text-ink">“{n.note}”</p>
-                  <p className="mt-0.5 text-[11px] text-ink-soft">{n.author} · {formatDate(n.date)}</p>
+                  <p className="mt-0.5 text-xs text-ink-soft">{n.author} · {formatDate(n.date)}</p>
                 </li>
               ))}
             </ul>
@@ -204,13 +235,13 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-ink-soft">Use estas perguntas para conversar com a equipe e a família.</p>
+          <p className="mt-2 text-xs text-ink-soft">Use estas perguntas para conversar com a equipe e a família.</p>
         </Card>
 
         {intersector ? (
           <Card>
             <SectionTitle>Orientações da equipe de saúde</SectionTitle>
-            <p className="mb-2 text-[11px] text-ink-soft">{intersector.authorName} · {formatDate(intersector.createdAt)}</p>
+            <p className="mb-2 text-xs text-ink-soft">{intersector.authorName} · {formatDate(intersector.createdAt)}</p>
             <dl className="space-y-2 text-sm">
               <div><dt className="text-xs text-ink-soft">Comunicação eficaz</dt><dd className="text-ink">{intersector.communication}</dd></div>
               <div><dt className="text-xs text-ink-soft">Estratégias a testar na escola</dt><dd className="text-ink">{intersector.strategiesToTry}</dd></div>

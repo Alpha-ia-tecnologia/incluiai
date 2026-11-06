@@ -196,7 +196,7 @@ async function main() {
       { studentId: dante.id, date: daysAgo(60), type: "plano", title: "PPI elaborado", description: "Plano individual criado em reunião colaborativa." },
       { studentId: dante.id, date: daysAgo(40), type: "reuniao", title: "Reunião com a família", description: "Alinhamento das estratégias de comunicação em casa." },
       { studentId: dante.id, date: daysAgo(30), type: "recurso", title: "Fone abafador disponibilizado", description: "Recurso de acessibilidade entregue à escola." },
-      { studentId: dante.id, date: daysAgo(7), type: "conquista", title: "Identificou o nome entre 5 opções", description: "Critério do objetivo atingido pela primeira vez." },
+      { studentId: dante.id, date: daysAgo(7), type: "conquista", title: "Identificou o nome entre 5 opções", description: "Pela primeira vez, conseguiu o que estava combinado no plano." },
     ],
   });
 

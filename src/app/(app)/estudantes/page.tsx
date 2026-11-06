@@ -60,7 +60,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
 
       {allStudents.length ? (
         <>
-          <form method="get" action="/estudantes" role="search" aria-label="Buscar estudante" className="mb-6 grid gap-4 rounded-[22px] bg-surface-muted p-5 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
+          <form method="get" action="/estudantes" role="search" aria-label="Buscar estudante" className="mb-6 grid gap-4 rounded-xl bg-surface-muted p-5 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
             {action ? <input type="hidden" name="acao" value={action} /> : null}
             <div className="min-w-0">
               <label htmlFor="student-search" className="mb-2 block text-sm font-medium">Nome do estudante</label>
@@ -96,15 +96,15 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                       ? { href: `${base}/atividades`, label: "Preparar atividade", description: "Veja as sugestões e escolha uma atividade para aplicar." }
                       : next;
                 return (
-                  <article key={student.id} className="flex min-w-0 flex-col rounded-[22px] border border-line bg-paper-raised p-5 sm:p-6">
+                  <article key={student.id} className="flex min-w-0 flex-col rounded-xl border border-line bg-paper-raised p-5 sm:p-6">
                     <div className="flex items-start gap-3">
-                      <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-full text-base font-medium" style={{ backgroundColor: `oklch(88% 0.07 ${student.avatarHue})` }}>{student.name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span>
+                      <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-ink bg-paper-raised text-base font-bold text-ink">{student.name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span>
                       <div className="min-w-0"><h2 className="text-lg font-medium leading-snug">{student.name}</h2><p className="mt-1 text-sm text-ink-soft">{student.gradeYear} · {student.className} · {SHIFTS[student.shift] ?? student.shift}</p></div>
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-ink-soft">{student.school.name}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {student.status !== "ativo" ? <Badge>{student.status}</Badge> : null}
-                      {!student.profile ? <Badge tone="amber">Falta preencher como aprende</Badge> : !student.plans.length ? <Badge tone="amber">Plano de ensino a criar</Badge> : !student.plans[0].objectives.length ? <Badge tone="amber">Objetivo a definir</Badge> : <Badge tone="brand">Plano de ensino ativo</Badge>}
+                      {!student.profile ? <Badge tone="amber">Falta preencher como aprende</Badge> : !student.plans.length ? <Badge tone="amber">Plano individual a criar</Badge> : !student.plans[0].objectives.length ? <Badge tone="amber">Objetivo a definir</Badge> : <Badge tone="brand">Plano individual ativo</Badge>}
                     </div>
                     <p className="mb-4 mt-4 text-sm leading-relaxed text-ink-soft">{action === "preparar" && next.step < 3 ? `Antes de preparar a atividade: ${next.description}` : selected.description}</p>
                     <Link href={selected.href} className="task-action mt-auto">{selected.label}<ArrowRight size={16} className="shrink-0" aria-hidden /></Link>
@@ -118,10 +118,10 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
       ) : <div><EmptyState title="Cadastre o primeiro estudante" hint="Comece com nome, escola e turma. Depois, você poderá completar as informações de aprendizagem." /><Link href="/estudantes/novo" className="task-action mt-4 w-fit"><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link></div>}
 
       {classes.length ? (
-        <details id="planejar-turma" className="mt-8 rounded-[22px] border border-line bg-teal-soft/60">
+        <details id="planejar-turma" className="mt-8 rounded-xl border border-line bg-teal-soft/60">
           <summary className="min-h-14 cursor-pointer px-5 py-5 text-base font-medium sm:px-6">Preparar atividades para uma turma inteira</summary>
           <div className="px-5 pb-6 sm:px-6">
-            <div className="mb-5 flex items-center gap-5"><div className="flex-1"><h2 className="text-base font-medium">Planejamento da turma</h2><p className="mt-2 text-sm leading-relaxed text-ink-soft">Use esta opção quando já tiver preenchido como os estudantes aprendem e definido seus objetivos no plano de ensino.</p></div><Character variant="planning" className="hidden w-28 sm:block" /></div>
+            <div className="mb-5 flex items-center gap-5"><div className="flex-1"><h2 className="text-base font-medium">Planejamento da turma</h2><p className="mt-2 text-sm leading-relaxed text-ink-soft">Use esta opção quando já tiver preenchido como os estudantes aprendem e definido seus objetivos no plano individual.</p></div><Character variant="planning" className="hidden w-28 sm:block" /></div>
             <form action={generateBatchForClass} className="grid gap-4 sm:grid-cols-2">
               <div className="min-w-0"><label htmlFor="batch-class" className="mb-2 block text-sm font-medium">Turma (obrigatório)</label><select id="batch-class" name="turma" required defaultValue="" className="min-h-12 w-full min-w-0 rounded-xl border border-line bg-paper-raised px-3 text-base"><option value="" disabled>Escolha a turma</option>{classes.map((item) => <option key={item.key} value={item.key}>{item.className} — {item.school}</option>)}</select></div>
               <ChoiceField name="lessonTopic" label="Conteúdo da aula (opcional)" options={LESSON_TOPIC_OPTIONS} placeholder="Escolha um conteúdo (opcional)" otherPlaceholder="Ex.: sistema solar" labelClassName="mb-2 block text-sm font-medium" inputClassName="min-h-12 w-full min-w-0 rounded-xl border border-line bg-paper-raised px-3 text-base" />

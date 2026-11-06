@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { generateMaterial, deleteMaterial } from "@/actions/materials";
 import { parseJson, formatDate } from "@/lib/format";
 import { MATERIAL_KINDS, type MaterialContent } from "@/lib/materials";
+import { CHANNELS } from "@/lib/scale";
+import { materialText } from "@/lib/display";
 import { PrintButton } from "@/components/print-button";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState, AIDisclaimer } from "@/components/ui";
-import { Wand2, Trash2 } from "lucide-react";
+import { Wand2 } from "lucide-react";
+import { ConfirmDelete } from "@/components/confirm-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +46,7 @@ export default async function MaterialsPage({ params }: { params: Promise<{ id: 
                 {MATERIAL_KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label} — {k.description}</option>)}
               </select>
             </div>
-            <button type="submit" className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-e1 transition-all hover:bg-brand-strong hover:shadow-e2 active:translate-y-px">
+            <button type="submit" className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-e1 transition-all hover:bg-brand-hover hover:shadow-e2 active:translate-y-px">
               <Wand2 size={15} aria-hidden /> Criar material
             </button>
           </form>
@@ -63,28 +66,24 @@ export default async function MaterialsPage({ params }: { params: Promise<{ id: 
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Badge tone="brand">{KIND_LABELS[m.kind] ?? m.kind}</Badge>
-                    <h3 className="font-display text-lg font-semibold text-ink">{m.title}</h3>
+                    <h3 className="font-display text-lg font-bold text-ink">{m.title}</h3>
                   </div>
                   <div className="flex items-center gap-2 print:hidden">
                     <PrintButton />
-                    <form action={remove}>
-                      <button type="submit" aria-label={`Excluir material: ${m.title}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 py-2 text-sm text-ink-soft hover:bg-coral-soft hover:text-coral">
-                        <Trash2 size={15} aria-hidden /> Excluir
-                      </button>
-                    </form>
+                    <ConfirmDelete action={remove} triggerAriaLabel={`Excluir material: ${m.title}`} question="Excluir este material? Não dá para desfazer." confirmLabel="Excluir material" />
                   </div>
                 </div>
-                <p className="mb-4 text-sm text-ink-soft">{content.intro}</p>
+                <p className="mb-4 text-sm text-ink-soft">{materialText(content.intro, CHANNELS)}</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {content.cards.map((c, i) => (
                     <div key={i} className="flex flex-col items-center justify-center rounded-lg border border-line bg-paper px-3 py-5 text-center">
-                      <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft font-display text-lg font-semibold text-brand-strong" aria-hidden>{i + 1}</span>
-                      <span className="mt-2 text-sm font-medium text-ink">{c.label}</span>
-                      {c.hint ? <span className="mt-0.5 text-[11px] text-ink-soft">{c.hint}</span> : null}
+                      <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft font-display text-lg font-bold text-brand-strong" aria-hidden>{i + 1}</span>
+                      <span className="mt-2 text-sm font-medium text-ink">{materialText(c.label, CHANNELS)}</span>
+                      {c.hint ? <span className="mt-0.5 text-xs text-ink-soft">{c.hint}</span> : null}
                     </div>
                   ))}
                 </div>
-                <p className="mt-3 text-[11px] text-ink-soft print:hidden">Gerado em {formatDate(m.createdAt)}</p>
+                <p className="mt-3 text-xs text-ink-soft print:hidden">Gerado em {formatDate(m.createdAt)}</p>
               </div>
             );
           })}
