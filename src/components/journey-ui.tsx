@@ -30,13 +30,13 @@ export function JourneyBar({ journey }: { journey: Journey }) {
 }
 
 // Primeiro acesso: a história do perfil em poucas linhas e um convite para começar.
-export function JourneyWelcome({ journey }: { journey: Journey }) {
+// character={false}: a página já tem o seu personagem no topo (portal da família).
+export function JourneyWelcome({ journey, character = true }: { journey: Journey; character?: boolean }) {
   const start = journey.current ?? journey.chapters[0];
   return (
     <section aria-labelledby="boas-vindas-titulo" className="mb-7 overflow-hidden rounded-3xl bg-lilac-soft p-5 sm:p-7 print:hidden">
       <div className="flex items-start gap-5">
         <div className="min-w-0 flex-1">
-          <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-paper-raised px-3 py-1 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Sua história começa aqui</p>
           <h2 id="boas-vindas-titulo" className="font-display text-2xl font-medium leading-tight tracking-tight text-ink sm:text-3xl">{journey.welcome.headline}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft sm:text-base">{journey.welcome.text}</p>
           {journey.chapters.length ? (
@@ -55,13 +55,13 @@ export function JourneyWelcome({ journey }: { journey: Journey }) {
                 <PendingButton className="task-action" pendingText="Abrindo o capítulo...">Começar: {start.action.label} <ArrowRight size={16} aria-hidden /></PendingButton>
               </form>
             ) : null}
-            <Link href="/jornada" className="task-action task-action-secondary">Ver a história completa</Link>
+            {/* A história completa fica em "Minha jornada", no menu. */}
             <form action={dismissWelcome}>
               <button type="submit" className="min-h-12 rounded-xl px-4 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline">Agora não</button>
             </form>
           </div>
         </div>
-        <Character variant={journey.character} className="hidden w-36 sm:block xl:w-44" />
+        {character ? <Character variant={journey.character} className="hidden w-36 sm:block xl:w-44" /> : null}
       </div>
     </section>
   );
@@ -95,8 +95,7 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
           <span className="font-display font-bold text-xl leading-none text-ink tabular-nums">{journey.completed}<span className="text-sm text-ink-soft">/{total}</span></span>
         </RingStat>
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Minha jornada</p>
-          <h2 id="jornada-resumo-titulo" className="mt-1 text-base font-medium leading-snug">{journey.title}</h2>
+          <h2 id="jornada-resumo-titulo" className="text-base font-medium leading-snug">{journey.title}</h2>
           <p className="mt-1 text-xs text-ink-soft">{summary} concluídos</p>
         </div>
       </div>

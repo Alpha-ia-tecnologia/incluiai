@@ -67,9 +67,6 @@ export function DiaryForm({
 
   return (
     <form ref={formRef} onSubmit={submit} onChange={() => setResult(null)} aria-busy={pending} className="space-y-6">
-      <p className="text-sm leading-relaxed text-ink-soft">
-        Conte como foi a aula ou o atendimento. Os campos marcados como obrigatórios precisam de uma resposta.
-      </p>
       <fieldset disabled={pending} className="space-y-6 disabled:opacity-65">
         <section aria-labelledby="diary-step-1" className="space-y-4 rounded-2xl bg-surface-muted/60 p-4 sm:p-5">
           <h3 id="diary-step-1" className="flex items-center gap-3 text-base font-semibold text-ink">
@@ -147,7 +144,6 @@ export function DiaryForm({
             </div>
           </fieldset>
           <VoiceNote key={savedCount} name="note" label="Conte o que você observou (opcional)" placeholder="Ex.: reconheceu o próprio nome entre três opções com ajuda de imagens." />
-          <p className="text-sm text-ink-soft">Pode escrever uma frase ou usar o botão Ditar texto. Leia o texto antes de salvar.</p>
         </section>
 
         <details className="rounded-2xl border border-line p-4 sm:p-5">
@@ -165,7 +161,7 @@ export function DiaryForm({
         <p ref={statusRef} tabIndex={-1} role={result === "error" ? "alert" : "status"} aria-live="polite" className={`text-sm leading-relaxed ${result === "error" ? "text-coral" : "text-brand-strong"}`}>
           {pending ? "Salvando seu registro…" : result === "saved" ? (
             <span className="flex items-start gap-2"><Sprout size={16} aria-hidden className="sprout-mark mt-1 shrink-0 text-green" />Registro salvo. Ele já aparece no histórico abaixo.</span>
-          ) : result === "error" ? "Não foi possível confirmar o salvamento. Suas respostas foram mantidas. Confira o histórico antes de tentar novamente." : "Depois de salvar, você poderá acompanhar este registro no histórico abaixo."}
+          ) : result === "error" ? "Não foi possível confirmar o salvamento. Suas respostas foram mantidas. Confira o histórico antes de tentar novamente." : ""}
         </p>
         <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-strong disabled:cursor-wait disabled:opacity-60 sm:w-auto">
           {pending ? <LoaderCircle size={18} className="animate-spin" aria-hidden /> : null}

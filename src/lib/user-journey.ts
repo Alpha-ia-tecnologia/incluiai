@@ -138,9 +138,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
   const students = candidates.filter((student) => canAccessStudent(user, student.schoolId, student.id));
   const welcome = {
     headline: `Boas-vindas, ${firstName(user.name)}!`,
-    text: aee
-      ? "Sua história na IncluiEdu acompanha cada estudante em seis capítulos: ouvir a história, conhecer como aprende, combinar o objetivo, preparar a aula, registrar e ajustar. A plataforma lembra onde você parou."
-      : "Sua história na IncluiEdu acompanha cada estudante em seis capítulos: ouvir a história, conhecer como aprende, combinar o objetivo, preparar uma aula com a turma, registrar e ajustar. A plataforma lembra onde você parou.",
+    text: "Cada estudante tem seis capítulos, do estudo de caso ao registro das aulas. A plataforma lembra onde você parou.",
   };
   const base = {
     kind: "professor" as const, character: (aee ? "planning" : "learning") as CharacterVariant,

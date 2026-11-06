@@ -8,11 +8,11 @@ import { studentAlerts } from "@/lib/insights";
 import { getStudentNextStep } from "@/lib/student-journey";
 import { loadJourney } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
-import { firstName, formatDate, formatDateShort } from "@/lib/format";
+import { firstName, formatDateShort } from "@/lib/format";
 import { PARTICIPATION_TEXT, PARTICIPATION_TONE, TREND_TEXT, supportTrend, weeklyCounts } from "@/lib/series";
 import { DotStrip, MiniColumns, Sparkline, StatTile, StatusPill, TONE_COLOR, type Tone } from "@/components/data-viz";
 import { CALENDAR_THEMES, MONTH_SHORT, monthParam, relativeLabel, todayInBrazil, upcomingEvents } from "@/lib/commemorative-dates";
-import { ArrowRight, BookOpen, CalendarDays, ClipboardList, HelpCircle, Plus, School, Users } from "lucide-react";
+import { ArrowRight, BookOpen, CalendarDays, ClipboardList, Plus, School, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -68,27 +68,30 @@ export default async function SchoolDashboard() {
   const nominal = user.role !== "secretaria";
   // Cada tipo de tarefa tem sua cor: registro (azul), atividades e recursos
   // (verde-água), acompanhamento (pêssego), cadastros (sálvia).
+  // Os títulos dizem a tarefa: sem frase de apoio, para a tela não pesar.
   const tasks = managing ? [
-    { title: "Acompanhar a rede", description: "Veja os indicadores das escolas e as necessidades de atenção.", href: "/painel", icon: School, color: "bg-sky-soft", accent: "text-sky-ink" },
-    { title: "Consultar um estudante", description: user.role === "secretaria" ? "Busque pelo nome e informe o motivo para abrir a ficha, só para leitura." : "Encontre o plano, os registros e a evolução de cada estudante.", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
-    { title: "Organizar escolas e turmas", description: "Consulte e cadastre escolas e turmas da rede.", href: "/cadastros", icon: ClipboardList, color: "bg-sage-soft", accent: "text-sage-ink" },
+    { title: "Acompanhar a rede", href: "/painel", icon: School, color: "bg-sky-soft", accent: "text-sky-ink" },
+    { title: "Consultar um estudante", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
+    { title: "Organizar escolas e turmas", href: "/cadastros", icon: ClipboardList, color: "bg-sage-soft", accent: "text-sage-ink" },
   ] : [
-    { title: "Registrar uma aula", description: "Conte como foi a participação e qual apoio foi necessário.", href: "/estudantes?acao=registrar", icon: ClipboardList, color: "bg-sky-soft", accent: "text-sky-ink" },
-    { title: "Preparar uma atividade", description: "Escolha um estudante e planeje a próxima atividade.", href: "/estudantes?acao=preparar", icon: BookOpen, color: "bg-teal-soft", accent: "text-teal-ink" },
-    { title: "Acompanhar um estudante", description: "Consulte o plano e veja o que está funcionando.", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
+    { title: "Registrar uma aula", href: "/estudantes?acao=registrar", icon: ClipboardList, color: "bg-sky-soft", accent: "text-sky-ink" },
+    { title: "Preparar uma atividade", href: "/estudantes?acao=preparar", icon: BookOpen, color: "bg-teal-soft", accent: "text-teal-ink" },
+    { title: "Acompanhar um estudante", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
   ];
+  // Com as boas-vindas abertas, elas já cumprimentam e mostram a jornada: o resto da tela não repete.
+  const welcoming = !journey.welcomed;
+  const showAttention = !nominal || withAlerts.length > 0;
 
   return (
     <div className="dashboard-grid">
       <div className="min-w-0">
-        {journey.welcomed ? null : <JourneyWelcome journey={journey} />}
+        {welcoming ? <JourneyWelcome journey={journey} /> : null}
         <section className="mb-7 flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="mb-3 text-sm text-ink-soft">Olá, {firstName(user.name)}.</p>
+            {welcoming ? null : <p className="mb-3 text-sm text-ink-soft">Olá, {firstName(user.name)}.</p>}
             <h1 className="max-w-xl font-display text-3xl font-bold leading-[1.12] tracking-tight sm:text-4xl">O que vamos fazer hoje?</h1>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-soft">Escolha uma tarefa para começar. Vamos orientar você em cada etapa.</p>
           </div>
-          {journey.welcomed ? <Character variant="learning" className="hidden w-32 shrink-0 sm:block xl:w-36" preload /> : null}
+          {welcoming ? null : <Character variant="learning" className="hidden w-32 shrink-0 sm:block xl:w-36" preload />}
         </section>
 
         {/* Os números do acompanhamento ficam numa faixa no topo; a coluna lateral
@@ -99,40 +102,36 @@ export default async function SchoolDashboard() {
             <Link href="/painel" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Ver painel de indicadores <ArrowRight size={16} aria-hidden /></Link>
           </div>
           <div className="grid min-w-0 gap-2.5 sm:grid-cols-3">
-            <StatTile label="Estudantes" value={students.length} hint={withAlerts.length ? `${withAlerts.length} com aviso de acompanhamento.` : "Nenhum aviso de acompanhamento."} />
+            {/* Legenda só quando acrescenta algo ao número e ao selo. */}
+            <StatTile label="Estudantes" value={students.length} hint={withAlerts.length ? `${withAlerts.length} com aviso de acompanhamento.` : undefined} />
             <StatTile
               label="Registros nos últimos 7 dias"
               value={recentRecords}
               chart={recordDates.length ? <MiniColumns points={weekly} label="Registros de aula por semana, nas últimas 8 semanas" /> : undefined}
-              hint={recordDates.length ? "Colunas: registros por semana, nas últimas 8 semanas." : "Nenhum registro de aula nas últimas 8 semanas."}
+              hint={recordDates.length ? "Por semana, nas últimas 8." : undefined}
             />
             <StatTile
               label="Sugestões para avaliar"
               value={pendingSuggestions}
               tone={pendingSuggestions ? "mid" : "good"}
               status={pendingSuggestions ? "Para avaliar" : "Em dia"}
-              hint={pendingSuggestions ? `De ${studentsWithSuggestions} ${studentsWithSuggestions === 1 ? "estudante" : "estudantes"}. ${nominal ? "Aceite ou recuse na aba Atividades." : "A equipe da escola decide cada uma."}` : "Nenhuma sugestão de atividade esperando avaliação."}
+              hint={pendingSuggestions ? `De ${studentsWithSuggestions} ${studentsWithSuggestions === 1 ? "estudante" : "estudantes"}.` : undefined}
             />
           </div>
         </section>
 
-        <section aria-label="Tarefas do dia" className="grid gap-3">
-          {tasks.map(({ title, description, href, icon: Icon, color, accent }) => (
-            <Link key={href} href={href} className={`pastel-card group flex min-h-24 items-center gap-4 rounded-2xl p-5 ${color}`}>
-              <span className={`flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/75 ${accent}`}><Icon size={22} strokeWidth={1.7} aria-hidden /></span>
-              <div className="min-w-0 flex-1"><h2 className="text-base font-medium sm:text-xl">{title}</h2><p className="mt-1 text-sm leading-relaxed text-ink/80">{description}</p></div>
-              <ArrowRight size={20} aria-hidden className={`shrink-0 transition-transform group-hover:translate-x-1 ${accent}`} />
+        {/* Três colunas só quando cada título cabe numa linha; antes disso, uma lista compacta. */}
+        <section aria-label="Tarefas do dia" className="@container">
+          <div className="grid gap-2.5 @3xl:grid-cols-3">
+          {tasks.map(({ title, href, icon: Icon, color, accent }) => (
+            <Link key={href} href={href} className={`pastel-card group flex min-h-16 items-center gap-3 rounded-2xl px-4 py-3 ${color}`}>
+              <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/75 ${accent}`}><Icon size={20} strokeWidth={1.7} aria-hidden /></span>
+              <h2 className="min-w-0 flex-1 text-base font-medium leading-snug">{title}</h2>
+              <ArrowRight size={18} aria-hidden className={`shrink-0 transition-transform group-hover:translate-x-1 motion-reduce:transition-none ${accent}`} />
             </Link>
           ))}
-        </section>
-
-        <details className="mt-4 rounded-2xl border border-line bg-paper-raised">
-          <summary className="min-h-12 cursor-pointer px-5 py-4 text-sm font-medium">Primeira vez por aqui? Veja por onde começar</summary>
-          <div className="px-5 pb-5 text-sm leading-relaxed text-ink-soft">
-            <p>Escolha um estudante. Primeiro, conte como ele aprende; depois, defina um objetivo e prepare uma atividade. Após a aula, registre o que observou para acompanhar a evolução.</p>
-            <Link href="/ajuda" className="task-action task-action-secondary mt-4 w-fit">Ver o passo a passo <ArrowRight size={16} aria-hidden /></Link>
           </div>
-        </details>
+        </section>
 
         {nominal ? (
         <section className="mt-8" aria-labelledby="students-title">
@@ -143,7 +142,8 @@ export default async function SchoolDashboard() {
           {anyEntries ? (
             // Uma legenda para todos os cartões, em vez de repetir em cada um.
             <ul className="-mt-2 mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft" aria-label="Como ler os minigráficos">
-              <li className="inline-flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 bg-ink" /> Linha: apoio nas últimas aulas (subir é precisar de menos apoio)</li>
+              <li className="inline-flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 bg-ink" /> Apoio (subir é precisar de menos)</li>
+              <li>Participação:</li>
               {PARTICIPATION_LEGEND.map((item) => <li key={item.label} className="inline-flex items-center gap-1.5"><span aria-hidden className="hatch size-2.5 rounded-[3px]" style={{ backgroundColor: TONE_COLOR[item.tone] }} />{item.label}</li>)}
             </ul>
           ) : null}
@@ -159,14 +159,13 @@ export default async function SchoolDashboard() {
                   hasDiary: !!student.diaryEntries.length,
                 });
                 return (
+                  // O botão já diz o próximo passo; a data do último registro vai na linha da turma.
                   <article key={student.id} className="flex flex-col rounded-2xl border border-line bg-paper-raised p-5">
                     <h3 className="text-base font-medium"><Link href={`/estudantes/${student.id}`} className="inline-flex min-h-11 items-center hover:underline">{student.name}</Link></h3>
-                    <p className="text-sm text-ink-soft">{student.gradeYear} · {student.className}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">{student.school.name}</p>
+                    <p className="text-sm text-ink-soft">{student.gradeYear} · {student.className} · {student.diaryEntries[0] ? `último registro ${formatDateShort(student.diaryEntries[0].date)}` : "sem registros de aula"}</p>
+                    {scoped ? null : <p className="mt-1 text-xs leading-relaxed text-ink-soft">{student.school.name}</p>}
                     <RecentLessons name={firstName(student.name)} entries={student.diaryEntries} />
-                    <p className="mb-4 mt-4 text-sm leading-relaxed text-ink-soft">{next.description}</p>
-                    <Link href={next.href} className="task-action task-action-secondary mt-auto">{next.label} <ArrowRight size={16} className="shrink-0" aria-hidden /></Link>
-                    <p className="mt-3 text-xs leading-relaxed text-ink-soft">{student.diaryEntries[0] ? `Último registro: ${formatDate(student.diaryEntries[0].date)}` : "Ainda sem registros de aula"}</p>
+                    <Link href={next.href} className="task-action task-action-secondary mt-4 sm:mt-auto">{next.label} <ArrowRight size={16} className="shrink-0" aria-hidden /></Link>
                   </article>
                 );
               })}
@@ -176,7 +175,7 @@ export default async function SchoolDashboard() {
         ) : (
           <section className="mt-8 rounded-2xl border border-line bg-paper-raised p-5" aria-labelledby="students-title">
             <h2 id="students-title" className="text-xl font-medium">Estudantes da rede</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink-soft">A Secretaria acompanha os {students.length} estudantes pelos números do Painel. Para abrir a ficha de um estudante, busque pelo nome em Estudantes e informe o motivo: o acesso fica registrado e a família vê.</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">Para abrir a ficha de um estudante, busque pelo nome e informe o motivo. O acesso fica registrado e a família vê.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link href="/painel" className="task-action">Ver o painel da rede <ArrowRight size={16} aria-hidden /></Link>
               <Link href="/estudantes" className="task-action task-action-secondary">Buscar um estudante</Link>
@@ -186,21 +185,24 @@ export default async function SchoolDashboard() {
       </div>
 
       <aside className="dashboard-side" aria-label="Resumo do acompanhamento">
-        <JourneyProgress journey={journey} />
+        {welcoming ? null : <JourneyProgress journey={journey} />}
 
-        <section className="mt-6" aria-labelledby="attention-title">
+        {/* Sem aviso, a seção some: o número de Estudantes já diz que está tudo em dia. */}
+        {showAttention ? (
+        <section className={welcoming ? "" : "mt-6"} aria-labelledby="attention-title">
           <h2 id="attention-title" className="mb-3 text-base font-medium">Precisa de atenção</h2>
           {!nominal ? (
             <Link href="/painel#atencao" className="block rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft transition-colors hover:bg-brand-soft">
-              <span className="font-display font-bold text-2xl text-ink tabular-nums">{withAlerts.length}</span> {withAlerts.length === 1 ? "estudante com aviso" : "estudantes com aviso"} de acompanhamento na rede. Veja por escola no painel.
+              <span className="font-display font-bold text-2xl text-ink tabular-nums">{withAlerts.length}</span> {withAlerts.length === 1 ? "estudante com aviso" : "estudantes com aviso"} na rede. Veja por escola no painel.
             </Link>
-          ) : withAlerts.length ? <ul className="space-y-3">{withAlerts.slice(0, 3).map(({ student, alerts }) => (
+          ) : <ul className="space-y-3">{withAlerts.slice(0, 3).map(({ student, alerts }) => (
             <li key={student.id}><Link href={`/estudantes/${student.id}`} className="block rounded-2xl bg-paper-raised p-4 transition-colors hover:bg-brand-soft"><span className="flex items-center justify-between gap-2 text-sm font-medium">{student.name}<ArrowRight size={16} className="shrink-0" aria-hidden /></span><span className="mt-2 block text-sm leading-relaxed text-ink-soft">{!student.diaryEntries.length && alerts[0].kind === "sem_registro" ? "Ainda sem registro de aula." : alerts[0].message}</span></Link></li>
-          ))}</ul> : <p className="rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft">Nenhum aviso de acompanhamento no momento.</p>}
+          ))}</ul>}
           {nominal && withAlerts.length > 3 ? <Link href="/estudantes" className="mt-2 inline-flex min-h-11 items-center text-sm text-brand-strong">Ver os demais estudantes <ArrowRight size={16} className="ml-2" aria-hidden /></Link> : null}
         </section>
+        ) : null}
 
-        <section className="mt-6" aria-labelledby="dates-title">
+        <section className={welcoming && !showAttention ? "" : "mt-6"} aria-labelledby="dates-title">
           <h2 id="dates-title" className="mb-3 text-base font-medium">Próximas datas inclusivas</h2>
           {upcomingDates.length ? <ul className="space-y-2">{upcomingDates.map((event) => (
             <li key={event.key}><Link href={`/calendario?mes=${monthParam(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl bg-paper-raised p-3 transition-colors hover:bg-brand-soft">
@@ -210,14 +212,7 @@ export default async function SchoolDashboard() {
           ))}</ul> : <p className="rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft">Nenhuma data comemorativa nas próximas semanas.</p>}
           <Link href="/calendario" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong"><CalendarDays size={16} aria-hidden /> Ver calendário inclusivo</Link>
         </section>
-
-        <Link href="/recursos" className="mt-6 block rounded-2xl bg-teal-soft p-5">
-          <Character variant="ideas" className="mb-2 w-24" />
-          <h2 className="text-base font-medium">Ideias para sua aula</h2>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">Encontre atividades e materiais para apoiar a aprendizagem.</p>
-          <span className="mt-4 flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Explorar recursos <ArrowRight size={16} aria-hidden /></span>
-        </Link>
-        <Link href="/ajuda" className="mt-4 flex min-h-12 items-center gap-2 text-sm font-medium text-brand-strong"><HelpCircle size={18} aria-hidden /> Ajuda e primeiros passos</Link>
+        {/* Recursos e Ajuda ficam no menu lateral; aqui não se repetem. */}
       </aside>
     </div>
   );
@@ -233,19 +228,15 @@ function RecentLessons({ name, entries }: { name: string; entries: ReadonlyArray
   const levels = lessons.map((entry) => entry.supportLevel);
   const { trend } = supportTrend(levels);
   const count = lessons.length === 1 ? "na última aula" : `nas últimas ${lessons.length} aulas`;
+  // A legenda acima dos cartões explica a linha e as cores; aqui fica só o recorte e a tendência.
   return (
-    <div className="mt-4 grid min-w-0 gap-3 rounded-2xl bg-surface-muted/70 p-3">
-      <div className="min-w-0">
-        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-ink-soft">Apoio {count}</p>
-          {trend !== "sem_dados" ? <StatusPill tone={trend === "avancando" ? "good" : trend === "atencao" ? "alert" : "neutral"}>{TREND_TEXT[trend]}</StatusPill> : null}
-        </div>
-        {levels.length > 1
-          ? <Sparkline values={levels} domain={[0, 5]} invert height={32} label={`Nível de apoio de ${name} ${count}: ${levels.join(", ")} (0 é independente, 5 é apoio físico total)`} />
-          : <p className="text-xs text-ink-soft">Com dois registros, a linha do apoio aparece aqui.</p>}
+    <div className="mt-4 grid min-w-0 gap-2.5 rounded-2xl bg-surface-muted/70 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-ink-soft">{lessons.length === 1 ? "Última aula" : `Últimas ${lessons.length} aulas`}</p>
+        {trend !== "sem_dados" ? <StatusPill tone={trend === "avancando" ? "good" : trend === "atencao" ? "alert" : "neutral"}>{TREND_TEXT[trend]}</StatusPill> : null}
       </div>
+      {levels.length > 1 ? <Sparkline values={levels} domain={[0, 5]} invert height={32} label={`Nível de apoio de ${name} ${count}: ${levels.join(", ")} (0 é independente, 5 é apoio físico total)`} /> : null}
       <div className="min-w-0">
-        <p className="mb-1.5 text-xs text-ink-soft">Participação {count}</p>
         <DotStrip
           label={`Participação de ${name} ${count}, da mais antiga à mais recente`}
           items={lessons.map((entry) => ({ key: entry.id, title: `${formatDateShort(entry.date)}: ${PARTICIPATION_TEXT[entry.participation] ?? entry.participation}`, tone: PARTICIPATION_TONE[entry.participation] ?? "neutral" }))}

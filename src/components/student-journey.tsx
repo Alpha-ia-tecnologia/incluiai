@@ -29,9 +29,8 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
       <div className="flex items-center gap-4">
         <Character variant="care" className="hidden w-20 sm:block" />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-brand-strong">Próximo passo sugerido</p>
-          <h2 className="mt-1 text-xl font-semibold text-ink">{next.label}</h2>
-          <p className="mt-1 text-sm leading-relaxed text-ink-soft">{next.description}</p>
+          {/* O nome do passo e as etapas abaixo já explicam; a descrição longa fica no title do botão do cabeçalho. */}
+          <h2 className="text-xl font-semibold text-ink">Próximo passo: {next.label}</h2>
           <Link href={next.href} className={`${primaryButtonCls} mt-3`}>
             {next.step === 5 ? "Registrar aula" : "Continuar"} <ArrowRight size={16} aria-hidden />
           </Link>

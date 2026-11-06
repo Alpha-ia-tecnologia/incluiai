@@ -14,7 +14,7 @@ import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components
 import { DataBoard, DataCard, StatusPill, SupportBars, SupportChart } from "@/components/data-viz";
 import { BarList } from "@/components/charts";
 import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, SupportSteps, TextChips, TREND_TONE } from "@/components/viz/student-viz";
-import { TrendingDown, Minus, AlertTriangle, MessageCircleQuestion, ArrowRight, type LucideIcon } from "lucide-react";
+import { TrendingDown, Minus, AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, type LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -136,7 +136,6 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                       ) : points.length === 1 ? (
                         <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                           <span>Primeiro registro ({points[0].date}):</span> <SupportMeter level={points[0].value} />
-                          <span>Com dois registros ou mais, a evolução do apoio aparece aqui.</span>
                         </p>
                       ) : null
                     ) : insight.lastSupportLevels.length > 0 ? (
@@ -159,7 +158,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
             <SectionTitle>Como foram as aulas</SectionTitle>
             <DataBoard>
               {pedagogical && records > 0 ? (
-                <DataCard title="Participação e resultado das aulas" hint={`${records} ${records === 1 ? "registro de aula" : "registros de aula"} desde o início do acompanhamento.`}>
+                <DataCard title="Participação e resultado das aulas" hint={`${records} ${records === 1 ? "registro de aula" : "registros de aula"}.`}>
                   <div className="grid min-w-0 gap-6 md:grid-cols-2">
                     <div className="min-w-0">
                       <h4 className="mb-3 text-xs font-medium text-ink-soft">Participação</h4>
@@ -176,7 +175,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 </DataCard>
               ) : null}
               {worked.length > 0 ? (
-                <DataCard title="Estratégias que funcionaram" hint={pedagogical ? "Marcadas em “o que ajudou” no registro da aula. O número é quantas vezes cada uma foi marcada." : "Marcadas em “o que ajudou” no registro da aula."}>
+                <DataCard title="Estratégias que funcionaram" hint={pedagogical ? "Vezes marcada em “o que ajudou”." : "Marcadas em “o que ajudou”."}>
                   {pedagogical ? <BarList rows={workedCounts} /> : <TextChips items={worked} />}
                 </DataCard>
               ) : null}
@@ -192,9 +191,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
             {student.caseStudy?.status === "concluido" ? (
               <p className="line-clamp-5 text-sm leading-relaxed text-ink">{caseSynthesis}</p>
             ) : (
-              <p className="text-sm leading-relaxed text-ink-soft">
-                {student.caseStudy ? "Em andamento. Complete o que falta e registre a síntese do caso." : "Ainda não realizado. Ele reúne o que a família, a escola e o estudante contam para orientar o plano."}
-              </p>
+              <p className="text-sm leading-relaxed text-ink-soft">{student.caseStudy ? "Em andamento." : "Ainda não feito."}</p>
             )}
             <Link href={`/estudantes/${id}/estudo-de-caso`} className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
               {student.caseStudy?.status === "concluido" ? "Ver relatório completo" : student.caseStudy ? "Continuar estudo de caso" : "Fazer estudo de caso"}
@@ -216,7 +213,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-ink-soft">Lidas pela IA e aceitas pela equipe na revisão do laudo.</p>
+            <p className="mt-2 text-xs text-ink-soft">Aceitas pela equipe na revisão do laudo.</p>
           </Card>
         ) : null}
         <Card>
@@ -255,9 +252,13 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
             </dl>
           )}
           {profile ? (
-            <div className="mt-5 border-t border-line pt-4">
-              <h3 className="text-sm font-medium text-ink">Apoio de que precisa em cada área</h3>
-              <p className="mt-1 text-xs leading-relaxed text-ink-soft">De 0 (IND, faz com independência) a 5 (FIS-T, apoio físico total). Menos casas preenchidas, menos apoio.</p>
+            // As 12 áreas ocupavam metade da coluna: ficam recolhidas, a um toque.
+            <details className="group mt-5 border-t border-line pt-2">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
+                <h3>Apoio de que precisa em cada área</h3>
+                <ChevronDown size={18} aria-hidden className="shrink-0 text-ink-soft group-open:rotate-180 motion-safe:transition-transform" />
+              </summary>
+              <p className="mt-1 text-xs leading-relaxed text-ink-soft">0 (IND) é fazer sozinho; 5 (FIS-T), apoio físico total. Menos casas, menos apoio.</p>
               <div className={`mt-4 space-y-4 ${NARROW_BARS}`}>
                 {PROFILE_SUPPORT.map((group) => (
                   <div key={group.title} className="min-w-0">
@@ -266,15 +267,13 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                   </div>
                 ))}
               </div>
-            </div>
+            </details>
           ) : null}
         </Card>
 
-        <Card>
-          <SectionTitle>A família observou</SectionTitle>
-          {student.familyNotes.length === 0 ? (
-            <p className="text-sm text-ink-soft">Nenhuma conquista registrada pela família ainda.</p>
-          ) : (
+        {student.familyNotes.length ? (
+          <Card>
+            <SectionTitle>A família observou</SectionTitle>
             <ul className="space-y-3">
               {student.familyNotes.map((n) => (
                 <li key={n.id} className="text-sm">
@@ -283,8 +282,8 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 </li>
               ))}
             </ul>
-          )}
-        </Card>
+          </Card>
+        ) : null}
 
         <Card>
           <SectionTitle>
@@ -297,7 +296,6 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-ink-soft">Use estas perguntas para conversar com a equipe e a família.</p>
         </Card>
 
         {intersector ? (

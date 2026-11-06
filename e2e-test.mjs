@@ -179,7 +179,9 @@ if (!ONLY_WAIT) {
       check(`família bloqueada de ${path.replace(childId, ":id")}`, page.url().includes("/familia/"), `url=${page.url()}`);
     }
     await page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
-    check("família vê os materiais aprovados no portal", await page.evaluate(() => document.body.innerText.includes("Materiais para usar em casa")));
+    // O seed não tem material aprovado nem relatório validado: o portal não mostra seção vazia.
+    const portalText = await page.evaluate(() => document.body.innerText);
+    check("família: portal sem seções vazias (materiais e relatórios)", !portalText.includes("Materiais para usar em casa") && !portalText.includes("Relatórios da escola") && portalText.includes("Atividades para fazer em casa"));
     await ctx.close();
 
     // Terapeuta: só o espaço de orientações (sem diário, notas da família ou ficha).

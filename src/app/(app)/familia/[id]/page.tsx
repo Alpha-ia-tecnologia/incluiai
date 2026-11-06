@@ -13,10 +13,9 @@ import { createFamilyNote, markHomeActivityDone } from "@/actions/diary";
 import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { PendingButton } from "@/components/pending-button";
-import { Character } from "@/components/character";
 import { parseJson, formatDate } from "@/lib/format";
 import { ROLES } from "@/lib/scale";
-import { PageHero, Card, SectionTitle, EmptyState } from "@/components/ui";
+import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
 import { Trophy, ShieldCheck, Home, CircleCheck, BookOpen, FileText } from "lucide-react";
@@ -92,10 +91,9 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       <PageHero
         character="care"
         title={`Acompanhamento de ${firstName}`}
-        lede="O que a escola está trabalhando, os avanços recentes e o espaço para a família registrar o que observa em casa."
         actions={<><ReadAloud targetId="conteudo" label="Ouvir esta página" /><TextSizeControl /></>}
       />
-      {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />) : null}
+      {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} character={false} />) : null}
 
       {user.role === "familia" && user.studentIds.includes(id) && prefs?.weeklyCheckIn ? (
         <Card className="mb-6 max-w-3xl border-brand/30" id="pergunta-da-semana">
@@ -106,7 +104,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
 
       <section aria-label={`Resumo do acompanhamento de ${firstName}`} className="mb-6">
         <DataBoard className="sm:grid-cols-2">
-          <StatTile label="Objetivos em andamento" value={objectives.length} hint={objectives.length ? "No plano de ensino ativo." : "A escola ainda está montando o plano."} />
+          <StatTile label="Objetivos em andamento" value={objectives.length} hint={objectives.length ? undefined : "A escola ainda está montando o plano."} />
           {/* Sem atividade enviada, não há o que medir: um anel vazio pareceria quebrado. */}
           {homeActivities.length ? (
             <RingTile
@@ -115,13 +113,12 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
               label="Atividades de casa feitas"
               value={`${homeDone} de ${homeActivities.length}`}
               color={SIGNAL.lime}
-              hint="Das atividades mais recentes que a escola enviou."
             />
           ) : (
-            <StatTile label="Atividades de casa" value={0} hint="A escola ainda não enviou atividades para casa. Elas aparecem aqui quando chegarem." />
+            <StatTile label="Atividades de casa" value={0} />
           )}
-          <StatTile label="Conquistas recentes" value={student.timeline.length} hint={student.timeline[0] ? `A mais recente em ${formatDate(student.timeline[0].date)}.` : "As conquistas registradas pela escola aparecem aqui."} />
-          <StatTile label="Registros da família" value={student.familyNotes.length} hint={lastNote ? `O último em ${formatDate(lastNote.date)}.` : "Conte para a escola o que vocês observam em casa."} />
+          <StatTile label="Conquistas recentes" value={student.timeline.length} hint={student.timeline[0] ? `A mais recente em ${formatDate(student.timeline[0].date)}.` : undefined} />
+          <StatTile label="Registros da família" value={student.familyNotes.length} hint={lastNote ? `O último em ${formatDate(lastNote.date)}.` : undefined} />
         </DataBoard>
       </section>
 
@@ -146,7 +143,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
           <Card className="scroll-mt-24" id="casa">
             <SectionTitle><span className="flex items-center gap-1.5"><Home size={13} aria-hidden /> Atividades para fazer em casa</span></SectionTitle>
             {homeActivities.length === 0 ? (
-              <p className="text-sm text-ink-soft">A escola enviará sugestões de atividades para casa por aqui.</p>
+              <p className="text-sm text-ink-soft">A escola ainda não enviou atividades para casa.</p>
             ) : (
               <ul className="space-y-3">
                 {homeActivities.map(({ activity: a, doneAt }) => {
@@ -182,62 +179,50 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             )}
           </Card>
 
+          {/* Relatórios, materiais e conquistas só aparecem quando há algo para mostrar. */}
+          {reports.length ? (
           <Card className="scroll-mt-24" id="relatorios">
             <SectionTitle><span className="flex items-center gap-1.5"><FileText size={13} aria-hidden /> Relatórios da escola</span></SectionTitle>
-            {reports.length === 0 ? (
-              <p className="text-sm text-ink-soft">No fim de cada período, a escola escreve um relatório sobre o acompanhamento de {firstName}. Ele aparece aqui depois de validado.</p>
-            ) : (
-              <ul className="grid gap-2">
-                {reports.map((report) => (
-                  <li key={report.id}>
-                    <Link href={`/familia/${id}/relatorios/${report.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-3 text-sm hover:bg-brand-soft">
-                      <span className="font-medium text-ink">Período de {periodLabel(reportData(report.data))}</span>
-                      <span className="text-xs text-ink-soft">Validado em {formatDate(report.validatedAt!)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ul className="grid gap-2">
+              {reports.map((report) => (
+                <li key={report.id}>
+                  <Link href={`/familia/${id}/relatorios/${report.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-3 text-sm hover:bg-brand-soft">
+                    <span className="font-medium text-ink">Período de {periodLabel(reportData(report.data))}</span>
+                    <span className="text-xs text-ink-soft">Validado em {formatDate(report.validatedAt!)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </Card>
+          ) : null}
 
+          {student.materials.length ? (
           <Card className="scroll-mt-24" id="materiais">
             <SectionTitle><span className="flex items-center gap-1.5"><BookOpen size={13} aria-hidden /> Materiais para usar em casa</span></SectionTitle>
-            {student.materials.length === 0 ? (
-              <p className="text-sm text-ink-soft">Quando a escola aprovar um material de apoio para {firstName}, ele aparece aqui, com os cartões e a dica para casa.</p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {student.materials.map((material) => (
-                  <MaterialGalleryCard key={material.id} studentId={id} material={materialSummary(material)} href={`/familia/${id}/materiais/${material.id}`} />
-                ))}
-              </div>
-            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {student.materials.map((material) => (
+                <MaterialGalleryCard key={material.id} studentId={id} material={materialSummary(material)} href={`/familia/${id}/materiais/${material.id}`} />
+              ))}
+            </div>
           </Card>
+          ) : null}
 
+          {student.timeline.length ? (
           <Card>
             <SectionTitle>Conquistas recentes</SectionTitle>
-            {student.timeline.length === 0 ? (
-              <p className="text-sm text-ink-soft">As conquistas registradas pela escola aparecerão aqui.</p>
-            ) : (
-              <>
-              {/* Momento de comemorar: o personagem do acolhimento acompanha as conquistas. */}
-              <div className="mb-4 flex items-center gap-3 rounded-xl bg-amber-soft/60 p-3">
-                <Character variant="care" className="w-14" />
-                <p className="text-sm leading-relaxed text-ink">Cada conquista conta. Comemore com {firstName} e conte para a escola o que vocês veem em casa.</p>
-              </div>
-              <Timeline
-                label={`Conquistas recentes de ${firstName}, da mais nova para a mais antiga`}
-                items={student.timeline.map((t) => ({
-                  key: t.id,
-                  date: formatDate(t.date),
-                  title: t.title,
-                  body: t.description || undefined,
-                  marker: <Trophy size={16} />,
-                  markerClassName: "bg-amber-soft text-amber-800",
-                }))}
-              />
-              </>
-            )}
+            <Timeline
+              label={`Conquistas recentes de ${firstName}, da mais nova para a mais antiga`}
+              items={student.timeline.map((t) => ({
+                key: t.id,
+                date: formatDate(t.date),
+                title: t.title,
+                body: t.description || undefined,
+                marker: <Trophy size={16} />,
+                markerClassName: "bg-amber-soft text-amber-800",
+              }))}
+            />
           </Card>
+          ) : null}
 
           <ConsentCard studentId={id} firstName={firstName} consent={consent} canDecide={isFamily && user.studentIds.includes(id)} />
 
@@ -265,9 +250,6 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
         <div className="space-y-5">
           <Card className="scroll-mt-24 border-green/40" id="conquista">
             <SectionTitle>Registrar uma conquista de casa</SectionTitle>
-            <p className="mb-3 text-xs leading-relaxed text-ink-soft">
-              Algumas aprendizagens aparecem primeiro em casa — conte para a equipe da escola.
-            </p>
             <form action={addNote} className="space-y-4">
               <MultiChoiceField name="note" label="O que aconteceu? *" options={FAMILY_ACHIEVEMENT_OPTIONS} required otherPlaceholder={`Ex.: ${firstName} pediu água durante o jantar`} legendClassName={familyLabelCls} inputClassName={familyInputCls} />
               <ChoiceField name="author" label="Quem observou" options={FAMILY_MEMBER_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: madrinha" labelClassName={familyLabelCls} inputClassName={familyInputCls} />
@@ -277,21 +259,19 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             </form>
           </Card>
 
+          {student.familyNotes.length ? (
           <div>
             <SectionTitle>O que a família já registrou</SectionTitle>
-            {student.familyNotes.length === 0 ? (
-              <EmptyState character="care" title="Nenhum registro ainda" hint="As observações da família ajudam a equipe a planejar." />
-            ) : (
-              <div className="space-y-3">
-                {student.familyNotes.map((n) => (
-                  <Card key={n.id}>
-                    <p className="text-sm leading-relaxed text-ink">“{n.note}”</p>
-                    <p className="mt-1 text-xs text-ink-soft">{n.author} · {formatDate(n.date)}</p>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <div className="space-y-3">
+              {student.familyNotes.map((n) => (
+                <Card key={n.id}>
+                  <p className="text-sm leading-relaxed text-ink">“{n.note}”</p>
+                  <p className="mt-1 text-xs text-ink-soft">{n.author} · {formatDate(n.date)}</p>
+                </Card>
+              ))}
+            </div>
           </div>
+          ) : null}
         </div>
       </div>
     </>
