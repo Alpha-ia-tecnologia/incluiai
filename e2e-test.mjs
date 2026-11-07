@@ -424,6 +424,11 @@ if (!ONLY_WAIT) {
     check("assistente: página própria", (await page.evaluate(() => document.querySelector("h1")?.textContent)) === "Converse com o assistente");
     await page.goto(`${BASE}/recursos`, { waitUntil: "networkidle2" });
     check("banco de recursos renderiza", await page.evaluate(() => document.querySelector("h1")?.textContent === "Recursos para incluir."));
+    const bank = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('a[href^="/recursos/c"]')];
+      return { cards: cards.length, withPhoto: cards.filter((card) => card.querySelector('img[src*="activities"]')).length };
+    });
+    check("banco: 24 recursos, cada um com fotografia", bank.cards === 24 && bank.withPhoto === 24, JSON.stringify(bank));
     const resourceHref = await page.evaluate(() =>
       [...document.querySelectorAll("a")].find((a) => a.getAttribute("href")?.startsWith("/recursos/"))?.getAttribute("href")
     );
@@ -433,6 +438,7 @@ if (!ONLY_WAIT) {
       const detail = await page.evaluate(() => document.body.innerText);
       const normalizedDetail = detail.toLocaleLowerCase("pt-BR");
       check("atividade traz objetivo, aplicação e evidência", normalizedDetail.includes("como aplicar") && normalizedDetail.includes("evidência a observar"));
+      check("recurso traz foto, preparação, modelo, níveis de apoio e continuidade", ["antes de começar", "modelo de apoio", "ajuste o apoio à participação", "para continuar"].every((part) => normalizedDetail.includes(part)) && await page.evaluate(() => Boolean(document.querySelector('figure img[src*="activities"]')?.getAttribute("alt"))));
       await clickByText(page, "Teve boa resposta");
       await page.waitForFunction(() => document.body.innerText.includes("1 aplicações"), { timeout: 20000 }).catch(() => {});
       check("resultado da atividade alimenta métrica", await page.evaluate(() => document.body.innerText.includes("boa resposta")));
@@ -1686,6 +1692,178 @@ if (!ONLY_WAIT) {
     const visitorText = await visitor.page.evaluate(async () => (await (await fetch("/api/libras/anonimizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "Dante Oliveira, 12/03/2019" }) })).json()).text);
     check("vlibras: sem sessão, troca só documentos, datas e contatos", visitorText === "Dante Oliveira, (informação omitida)", visitorText);
     await visitor.ctx.close();
+  }
+
+  // ---------- 23. Carteirinha digital: autorização, foto, QR que pede login e código trocado ----------
+  {
+    const family = await newSession();
+    const childId = new URL(await login(family.page, "familia@email.com")).pathname.split("/").pop();
+    const aee = await newSession();
+    await login(aee.page, "aee@escola.edu.br");
+    const cardPage = `${BASE}/estudantes/${childId}/carteirinha`;
+    await aee.page.goto(cardPage, { waitUntil: "networkidle2" });
+    check("carteirinha: sem autorização da família, a equipe não faz", (await textOf(aee.page)).includes("ainda não autorizou a carteirinha"));
+
+    // A família autoriza e escolhe o verso e o contato de emergência.
+    await family.page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
+    await clickByText(family.page, "Autorizar: Carteirinha digital");
+    check("carteirinha: autorizar cria a carteirinha no portal", await family.page.waitForSelector("#carteirinha", { timeout: 15000 }).then(() => true, () => false));
+    await family.page.click('input[name="mostrarComoAjudar"]');
+    await family.page.click('input[name="mostrarContato"]');
+    await family.page.$eval("#contato-telefone", (input) => { input.value = ""; });
+    await family.page.type("#contato-telefone", "11987654321");
+    await family.page.select("#contato-parentesco", "Mãe");
+    await clickByText(family.page, "Salvar a carteirinha");
+    await family.page.waitForFunction(() => document.body.innerText.includes("Carteirinha atualizada"), { timeout: 15000 }).catch(() => {});
+    const familyCard = await family.page.$eval("#carteirinha", (card) => card.innerText);
+    check("carteirinha: a família vê o verso e o contato que escolheu", familyCard.includes("Como me ajudar") && familyCard.includes("Em emergência") && familyCard.includes("(11) 98765-4321"), familyCard.slice(0, 300));
+    check("carteirinha: sem diagnóstico no cartão", !/autis|TEA|CID|laudo|diagn/i.test(familyCard));
+    check("carteirinha: o parentesco salvo continua no formulário", (await family.page.$eval("#contato-parentesco", (select) => select.value)) === "Mãe");
+
+    // A equipe envia a foto (PNG feito na hora) e vê o QR.
+    const photoFile = join(tmpdir(), `carteirinha-${Date.now()}.png`);
+    writeFileSync(photoFile, await aee.page.screenshot({ type: "png", clip: { x: 0, y: 0, width: 160, height: 200 } }));
+    await aee.page.goto(cardPage, { waitUntil: "networkidle2" });
+    await (await aee.page.$("#carteirinha-foto")).uploadFile(photoFile);
+    await aee.page.waitForFunction(() => !document.body.innerText.includes("Preparando a foto"), { timeout: 15000 }).catch(() => {});
+    await clickByText(aee.page, "Enviar a foto");
+    await aee.page.waitForFunction(() => document.body.innerText.includes("Foto salva"), { timeout: 15000 }).catch(() => {});
+    unlinkSync(photoFile);
+    await aee.page.goto(cardPage, { waitUntil: "networkidle2" });
+    const photo = await aee.page.evaluate(async () => {
+      const img = document.querySelector('.id-card img[alt^="Foto de"]');
+      if (!img) return null;
+      const response = await fetch(img.getAttribute("src"));
+      return { status: response.status, type: response.headers.get("content-type"), cache: response.headers.get("cache-control"), loaded: img.naturalWidth > 0 };
+    });
+    check("carteirinha: a foto aparece, sem cache público", photo?.loaded && photo.status === 200 && photo.type === "image/jpeg" && photo.cache === "private, no-store", JSON.stringify(photo));
+    const qrPath = await aee.page.$eval("[data-qr-path]", (el) => el.getAttribute("data-qr-path"));
+    check("carteirinha: QR com código aleatório", /^\/c\/[A-Za-z0-9_-]{24}$/.test(qrPath ?? "") && await aee.page.$eval("[data-qr-path] svg", (svg) => svg.querySelectorAll("path").length > 0), qrPath);
+    const photoPath = await aee.page.$eval('.id-card img[alt^="Foto de"]', (img) => img.getAttribute("src"));
+    const therapist = await newSession();
+    await login(therapist.page, "terapeuta@clinica.com.br");
+    check("carteirinha: o terapeuta não vê a foto", (await therapist.page.evaluate(async (src) => (await fetch(src)).status, photoPath)) === 404);
+    await therapist.ctx.close();
+
+    // QR lido sem login: só a entrada. Depois do login, a ficha do estudante.
+    const reader = await newSession();
+    await reader.page.goto(`${BASE}${qrPath}`, { waitUntil: "networkidle2" });
+    const gate = await textOf(reader.page);
+    check("carteirinha: o QR sem login leva à entrada, sem dados do estudante", reader.page.url().endsWith("/login") && gate.includes("Você leu o código de uma carteirinha") && !gate.includes("Dante"), reader.page.url());
+    const landed = await login(reader.page, "professor@escola.edu.br");
+    check("carteirinha: depois do login, o professor cai na ficha do estudante", landed.includes(`/estudantes/${childId}`), landed);
+    await reader.page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+    check("carteirinha: depois de usado, o código não fica guardado", new URL(reader.page.url()).pathname === "/", reader.page.url());
+    // Código trocado: a carteirinha anterior deixa de abrir.
+    await aee.page.goto(cardPage, { waitUntil: "networkidle2" });
+    await clickByText(aee.page, "Gerar código novo");
+    await aee.page.waitForFunction((old) => document.querySelector("[data-qr-path]")?.getAttribute("data-qr-path") !== old, { timeout: 15000 }, qrPath).catch(() => {});
+    await reader.page.goto(`${BASE}${qrPath}`, { waitUntil: "networkidle2" });
+    check("carteirinha: código trocado não abre mais", reader.page.url().endsWith("/carteirinha/inativa") && !(await textOf(reader.page)).includes("Dante"), reader.page.url());
+    await reader.ctx.close();
+
+    // A família vê a leitura no histórico e, ao retirar a autorização, a carteirinha some.
+    await family.page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
+    const history = await family.page.evaluate(() => { document.querySelectorAll("details").forEach((d) => { d.open = true; }); return document.body.innerText; });
+    check("carteirinha: a leitura do QR entra no histórico da família", history.includes("visualizou · Código QR da carteirinha") && history.includes("enviou · Foto da carteirinha"));
+    await clickByText(family.page, "Retirar a autorização: Carteirinha digital");
+    await family.page.waitForFunction(() => !document.querySelector("#carteirinha"), { timeout: 15000 }).catch(() => {});
+    check("carteirinha: retirar a autorização apaga a carteirinha", !(await family.page.$("#carteirinha")) && (await aee.page.evaluate(async (src) => (await fetch(src)).status, photoPath)) === 404);
+    check("carteirinha: sem erros de cliente", [...family.errors, ...aee.errors].length === 0, [...family.errors, ...aee.errors].join("; "));
+    await family.ctx.close();
+    await aee.ctx.close();
+  }
+
+  // ---------- 24. Jogos educativos: todos numa página, com o estudante e o registro da aula ----------
+  {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "aee@escola.edu.br");
+    await page.goto(`${BASE}/jogos`, { waitUntil: "networkidle2" });
+    check("jogos: no menu da equipe", await page.evaluate(() => [...document.querySelectorAll("nav a")].some((a) => a.getAttribute("href") === "/jogos")));
+    const studentId = await page.evaluate(() => [...document.querySelectorAll("#jogo-estudante option")].find((o) => o.textContent.includes("Dante"))?.value);
+    await page.select("#jogo-estudante", studentId);
+    await sleep(300);
+    check("jogos: o estudante escolhido fica no endereço", page.url().includes(`estudante=${studentId}`), page.url());
+    const library = await page.evaluate(() => ({
+      games: document.querySelectorAll('button[aria-label^="Jogar "]').length,
+      fullScreen: [...document.querySelectorAll('form[action^="/jogar/"]')].map((form) => form.querySelector('input[name="estudante"]')?.value),
+      separatePage: [...document.querySelectorAll("a")].some((a) => a.getAttribute("href")?.startsWith("/jogos/explorar")),
+    }));
+    check("jogos: os 19 jogos juntos, numa página só", library.games === 19 && library.fullScreen.length === 4 && !library.separatePage, JSON.stringify(library));
+    check("jogos: os de tela cheia levam o estudante escolhido", library.fullScreen.every((id) => id === studentId), JSON.stringify(library.fullScreen));
+
+    // Jogo de fotografias com o estudante: uma pista por rodada, um erro e o registro no fim.
+    await page.evaluate(() => document.querySelector('input[name="game-level"][value="facil"]').click());
+    await page.click("#play-encontre");
+    await sleep(500);
+    for (let round = 0; round < 5; round += 1) {
+      await clickByText(page, "Ver uma pista");
+      await sleep(150);
+      if (round === 0) {
+        await page.evaluate(() => [...document.querySelectorAll('section[aria-label^="Partida"] button[aria-pressed]')].find((b) => !b.dataset.hint && !b.textContent.includes("pista"))?.click());
+        await sleep(150);
+      }
+      await page.click("[data-hint]");
+      await sleep(250);
+      await clickByText(page, round === 4 ? "Concluir partida" : "Próxima descoberta");
+      await sleep(400);
+    }
+    check("jogos: fotografias com o registro da aula no fim", (await textOf(page)).includes("Registrar a aula de Dante"));
+    await clickByText(page, "Registrar a aula");
+    check("jogos: registra a aula do jogo de fotografias", await page.waitForFunction(() => document.body.innerText.includes("Aula registrada"), { timeout: 15000 }).then(() => true, () => false));
+
+    // Memória: uma dica, um erro e os pares.
+    await page.goto(`${BASE}/jogar/memoria?estudante=${studentId}&nivel=facil&tema=animais`, { waitUntil: "networkidle2" });
+    await clickByText(page, "Dica");
+    const pics = await page.$$eval("[data-pic]", (cards) => cards.map((card) => card.getAttribute("data-pic")));
+    const firstOther = pics.findIndex((pic) => pic !== pics[0]);
+    const cards = await page.$$("[data-pic]");
+    await cards[0].click(); await cards[firstOther].click(); await sleep(1500);
+    for (const pic of [...new Set(pics)]) {
+      for (const card of await page.$$(`[data-pic="${pic}"]`)) { await card.click(); await sleep(150); }
+      await sleep(400);
+    }
+    await page.waitForFunction(() => document.body.innerText.includes("Você terminou"), { timeout: 10000 }).catch(() => {});
+    const summary = await textOf(page);
+    check("jogos: memória até o fim, com a dica e o erro no resumo", summary.includes("2 de 2 pares") && summary.includes("1 dica") && summary.includes("1 tentativa a mais"), summary.slice(0, 200));
+    await clickByText(page, "Registrar a aula");
+    check("jogos: registra a aula no fim", await page.waitForFunction(() => document.body.innerText.includes("Aula registrada"), { timeout: 15000 }).then(() => true, () => false));
+    await clickByText(page, "Jogar de novo");
+    await page.waitForFunction(() => location.search.includes("partida="), { timeout: 15000 }).catch(() => {});
+    await settle(page);
+    check("jogos: jogar de novo abre uma partida nova", page.url().includes("partida=") && (await textOf(page)).includes("0 de 2 pares"), page.url());
+
+    // Sequência: as etapas na ordem.
+    await page.goto(`${BASE}/jogar/sequencia?estudante=${studentId}&nivel=facil&rotina=maos`, { waitUntil: "networkidle2" });
+    for (let step = 0; step < 3; step += 1) { await page.click(`[data-step="${step}"]`); await sleep(250); }
+    check("jogos: sequência da rotina até o fim", await page.waitForFunction(() => document.body.innerText.includes("Você terminou"), { timeout: 10000 }).then(() => true, () => false));
+
+    // Associação e emoções: um erro, depois as respostas.
+    for (const path of ["associacao?modo=quantidade&nivel=medio", "emocoes?nivel=desafio"]) {
+      await page.goto(`${BASE}/jogar/${path.replace("?", `?estudante=${studentId}&`)}`, { waitUntil: "networkidle2" });
+      await page.evaluate(() => [...document.querySelectorAll('ul[aria-label="Opções"] button')].find((b) => !b.dataset.answer)?.click());
+      await sleep(200);
+      for (let round = 0; round < 5; round += 1) { await page.click('[data-answer="sim"]'); await sleep(1300); }
+      const end = await textOf(page);
+      check(`jogos: ${path.split("?")[0]} com 5 rodadas e o erro contado`, end.includes("5 de 5 rodadas") && end.includes("1 tentativa a mais"), end.slice(0, 160));
+    }
+
+    await page.goto(`${BASE}/estudantes/${studentId}/diario`, { waitUntil: "networkidle2" });
+    const diary = await textOf(page);
+    check("jogos: o registro aparece em Registrar aula", diary.includes("Jogo: Memória por temas (fácil, Animais). 2 de 2 pares · 1 dica · 1 tentativa a mais."));
+    check("jogos: o registro do jogo de fotografias também", diary.includes("Jogo: Encontre a imagem (fácil). 5 de 5 rodadas · 5 dicas · 1 tentativa a mais."), diary.slice(0, 300));
+
+    // Sem estudante: o jogo de tela cheia abre igual, sem registro.
+    await page.goto(`${BASE}/jogar/emocoes?nivel=facil`, { waitUntil: "networkidle2" });
+    const alone = await textOf(page);
+    check("jogos: tela cheia sem estudante", page.url().includes("/jogar/emocoes") && alone.includes("Emoções") && !/com (Dante|Ravi)/.test(alone) && !alone.includes("Registrar a aula"), page.url());
+    const family = await newSession();
+    await login(family.page, "familia@email.com");
+    await family.page.goto(`${BASE}/jogar/memoria?estudante=${studentId}`, { waitUntil: "networkidle2" });
+    check("jogos: fora do alcance da família", !family.page.url().includes("/jogar/"), family.page.url());
+    await family.ctx.close();
+    check("jogos: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
   }
 }
 

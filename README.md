@@ -84,6 +84,8 @@ Os comandos `db:*`, como `npm run db:admin`, também rodam no **Console** do ser
 | `/estudantes/[id]` | Visão geral: evolução, estratégias, **perguntas para reunião**, articulação intersetorial | 6, 9 |
 | `/estudantes/[id]/estudo-de-caso` | **Estudo de caso** (diagnóstico pedagógico): motivo, histórico escolar, entrevista com a família, escuta do estudante, observação, avaliação pedagógica e síntese; rascunho, conclusão e relatório imprimível. Não exige laudo | — |
 | `/estudantes/[id]/estudo-de-caso/laudos` | **Laudos e relatórios de saúde** (opcionais): o AEE e a coordenação anexam o laudo; a IA lê o texto anonimizado e sugere orientações e campos do estudo de caso, que a equipe revisa antes de juntar | — |
+| `/estudantes/[id]/carteirinha` | **Carteirinha digital** (com a autorização da família): foto, nome, escola e turma; no verso, o que a família escolher (como ajudar e contato de emergência) e o QR, que só abre a ficha para quem entra na plataforma com permissão | — |
+| `/jogos` e `/jogar/[jogo]` | **Jogos educativos do AEE**: 19 jogos com fotografias numa só página, com filtro por habilidade e uma prancha de comunicação. Com o estudante escolhido, o nível vem do "Como aprende" e o professor registra a aula no fim de qualquer jogo | — |
 | `/estudantes/[id]/perfil` | Perfil funcional codificado (escala 0–5, interesses âncora) | 3, 17.2 |
 | `/estudantes/[id]/ppi` | Plano individual + gerador de objetivo observável. Só com o **estudo de caso concluído**, também na proposta da IA ou das regras. **Revisão do plano** (decisão da equipe, próxima data e se saiu no prazo), **encerramento com motivo** e **planos anteriores**; um plano ativo por vez | 4, 6, 17.3-B, 17.9 |
 | `/estudantes/[id]/atividades` | Motor de 3 cartões + **versão imprimível** | 17.3–17.8 |
@@ -97,7 +99,7 @@ Os comandos `db:*`, como `npm run db:admin`, também rodam no **Console** do ser
 | `/planejamento` · `/planejamento/[id]` | **Planejamento com DUA**: atividade da turma em quatro etapas (objetivo e evidência, contexto e barreiras, opções e apoios, revisão para aplicação), com salvamento automático, sugestões para revisão (IA ou regras), validação para aplicação, versões, apoios individuais, aplicação e evidências, materiais e histórico. Detalhes em [`docs/dua.md`](./docs/dua.md) | DUA |
 | `/jornada` | **Minha jornada**: a história de cada perfil em capítulos (professora: a história de um estudante; coordenação e gestão: a da escola; Secretaria: a da rede; família e terapeuta: a própria contribuição), marcados a partir dos dados reais, com evidências, próximo passo, impacto e conquistas com data. Boas-vindas no primeiro acesso | HU01–HU10 |
 | `/painel` | **Painel de indicadores**: medidor em destaque com abas (jornada, participação e critério de sucesso, com a variação em pontos sobre o período anterior), cartões de situação, etapas da jornada, tabela de estudantes por avisos, nível de apoio, participação, meses com registro, uso da IA, objetivos, aulas, atividades e adesão, perfil agregado, **banco de práticas por perfil**, **uso e documentação do planejamento com DUA** (sem nota), família, recursos e acessos (LGPD). Filtros de período e de escola; o endereço antigo `/painel-municipal` redireciona | 10, 11, 17.6, 17.9 |
-| `/recursos` | Banco municipal com recursos, atividades correspondentes, filtros e evidências de aplicação | 13 |
+| `/recursos` | Banco municipal com 24 recursos e 72 atividades, das cinco etapas de ensino e dos três contextos (sala comum, AEE e casa). Cada recurso tem fotografia dos materiais, preparação, modelo de apoio, três níveis de apoio à participação e continuidade (`src/lib/resource-bank.ts`; imagens em `docs/activity-images.md`), além de filtros e evidências de aplicação | 13 |
 | `/calendario` | **Calendário inclusivo**: datas comemorativas do público do AEE (autismo, Libras, braille…), com referência legal e ideia de atividade para a turma | — |
 | `/familia/[id]` | Portal da família + **atividades de casa** + log de acessos | 12, 14 |
 
@@ -129,6 +131,44 @@ O AEE não depende de laudo, mas, quando a família entrega um, a equipe pode an
 - Anexar, enviar à IA, abrir o arquivo, juntar ao estudo de caso e excluir entram no histórico de acessos que a família vê.
 - Excluir o laudo apaga o arquivo e a leitura. O que já foi juntado ao estudo de caso continua.
 - Limite da anonimização: um nome que a plataforma não conhece e que aparece solto no texto, fora das linhas de identificação e sem "Dr."/"Dra.", pode chegar à IA.
+
+## Carteirinha digital
+
+Cartão do estudante no tamanho de um cartão de crédito, para imprimir (frente e verso lado a lado: recorta-se e dobra-se ao meio) e para a família mostrar no celular.
+
+- **Autorização:** só existe com o sim da família, em **Autorizações** no portal dela (`Consent.card`). Retirar apaga a foto, o contato e o código.
+- **Frente:** foto, nome, ano, turma, turno e escola. Sem diagnóstico.
+- **Verso, por escolha da família:** "Como me ajudar" (como se comunica, o que acalma e o que incomoda, do "Como aprende") e o contato de emergência (nome, parentesco e telefone; o formulário começa com o responsável do cadastro).
+- **QR:** leva a `/c/<código>`, um código aleatório de 24 caracteres. Sem login, vai para a entrada sem dizer de quem é a carteirinha (o código fica num cookie de 10 minutos e o Início volta para ele depois do login). Com login, cada perfil cai no que já pode ver: a equipe na ficha (o motivo da Secretaria e os dados clínicos só para o AEE e a coordenação continuam valendo), a família no portal e o terapeuta nas orientações. Quem não tem acesso vê só um aviso. Cada leitura entra no histórico de acessos da família.
+- **Carteirinha perdida:** a escola ou a família gera um código novo, e a anterior deixa de abrir.
+- **Foto:** enviada pela equipe, reduzida no navegador e guardada sem metadados (o servidor tira o Exif, com a localização do GPS, de JPG e PNG). Só a família e a equipe que faz a carteirinha a veem.
+- Regras puras em `src/lib/student-card-core.ts`, com testes; o restante em `src/lib/student-card.ts`.
+
+## Jogos educativos
+
+Para jogar com o estudante durante a aula, no tablet ou no computador, com o professor ao lado (**Jogos educativos**, no menu da equipe).
+
+Todos os jogos ficam numa só página, `/jogos`, com filtro por habilidade (comunicação, memória, alfabetização, matemática e autonomia).
+
+1. **Escolher:** o estudante (opcional) e o nível. Com um estudante, o nível (fácil, médio ou desafio) vem sugerido pelo apoio registrado no "Como aprende", e o tema das figuras, pelo primeiro interesse dele que combina com um tema. O professor pode trocar os dois. Sem estudante, os jogos funcionam igual, só sem o registro.
+2. **Jogar:** 19 jogos com fotografias.
+   - **Na própria página** (`src/lib/games.ts`): memória em pares, encontre a imagem, vamos contar, o que vem depois, cores, rotina em passos, primeira letra, imagem e palavra, juntar para contar, para que serve, classificar, comparar grupos, monte a palavra, quantos ficaram e número que falta. Têm dois níveis: o fácil vira "com mais apoio"; o médio e o desafio, "mais desafios".
+   - **Em tela cheia** (`/jogar/[jogo]`, sem o menu da plataforma), com tema ou rotina à escolha:
+     - **Memória por temas:** de 2 a 6 pares.
+     - **Sequência da rotina:** lavar as mãos, chegar na sala, hora do lanche, ir ao banheiro. São 3 etapas no fácil, 4 no médio e a rotina inteira no desafio.
+     - **Associação:** figura e palavra, ou quantidade e número. São 5 rodadas, com 2 a 4 opções.
+     - **Emoções:** como você se sentiria numa situação da escola ou de casa. As opções vão de feliz e triste até bravo e com medo.
+   - **Prancha de comunicação:** montar frases com fotografias e ouvir.
+3. **Registrar:** com um estudante escolhido, o fim de qualquer jogo traz uma nota já preenchida, com o jogo, o nível e quantas dicas e tentativas houve, e a sugestão de participação, apoio e resultado. O professor confere e registra, e o registro vira um registro de aula como os outros: aparece em Registrar aula e na Evolução.
+
+**Cuidados:**
+- Sem tempo limite e sem pontuação que compare estudantes.
+- Errar não pune: a opção errada só pede outra tentativa.
+- A **Dica** é do professor e conta no registro.
+- A instrução é falada pela voz do aparelho e não traz dado pessoal.
+- Nada sai da plataforma.
+- As figuras são imagens geradas e guardadas na plataforma (`public/images/games/`, ver `docs/game-assets.md`): nenhuma é foto de pessoa real.
+- Regras puras em `src/lib/games/games-core.ts`, com testes.
 
 ## Adaptar a atividade ou a prova da turma
 
@@ -393,6 +433,8 @@ Em **Estudantes › Importar planilha** (`/estudantes/importar`), a gestão e a 
 - `materials.ts` — perguntas para reunião
 - `material-content.ts` (puro, com testes) — os 6 tipos de material de apoio, o conteúdo (cartões com descrição do pictograma, como usar, atividades para aplicar, porquê de cada adaptação), as verificações e o motor de regras; `material-generate.ts` — geração pela IA (`agents/material-agent.ts`) ou pelas regras, aprovação, imagens por cartão (`images/material-images.ts`) e "levar para Atividades"
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
+- `games/games-core.ts` (puro, com testes) — jogos educativos: temas, rotinas, rodadas, nível sugerido pelo apoio e a nota do registro
+- `student-card-core.ts` (puro, com testes) e `student-card.ts` — carteirinha digital: código do QR, foto sem metadados, telefone, "Como me ajudar" e quem vê ou faz a carteirinha
 - `health-report.ts` — laudos do estudo de caso: arquivos aceitos, campos que a leitura pode sugerir, revisão e junção ao estudo de caso; `agents/health-report-reader.ts` — extração do texto do PDF, anonimização própria de laudo e leitura pelo Claude
 - `auth.ts` — sessão, hash e controle de acesso por perfil
 - `bncc-core.ts` (puro, com testes) e `bncc.ts` — base da BNCC: recorte pelo estudante, busca e sugestão de habilidades

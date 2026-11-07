@@ -103,13 +103,14 @@ await account("aee@escola.edu.br", "aee", async (page) => {
   const material = student ? await firstLink(page, `${student}/materiais`, `a[href^="${student}/materiais/c"]`) : null;
   const report = student ? await firstLink(page, `${student}/relatorios`, `a[href^="${student}/relatorios/c"]`) : null;
   const adapted = student ? await firstLink(page, `${student}/atividades`, `a[href^="${student}/atividades/adaptadas/c"]`) : null;
-  const tabs = student ? ["", "/perfil", "/estudo-de-caso", "/ppi", "/diario", "/linha-do-tempo", "/atividades", "/materiais", "/atendimentos-aee", "/dua", "/relatorios", "/sondagem", "/sondagem/aplicar", "/dossie", "/dossie/imprimir"].map((tab) => [`estudante${tab.replaceAll("/", "_")}`, `${student}${tab}`]) : [];
+  const tabs = student ? ["", "/perfil", "/estudo-de-caso", "/ppi", "/diario", "/linha-do-tempo", "/atividades", "/materiais", "/atendimentos-aee", "/dua", "/relatorios", "/sondagem", "/sondagem/aplicar", "/dossie", "/dossie/imprimir", "/carteirinha"].map((tab) => [`estudante${tab.replaceAll("/", "_")}`, `${student}${tab}`]) : [];
   return [
     ["inicio", "/"], ["estudantes", "/estudantes"], ["estudantes_novo", "/estudantes/novo"], ["jornada", "/jornada"], ["assistente", "/assistente"],
     ["calendario", "/calendario"], ["ajuda", "/ajuda"], ["recursos", "/recursos"], resource && ["recurso", resource],
     ...tabs, material && ["material", material], material && ["material_imprimir", `${material}/imprimir`],
     report && ["relatorio", report], report && ["relatorio_imprimir", `${report}/imprimir`],
     student && ["adaptar", `${student}/atividades/adaptar`], adapted && ["adaptada", adapted], adapted && ["adaptada_imprimir", `${adapted}/imprimir`],
+    ["jogos", "/jogos"], ...(student ? [["jogos_estudante", `/jogos?estudante=${student.split("/")[2]}`], ...["memoria", "sequencia", "associacao", "emocoes"].map((game) => [`jogar_${game}`, `/jogar/${game}?estudante=${student.split("/")[2]}&nivel=desafio`])] : []),
     ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["pilula_sondagem", "/ajuda/pilulas/sondagem"], ["pilula_estudo", "/ajuda/pilulas/estudo-de-caso"], ["pilula_prova", "/ajuda/pilulas/adaptar-prova"], ["estudante_naoexiste", "/estudantes/naoexiste"],
   ];
 });
