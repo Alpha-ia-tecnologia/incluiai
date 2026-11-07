@@ -546,8 +546,9 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-180px)] gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <aside className="flex flex-col rounded-2xl bg-surface-muted p-3" aria-label="Conversas">
+    <div className="grid min-h-[calc(100dvh-180px)] grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+      {/* grid-cols-1 e min-w-0: no celular, um título longo de conversa não alarga a coluna. */}
+      <aside className="flex min-w-0 flex-col rounded-2xl bg-surface-muted p-3" aria-label="Conversas">
         <button type="button" onClick={reset} disabled={!!live} className="task-action !min-h-11 !py-2"><MessageSquarePlus size={17} aria-hidden /> Nova conversa</button>
         <ul className="mt-3 flex max-h-72 flex-col gap-1 overflow-y-auto lg:max-h-none lg:flex-1">
           {list.length === 0 ? (
