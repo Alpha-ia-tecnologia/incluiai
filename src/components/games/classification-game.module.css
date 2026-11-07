@@ -1,0 +1,51 @@
+.board { color: var(--ink); }
+.board button { cursor: pointer; }
+.board button:disabled { cursor: default; }
+.board button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+.instructions { max-width: 65ch; margin: 0 auto 22px; font-size: 16px; line-height: 1.65; color: var(--ink-soft); text-align: center; }
+.pictures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 650px; margin-inline: auto; }
+.picture { display: flex; position: relative; flex-direction: column; align-items: center; min-width: 0; min-height: 48px; gap: 8px; padding: 10px 10px 14px; border: 2px solid var(--line); border-radius: 8px; background: var(--paper-raised); }
+.picture:enabled:hover { border-color: var(--ink-soft); }
+.picture[aria-pressed="true"] { border-color: var(--ink); }
+.picture[data-classified] { border-color: var(--green); }
+.photo { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; }
+.picture > img { max-height: 160px; }
+.pictureName { font-size: 16px; font-weight: 700; }
+.pictureState { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 20px; font-size: 12px; color: var(--ink-soft); }
+.picture[data-classified] .pictureState { color: var(--green); }
+.currentSelection { margin-block: 24px 16px; font-size: 16px; line-height: 1.65; text-align: center; }
+.destinations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 18px; }
+.destination { min-width: 0; }
+.destinationButton { display: flex; width: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 96px; padding: 16px 12px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface-muted); text-align: center; }
+.destinationButton > span:first-child { font-family: var(--font-archivo), sans-serif; font-stretch: 82%; font-size: 24px; font-weight: 700; line-height: 1.2; }
+.destinationButton:enabled:hover { border-color: var(--ink-soft); background: var(--brand-soft); }
+.destinationButton[data-hint] { outline: 3px dashed var(--pen); outline-offset: 4px; }
+.destinationAction { font-size: 14px; color: var(--ink-soft); line-height: 1.4; }
+.groupPictures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.groupPictures li { min-width: 0; text-align: center; }
+.groupPictures img { max-height: 90px; }
+.groupPictures span { display: block; margin-top: 5px; font-size: 12px; line-height: 1.4; }
+.emptyGroup { margin: 14px 0 0; padding-inline: 8px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); text-align: center; }
+.hintArea { margin-top: 20px; }
+.hintButton { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px; border-radius: 6px; color: var(--pen); font-size: 14px; }
+.hintButton:hover:enabled { background: var(--brand-soft); }
+.hintButton:disabled { color: var(--ink-soft); }
+.hint { max-width: 65ch; margin-top: 8px; color: var(--ink-soft); font-size: 14px; line-height: 1.65; }
+.feedback { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 64px; margin-top: 20px; padding: 12px 16px; border-radius: 6px; color: var(--ink-soft); font-size: 14px; line-height: 1.6; text-align: center; }
+.feedback svg { flex-shrink: 0; }
+.feedback[data-kind="success"] { color: var(--green); background: var(--green-soft); }
+.feedback[data-kind="hint"] { color: var(--ink); background: var(--surface-muted); }
+@media (max-width: 639px) {
+  .pictures { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .picture { padding: 8px 8px 12px; }
+  .pictureName { font-size: 14px; }
+  .pictureState { flex-wrap: wrap; }
+  .destinations { gap: 12px; }
+  .destinationButton { min-height: 108px; padding: 14px 8px; }
+  .destinationButton > span:first-child { font-size: 24px; }
+  .destinationAction { font-size: 12px; }
+  .groupPictures { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .emptyGroup { padding-inline: 0; font-size: 12px; }
+  .feedback { padding-inline: 10px; font-size: 14px; }
+}
+.board[data-reduce-motion] * { animation: none !important; transition: none !important; }

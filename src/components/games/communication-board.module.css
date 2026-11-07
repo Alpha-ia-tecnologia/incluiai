@@ -1,0 +1,58 @@
+.board { max-width: 1056px; margin-inline: auto; color: var(--ink); }
+.board button { cursor: pointer; }
+.board button:disabled { cursor: default; }
+.board button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+.board :is(h1, h2)[tabindex]:focus { outline: none; }
+.backButton { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-bottom: 20px; padding: 8px 10px; border-radius: 6px; color: var(--pen); font-size: 14px; }
+.backButton:hover { background: var(--brand-soft); }
+.header h1 { font-family: var(--font-archivo), sans-serif; font-stretch: 82%; font-size: clamp(34px, 3.4vw, 46px); font-weight: 800; line-height: 1.1; }
+.header p { max-width: 65ch; margin-top: 12px; color: var(--ink-soft); font-size: 16px; line-height: 1.65; }
+.intentionArea { margin-top: 28px; }
+.intentionArea h2, .pictureArea h2 { font-family: var(--font-archivo), sans-serif; font-stretch: 82%; font-size: 24px; font-weight: 700; line-height: 1.3; }
+.intentions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.intention { min-height: 48px; border: 1px solid var(--line); border-radius: 999px; padding: 11px 20px; font-size: 16px; }
+.intention:hover { border-color: var(--ink-soft); }
+.intention[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper-raised); font-weight: 700; }
+.phraseArea { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 24px; align-items: center; margin-top: 24px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper-raised); }
+.phraseCopy { min-width: 0; }
+.phraseCopy h2 { color: var(--ink-soft); font-size: 14px; font-weight: 700; }
+.phrase { margin-top: 12px; font-family: var(--font-archivo), sans-serif; font-stretch: 82%; font-size: clamp(30px, 3.2vw, 34px); font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.prompt { margin-top: 12px; color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+.selectedPhoto { width: 128px; height: 128px; object-fit: contain; border-radius: 6px; }
+.phraseActions { display: flex; grid-column: 1 / -1; flex-wrap: wrap; gap: 10px; }
+.speakButton, .clearButton { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 12px 20px; border-radius: 999px; font-size: 14px; font-weight: 700; line-height: 1.4; }
+.speakButton { background: var(--ink); color: var(--paper-raised); }
+.speakButton:hover:enabled { background: var(--brand-hover); }
+.speakButton:disabled { background: var(--surface-muted); color: var(--ink-soft); }
+.clearButton { color: var(--pen); }
+.clearButton:hover:enabled { background: var(--brand-soft); }
+.clearButton:disabled { color: var(--ink-soft); }
+.audioMessage { grid-column: 1 / -1; max-width: 65ch; color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+.pictureArea { margin-top: 32px; }
+.pictureArea > p { margin-top: 8px; color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+.pictures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.picture { display: flex; position: relative; flex-direction: column; align-items: center; gap: 12px; min-width: 0; min-height: 48px; border: 2px solid var(--line); border-radius: 8px; padding: 12px 12px 16px; background: var(--paper-raised); }
+.picture:hover { border-color: var(--ink-soft); }
+.picture[aria-pressed="true"] { border-color: var(--ink); }
+.objectPhoto { display: block; width: 100%; height: auto; max-height: 200px; aspect-ratio: 1; object-fit: contain; border-radius: 6px; }
+.picture > span:first-of-type { font-size: 18px; font-weight: 700; }
+.selectionMark { font-size: 12px; color: var(--pen); }
+.picture[aria-pressed="true"] .selectionMark { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 639px) {
+  .backButton { padding-inline: 0; }
+  .header p { font-size: 16px; }
+  .intentions { gap: 7px; }
+  .intention { padding-inline: 16px; font-size: 14px; }
+  .phraseArea { gap: 16px; padding: 18px; }
+  .selectedPhoto { width: 82px; height: 82px; }
+  .phrase { font-size: 30px; }
+  .phraseActions { flex-direction: column; align-items: stretch; }
+  .pictures { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .picture { gap: 9px; padding: 8px 8px 14px; }
+  .picture > span:first-of-type { font-size: 16px; }
+}
+@media (max-width: 359px) {
+  .phraseArea { grid-template-columns: minmax(0, 1fr); }
+  .selectedPhoto { grid-row: 1; }
+  .intention { padding-inline: 14px; }
+}

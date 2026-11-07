@@ -1,0 +1,9 @@
+{
+  "key": "barco",
+  "origin": "AI-generated synthetic photograph",
+  "tool": "built-in image_gen.imagegen",
+  "source": "/home/ronaldo/.codex/generated_images/01a1b2ee-2db6-7e52-9378-9e6114a123de/exec-985b30b9-baa5-4831-ba52-d1a915a317aa.png",
+  "prompt": "Use case: scientific-educational\nAsset type: square photograph for an accessible educational matching game.\nPrimary request: a small white sailboat in three quarter side view with one triangular white sail, whole boat and mast visible, subtle pale water at base.\nStyle/medium: photorealistic studio photograph, true natural proportions and real textures.\nScene/backdrop: plain very pale ivory seamless background, subtle contact shadow.\nComposition/framing: one subject centered, whole subject visible, generous margins, clear simple silhouette, square frame.\nLighting/mood: soft even daylight, warm and calm.\nConstraints: no people, no text, no logo, no watermark, no illustration, no icon, no collage, no border, no accessories.",
+  "width": 640,
+  "height": 640
+}

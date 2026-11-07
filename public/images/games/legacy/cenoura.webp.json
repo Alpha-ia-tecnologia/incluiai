@@ -1,0 +1,6 @@
+{
+  "prompt": "Use case: photorealistic-natural. Asset type: square educational game photograph for object recognition. One fresh orange carrot with short leafy green top, entire carrot fully visible. Simple pale cream studio background, soft natural light, realistic physical texture, subject large and centered with generous margin, clean uncluttered composition. Single subject only, no labels, text, logos, watermarks, icons, illustrations or borders.",
+  "tool": "image_gen.imagegen",
+  "source": "/home/ronaldo/.codex/generated_images/01a1b2ee-6158-7410-9adf-b4306540cbdb/exec-dc6321f5-95a7-4129-9978-ced3734f0862.png",
+  "synthetic": true
+}

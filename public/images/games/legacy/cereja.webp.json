@@ -1,0 +1,6 @@
+{
+  "prompt": "Use case: photorealistic-natural. Asset type: square educational game photograph for object recognition. Two ripe red cherries joined by natural slender green stems, fully visible. Simple pale cream studio background, soft natural light, realistic physical texture, subject large and centered with generous margin, clean uncluttered composition. Single subject only, no labels, text, logos, watermarks, icons, illustrations or borders.",
+  "tool": "image_gen.imagegen",
+  "source": "/home/ronaldo/.codex/generated_images/01a1b2ee-6158-7410-9adf-b4306540cbdb/exec-21cbf84d-d53f-4e98-bc00-9de215be8481.png",
+  "synthetic": true
+}

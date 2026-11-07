@@ -2,7 +2,7 @@ export type NavigationItem = {
   href: string;
   label: string;
   shortLabel: string;
-  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help" | "evidence" | "census";
+  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help" | "evidence" | "census" | "games";
   exact?: boolean;
   section?: "routine" | "management" | "help";
 };
@@ -43,6 +43,8 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
     ...(PLANNER_ROLES.has(role) ? [{ href: "/planejamento", label: "Planejamento com DUA", shortLabel: "Planejamento", icon: "planning", section: "routine" } satisfies NavigationItem] : []),
     assistant,
     { href: "/recursos", label: "Atividades e recursos", shortLabel: "Recursos", icon: "resources", section: "routine" },
+    // Jogos educativos: para jogar com o estudante durante a aula e registrar como foi.
+    ...(PLANNER_ROLES.has(role) ? [{ href: "/jogos", label: "Jogos educativos", shortLabel: "Jogos", icon: "games", section: "routine" } satisfies NavigationItem] : []),
     calendar,
   ];
   const dashboard: NavigationItem = { href: "/painel", label: "Painel de indicadores", shortLabel: "Painel", icon: "network" };

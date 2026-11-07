@@ -1,0 +1,6 @@
+{
+  "prompt": "Use case: photorealistic-natural. Asset type: square educational game photograph depicting one clear handwashing routine step. Close-up of two adult hands held directly underneath a thin stream of clean running water from a chrome faucet over a plain white sink, clearly wetting both palms, no soap or foam. Only hands, faucet and basin, anatomically natural. Simple pale cream or white bathroom setting, soft natural light, realistic physical texture, subject large and centered with generous margin, clean uncluttered composition, no faces. No labels, text, logos, watermarks, icons, illustrations or borders.",
+  "tool": "image_gen.imagegen",
+  "source": "/home/ronaldo/.codex/generated_images/01a1b2ee-6158-7410-9adf-b4306540cbdb/exec-5e9942da-0809-4ea0-afbe-a6bfa7b0b43f.png",
+  "synthetic": true
+}
