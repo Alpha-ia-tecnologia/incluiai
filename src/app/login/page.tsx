@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, BookOpen, Building2, GraduationCap, Heart, School, ShieldCheck, Sparkles, Sprout, Users } from "lucide-react";
+import { ArrowUpRight, BookOpen, Building2, GraduationCap, Heart, IdCard, School, ShieldCheck, Sparkles, Sprout, Users } from "lucide-react";
+import { PENDING_CARD_COOKIE } from "@/lib/student-card";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LoginForm } from "@/components/login-form";
@@ -24,6 +26,8 @@ export default async function LoginPage() {
   if (user) redirect("/");
   const demoAccounts = await prisma.user.findMany({ where: { demo: true, deactivatedAt: null }, select: { email: true, role: true } });
   const demo = demoAccounts.length > 0;
+  // Quem chegou pelo QR de uma carteirinha: depois de entrar, a plataforma abre o estudante.
+  const fromCard = Boolean((await cookies()).get(PENDING_CARD_COOKIE)?.value);
   const cards = PROFILES.flatMap((profile) => {
     if (!demo) return [{ ...profile, key: profile.role, detail: profile.scope }];
     const account = demoAccounts.find((item) => item.role === profile.role);
@@ -50,6 +54,11 @@ export default async function LoginPage() {
               Que bom ter<br />você por aqui.
             </h1>
             <p className="mb-8 mt-4 max-w-xs text-sm leading-relaxed text-ink-soft">Entre na plataforma e acompanhe os próximos passos de uma educação mais inclusiva.</p>
+            {fromCard ? (
+              <p role="status" className="-mt-4 mb-6 flex items-start gap-2 rounded-xl bg-brand-soft px-3.5 py-3 text-sm leading-relaxed text-ink">
+                <IdCard size={18} aria-hidden className="mt-0.5 shrink-0 text-brand-strong" /> Você leu o código de uma carteirinha. Entre para abrir o acompanhamento.
+              </p>
+            ) : null}
             <LoginForm />
           </div>
 

@@ -83,6 +83,7 @@ model Student {
   duaSuggestions     DuaSuggestion[]
   aeeSessions        AeeSession[]
   healthReports      HealthReport[]
+  card               StudentCard?
 }
 
 // Proposta de plano preparada pelos agentes (ou pelas regras). Fica separada
@@ -215,6 +216,7 @@ model Consent {
   student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   aiUse         Boolean  @default(false)
   therapistLink Boolean  @default(false)
+  card          Boolean  @default(false) // carteirinha digital com foto e contato de emergência
   updatedBy     String?
   updatedAt     DateTime @updatedAt
 }
@@ -1064,4 +1066,27 @@ model HealthReport {
   createdAt    DateTime  @default(now())
 
   @@index([studentId, createdAt])
+}
+
+// Carteirinha digital do estudante: existe enquanto a família autoriza
+// (Consent.card); retirar a autorização apaga a carteirinha inteira. O código
+// do QR é aleatório e só leva à ficha na plataforma, que pede login e aplica
+// as permissões de sempre. Trocar o código invalida a carteirinha anterior.
+// O verso ("Como me ajudar") e o contato de emergência são escolhas da família.
+model StudentCard {
+  id                String    @id @default(cuid())
+  studentId         String    @unique
+  student           Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  token             String    @unique
+  photo             Bytes? // JPG ou PNG sem metadados (sem localização)
+  photoMime         String?
+  photoUpdatedAt    DateTime?
+  showHelp          Boolean   @default(false)
+  emergencyName     String?
+  emergencyRelation String?
+  emergencyPhone    String? // só dígitos, com DDD
+  showEmergency     Boolean   @default(false)
+  issuedAt          DateTime  @default(now()) // emissão do código atual
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }

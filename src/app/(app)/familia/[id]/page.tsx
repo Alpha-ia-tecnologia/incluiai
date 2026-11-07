@@ -18,7 +18,11 @@ import { ROLES } from "@/lib/scale";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
-import { Trophy, ShieldCheck, Home, CircleCheck, BookOpen, FileText } from "lucide-react";
+import { Trophy, ShieldCheck, Home, CircleCheck, BookOpen, FileText, IdCard } from "lucide-react";
+import { canViewCard, loadCardView } from "@/lib/student-card";
+import { rotateStudentCard, saveCardPreferences } from "@/actions/student-card";
+import { StudentCardView } from "@/components/student-card-view";
+import { CardPreferencesForm } from "@/components/student-card-forms";
 import Link from "next/link";
 import { periodLabel, reportData } from "@/lib/reports";
 import { MaterialGalleryCard, materialSummary } from "@/components/materials/material-gallery";
@@ -28,7 +32,7 @@ import { percentOf } from "@/lib/series";
 import { RingTile } from "@/components/viz/ring-tile";
 import { SupportTrack } from "@/components/viz/support-track";
 import { Timeline } from "@/components/viz/timeline";
-import { labelCls as familyLabelCls, inputCls as familyInputCls } from "@/components/form-styles";
+import { labelCls as familyLabelCls, inputCls as familyInputCls, quietButtonCls } from "@/components/form-styles";
 
 
 export const dynamic = "force-dynamic";
@@ -81,6 +85,9 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   const objectives = student.plans.flatMap((p) => p.objectives);
   const addNote = createFamilyNote.bind(null, id);
   const firstName = student.name.split(" ")[0];
+  // Carteirinha: com a autorização da família, para ela e para a equipe que a faz.
+  const cardView = consent.card && canViewCard(user, student.schoolId, student.id) ? await loadCardView(student.id) : null;
+  const decidesCard = isFamily && user.studentIds.includes(id);
   // Feita = a família avisou pela própria página (nota com o título da atividade).
   const homeActivities = student.activities.map((activity) => ({ activity, doneAt: student.familyNotes.find((n) => n.note === homeActivityNote(activity.title))?.date }));
   const homeDone = homeActivities.filter((item) => item.doneAt).length;
@@ -222,6 +229,22 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
               }))}
             />
           </Card>
+          ) : null}
+
+          {cardView ? (
+            <Card className="scroll-mt-24" id="carteirinha">
+              <SectionTitle><span className="flex items-center gap-1.5"><IdCard size={13} aria-hidden /> Carteirinha de {firstName}</span></SectionTitle>
+              <StudentCardView view={cardView} />
+              {decidesCard ? (
+                <div className="mt-5 border-t border-line pt-5">
+                  <CardPreferencesForm action={saveCardPreferences.bind(null, id)} firstName={firstName} settings={cardView.settings} guardian={cardView.guardian} hasProfile={cardView.settings.hasProfile} />
+                  <form action={rotateStudentCard.bind(null, id)} className="mt-4 border-t border-line pt-4">
+                    <p className="mb-2 text-sm text-ink-soft">Perderam a carteirinha? Troquem o código: a antiga deixa de abrir.</p>
+                    <PendingButton className={quietButtonCls} pendingText="Trocando o código…">Trocar o código</PendingButton>
+                  </form>
+                </div>
+              ) : null}
+            </Card>
           ) : null}
 
           <ConsentCard studentId={id} firstName={firstName} consent={consent} canDecide={isFamily && user.studentIds.includes(id)} />

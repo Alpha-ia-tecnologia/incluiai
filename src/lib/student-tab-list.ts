@@ -15,6 +15,7 @@ export const STUDENT_TABS = [
   { slug: "materiais", label: "Materiais de apoio" },
   { slug: "relatorios", label: "Relatórios" },
   { slug: "dossie", label: "Dossiê" },
+  { slug: "carteirinha", label: "Carteirinha" },
 ];
 
 // Seções que ficam ocultas para quem não acessa o detalhe pedagógico (família e terapeuta).

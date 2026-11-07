@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { PENDING_CARD_COOKIE, cardPath } from "@/lib/student-card";
+import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
 import { Character } from "@/components/character";
 import { EmptyState } from "@/components/ui";
 import { prisma } from "@/lib/prisma";
@@ -19,6 +22,9 @@ export const dynamic = "force-dynamic";
 export default async function SchoolDashboard() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  // Leitura do QR da carteirinha antes do login: volta para o código, que decide o destino.
+  const pendingCard = (await cookies()).get(PENDING_CARD_COOKIE)?.value;
+  if (pendingCard && CARD_TOKEN_PATTERN.test(pendingCard)) redirect(cardPath(pendingCard));
   if (["familia", "terapeuta"].includes(user.role) && !user.studentIds.length) {
     return <><h1 className="mb-6 font-display text-3xl font-bold tracking-tight">Boas-vindas, {firstName(user.name)}</h1><EmptyState character="care" title="Seu acesso ainda precisa ser vinculado a um estudante" hint="Peça à equipe da escola para conferir seu cadastro. Depois disso, o acompanhamento aparecerá aqui." action={<Link className="task-action" href="/ajuda">Consultar a ajuda</Link>} /></>;
   }

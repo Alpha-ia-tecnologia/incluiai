@@ -365,6 +365,18 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
   .app-content { padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
   .mobile-nav { position: fixed; z-index: 40; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 4px; border: 1px solid var(--line); border-radius: 22px; padding: 7px; background: var(--paper-raised); box-shadow: var(--shadow-e2); }
 }
+/* Carteirinha do estudante: tamanho de cartão (85,6 × 54 mm), na tela e no papel.
+   Em telas estreitas o cartão encolhe inteiro, para não rolar de lado. */
+.id-card { width: 85.6mm; height: 54mm; flex: none; }
+.id-card-stripe { background: linear-gradient(90deg, var(--accent-sky) 0 33.33%, var(--signal-yellow) 33.33% 66.66%, var(--signal-lime) 66.66%); }
+@media screen and (max-width: 400px) { .id-card-frame { zoom: 0.74; } }
+@media print {
+  /* Página da carteirinha: só as duas faces, coladas, para recortar e dobrar ao meio. */
+  body:has(.id-card-sheet) .student-head, body:has(.id-card-sheet) .id-card-screen-only,
+  body:has(.id-card-sheet) #vlibras-access-wrapper, body:has(.id-card-sheet) [vw] { display: none !important; }
+  .id-card-sheet { gap: 0 !important; }
+  .id-card { border-radius: 0; border: 0.2mm dashed #8a979f; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
 @media print {
   body { background: white; }
   .app-frame { display: block; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
