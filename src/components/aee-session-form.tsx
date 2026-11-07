@@ -13,9 +13,9 @@ import { Field, ResultMessage, buttonCls, inputCls, labelCls, textareaCls } from
 type Outcome = { ok: boolean; message?: string; problems?: { field: string; message: string }[] };
 
 const STATUS_HINT: Record<AeeSessionStatus, string> = {
-  realizado: "O atendimento aconteceu.",
-  falta: "O atendimento estava previsto e o estudante não compareceu.",
-  cancelamento: "O atendimento foi desmarcado.",
+  realizado: "Aconteceu.",
+  falta: "Estava previsto e o estudante não veio.",
+  cancelamento: "Foi desmarcado.",
 };
 
 const dateLabel = (value: string) => value.split("-").reverse().join("/");
@@ -53,7 +53,7 @@ export function AeeSessionForm({ studentId, today }: { studentId: string; today:
   return (
     <form onSubmit={submit} className="grid min-w-0 gap-5" aria-busy={pending}>
       <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <Field id="aee-data" label="Data do atendimento" hint="Um registro por dia: registrar de novo na mesma data corrige o anterior.">
+        <Field id="aee-data" label="Data do atendimento" hint="Um por dia: registrar de novo na mesma data corrige.">
           <input id="aee-data" name="date" type="date" required defaultValue={today} aria-describedby="aee-data-dica" className={inputCls} />
         </Field>
         <fieldset className="min-w-0">
@@ -78,7 +78,7 @@ export function AeeSessionForm({ studentId, today }: { studentId: string; today:
         </Field>
       ) : null}
 
-      <Field id="aee-nota" label="Observação (opcional)" hint="O que for preciso lembrar sobre o encontro. O que o estudante aprendeu vai nas evidências e no diário.">
+      <Field id="aee-nota" label="Observação (opcional)" hint="Algo a lembrar sobre o encontro.">
         <textarea id="aee-nota" name="note" maxLength={1200} aria-describedby="aee-nota-dica" className={`${textareaCls} min-h-16`} />
       </Field>
 

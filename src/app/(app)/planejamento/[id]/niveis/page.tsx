@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CircleCheck, FileDown, Printer } from "lucide-react";
+import { CircleCheck, EyeOff, FileDown, Printer, Target } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { hasApiKey } from "@/lib/env";
@@ -15,6 +15,7 @@ import { AdaptForm } from "@/components/adapted/adapt-form";
 import { AdaptedView } from "@/components/adapted/adapted-view";
 import { AdaptedEditor } from "@/components/adapted/adapted-editor";
 import { quietButtonCls } from "@/components/form-styles";
+import { Assurances } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -40,8 +41,14 @@ export default async function LevelsPage({ params, searchParams }: { params: Pro
   return (
     <div className="grid min-w-0 gap-8">
       <section aria-labelledby="niveis-titulo" className="max-w-3xl min-w-0">
-        <h2 id="niveis-titulo" className="mb-2 font-display text-xl font-medium text-ink">A mesma atividade em três níveis</h2>
-        <p className="text-sm leading-relaxed text-ink-soft">Com mais apoio, padrão e com desafio: mesmo tema, mesmo objetivo e mesma habilidade da BNCC. Cada estudante recebe a versão que o ajuda a participar, e nada na folha diz o nível.</p>
+        <h2 id="niveis-titulo" className="mb-3 font-display text-xl font-medium text-ink">A mesma atividade em três níveis</h2>
+        <Assurances
+          label="O que os três níveis mantêm"
+          items={[
+            { icon: Target, text: "Mesmo objetivo e habilidade da BNCC" },
+            { icon: EyeOff, text: "A folha não mostra o nível" },
+          ]}
+        />
       </section>
 
       {access.edit ? (

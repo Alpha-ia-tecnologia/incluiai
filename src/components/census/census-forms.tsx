@@ -1,10 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { Check, FileUp, RefreshCw } from "lucide-react";
+import { Check, FileUp, FileX2, RefreshCw, ShieldCheck } from "lucide-react";
 import type { CensusState } from "@/actions/census";
 import type { MonitorConfig } from "@/lib/census-rules";
 import { choiceCls, hintCls, inputCls, labelCls, primaryButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
+import { Assurances } from "@/components/explain";
 
 type Action = (previous: CensusState, formData: FormData) => Promise<CensusState>;
 
@@ -22,9 +23,16 @@ export function CensusUploadForm({ action }: { action: Action }) {
     <form action={submit} className="grid gap-3">
       <div>
         <label htmlFor="censo-arquivo" className={labelCls}>Arquivo de migração do Educacenso (.txt)</label>
-        <p id="censo-arquivo-dica" className={hintCls}>Exporte pelo Educacenso ou pelo sistema de gestão da escola. A plataforma lê o arquivo, mostra a prévia e não guarda o arquivo.</p>
+        <p id="censo-arquivo-dica" className={hintCls}>Do Educacenso ou do sistema de gestão da escola.</p>
         <input id="censo-arquivo" name="file" type="file" accept=".txt,text/plain" required aria-describedby="censo-arquivo-dica" className={`${inputCls} file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-3 file:py-1.5 file:text-sm file:text-brand-strong`} />
       </div>
+      <Assurances
+        label="Cuidados com o arquivo"
+        items={[
+          { icon: ShieldCheck, text: "Nada muda antes de você aplicar" },
+          { icon: FileX2, text: "O arquivo não fica guardado" },
+        ]}
+      />
       <Feedback state={state} />
       <div><button type="submit" disabled={pending} className={primaryButtonCls}><FileUp size={16} aria-hidden /> {pending ? "Lendo o arquivo…" : "Ler o arquivo e ver a prévia"}</button></div>
     </form>
@@ -109,7 +117,7 @@ export function CensusWindowForm({ action, config }: { action: Action; config: M
       </div>
       <fieldset className="grid gap-2">
         <legend className={labelCls}>Horários das verificações (Brasília)</legend>
-        <p className={hintCls}>Duas por dia bastam: de manhã e no fim da tarde. Deixe vazio o que não usar.</p>
+        <p className={hintCls}>Duas por dia bastam (manhã e fim da tarde). Deixe vazio o que não usar.</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {times.map((time, index) => (
             <div key={index}>
@@ -132,7 +140,7 @@ export function FndeForm({ action, value, year }: { action: Action; value: numbe
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,9rem)]">
         <div>
           <label htmlFor="fnde-aee" className={labelCls}>Matrículas de AEE consideradas pelo FNDE</label>
-          <p id="fnde-aee-dica" className={hintCls}>Da lista de matrículas do Fundeb publicada pelo FNDE para a rede. Deixe vazio para apagar.</p>
+          <p id="fnde-aee-dica" className={hintCls}>Da lista do Fundeb publicada pelo FNDE. Vazio apaga o número.</p>
           <input id="fnde-aee" name="fndeAee" type="number" min={0} inputMode="numeric" defaultValue={value ?? ""} aria-describedby="fnde-aee-dica" className={inputCls} />
         </div>
         <div className="self-end">

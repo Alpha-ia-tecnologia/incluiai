@@ -84,7 +84,7 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
       {linked ? (
         <fieldset className="grid min-w-0 gap-3">
           <legend className={labelCls}>Estudantes vinculados</legend>
-          <p className={hintCls}>{role === "familia" ? "Marque os filhos que esta família acompanha." : "Marque os estudantes que este terapeuta acompanha."} A pessoa vê só estes estudantes, no portal dela.</p>
+          <p className={hintCls}>{role === "familia" ? "Marque os filhos desta família." : "Marque os estudantes deste terapeuta."} A pessoa vê só estes estudantes.</p>
           {students.length > 8 ? (
             <div>
               <label htmlFor={`${id}-filter`} className="sr-only">Buscar estudante pelo nome</label>
@@ -129,11 +129,11 @@ function CreatedAccount({ created, onAnother }: { created: NonNullable<AccountFo
         <p className="text-sm text-ink-soft">E-mail de acesso</p>
         <p className="break-all text-sm font-medium text-ink">{created.email}</p>
         <p className="mt-3 text-sm text-ink-soft">Senha temporária</p>
-        <p id="senha-temporaria" className="font-mono text-lg tracking-wider text-ink">{created.password}</p>
+        <p id="senha-temporaria" className="font-mono text-xl tracking-wider text-ink">{created.password}</p>
       </div>
       <p className="flex items-start gap-2 text-sm leading-relaxed text-ink-soft">
         <KeyRound size={16} aria-hidden className="mt-0.5 shrink-0" />
-        Entregue a senha temporária pessoalmente ou por um canal seguro. Ela aparece só agora; no primeiro acesso, a pessoa cria a própria senha.
+        Entregue pessoalmente ou por um canal seguro. A senha aparece só agora; no primeiro acesso, a pessoa cria a própria.
       </p>
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <PrintButton label="Imprimir" />

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Check, CircleHelp, Lightbulb, Lock, Route, Sparkles, Trophy } from "lucide-react";
+import { ArrowRight, Check, CircleHelp, Hourglass, Lock, Sparkles, Trophy } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import type { ReactNode } from "react";
 import { loadJourney, recordJourneyMark, type Chapter, type ImpactItem } from "@/lib/user-journey";
@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/format";
 import { Character } from "@/components/character";
 import { EmptyState } from "@/components/ui";
 import { JourneyBar, TONE_CLASSES } from "@/components/journey-ui";
+import { HowToRead } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -47,9 +48,9 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
     <div className="mx-auto max-w-6xl">
       <header className="mb-7 flex items-center justify-between gap-5">
         <div className="min-w-0 max-w-2xl">
-          <p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-strong"><Route size={18} aria-hidden /> Minha jornada</p>
           <h1 className="font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{journey.title}</h1>
-          <p className="mt-3 text-base leading-relaxed text-ink-soft">{journey.intro}</p>
+          {/* Sem capítulos, a introdução aparece só no estado vazio, logo abaixo. */}
+          {journey.intro && chapters.length ? <p className="mt-2 text-base text-ink-soft">{journey.intro}</p> : null}
           {chapters.length ? (
             <div className="mt-5 max-w-md">
               <p className="mb-2 text-sm text-ink"><strong className="font-medium">{journey.completed} de {chapters.length}</strong> capítulos concluídos</p>
@@ -82,26 +83,37 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
           <div className="min-w-0">
             {current ? (
               <section aria-labelledby="agora-titulo" className={`mb-8 rounded-3xl p-5 sm:p-7 ${TONE_CLASSES[current.tone].soft}`}>
-                <p className={`text-xs font-semibold uppercase tracking-wide ${TONE_CLASSES[current.tone].ink}`}>Capítulo {currentIndex + 1} · Continue de onde parou</p>
-                <h2 id="agora-titulo" className="mt-2 font-display text-2xl font-medium leading-tight tracking-tight text-ink sm:text-3xl">{current.title}</h2>
-                <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">{current.story}</p>
-                {current.evidence ? <p className="mt-3 max-w-2xl rounded-2xl bg-paper-raised/70 px-4 py-3 text-sm leading-relaxed text-ink-soft">{current.evidence}</p> : null}
+                <h2 id="agora-titulo" className="font-display text-2xl font-medium leading-tight tracking-tight text-ink sm:text-3xl">
+                  <span className="sr-only">Próximo passo, capítulo {currentIndex + 1}: </span>{current.title}
+                </h2>
+                <p className="mt-2 max-w-2xl text-base leading-relaxed text-ink">{current.story}</p>
+                {current.evidence ? <p className="mt-3 w-fit max-w-2xl rounded-2xl bg-paper-raised/70 px-4 py-2.5 text-sm leading-relaxed text-ink">{current.evidence}</p> : null}
                 <ChapterProgress chapter={current} />
-                <p className="mt-4 flex max-w-2xl items-start gap-2 text-sm leading-relaxed text-ink-soft"><Lightbulb size={17} className={`mt-0.5 shrink-0 ${TONE_CLASSES[current.tone].ink}`} aria-hidden /> {current.why}</p>
-                <Link href={current.action.href} className="task-action mt-5 w-full sm:w-fit">{current.action.label} <ArrowRight size={17} aria-hidden /></Link>
+                <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <Link href={current.action.href} className="task-action w-full sm:w-fit">{current.action.label} <ArrowRight size={17} aria-hidden /></Link>
+                  <HowToRead summary="Por que importa">{current.why}</HowToRead>
+                </div>
               </section>
             ) : waiting.length ? (
               <section aria-labelledby="em-dia-titulo" className="mb-8 rounded-3xl bg-sage-soft p-5 sm:p-7">
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sage-ink"><Sparkles size={15} aria-hidden /> Você está em dia</p>
-                <h2 id="em-dia-titulo" className="mt-2 font-display text-2xl font-medium leading-tight tracking-tight text-ink">O que depende de você já foi feito</h2>
-                <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">{waiting.map((chapter) => `“${chapter.title}” está aguardando: ${chapter.evidence ?? chapter.story}`).join(" ")}</p>
+                <h2 id="em-dia-titulo" className="flex items-center gap-2.5 font-display text-2xl font-medium leading-tight tracking-tight text-ink"><Sparkles size={22} className="shrink-0 text-sage-ink" aria-hidden /> Você está em dia</h2>
+                <ul className="mt-3 grid max-w-2xl gap-2.5">
+                  {waiting.map((chapter) => (
+                    <li key={chapter.key} className="flex items-start gap-2.5">
+                      <Hourglass size={18} className="mt-0.5 shrink-0 text-sage-ink" aria-hidden />
+                      <span className="min-w-0">
+                        <span className="block text-base font-medium text-ink">{chapter.title}</span>
+                        <span className="block text-sm text-ink">Aguardando · {chapter.evidence ?? chapter.story}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
                 <Link href={waiting[0].action.href} className="task-action task-action-secondary mt-5 w-full sm:w-fit">{waiting[0].action.label} <ArrowRight size={17} aria-hidden /></Link>
               </section>
             ) : (
               <section aria-labelledby="completa-titulo" className="mb-8 rounded-3xl bg-sage-soft p-5 sm:p-7">
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sage-ink"><Sparkles size={15} aria-hidden /> História completa</p>
-                <h2 id="completa-titulo" className="mt-2 font-display text-2xl font-medium leading-tight tracking-tight text-ink">Todos os capítulos têm registro</h2>
-                <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">A história continua na rotina: cada aula registrada, cada conquista contada e cada revisão do plano somam ao que já foi construído.</p>
+                <h2 id="completa-titulo" className="flex items-center gap-2.5 font-display text-2xl font-medium leading-tight tracking-tight text-ink"><Sparkles size={22} className="shrink-0 text-sage-ink" aria-hidden /> Todos os capítulos têm registro</h2>
+                <p className="mt-2 max-w-2xl text-base text-ink">A história continua a cada aula, conquista e revisão do plano.</p>
               </section>
             )}
 
@@ -117,14 +129,13 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
                       {chapter.done ? <Check size={18} strokeWidth={3} aria-hidden /> : index + 1}
                     </span>
                     <article className={`min-w-0 flex-1 rounded-2xl border p-4 sm:p-5 ${chapter.status === "agora" ? "border-transparent bg-paper-raised shadow-e2" : "border-line bg-paper-raised"}`}>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <p className="text-xs text-ink-soft">Capítulo {index + 1}</p>
+                      <h3 className="text-base font-medium leading-snug text-ink sm:text-xl"><span className="sr-only">Capítulo {index + 1}: </span>{chapter.title}</h3>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${chapter.done ? `${tone.soft} ${tone.ink}` : chapter.status === "agora" ? "bg-brand text-white" : "bg-surface-muted text-ink-soft"}`}>
                           {STATUS_LABELS[chapter.status]}{chapter.done && chapter.date ? ` em ${formatDate(chapter.date)}` : ""}
                         </span>
                         {chapter.progress && chapter.progress.total ? <span className="text-xs text-ink-soft">{chapter.progress.done} de {chapter.progress.total}</span> : null}
                       </div>
-                      <h3 className="mt-1.5 text-base font-medium leading-snug text-ink sm:text-xl">{chapter.title}</h3>
                       {chapter.status === "agora" ? <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">Detalhes no destaque acima.</p>
                         : chapter.done ? <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{chapter.evidence ?? chapter.story}</p>
                           : <>
@@ -149,7 +160,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
                 {journey.impact.length ? journey.impact.map((item, index) => <ImpactTile key={item.label} item={item} id={`impacto-${index}`} />)
                   : <p className="px-2 pb-2 text-sm leading-relaxed text-ink-soft">Os números aparecem depois dos primeiros registros de aula.</p>}
                 {journey.strategies.length ? (
-                  <DataCard title="O que funcionou nas aulas" hint="Marcado no registro da aula. O número é quantas vezes funcionou.">
+                  <DataCard title="O que funcionou nas aulas" hint="Vezes marcadas no registro da aula">
                     <CountChips items={journey.strategies} />
                   </DataCard>
                 ) : null}
@@ -179,7 +190,8 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
 
             <Link href="/ajuda" className="flex items-center gap-3 rounded-2xl bg-brand-soft p-5 text-sm text-ink transition-colors hover:bg-lilac">
               <CircleHelp size={22} className="shrink-0 text-brand-strong" aria-hidden />
-              <span><span className="block font-medium">Dúvida em algum capítulo?</span><span className="text-ink-soft">A ajuda explica cada tarefa em poucos passos.</span></span>
+              <span className="min-w-0 flex-1 font-medium">Dúvida em algum capítulo?</span>
+              <span className="inline-flex shrink-0 items-center gap-1 text-brand-strong">Ajuda <ArrowRight size={15} aria-hidden /></span>
             </Link>
           </aside>
         </div>

@@ -203,8 +203,8 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       key: "estudo", tone: "rose",
       title: `Ouvir a história de ${name}`,
       story: aee
-        ? `Antes de planejar, converse com a família, com a escola e com ${name}, observe nos espaços da escola e registre a síntese. O estudo de caso é o ponto de partida do plano.`
-        : `O estudo de caso reúne o que a família, a escola e ${name} contam. Em geral, a professora do AEE conduz; você contribui com o que observa na sala comum.`,
+        ? `Converse com a família, a escola e ${name}, observe e registre a síntese. É o ponto de partida do plano.`
+        : `Em geral, a professora do AEE conduz; você contribui com o que observa na sala comum.`,
       why: "Entender a história evita planejar a partir de suposições.",
       done: caseDone,
       evidence: caseDone ? "A síntese do caso orienta o plano." : s.caseStudy ? "Em andamento: salvo como rascunho." : null,
@@ -214,7 +214,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     {
       key: "conhecer", tone: "sky",
       title: `Conhecer como ${name} aprende`,
-      story: `Registre como ${name} se comunica, do que gosta e quais apoios ajudam. Os interesses viram a âncora das atividades.`,
+      story: `Registre como ${name} se comunica, do que gosta e quais apoios ajudam.`,
       why: "Atividades que partem dos interesses do estudante prendem a atenção e reduzem as recusas.",
       done: !!s.profile,
       evidence: s.profile ? `Comunicação: ${CHANNELS[s.profile.expressiveChannel] ?? s.profile.expressiveChannel}${interests.length ? `. Gosta de ${listText(interests.slice(0, 3).map((item) => item.toLowerCase()))}` : ""}.` : null,
@@ -224,7 +224,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     {
       key: "planejar", tone: "peach",
       title: `Combinar o que ${name} vai aprender`,
-      story: `No plano de ensino, defina com a equipe um objetivo observável: o que ${name} vai fazer, com qual apoio, em qual critério e em quanto tempo.`,
+      story: `Defina com a equipe um objetivo observável: o que ${name} vai fazer, com qual apoio, critério e prazo.`,
       why: "Um objetivo claro mostra se o apoio está diminuindo, sem depender de nota.",
       done: activeObjectives.length > 0,
       evidence: activeObjectives[0]?.description ?? (activePlan ? "O plano está ativo, ainda sem objetivo." : null),
@@ -234,8 +234,8 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     {
       key: "preparar", tone: "teal",
       title: `Preparar uma aula com ${name} junto da turma`,
-      story: "Escolha o objetivo e o conteúdo da aula. Leia as sugestões para a sala comum, o AEE e a casa, e aceite a que você vai usar. A decisão é sua.",
-      why: "Participar da mesma aula, com os apoios certos, é o que a inclusão pede.",
+      story: "Escolha o objetivo e o conteúdo e aceite a sugestão que vai usar. A decisão é sua.",
+      why: "Inclusão é participar da mesma aula, com os apoios certos.",
       done: s.activities.length > 0,
       evidence: s.activities.length ? `${plural(s.activities.length, "atividade preparada", "atividades preparadas")}. A mais recente: “${s.activities.at(-1)!.title}”.` : null,
       date: s.activities[0]?.createdAt ?? null,
@@ -244,7 +244,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     {
       key: "registrar", tone: "sage",
       title: "Registrar como foi a aula",
-      story: `Depois da aula, conte como ${name} participou, qual apoio foi necessário e o que aconteceu. São três escolhas e, se quiser, uma observação.`,
+      story: `Três escolhas: participação, apoio e o que aconteceu. A observação é opcional.`,
       why: "Cada registro mostra o que funcionou e orienta a próxima aula.",
       done: entries.length > 0,
       evidence: lastEntry ? `${plural(entries.length, "registro", "registros")}. O último em ${formatDate(lastEntry.date)}.` : null,
@@ -254,7 +254,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     {
       key: "acompanhar", tone: "lilac",
       title: "Ver o que mudou e ajustar",
-      story: `Com alguns registros, compare o apoio de que ${name} precisou ao longo das aulas. Quando as evidências mostrarem, marque o objetivo como alcançado ou em revisão e combine o próximo passo com a equipe.`,
+      story: `Compare o apoio de que ${name} precisou nas aulas e marque o objetivo como alcançado ou em revisão.`,
       why: "Revisar no tempo certo evita insistir no que não funciona e reconhece cada avanço.",
       done: reviewed.length > 0 || advancing.length > 0,
       evidence: advancing.length ? `${plural(advancing.length, "objetivo avançando", "objetivos avançando")}: ${name} já precisa de menos apoio.`
@@ -269,9 +269,9 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
   const impact: ImpactItem[] = [];
   if (entries.length) {
     const full = entries.filter((entry) => entry.participation === "total").length;
-    impact.push({ label: "Aulas registradas", value: String(entries.length), hint: `A última em ${formatDate(lastEntry!.date)}. Colunas: aulas por semana, nas últimas 8.`, viz: { kind: "weekly", points: weeklyCounts(entries.map((entry) => entry.date), 8) } });
+    impact.push({ label: "Aulas registradas", value: String(entries.length), hint: `Última em ${formatDate(lastEntry!.date)} · por semana, nas últimas 8`, viz: { kind: "weekly", points: weeklyCounts(entries.map((entry) => entry.date), 8) } });
     impact.push({
-      label: "Participação plena", value: `${Math.round((full / entries.length) * 100)}%`, hint: `${full} de ${entries.length} aulas. Cada marca é uma aula, da mais antiga à mais recente.`,
+      label: "Participação plena", value: `${Math.round((full / entries.length) * 100)}%`, hint: `${full} de ${entries.length} aulas · da mais antiga à mais recente`,
       viz: { kind: "dots", items: entries.slice(-16).map((entry) => ({ key: entry.id, title: `${formatDate(entry.date)}: ${PARTICIPATION_TEXT[entry.participation] ?? entry.participation}`, tone: PARTICIPATION_TONE[entry.participation] ?? "neutral" })) },
     });
   }
@@ -280,14 +280,14 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     const now = average(withEntries.map((objective) => entries.findLast((entry) => entry.objectiveId === objective.id)!.supportLevel));
     const levels = supportSeries(entries.filter((entry) => withEntries.some((objective) => objective.id === entry.objectiveId))).map((point) => point.value);
     const { trend, delta } = supportTrend(levels);
-    impact.push({ label: "Nível de apoio", value: `${decimal(start)} → ${decimal(now)}`, hint: "De 5 (apoio físico total) a 0 (independente). Na linha, subir é precisar de menos apoio.", viz: { kind: "support", values: levels.slice(-20), delta, trend } });
+    impact.push({ label: "Nível de apoio", value: `${decimal(start)} → ${decimal(now)}`, hint: "Subir na linha é precisar de menos apoio (0 = independente).", viz: { kind: "support", values: levels.slice(-20), delta, trend } });
   }
   const note = s.familyNotes[0];
 
   return finish({
     ...base,
     title: `Sua história com ${name}`,
-    intro: `${s.gradeYear} · ${s.className}. Cada capítulo mostra o que já foi feito e o próximo passo. Você pode abrir qualquer etapa quando precisar.`,
+    intro: `${s.gradeYear} · ${s.className}`,
     focus: { id: s.id, name: s.name, options: students.map((student) => ({ id: student.id, name: student.name })) },
     chapters,
     impact,
@@ -352,7 +352,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
   const chapters = withStatus([
     {
       key: "painel", tone: "sky", title: "Conhecer o panorama da escola",
-      story: "O Painel de indicadores reúne a jornada de cada estudante, os avisos de acompanhamento e o que a equipe registrou. É o ponto de partida da conversa com a equipe.",
+      story: "Veja num só lugar a jornada dos estudantes, os avisos e os registros da equipe.",
       why: "Olhar o conjunto ajuda a decidir onde apoiar primeiro.",
       done: marks.has("painel"), date: marks.get("painel") ?? null,
       evidence: marks.has("painel") ? "Você já abriu o painel." : null,
@@ -360,7 +360,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     },
     {
       key: "plano", tone: "peach", title: "Garantir um plano para cada estudante",
-      story: "Todo estudante do AEE precisa de um plano individual com pelo menos um objetivo. Na tabela de estudantes do painel, o botão ↗ leva direto ao próximo passo de cada um.",
+      story: "Todo estudante do AEE precisa de um plano com objetivo. No painel, o botão ↗ leva ao próximo passo de cada um.",
       why: "Sem objetivo combinado, não há como acompanhar o avanço.",
       done: total > 0 && withPlan === total, progress: ratio(withPlan, total),
       evidence: `${withPlan} de ${plural(total, "estudante", "estudantes")} com plano e objetivo.`,
@@ -368,7 +368,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     },
     {
       key: "revisao", tone: "rose", title: "Manter os planos revisados no prazo",
-      story: "Cada plano tem uma data de revisão. Combine com a professora do AEE e a sala comum uma conversa rápida a partir dos registros.",
+      story: "Na data de revisão, combine uma conversa rápida com o AEE e a sala comum, a partir dos registros.",
       why: "Revisar no tempo certo evita insistir no que não funciona.",
       done: plans.length > 0 && onTime === plans.length, progress: plans.length ? ratio(onTime, plans.length) : null,
       evidence: plans.length ? `${onTime} de ${plural(plans.length, "plano", "planos")} dentro do prazo de revisão.` : "Nenhum plano ativo ainda.",
@@ -376,7 +376,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     },
     {
       key: "registros", tone: "sage", title: "Apoiar o registro das aulas",
-      story: "Os registros em três toques mostram o que funciona. Quando um estudante fica sem registro, vale perguntar à equipe do que ela precisa.",
+      story: "Estudante sem registro? Pergunte à equipe do que ela precisa.",
       why: "Queda no ritmo de registros costuma anteceder o abandono do acompanhamento.",
       done: total > 0 && recorded === total, progress: ratio(recorded, total),
       evidence: `${recorded} de ${plural(total, "estudante", "estudantes")} com aula registrada nos últimos 30 dias.`,
@@ -384,7 +384,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     },
     {
       key: "rede", tone: "teal", title: "Aproximar a família e a saúde",
-      story: "Famílias contam conquistas de casa e terapeutas enviam orientações funcionais. Tudo aparece no resumo do estudante para a equipe.",
+      story: "Conquistas da família e orientações dos terapeutas chegam ao resumo do estudante.",
       why: "O que acontece fora da escola completa o que a equipe vê na sala.",
       done: total > 0 && connected === total, progress: ratio(connected, total),
       evidence: `${connected} de ${plural(total, "estudante", "estudantes")} com participação da família ou da saúde.`,
@@ -392,7 +392,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     },
     {
       key: "calendario", tone: "lilac", title: "Celebrar as datas inclusivas",
-      story: "O calendário inclusivo traz datas como o Dia do Autismo e o Dia Nacional da Libras, com ideias de atividade para a turma toda.",
+      story: "Datas como o Dia do Autismo e o Dia Nacional da Libras, com ideias para a turma toda.",
       why: "Datas comemorativas aproximam a comunidade escolar do tema da inclusão.",
       done: marks.has("calendario"), date: marks.get("calendario") ?? null,
       evidence: nextDate ? `Próxima data: ${nextDate.entry.title}.` : null,
@@ -404,7 +404,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
   return finish({
     kind: "escola", character: "planning", welcomed: marks.has("boas_vindas"),
     title: `A história de ${place}`,
-    intro: "Os capítulos acompanham o trabalho da coordenação: conhecer o panorama, garantir planos e revisões, apoiar os registros e aproximar família e saúde.",
+    intro: "",
     welcome: {
       headline: `Boas-vindas, ${firstName(user.name)}!`,
       text: `Aqui você acompanha a história de ${place}: quem precisa de atenção, planos em dia, aulas registradas e família e saúde por perto.`,
@@ -447,7 +447,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
   const chapters = withStatus([
     {
       key: "painel", tone: "sky", title: "Conhecer a rede no painel",
-      story: "O Painel de indicadores mostra a rede inteira ou uma escola: jornada dos estudantes, avisos, aulas registradas, uso da IA e acessos aos dados.",
+      story: "A rede ou uma escola: jornada, avisos, aulas, uso da IA e acessos aos dados.",
       why: "Dados agregados orientam formação, compra de recursos e apoio às escolas.",
       done: marks.has("painel"), date: marks.get("painel") ?? null,
       evidence: marks.has("painel") ? "Você já abriu o painel." : null,
@@ -455,7 +455,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
     },
     {
       key: "cadastros", tone: "sage", title: "Organizar escolas e turmas",
-      story: "Com as escolas e turmas cadastradas, o cadastro de estudantes fica mais rápido e o planejamento por turma funciona.",
+      story: "Com escolas e turmas cadastradas, o cadastro de estudantes fica mais rápido e o planejamento por turma funciona.",
       why: "Cadastros organizados evitam estudantes duplicados ou fora da turma certa.",
       done: schools.length > 0 && withClasses === schools.length, progress: ratio(withClasses, schools.length),
       evidence: `${withClasses} de ${plural(schools.length, "escola", "escolas")} com turmas cadastradas.`,
@@ -463,7 +463,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
     },
     {
       key: "plano", tone: "peach", title: "Garantir um plano para cada estudante",
-      story: "Todo estudante do AEE precisa de um plano individual com objetivo. No painel, filtre por escola para ver onde a equipe precisa de apoio.",
+      story: "Todo estudante do AEE precisa de um plano com objetivo. Filtre o painel por escola.",
       why: "O plano é a base para medir o avanço sem depender de nota.",
       done: total > 0 && withPlan === total, progress: ratio(withPlan, total),
       evidence: `${withPlan} de ${plural(total, "estudante", "estudantes")} da rede com plano e objetivo.`,
@@ -471,7 +471,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
     },
     {
       key: "caa", tone: "rose", title: "Garantir recursos de comunicação",
-      story: "Estudantes que se comunicam por comunicação alternativa ou acionador precisam de recursos registrados. O painel aponta quantos ainda faltam.",
+      story: "Quem usa comunicação alternativa ou acionador precisa de recursos registrados.",
       why: "Sem o recurso certo, o estudante fica sem voz na aula.",
       done: caa.length === caaReady, progress: caa.length ? ratio(caaReady, caa.length) : null,
       evidence: caa.length ? `${caaReady} de ${plural(caa.length, "estudante", "estudantes")} com comunicação alternativa têm recursos registrados.` : "Nenhum estudante com comunicação alternativa registrado.",
@@ -479,7 +479,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
     },
     {
       key: "recursos", tone: "teal", title: "Fortalecer o banco de práticas",
-      story: "O banco municipal reúne atividades e materiais com evidência de uso. Cada resultado registrado ajuda outras escolas a escolher.",
+      story: "Atividades e materiais com evidência de uso. Cada resultado registrado ajuda outras escolas a escolher.",
       why: "Boas práticas de uma escola podem servir à rede inteira.",
       done: marks.has("recursos"), date: marks.get("recursos") ?? null,
       evidence: `${plural(resources._count._all, "recurso", "recursos")} e ${plural(resources._sum.timesUsed ?? 0, "uso registrado", "usos registrados")}.`,
@@ -487,7 +487,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
     },
     {
       key: "calendario", tone: "lilac", title: "Celebrar as datas inclusivas",
-      story: "O calendário inclusivo ajuda a rede a planejar campanhas e atividades nas datas do público do AEE.",
+      story: "Campanhas e atividades nas datas do público do AEE.",
       why: "Campanhas na rede reduzem barreiras atitudinais.",
       done: marks.has("calendario"), date: marks.get("calendario") ?? null,
       evidence: nextDate ? `Próxima data: ${nextDate.entry.title}.` : null,
@@ -498,7 +498,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
   return finish({
     kind: "rede", character: "ideas", welcomed: marks.has("boas_vindas"),
     title: "A história da rede",
-    intro: "Os capítulos acompanham o trabalho da Secretaria: conhecer a rede, organizar os cadastros, garantir planos e recursos e fortalecer as boas práticas.",
+    intro: "",
     welcome: {
       headline: `Boas-vindas, ${firstName(user.name)}!`,
       text: "Aqui você acompanha a história da rede municipal: onde as escolas precisam de apoio, que recursos faltam e quais práticas funcionam.",
@@ -547,7 +547,7 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
   const chapters = withStatus([
     {
       key: "conhecer", tone: "sky", title: `Saber o que a escola trabalha com ${name}`,
-      story: `Na página de ${name}, você vê os objetivos combinados pela escola, escritos em linguagem do dia a dia.`,
+      story: `Os objetivos combinados pela escola, em linguagem do dia a dia.`,
       why: "Quando a família conhece o objetivo, consegue reforçar em casa.",
       done: marks.has("familia_inicio"), date: marks.get("familia_inicio") ?? null,
       evidence: objectives.length ? `A escola está trabalhando ${plural(objectives.length, "objetivo", "objetivos")} com ${name}.` : "A escola ainda está montando o plano.",
@@ -556,8 +556,8 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     {
       key: "casa", tone: "teal", title: "Fazer uma atividade em casa",
       story: s.activities.length
-        ? "A escola preparou atividades curtas, com objetos que vocês já têm em casa. Depois de fazer, toque em “Fizemos esta atividade” para a escola saber."
-        : "Quando a escola enviar uma atividade para casa, ela aparece na página do acompanhamento. Depois de fazer, é só avisar a escola.",
+        ? "Atividades curtas, com objetos de casa. Depois, toque em “Fizemos esta atividade”."
+        : "A atividade enviada pela escola aparece no acompanhamento. Depois de fazer, avise a escola.",
       why: "A mesma aprendizagem em casa e na escola se fortalece mais rápido.",
       done: homeDone.length > 0, date: homeDone[0]?.date ?? null, waiting: s.activities.length === 0,
       evidence: homeDone.length ? `${plural(homeDone.length, "atividade feita", "atividades feitas")} em casa.` : s.activities.length ? `${plural(s.activities.length, "atividade disponível", "atividades disponíveis")}.` : null,
@@ -565,7 +565,7 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     },
     {
       key: "conquista", tone: "sage", title: "Contar uma conquista de casa",
-      story: `Algumas aprendizagens aparecem primeiro em casa. Conte para a escola o que ${name} conseguiu fazer e quem viu.`,
+      story: `Conte à escola o que ${name} conseguiu fazer em casa e quem viu.`,
       why: "A equipe usa o que a família observa para planejar as próximas aulas.",
       done: stories.length > 0, date: stories[0]?.date ?? null,
       evidence: stories.length ? `Última conquista contada: “${stories.at(-1)!.note}”` : null,
@@ -577,7 +577,7 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
   return finish({
     kind: "familia", character: "care", welcomed,
     title: `Sua história com ${name}`,
-    intro: "Escola e família caminhando juntas. Cada capítulo mostra o que você já fez e o que pode fazer em seguida.",
+    intro: "",
     welcome: {
       headline: `Boas-vindas, ${firstName(user.name)}!`,
       text: `Aqui você acompanha o que a escola trabalha com ${name}, faz atividades em casa e conta as conquistas que vê no dia a dia.`,
@@ -635,7 +635,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
   const chapters = withStatus([
     {
       key: "conhecer", tone: "sky", title: `Conhecer ${name} na escola`,
-      story: `Você vê o que a escola registrou sobre a comunicação e os interesses de ${name}. Notas, diário e dados administrativos ficam com a escola.`,
+      story: `A comunicação e os interesses de ${name}, como a escola registrou. Notas, diário e dados administrativos ficam com a escola.`,
       why: "Partir do que a escola já sabe evita repetir orientações.",
       done: marks.has("terapeuta_inicio"), date: marks.get("terapeuta_inicio") ?? null,
       evidence: s.profile ? `Comunicação: ${CHANNELS[s.profile.expressiveChannel] ?? s.profile.expressiveChannel}${interests.length ? `. Gosta de ${listText(interests.slice(0, 3).map((item) => item.toLowerCase()))}` : ""}.` : "A escola ainda não preencheu o perfil.",
@@ -643,7 +643,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
     },
     {
       key: "orientar", tone: "teal", title: "Enviar orientações para a escola",
-      story: "Marque as formas de comunicação, os recursos e as estratégias que ajudam na escola. Só entram informações funcionais: o prontuário clínico fica no sistema de saúde.",
+      story: "Marque comunicação, recursos e estratégias que ajudam na escola. Só informações funcionais: o prontuário clínico fica no sistema de saúde.",
       why: "Orientações práticas chegam à sala comum e ao AEE no resumo do estudante.",
       done: reports.length > 0, date: reports[0]?.createdAt ?? null,
       evidence: last ? `Último relatório enviado em ${formatDate(last.createdAt)}.` : null,
@@ -651,7 +651,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
     },
     {
       key: "recebido", tone: "sage", title: "Saber que a escola recebeu",
-      story: `Quando a equipe abre o acompanhamento de ${name}, suas orientações estão lá, no resumo do estudante.`,
+      story: `Suas orientações aparecem no resumo de ${name} para a equipe.`,
       why: "Saber que a orientação chegou fecha o ciclo entre saúde e escola.",
       done: !!seen, date: seen?.createdAt ?? null, waiting: !!last && !seen,
       evidence: seen ? `A equipe abriu o acompanhamento em ${formatDate(seen.createdAt)}, depois do seu último relatório.` : last ? "A equipe ainda não abriu o acompanhamento desde o seu último relatório." : null,
@@ -670,7 +670,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
   return finish({
     kind: "terapeuta", character: "care", welcomed,
     title: `Sua história com ${name}`,
-    intro: "Saúde e escola trabalhando juntas. Cada capítulo mostra o que já foi feito e o que pode ser feito em seguida.",
+    intro: "",
     welcome: {
       headline: `Boas-vindas, ${firstName(user.name)}!`,
       text: `Aqui você compartilha orientações funcionais com a escola de ${name} e vê quando elas chegam à equipe.`,

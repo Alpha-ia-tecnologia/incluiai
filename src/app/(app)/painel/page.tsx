@@ -3,7 +3,7 @@ import Link from "next/link";
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { ArrowRight, ArrowUpRight, CalendarDays, Check, Lightbulb, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarDays, Check, CircleSlash, Lightbulb, Scale, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
 import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import {
   ALERT_LABELS, GAUGES, PERIODS, loadDashboard, parseGauge, parsePeriod,
@@ -16,6 +16,8 @@ import { duaIndicators } from "@/lib/dua/indicators";
 import { canPlanDua } from "@/lib/dua/access";
 import { AI_BLOCK_DECISION_LABEL } from "@/lib/dua/domain";
 import { EmptyState } from "@/components/ui";
+import { primaryButtonCls } from "@/components/form-styles";
+import { Assurances, HowToRead } from "@/components/explain";
 import {
   BarList, ColumnChart, HatchedDonut, HatchedGauge, Legend, MonthGrid, SIGNAL, StackedBar, SupportScale, type ChartSegment,
 } from "@/components/charts";
@@ -51,27 +53,46 @@ const pointsDelta = (gauge: { value: number | null; previous: number | null }) =
 const pointsText = (delta: number) => `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)} ${Math.abs(delta) === 1 ? "ponto" : "pontos"}`;
 const shortDate = (date: Date) => date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit" });
 
-function CardHeader({ title, hint, href, linkLabel }: { title: string; hint?: string; href?: string; linkLabel?: string }) {
+// hint: contexto curto (período, base); help: definição do indicador, recolhida em "Como ler".
+function CardHeader({ title, hint, help, href, linkLabel }: { title: string; hint?: string; help?: ReactNode; href?: string; linkLabel?: string }) {
   return (
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="min-w-0">
         <h3 className="text-base font-medium tracking-tight text-ink">{title}</h3>
         {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+        {help ? <HowToRead>{help}</HowToRead> : null}
       </div>
       {href ? <Link href={href} className="circle-link" aria-label={linkLabel ?? `Abrir ${title.toLowerCase()}`}><ArrowUpRight size={16} aria-hidden /></Link> : null}
     </div>
   );
 }
 
-function Section({ id, title, description, children }: { id: string; title: string; description?: string; children: ReactNode }) {
+function Section({ id, title, description, help, note, children }: { id: string; title: string; description?: string; help?: ReactNode; note?: ReactNode; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-titulo`} className="mt-10 scroll-mt-20">
       <div className="mb-3.5 px-1">
         <h2 id={`${id}-titulo`} className="font-display text-xl font-medium tracking-tight text-ink sm:text-2xl">{title}</h2>
         {description ? <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-soft">{description}</p> : null}
+        {note ? <div className="mt-2">{note}</div> : null}
+        {help ? <HowToRead>{help}</HowToRead> : null}
       </div>
       {children}
     </section>
+  );
+}
+
+// Contagens em pílula: o número em destaque e um rótulo curto ao lado.
+// labelledBy: id de um rótulo visível; sem ele, o rótulo vai só para o leitor de tela.
+function CountList({ label, labelledBy, items }: { label?: string; labelledBy?: string; items: { key: string; value: number; label: string; tone: Tone }[] }) {
+  return (
+    <ul aria-label={labelledBy ? undefined : label} aria-labelledby={labelledBy} className="flex min-w-0 flex-wrap gap-1.5">
+      {items.map((item) => (
+        <li key={item.key} className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-full bg-surface-muted/70 py-1 pl-1 pr-3 text-xs text-ink">
+          <span className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-1.5 text-sm font-semibold tabular-nums ${TONE_CLASSES[item.tone]}`}>{item.value}</span>
+          <span className="min-w-0">{item.label}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -123,7 +144,7 @@ function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denomina
 }) {
   return (
     <article className="dash-card flex min-w-0 flex-col">
-      <CardHeader title={label} />
+      <CardHeader title={label} help={definition} />
       <div className="flex min-w-0 items-center gap-4">
         <div aria-hidden className="shrink-0">
           <RingStat id={ringId} value={value} label={label} size={64} color={SIGNAL.cyan}><span /></RingStat>
@@ -135,7 +156,6 @@ function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denomina
           <p className="mt-2 text-sm text-ink">{numerator} de {denominator} {unit}</p>
         </div>
       </div>
-      <p className="mt-3 text-xs leading-relaxed text-ink-soft">{definition}</p>
     </article>
   );
 }
@@ -175,7 +195,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       return {
         value: j.completion,
         pill: { tone: (j.complete > 0 ? "good" : "neutral") as Tone, text: `${j.complete} de ${o.students} completos` },
-        description: "Média das 5 etapas concluídas por estudante: estudo de caso, perfil, plano com objetivo, atividade preparada e aula registrada no período.",
+        context: `5 etapas por estudante · ${periodText}`,
+        definition: "Média das 5 etapas concluídas por estudante: estudo de caso, perfil, plano com objetivo, atividade preparada e aula registrada no período.",
       };
     }
     const current = g[gaugeKey];
@@ -189,9 +210,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       value: current.value,
       pill,
       deltaText: delta === null ? (current.value === null ? null : "não há registros no período anterior para comparar") : `${Math.abs(delta)} pontos ${delta >= 0 ? "a mais" : "a menos"} que no período anterior`,
-      description: gaugeKey === "participacao"
-        ? `Registros de aula em que o estudante participou plenamente · ${periodText} (${plural(current.records, "registro", "registros")}).`
-        : `Registros de aula em que o critério de sucesso do objetivo foi atingido · ${periodText} (${plural(current.records, "registro", "registros")}).`,
+      context: `${plural(current.records, "registro", "registros")} de aula · ${periodText}`,
+      definition: gaugeKey === "participacao"
+        ? "Parte dos registros de aula em que o estudante participou plenamente."
+        : "Parte dos registros de aula em que o critério de sucesso do objetivo foi atingido.",
     };
   })();
   const scopePhrase = scope.schoolName ? (scope.network ? `da ${scope.schoolName}` : "da sua escola") : "da rede";
@@ -309,7 +331,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <option value="">Toda a rede</option>
                 {scope.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
               </select>
-              <button type="submit" className="min-h-10 rounded-full bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-strong">Ver</button>
+              <button type="submit" className={primaryButtonCls}>Ver</button>
             </form>
           ) : null}
           <PrintButton label="Imprimir" />
@@ -349,7 +371,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <p className="mt-1 font-display text-5xl font-bold leading-none tracking-tight text-ink sm:text-5xl">{gauge.value ?? "—"}{gauge.value !== null ? <span className="text-[0.5em]">%</span> : null}</p>
                   </div>
                 </div>
-                <p className="mx-auto mt-4 max-w-sm text-xs leading-relaxed text-ink-soft">{gauge.description}</p>
+                <p className="mx-auto mt-4 max-w-sm text-xs text-ink-soft">{gauge.context}</p>
+                <HowToRead className="mx-auto max-w-sm">{gauge.definition}</HowToRead>
                 {scope.network
                   ? <a href="#atencao" className="pill-action mx-auto mt-5 max-w-sm">Ver estudantes com avisos</a>
                   : <Link href="/estudantes?acao=registrar" className="pill-action mx-auto mt-5 max-w-sm">Registrar uma aula</Link>}
@@ -401,7 +424,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 id="atencao-titulo" className="text-base font-medium tracking-tight">{nominal ? "Estudantes" : "Avisos por escola"}</h2>
-                    <p className="mt-1 text-xs text-ink-soft">{nominal ? "Ordenados por avisos." : "Números por escola, sem nomes. Para abrir uma ficha, busque em Estudantes e informe o motivo."}</p>
+                    {nominal ? <p className="mt-1 text-xs text-ink-soft">Ordenados por avisos.</p> : (
+                      <>
+                        <Assurances className="mt-2" label="Privacidade" items={[{ icon: ShieldCheck, text: "Números por escola, sem nomes" }]} />
+                        <p className="mt-2 text-xs text-ink-soft">Ficha com nome: busque em Estudantes e informe o motivo.</p>
+                      </>
+                    )}
                   </div>
                   {nominal ? <Link href="/estudantes" className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line px-3.5 text-sm text-ink transition-colors hover:border-ink-strong">Ver todos <ArrowRight size={15} aria-hidden /></Link> : null}
                 </div>
@@ -471,10 +499,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </div>
                 ) : <p className="text-sm text-ink-soft">Nenhum estudante deste recorte está vinculado ao seu acesso.</p>}
                 {nominal && a.students.length > tableRows.length ? <p className="mt-2 text-xs text-ink-soft">Mostrando {tableRows.length} de {a.students.length}. <Link href="/estudantes" className="font-medium text-ink underline">Ver todos os estudantes</Link></p> : null}
-                <p className="mt-3 rounded-2xl bg-surface-muted/70 px-3.5 py-2.5 text-xs leading-relaxed text-ink-soft">
-                  <span className="font-medium text-ink">Avisos em {scope.schoolName ?? "toda a rede"}:</span>{" "}
-                  {a.byKind.map((kind) => `${kind.value} ${ALERT_LABELS[kind.key].charAt(0).toLowerCase()}${ALERT_LABELS[kind.key].slice(1)}`).join(" · ")}.
-                </p>
+                <div className="mt-3 border-t border-line pt-3">
+                  <p id="avisos-por-tipo" className="mb-2 text-xs font-medium text-ink">Avisos em {scope.schoolName ?? "toda a rede"}</p>
+                  <CountList
+                    labelledBy="avisos-por-tipo"
+                    items={a.byKind.map((kind) => ({ key: kind.key, value: kind.value, label: SHORT_ALERTS[kind.key] ?? ALERT_LABELS[kind.key], tone: kind.value ? "alert" : "good" }))}
+                  />
+                </div>
               </section>
 
               <div className="order-3 grid min-w-0 gap-3.5 md:grid-cols-2 xl:order-none">
@@ -485,9 +516,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </div>
                   {support.initial !== null && support.latest !== null && support.target !== null ? (
                     <>
-                      <p className="mt-1 text-xs leading-relaxed text-ink-soft">
-                        {supportDrop !== null && supportDrop > 0 ? `Em média, os estudantes já precisam de ${decimal(supportDrop)} ${supportDrop >= 2 ? "níveis" : "nível"} de apoio a menos do que no início.` : "O nível de apoio médio ainda não diminuiu em relação ao início."} Média de {plural(support.objectives, "objetivo", "objetivos")} com registro.
-                      </p>
+                      <p className="mt-1 text-xs text-ink-soft">Média de {plural(support.objectives, "objetivo", "objetivos")} com registro</p>
                       <SupportScale initial={support.initial} latest={support.latest} target={support.target} />
                       {/* Legenda compacta: o marcador é o mesmo da escala, e o número e o nome vêm em texto. */}
                       <dl className="mt-4 flex min-w-0 flex-wrap gap-1.5">
@@ -521,11 +550,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
               <section aria-labelledby="meses-titulo" className="dash-card order-3 min-w-0 xl:order-none">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <h2 id="meses-titulo" className="text-base font-medium tracking-tight">Meses com registro de aula</h2>
-                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">
-                      {cal.schoolMonths ? `Houve registro em ${cal.monthsWithRecords} de ${plural(cal.schoolMonths, "mês letivo", "meses letivos")} desde o primeiro registro.` : "Ainda não há registros de aula."} Todo o histórico, sem o filtro de período.
+                    <p className="mt-1 text-xs text-ink-soft">
+                      {cal.schoolMonths
+                        ? <><strong className="text-sm font-semibold text-ink tabular-nums">{cal.monthsWithRecords} de {cal.schoolMonths}</strong> {cal.schoolMonths === 1 ? "mês letivo" : "meses letivos"} · todo o histórico</>
+                        : "Ainda não há registros de aula · todo o histórico"}
                     </p>
+                    <HowToRead>Meses letivos desde o primeiro registro de aula. Este quadro não segue o filtro de período.</HowToRead>
                   </div>
                   {cal.gaps ? <StatusPill tone="alert">{plural(cal.gaps, "mês sem registro", "meses sem registro")}</StatusPill> : cal.schoolMonths ? <StatusPill tone="good">Sem lacunas</StatusPill> : null}
                 </div>
@@ -540,13 +572,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
             {/* IA numa faixa inteira, depois das duas colunas: assim nenhuma coluna fica com um vão embaixo. */}
             <section id="ia" aria-labelledby="ia-titulo" className="dash-card order-4 min-w-0 scroll-mt-20 xl:order-3 xl:col-span-2">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <h2 id="ia-titulo" className="text-base font-medium tracking-tight">Inteligência artificial</h2>
-                  <p className="mt-1 text-xs leading-relaxed text-ink-soft">A IA propõe e o professor decide. Dados pessoais viram marcadores antes do envio.</p>
-                </div>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-lime-soft text-ink-strong"><ShieldCheck size={17} aria-hidden /></span>
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 id="ia-titulo" className="text-base font-medium tracking-tight">Inteligência artificial</h2>
+                <p className="text-xs text-ink-soft">{PERIODS[period]}</p>
               </div>
+              <Assurances
+                className="mb-3"
+                label="Cuidados com a IA"
+                items={[{ icon: UserCheck, text: "A IA propõe, o professor decide" }, { icon: ShieldCheck, text: "Dados pessoais saem como marcadores" }]}
+              />
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:items-start lg:gap-4">
               <dl className="grid gap-1.5 text-sm">
                 {([
@@ -570,12 +604,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <AiStat label="Envios à IA de reserva" value={ai.deepseekSends} />
               </dl>
               </div>
-              <p className="mt-2 text-xs leading-relaxed text-ink-soft">Números de {periodText}.</p>
               <Link href="/estudantes?acao=preparar" className="pill-action mt-4 sm:w-fit"><Sparkles size={16} aria-hidden /> Preparar uma atividade</Link>
             </section>
           </section>
 
-          <Section id="objetivos" title="Objetivos e aprendizagem" description="Avançar é precisar de menos apoio na mesma tarefa (0 é independente; 5, apoio físico total).">
+          <Section id="objetivos" title="Objetivos e aprendizagem" help="Avançar é precisar de menos apoio na mesma tarefa (0 é independente; 5, apoio físico total).">
             <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
               <div className="dash-card">
                 <CardHeader title="Como estão os objetivos" />
@@ -590,7 +623,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <StackedBar segments={withSegmentColors(l.criterion)} />
               </div>
               <div className="dash-card">
-                <CardHeader title="Sondagem" hint={`Com linha de base: ${smallNumber(l.assessment.withBaseline)} de ${plural(l.assessment.total, "estudante", "estudantes")}. Em dia: reaplicada nas últimas 12 semanas.`} />
+                <CardHeader title="Sondagem" hint={`${smallNumber(l.assessment.withBaseline)} de ${plural(l.assessment.total, "estudante", "estudantes")} com linha de base`} help="Em dia: sondagem reaplicada nas últimas 12 semanas." />
                 <p className="font-display text-3xl font-bold tracking-tight text-ink"><span className="tabular-nums">{smallNumber(l.assessment.upToDate)}</span> <span className="text-base text-ink-soft">em dia</span></p>
                 {l.assessment.improved.some((row) => row.value > 0) ? (
                   <ul className="mt-3 grid gap-1 text-sm text-ink-soft">
@@ -599,11 +632,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 ) : null}
               </div>
               <div className="dash-card">
-                <CardHeader title="Relatórios do período" hint="Validados para a família nos últimos 6 meses." />
+                <CardHeader title="Relatórios do período" hint="Validados para a família · últimos 6 meses" />
                 <p className="font-display text-3xl font-bold tracking-tight text-ink"><span className="tabular-nums">{l.reports.covered}</span> <span className="text-base text-ink-soft">de {plural(l.reports.total, "estudante", "estudantes")}</span></p>
               </div>
               <div className="dash-card">
-                <CardHeader title="Objetivos por componente da BNCC" hint={l.bncc.total ? `${l.bncc.linked} de ${l.bncc.total} objetivos ligados a uma habilidade da BNCC.` : undefined} />
+                <CardHeader title="Objetivos por componente da BNCC" hint={l.bncc.total ? `${l.bncc.linked} de ${l.bncc.total} objetivos com habilidade da BNCC` : undefined} />
                 <BarList rows={l.bncc.byComponent} empty="Nenhum objetivo ligado à BNCC ainda." />
               </div>
             </div>
@@ -620,7 +653,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <BarList rows={r.byAuthor.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} />
               </div>
               <div className="dash-card xl:col-span-3">
-                <CardHeader title="Estratégias que mais funcionaram" hint={`Vezes marcada em “o que funcionou” · ${periodText}.`} />
+                <CardHeader title="Estratégias que mais funcionaram" hint={`Marcadas em “o que funcionou” · ${periodText}`} />
                 {r.strategies.length ? (
                   // Duas colunas com a mesma escala, na ordem do ranking (de cima para baixo).
                   <div className="grid min-w-0 gap-x-8 gap-y-3 md:grid-cols-2">
@@ -651,7 +684,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <BarList rows={act.byContext} empty="Nenhuma atividade criada no período." />
               </div>
               <div className="dash-card">
-                <CardHeader title="Origem e adesão" hint="Adesão: aceitas ou aplicadas entre as avaliadas." />
+                <CardHeader title="Origem e adesão" help="Adesão: atividades aceitas ou aplicadas entre as avaliadas." />
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <caption className="sr-only">Atividades por origem e adesão</caption>
@@ -685,31 +718,43 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </Section>
 
           {dua ? (
-            <Section id="dua" title="Planejamento com DUA — uso e documentação" description={`${duaPeriod} · ${dua.scopeLabel}.`}>
-              <p className="mb-3.5 max-w-3xl rounded-2xl bg-surface-muted px-4 py-3 text-sm leading-relaxed text-ink">
-                <strong className="font-medium">Medem uso e documentação, não aprendizagem:</strong> nenhum número avalia professor, escola ou estudante. Sem o que contar, aparece “{dua.noBaseText.toLowerCase()}”, e não 0%.
-                {canPlanDua(user) ? <> <Link href="/planejamento" className="font-medium text-ink underline">Abrir o planejamento</Link></> : null}
-              </p>
+            <Section
+              id="dua" title="Planejamento com DUA — uso e documentação" description={`${duaPeriod} · ${dua.scopeLabel}.`}
+              note={
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Assurances
+                    label="Como ler os indicadores do DUA"
+                    items={[
+                      { icon: Scale, text: "Medem uso, não aprendizagem" },
+                      { icon: ShieldCheck, text: "Não avaliam professor, escola nem estudante" },
+                      { icon: CircleSlash, text: "Sem base, nunca 0%" },
+                    ]}
+                  />
+                  {canPlanDua(user) ? <Link href="/planejamento" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink underline">Abrir o planejamento <ArrowRight size={15} aria-hidden /></Link> : null}
+                </div>
+              }
+            >
               <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                 {dua.indicators.map(({ key, ...indicator }) => (
                   <DuaIndicatorCard key={key} ringId={`anel-dua-${key}`} {...indicator} noBaseText={dua.noBaseText} />
                 ))}
                 <div className="dash-card min-w-0">
-                  <CardHeader title="Decisões sobre as sugestões" hint="Blocos de sugestão revisados pela equipe." />
+                  <CardHeader title="Decisões sobre as sugestões" hint={dua.decisions.total ? `${plural(dua.decisions.total, "bloco revisado", "blocos revisados")} pela equipe` : undefined} />
                   <StackedBar segments={duaDecisions} empty={`${dua.noBaseText}: nenhum bloco de sugestão revisado.`} />
-                  {dua.decisions.total ? <p className="mt-3 text-xs text-ink-soft">{dua.decisions.aceito} aceitos sem alteração, {dua.decisions.editado} aceitos com edição e {dua.decisions.recusado} recusados, de {plural(dua.decisions.total, "bloco revisado", "blocos revisados")}.</p> : null}
                 </div>
               </div>
             </Section>
           ) : null}
 
-          <Section id="perfil" title="Perfil dos estudantes" description="Dados agregados, sem identificar ninguém.">
+          <Section id="perfil" title="Perfil dos estudantes" note={<Assurances label="Privacidade" items={[{ icon: ShieldCheck, text: "Dados agregados, sem identificar ninguém" }]} />}>
             {p.caa.withoutResources > 0 ? (
-              <div className="mb-3.5 flex items-start gap-3 rounded-2xl bg-signal-yellow-soft p-4 sm:p-5">
+              <div className="mb-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-signal-yellow-soft p-4 sm:p-5">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-yellow text-ink-strong"><Lightbulb size={17} aria-hidden /></span>
-                <p className="text-sm leading-relaxed text-ink">
-                  <strong>Leitura para a gestão:</strong> {plural(p.caa.total, "estudante se comunica", "estudantes se comunicam")} por comunicação alternativa ou acionador, e {p.caa.withoutResources} ainda {p.caa.withoutResources === 1 ? "não tem" : "não têm"} recursos de acessibilidade registrados. É um indicativo para compra de materiais e formação.
-                </p>
+                <p className="shrink-0 font-display text-3xl font-bold leading-none tracking-tight text-ink tabular-nums">{p.caa.withoutResources} <span className="text-base font-medium">de {p.caa.total}</span></p>
+                <div className="min-w-0 flex-1 basis-60 text-sm text-ink">
+                  <p><strong className="font-medium">Sem recursos de acessibilidade registrados</strong>, entre quem usa comunicação alternativa ou acionador</p>
+                  <p className="mt-0.5 text-xs">Leitura para a gestão: indicativo para compra de materiais e formação.</p>
+                </div>
               </div>
             ) : null}
             <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
@@ -719,11 +764,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="dash-card"><CardHeader title="Barreiras ativas" /><BarList rows={p.barriers} color={SIGNAL.yellow} empty="Nenhuma barreira registrada." /></div>
               <div className="dash-card"><CardHeader title="Hipersensibilidade sensorial" /><BarList rows={p.hypersensitivity} color={SIGNAL.cyan} empty="Nenhuma hipersensibilidade registrada." /></div>
             </div>
-            {p.withoutProfile ? <p className="mt-3 px-1 text-xs text-ink-soft">{plural(p.withoutProfile, "estudante ainda não tem", "estudantes ainda não têm")} o perfil de aprendizagem preenchido e não entram nestes números.</p> : null}
+            {p.withoutProfile ? <p className="mt-3 px-1 text-xs text-ink-soft">{plural(p.withoutProfile, "estudante sem perfil de aprendizagem fica", "estudantes sem perfil de aprendizagem ficam")} fora destes números.</p> : null}
             {p.practices.length ? (
               <>
                 <h3 className="mb-1 mt-7 px-1 text-base font-medium">Banco de práticas por perfil</h3>
-                <p className="mb-3.5 px-1 text-sm text-ink-soft">Estratégias de aulas com boa resposta, por perfil · {periodText}.</p>
+                <p className="mb-3.5 px-1 text-sm text-ink-soft">Estratégias de aulas com boa resposta · {periodText}</p>
                 <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                   {p.practices.map((cluster) => (
                     <div key={cluster.label} className="dash-card">
@@ -757,7 +802,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 />
               </div>
               <div className="dash-card">
-                <CardHeader title="Materiais acessíveis" hint={`${f.materialsInPeriod} produzidos no período.`} />
+                <CardHeader title="Materiais acessíveis" hint={`${f.materialsInPeriod} produzidos no período`} />
                 <BarList rows={f.materials} empty="Nenhum material produzido ainda." />
               </div>
             </div>
@@ -766,7 +811,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <Section id="recursos" title="Recursos e datas">
             <div className="grid gap-3.5 lg:grid-cols-2">
               <div className="dash-card">
-                <CardHeader title="Recursos mais usados" hint={`Banco municipal, igual para toda a rede: ${plural(res.total, "recurso", "recursos")}, ${plural(res.activities, "proposta prática", "propostas práticas")} e ${plural(res.uses, "uso registrado", "usos registrados")}.`} href="/recursos" linkLabel="Abrir o banco de recursos" />
+                <CardHeader title="Recursos mais usados" hint="Banco municipal · o mesmo para toda a rede" href="/recursos" linkLabel="Abrir o banco de recursos" />
+                <div className="-mt-1 mb-3">
+                  <CountList
+                    label="Banco municipal em números"
+                    items={[
+                      { key: "recursos", value: res.total, label: res.total === 1 ? "recurso" : "recursos", tone: "info" },
+                      { key: "propostas", value: res.activities, label: res.activities === 1 ? "proposta prática" : "propostas práticas", tone: "info" },
+                      { key: "usos", value: res.uses, label: res.uses === 1 ? "uso registrado" : "usos registrados", tone: "info" },
+                    ]}
+                  />
+                </div>
                 {res.top.length ? (
                   // A barra compara o uso com o recurso mais usado; o número vem escrito ao lado.
                   <ol className="divide-y divide-line">
@@ -807,11 +862,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <Section id="equipe" title="Equipe e privacidade">
               <div className="grid gap-3.5 lg:grid-cols-2">
                 <div className="dash-card">
-                  <CardHeader title="Pessoas com acesso" hint={scope.schoolId ? "Equipe da escola e famílias e terapeutas dos estudantes dela." : "Todos os usuários cadastrados na rede."} />
+                  <CardHeader title="Pessoas com acesso" hint={scope.schoolId ? "Equipe da escola, famílias e terapeutas dos estudantes" : "Todos os usuários da rede"} />
                   <BarList rows={team.byRole.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} color={SIGNAL.cyan} empty="Nenhum usuário cadastrado." />
                 </div>
                 <div className="dash-card">
-                  <CardHeader title="Acessos registrados" hint={`${plural(team.actors, "pessoa acessou", "pessoas acessaram")} dados de estudantes · ${periodText}.`} />
+                  <CardHeader title="Acessos registrados" hint={`${plural(team.actors, "pessoa acessou", "pessoas acessaram")} dados de estudantes · ${periodText}`} />
                   <BarList rows={team.access.map((row) => ({ ...row, label: ACCESS_LABELS[row.key] }))} color={SIGNAL.cyan} empty="Nenhum acesso registrado no período." />
                 </div>
               </div>

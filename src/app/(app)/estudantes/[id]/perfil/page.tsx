@@ -102,7 +102,7 @@ export default async function ProfilePage({
       };
   const suggestionNote = hasSuggestions ? (
     <p className="mb-4 max-w-3xl rounded-xl bg-sky-soft px-4 py-3 text-xs leading-relaxed text-sky-ink">
-      Interesses, barreiras e potencialidades levantados no estudo de caso já aparecem como sugestão. Confira antes de salvar.
+      Sugestões do estudo de caso já preenchidas. Confira antes de salvar.
     </p>
   ) : null;
   const chatMode = modo !== "formulario";
@@ -113,7 +113,6 @@ export default async function ProfilePage({
         <PageHeader
           level={2}
           title="Como aprende"
-          lede="Conte como o estudante se comunica, do que gosta e quais apoios ajudam no dia a dia. Responda uma pergunta por vez."
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <PillLink slug="comunicacao-alternativa" />
@@ -126,7 +125,7 @@ export default async function ProfilePage({
 
         {p ? (
           <p className="mb-4 max-w-3xl rounded-xl bg-brand-soft/60 px-4 py-3 text-xs leading-relaxed text-brand-strong">
-            As informações já estão salvas. Revise o resumo abaixo e atualize o que mudou desde a última observação.
+            Perfil já salvo. Atualize o que mudou.
           </p>
         ) : suggestionNote}
         <ProfileChat
@@ -144,7 +143,7 @@ export default async function ProfilePage({
       <PageHeader
         level={2}
         title="Como aprende"
-        lede="Preencha ou revise as informações sobre a aprendizagem. Em cada atividade, escolha o apoio de que o estudante precisa hoje."
+        lede="Em cada item, escolha o apoio de que o estudante precisa hoje."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <PillLink slug="comunicacao-alternativa" />
@@ -242,9 +241,6 @@ export default async function ProfilePage({
 
         <Card className="border-amber/50">
           <SectionTitle>Do que o estudante gosta</SectionTitle>
-          <p className="mb-3 text-xs leading-relaxed text-ink-soft">
-            Conte quais assuntos e brincadeiras despertam seu interesse. Isso ajuda a preparar atividades mais próximas do seu dia a dia.
-          </p>
           <MultiChoiceField name="interests" label="Escolha de 3 a 5 temas *" options={INTEREST_OPTIONS} defaultValue={p ? parseJson<string[]>(p.interests, []) : suggested.interests} required separator="," legendClassName={labelCls} inputClassName={inputCls} />
         </Card>
 

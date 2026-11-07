@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ArrowRight, ShieldAlert, Sprout } from "lucide-react";
+import { ArrowLeft, ArrowRight, ClipboardList, EyeOff, FileUp, ListChecks, LockKeyhole, ShieldAlert, ShieldCheck, Sparkles, Sprout, UserCheck } from "lucide-react";
+import { Assurances, Steps } from "@/components/explain";
 import { prisma } from "@/lib/prisma";
 import { canSeeClinicalDetail, requireStudentPage } from "@/lib/auth";
 import { recordView } from "@/lib/access-log";
@@ -54,7 +55,17 @@ export default async function HealthReportsPage({
       <PageHeader
         level={2}
         title="Laudos e relatórios de saúde"
-        lede={`Opcional: o AEE é pedagógico e não depende de laudo. Se a família entregou um laudo de ${firstName}, anexe aqui. A IA lê o texto e sugere o que juntar ao estudo de caso, e você confere cada sugestão antes.`}
+        lede={`Opcional: o AEE não depende de laudo. Use se a família entregou um laudo de ${firstName}.`}
+      />
+      <Steps
+        label="Como funciona"
+        className="mb-6"
+        items={[
+          { icon: FileUp, label: "Anexe o laudo" },
+          { icon: Sparkles, label: "A IA lê o texto" },
+          { icon: ListChecks, label: "Você confere cada sugestão" },
+          { icon: ClipboardList, label: "Junta ao estudo de caso" },
+        ]}
       />
 
       {excluido ? (
@@ -104,14 +115,15 @@ export default async function HealthReportsPage({
             ) : null}
             <HealthReportUpload action={upload} />
           </Card>
-          <section aria-labelledby="privacidade-titulo" className="px-1">
-            <h3 id="privacidade-titulo" className="text-sm font-medium text-ink">Como o laudo é tratado</h3>
-            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-ink-soft">
-              <li>O arquivo fica guardado aqui. Só o AEE e a coordenação abrem, e cada abertura vai para o histórico de acessos que a família vê.</li>
-              <li>A IA só lê o laudo se a família autorizou o uso de IA. Ela não recebe o arquivo, só o texto. Antes do envio, nomes conhecidos, CPF, RG, CRM, cartão do SUS, telefones, datas e endereços viram marcadores.</li>
-              <li>Nada entra no estudo de caso sem a sua revisão.</li>
-            </ul>
-          </section>
+          <Assurances
+            label="Como o laudo é tratado"
+            items={[
+              { icon: LockKeyhole, text: "Só o AEE e a coordenação abrem" },
+              { icon: EyeOff, text: "A IA lê só o texto, sem nomes" },
+              { icon: ShieldCheck, text: "Só com autorização da família" },
+              { icon: UserCheck, text: "Nada entra sem sua revisão" },
+            ]}
+          />
         </aside>
       </div>
     </>

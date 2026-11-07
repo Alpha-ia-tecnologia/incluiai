@@ -32,8 +32,7 @@ export default async function PlanningLayout({ children, params }: { children: R
         <ArrowLeft size={16} aria-hidden /> Voltar para o planejamento
       </Link>
       <div className="mb-4 rounded-2xl bg-surface-muted p-4 sm:p-5 print:hidden">
-        <p className="text-xs font-medium uppercase tracking-wide text-brand-strong">Atividade com DUA</p>
-        <h1 className="mt-1 font-display text-2xl font-medium tracking-tight text-ink sm:text-3xl">{planning.title}</h1>
+        <h1 className="font-display text-2xl font-medium tracking-tight text-ink sm:text-3xl">{planning.title}</h1>
         <p className="mt-1 text-sm text-ink-soft">
           Responsável: {planning.ownerName}
           {planning.className ? ` · ${planning.className}` : ""}

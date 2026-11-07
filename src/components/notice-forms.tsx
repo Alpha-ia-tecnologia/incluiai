@@ -1,10 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { Check, Send } from "lucide-react";
+import { Check, EyeOff, Link2, Send } from "lucide-react";
 import type { NoticeState } from "@/actions/notifications";
 import { CHECKIN_OPTIONS } from "@/lib/family-contact";
-import { choiceCls, hintCls, labelCls, primaryButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
+import { choiceCls, labelCls, primaryButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
+import { Assurances } from "@/components/explain";
 
 type Action = (previous: NoticeState, formData: FormData) => Promise<NoticeState>;
 
@@ -23,7 +24,13 @@ export function NoticePrefsForm({ action, notifyByEmail, weeklyCheckIn, emailOn,
           <span>Mostrar a pergunta da semana no portal</span>
         </label>
       ) : <input type="hidden" name="weeklyCheckIn" value={weeklyCheckIn ? "on" : ""} />}
-      <p className={hintCls}>O e-mail só diz que há novidade e leva o link: nunca o nome, a escola ou o assunto do estudante.</p>
+      <Assurances
+        label="O que vai no e-mail"
+        items={[
+          { icon: Link2, text: "O e-mail só traz o link" },
+          { icon: EyeOff, text: "Sem nome, escola ou assunto" },
+        ]}
+      />
       {state.saved ? <p role="status" className="flex items-center gap-1.5 text-sm font-medium text-green"><Check size={16} aria-hidden /> Preferências salvas.</p> : null}
       <div><button type="submit" disabled={pending} className={secondaryButtonCls}>Salvar as preferências</button></div>
     </form>

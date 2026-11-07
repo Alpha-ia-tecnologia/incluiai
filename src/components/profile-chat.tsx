@@ -6,13 +6,17 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
+  Eye,
   Info,
   Pencil,
+  RefreshCw,
   RotateCcw,
   Save,
   Send,
+  ShieldCheck,
 } from "lucide-react";
 import { Character } from "@/components/character";
+import { Assurances } from "@/components/explain";
 import { primaryButtonCls } from "@/components/form-styles";
 import {
   BARRIERS,
@@ -575,9 +579,11 @@ export function ProfileChat({
                   {done ? "Pronto para revisar" : "Conversa guiada"}
                 </span>
               </div>
-              <p className="mt-0.5 text-xs text-ink-soft">
-                Registre como {firstName} aprende e participa — sem informações de diagnóstico.
-              </p>
+              <Assurances
+                className="mt-1.5"
+                label={`O que registrar sobre ${firstName}`}
+                items={[{ icon: ShieldCheck, text: "Sem informações de diagnóstico" }]}
+              />
             </div>
             {/* O andamento também em texto, inclusive no celular: a barra abaixo só repete. */}
             <div className="shrink-0 text-right">
@@ -597,7 +603,7 @@ export function ProfileChat({
           <div className="grid min-h-[36rem] lg:grid-cols-[13rem_1fr]">
             {/* Lista de etapas sem marco próprio: um <aside> dentro do <main> seria um marco aninhado. */}
             <div className="hidden border-r border-line bg-paper/60 p-4 lg:block">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink-soft">
+              <p className="mb-3 text-sm font-semibold text-ink">
                 Etapas do perfil
               </p>
               <ol className="space-y-1">
@@ -642,8 +648,8 @@ export function ProfileChat({
               <div className="border-b border-line/70 px-5 py-3 sm:px-8">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-strong">
-                      Etapa <span className="tabular-nums">{currentSectionIndex + 1} de {sections.length}</span> · {current.section}
+                    <p className="text-sm font-semibold text-ink">
+                      {current.section} <span className="font-normal tabular-nums text-ink-soft">· etapa {currentSectionIndex + 1} de {sections.length}</span>
                     </p>
                     <p className="mt-0.5 text-xs text-ink-soft">
                       {SECTION_META[current.section]?.description}
@@ -751,9 +757,14 @@ export function ProfileChat({
         )}
       </div>
 
-      <p className="mt-4 text-center text-xs leading-relaxed text-ink-soft">
-        Use observações pedagógicas de diferentes momentos. O perfil pode ser revisto sempre que houver mudanças.
-      </p>
+      <Assurances
+        className="mt-4 justify-center"
+        label="Ao preencher o perfil"
+        items={[
+          { icon: Eye, text: "Observações de vários momentos" },
+          { icon: RefreshCw, text: "Revise sempre que algo mudar" },
+        ]}
+      />
 
       {showReset ? (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2 rounded-xl border border-coral/30 bg-coral-soft px-4 py-3">
@@ -1069,7 +1080,7 @@ function Review({
             Perfil pronto para revisão
           </h3>
           <p className="mt-0.5 text-sm leading-relaxed text-green">
-            Confira como {firstName} aprende e participa. Edite qualquer item antes de salvar.
+            Confira as respostas sobre {firstName} antes de salvar.
           </p>
         </div>
       </div>
@@ -1089,7 +1100,7 @@ function Review({
                 .map((step) => (
                   // dl > div > dt + dd: o botão de editar fica num dd próprio, na coluna da direita.
                   <div key={step.field} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 py-2.5">
-                    <dt className="col-start-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                    <dt className="col-start-1 text-xs font-semibold text-ink-soft">
                       {step.label}
                     </dt>
                     <dd className="col-start-1 mt-0.5 break-words text-sm leading-relaxed text-ink">

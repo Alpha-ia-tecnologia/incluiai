@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CircleCheck, FileText } from "lucide-react";
+import { CalendarRange, CircleCheck, FilePen, ShieldCheck, Users, Wand2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
 import { newReport } from "@/actions/reports";
@@ -8,6 +8,7 @@ import { periodLabel, reportData } from "@/lib/reports";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { NewReportForm } from "@/components/reports/report-forms";
+import { Assurances, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +27,22 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <PageHeader level={2} title="Relatórios do período" lede="O relatório junta o que foi registrado no período (objetivos, apoio, atendimentos e o que funcionou) com o parecer da equipe. Validado, a família lê no portal." />
+      <PageHeader level={2} title="Relatórios do período" />
       <div className="grid min-w-0 max-w-3xl gap-6">
         {team ? (
           <Card>
             <SectionTitle>Novo relatório</SectionTitle>
-            <p className="mb-4 text-sm leading-relaxed text-ink-soft">Escolha o período. A plataforma monta o relatório com os registros e um rascunho do parecer, que você revisa antes de validar.</p>
+            <Steps
+              label="Como o relatório é feito"
+              className="mb-5"
+              items={[
+                { icon: CalendarRange, label: "Escolha o período" },
+                { icon: Wand2, label: "Rascunho com os registros" },
+                { icon: FilePen, label: "Você revisa o parecer" },
+                { icon: CircleCheck, label: "Valida" },
+                { icon: Users, label: "A família lê no portal" },
+              ]}
+            />
             <NewReportForm action={newReport.bind(null, id)} start={semester.start} end={semester.end} />
           </Card>
         ) : null}
@@ -51,9 +62,9 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
             </ul>
           </section>
         ) : (
-          <EmptyState character="planning" title="Nenhum relatório ainda" hint={team ? "Monte o primeiro relatório escolhendo o período acima." : "Quando a equipe validar um relatório, ele aparece aqui."} action={undefined} />
+          <EmptyState character="planning" title="Nenhum relatório ainda" hint={team ? "Escolha o período acima." : "Aparece aqui depois de validado."} action={undefined} />
         )}
-        <p className="flex items-start gap-2 text-xs leading-relaxed text-ink-soft"><FileText size={14} aria-hidden className="mt-0.5 shrink-0" /> O relatório usa só a parte pedagógica do estudo de caso: diagnóstico, saúde e dados da família não entram.</p>
+        <Assurances label="O que não entra no relatório" items={[{ icon: ShieldCheck, text: "Sem diagnóstico, saúde nem dados da família" }]} />
       </div>
     </>
   );

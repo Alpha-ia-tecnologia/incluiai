@@ -26,7 +26,7 @@ export function PasswordForm({ action, askCurrent = false, button, pendingLabel,
       ) : null}
       <div>
         <label htmlFor={`${id}-password`} className={labelCls}>Senha nova</label>
-        <p id={`${id}-hint`} className={hintCls}>Pelo menos {PASSWORD_MIN} caracteres. Uma frase curta funciona bem, como &quot;girassol no pátio azul&quot;. Não use seu nome nem seu e-mail.</p>
+        <p id={`${id}-hint`} className={hintCls}>Pelo menos {PASSWORD_MIN} caracteres, sem seu nome ou e-mail. Uma frase curta funciona bem: &ldquo;girassol no pátio azul&rdquo;.</p>
         <input id={`${id}-password`} name="password" type="password" required minLength={PASSWORD_MIN} maxLength={128} autoComplete="new-password" aria-describedby={`${id}-hint`} className={inputCls} />
       </div>
       <div>

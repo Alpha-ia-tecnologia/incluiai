@@ -134,24 +134,14 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
 
   return (
     <>
-      <PageHeader level={2}
-        title="Evolução"
-        lede={pedagogical
-          ? "Veja o histórico de planos, atendimentos, atividades com DUA, frequência do AEE e conquistas, do mais recente ao mais antigo."
-          : "Veja o histórico de planos, atendimentos e conquistas, do mais recente ao mais antigo."}
-        actions={
-          <Link href={`/estudantes/${id}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 py-2.5 text-sm font-medium text-brand-strong hover:bg-brand-soft">
-            Ver objetivos e avanços no resumo
-          </Link>
-        }
-      />
+      <PageHeader level={2} title="Evolução" />
       {entries.length === 0 ? (
-        <EmptyState character="learning" title="O histórico começa aqui" hint="Os planos de ensino e as conquistas registrados na plataforma aparecerão nesta lista." />
+        <EmptyState character="learning" title="O histórico começa aqui" hint="Planos, atendimentos e conquistas aparecem aqui." />
       ) : (
         <>
           <h2 className="sr-only">Resumo do histórico</h2>
           <DataBoard className="mb-8 max-w-2xl">
-            <DataCard title="Eventos por mês" hint={lastYear ? `${plural(lastYear, "evento", "eventos")} nos últimos 12 meses · ${plural(entries.length, "evento", "eventos")} no histórico.` : `Nenhum evento nos últimos 12 meses · ${plural(entries.length, "evento", "eventos")} no histórico, logo abaixo.`}>
+            <DataCard title="Eventos por mês" hint={`${lastYear ? plural(lastYear, "evento", "eventos") : "Nenhum evento"} nos últimos 12 meses · ${entries.length} no total.`}>
               {lastYear ? <ColumnChart rows={months} caption="Eventos por mês, nos últimos 12 meses" /> : null}
               <div className={lastYear ? "mt-4" : ""}>
                 <h4 className="mb-2 text-xs font-medium text-ink-soft">Por tipo, em todo o histórico</h4>

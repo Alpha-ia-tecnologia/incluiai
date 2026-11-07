@@ -1,7 +1,7 @@
 import Form from "next/form";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BadgeCheck, LockKeyhole, ShieldCheck } from "lucide-react";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";
 import { isAIEnabled } from "@/lib/agents/model";
 import { DuaError, studentsInReach } from "@/lib/dua/shared";
@@ -13,6 +13,7 @@ import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { Field, inputCls, linkCls, secondaryCls } from "@/components/dua/dua-ui";
 import { SupportCard } from "@/components/dua/supports/support-card";
 import { SupportForm, type ObjectiveOption, type ProfileOption } from "@/components/dua/supports/support-form";
+import { Assurances, HowToRead } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -78,14 +79,20 @@ export default async function SupportsPage({ params, searchParams }: { params: P
 
   return (
     <div className="grid min-w-0 gap-6">
-      <Card className="min-w-0 bg-sky-soft/60">
-        <SectionTitle>Apoios individuais desta atividade</SectionTitle>
-        <div className="grid gap-2 text-sm leading-relaxed text-ink">
-          <p>Cada apoio liga esta atividade às necessidades e potencialidades de um estudante. Só quem acompanha o estudante vê o apoio dele.</p>
-          <p>Planejar um apoio não altera o perfil (Como aprende) nem o Plano de ensino do estudante. Para mudar esses registros, use as páginas do próprio estudante.</p>
-          <p>Validar um apoio confirma o que foi planejado para esta atividade. Não altera a matrícula nem a classificação na educação especial.</p>
-        </div>
-      </Card>
+      <section aria-labelledby="apoios-titulo" className="min-w-0">
+        <h2 id="apoios-titulo" className="mb-3 font-display text-xl font-medium text-ink">Apoios individuais desta atividade</h2>
+        <Assurances
+          label="Como o apoio individual é tratado"
+          items={[
+            { icon: LockKeyhole, text: "Só quem acompanha o estudante vê" },
+            { icon: ShieldCheck, text: "Não muda perfil nem Plano de ensino" },
+            { icon: BadgeCheck, text: "Não muda matrícula nem classificação" },
+          ]}
+        />
+        <HowToRead summary="O que é um apoio individual" className="mt-1">
+          Liga esta atividade às necessidades e potencialidades de um estudante. Validar confirma o que foi planejado para a atividade, sem mudar a classificação na educação especial. Para mudar o perfil (Como aprende) ou o Plano de ensino, use as páginas do próprio estudante.
+        </HowToRead>
+      </section>
 
       <Card className="min-w-0">
         <SectionTitle>Planejar um apoio</SectionTitle>
@@ -118,7 +125,7 @@ export default async function SupportsPage({ params, searchParams }: { params: P
             ) : null}
           </>
         ) : (
-          <p className="text-sm text-ink-soft">Nenhum estudante ativo está no seu acompanhamento. Apoios individuais são planejados só para estudantes que você acompanha.</p>
+          <p className="text-sm text-ink-soft">Nenhum estudante ativo no seu acompanhamento. Apoios são só para quem você acompanha.</p>
         )}
 
         {selected ? (
@@ -141,8 +148,7 @@ export default async function SupportsPage({ params, searchParams }: { params: P
       </Card>
 
       <section aria-labelledby="apoios-lista" className="min-w-0">
-        <h2 id="apoios-lista" className="mb-1 text-xl font-semibold text-ink">Apoios planejados</h2>
-        <p className="mb-4 text-sm text-ink-soft">Aparecem só os apoios dos estudantes que você acompanha.</p>
+        <h2 id="apoios-lista" className="mb-4 text-xl font-semibold text-ink">Apoios planejados</h2>
         {supports.length ? (
           <ol className="grid min-w-0 gap-4">
             {supports.map((support) => (

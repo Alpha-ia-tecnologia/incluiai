@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, KeyRound, LockKeyhole, UserPlus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { linkableStudents, schoolsFor } from "@/lib/accounts";
 import { assignableRoles, isAccountManager } from "@/lib/user-admin";
@@ -9,6 +9,7 @@ import { ROLES } from "@/lib/scale";
 import { PageHeader, Card } from "@/components/ui";
 import { AccountForm } from "@/components/accounts/account-form";
 import { linkCls } from "@/components/form-styles";
+import { Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,16 @@ export default async function NewAccountPage() {
   return (
     <>
       <Link href="/usuarios" className={`mb-4 inline-flex min-h-11 items-center gap-2 text-sm ${linkCls}`}><ArrowLeft size={16} aria-hidden /> Pessoas e acessos</Link>
-      <PageHeader title="Nova conta" lede="A plataforma gera uma senha temporária para você entregar à pessoa. No primeiro acesso, ela cria a própria senha." />
+      <PageHeader title="Nova conta" />
+      <Steps
+        label="Como a pessoa passa a entrar"
+        className="mb-6"
+        items={[
+          { icon: UserPlus, label: "Você cria a conta" },
+          { icon: KeyRound, label: "Entrega a senha temporária" },
+          { icon: LockKeyhole, label: "A pessoa cria a própria" },
+        ]}
+      />
       <Card className="max-w-3xl">
         <AccountForm
           mode="create"

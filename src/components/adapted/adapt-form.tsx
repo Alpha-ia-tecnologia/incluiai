@@ -1,10 +1,11 @@
 "use client";
 
 import { useActionState, useId } from "react";
-import { FileUp, Wand2 } from "lucide-react";
+import { EyeOff, FileUp, ShieldCheck, Wand2 } from "lucide-react";
 import type { AdaptState } from "@/actions/adapted-tasks";
 import { ADAPT_OPTIONS } from "@/lib/task-adaptation";
 import { choiceCls, hintCls, inputCls, labelCls, primaryButtonCls, textareaCls } from "@/components/form-styles";
+import { Assurances } from "@/components/explain";
 
 type Action = (previous: AdaptState, formData: FormData) => Promise<AdaptState>;
 
@@ -32,7 +33,7 @@ export function AdaptForm({ action, canRead, aiOn, objectives, showOptions = tru
             </label>
           ))}
         </div>
-        <p className={hintCls}>Na prova, a adaptação muda a forma das questões, não o que elas avaliam.</p>
+        <Assurances label="Na prova" items={[{ icon: ShieldCheck, text: "Prova mantém o que é avaliado" }]} />
       </fieldset>
       <div>
         <label htmlFor={`${id}-title`} className={labelCls}>Título</label>
@@ -50,7 +51,16 @@ export function AdaptForm({ action, canRead, aiOn, objectives, showOptions = tru
           {canRead ? (
             <div>
               <label htmlFor={`${id}-file`} className={labelCls}>Foto ou PDF da atividade</label>
-              <p id={`${id}-file-hint`} className={hintCls}>Até 10 MB. Antes de fotografar, cubra os nomes dos alunos escritos na folha. O arquivo só é usado para ler o texto e não fica guardado.</p>
+              <div id={`${id}-file-hint`} className="mb-3 grid gap-2">
+                <p className={`${hintCls} mb-0`}>Até 10 MB.</p>
+                <Assurances
+                  label="Cuidados com o arquivo"
+                  items={[
+                    { icon: EyeOff, text: "Cubra os nomes dos alunos" },
+                    { icon: ShieldCheck, text: "Arquivo só lido, não guardado" },
+                  ]}
+                />
+              </div>
               <input id={`${id}-file`} name="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" aria-describedby={`${id}-file-hint`} className={`${inputCls} py-2 file:mr-3 file:min-h-8 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:text-sm file:font-medium file:text-brand-strong`} />
             </div>
           ) : (

@@ -55,14 +55,11 @@ export function ParticipationStart({ studentId, plannings }: { studentId: string
           </select>
         </Field>
       ) : (
-        <Field id="participacao-titulo" label="Título da nova atividade" hint="A atividade é planejada para a turma; o apoio de cada estudante fica dentro dela.">
-          <input id="participacao-titulo" name="title" required minLength={3} maxLength={160} aria-describedby="participacao-titulo-dica" className={inputCls} placeholder="Ex.: Compreensão de uma narrativa" />
+        <Field id="participacao-titulo" label="Título da nova atividade">
+          <input id="participacao-titulo" name="title" required minLength={3} maxLength={160} className={inputCls} placeholder="Ex.: Compreensão de uma narrativa" />
         </Field>
       )}
 
-      <p className="text-xs leading-relaxed text-ink-soft">
-        Os dois caminhos usam o mesmo planejamento da atividade, sem plano paralelo. Em seguida, você vai para os apoios individuais da atividade para planejar o apoio deste estudante.
-      </p>
       <div>
         <button type="submit" disabled={pending} className={buttonCls}>
           {pending ? "Abrindo…" : "Planejar a participação"} <ArrowRight size={16} aria-hidden />

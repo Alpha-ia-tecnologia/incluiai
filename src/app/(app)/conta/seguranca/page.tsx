@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LogOut, ShieldAlert, ShieldCheck, ShieldOff } from "lucide-react";
+import { KeyRound, LogIn, LogOut, ShieldAlert, ShieldCheck, ShieldOff, Smartphone, UserLock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { currentSessionId, getCurrentUser, twoFactorRequired } from "@/lib/auth";
 import { recoveryCodesLeft } from "@/lib/two-factor";
@@ -12,6 +12,7 @@ import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
 import { primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { Assurances, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
 
   return (
     <>
-      <PageHeader title="Segurança da conta" lede="Como você entra na plataforma e onde sua conta está aberta. Os dados dos estudantes ficam mais protegidos quando a entrada pede, além da senha, um código do celular." />
+      <PageHeader title="Segurança da conta" />
 
       {usedRecovery && user.totpEnabledAt ? (
         <p role="status" className="mb-6 flex max-w-3xl items-start gap-2 rounded-xl bg-amber-soft px-4 py-3 text-sm leading-relaxed text-amber">
@@ -45,7 +46,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
         <Card>
           <SectionTitle>Senha</SectionTitle>
           <p className="mb-4 text-sm leading-relaxed text-ink-soft">
-            {user.passwordChangedAt ? `Trocada em ${formatDate(user.passwordChangedAt)}.` : "Ainda é a senha do cadastro."} Ao trocar, as outras sessões da conta são encerradas.
+            {user.passwordChangedAt ? `Trocada em ${formatDate(user.passwordChangedAt)}.` : "Ainda é a senha do cadastro."} Trocar encerra as outras sessões.
           </p>
           <details className="rounded-2xl bg-surface-muted p-4">
             <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Trocar a senha</summary>
@@ -63,9 +64,8 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
 
           {user.totpEnabledAt ? (
             <div className="grid gap-5">
-              <p className="text-sm leading-relaxed text-ink-soft">
-                Ligada desde {formatDate(user.totpEnabledAt)}. Ao entrar, depois da senha, a plataforma pede o código do aplicativo autenticador.{" "}
-                {codesLeft === 1 ? "Resta 1 código de recuperação." : `Restam ${codesLeft} códigos de recuperação.`}
+              <p className="text-sm text-ink-soft">
+                Ligada desde {formatDate(user.totpEnabledAt)} · {codesLeft === 1 ? "Resta 1 código de recuperação" : `Restam ${codesLeft} códigos de recuperação`}
               </p>
               <details className="rounded-2xl bg-surface-muted p-4" open={usedRecovery && codesLeft <= 3}>
                 <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Gerar novos códigos de recuperação</summary>
@@ -73,7 +73,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
                 <CodeForm action={regenerateRecoveryCodes} label="Código do aplicativo (6 números)" button="Gerar novos códigos" pendingLabel="Gerando…" variant="secondary" />
               </details>
               {required ? (
-                <p className="text-sm leading-relaxed text-ink-soft">Na sua rede, a verificação em duas etapas é obrigatória para a equipe.</p>
+                <p className="text-sm text-ink-soft">Obrigatória para a equipe na sua rede.</p>
               ) : (
                 <details className="rounded-2xl bg-surface-muted p-4">
                   <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Desligar a verificação em duas etapas</summary>
@@ -91,10 +91,22 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
             </div>
           ) : (
             <div className="grid gap-4">
-              <p className="text-sm leading-relaxed text-ink-soft">
-                Com as duas etapas, quem descobrir sua senha ainda não entra: a plataforma pede também um código que muda a cada 30 segundos no seu celular.
-                {required ? " Na sua rede, ela é obrigatória para a equipe." : ""}
-              </p>
+              <Steps
+                label="Como fica a entrada"
+                items={[
+                  { icon: KeyRound, label: "Sua senha" },
+                  { icon: Smartphone, label: "Código do celular" },
+                  { icon: LogIn, label: "Você entra" },
+                ]}
+              />
+              <Assurances
+                label="Por que ligar"
+                items={[
+                  { icon: ShieldCheck, text: "Protege os dados dos estudantes" },
+                  { icon: UserLock, text: "Senha sozinha não abre a conta" },
+                ]}
+              />
+              {required ? <p className="text-sm text-ink-soft">Obrigatória para a equipe na sua rede.</p> : null}
               <form action={startTwoFactorSetup}>
                 <button type="submit" className={primaryButtonCls}><ShieldCheck size={16} aria-hidden /> Ligar a verificação em duas etapas</button>
               </form>
@@ -106,8 +118,8 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
           <SectionTitle>Onde sua conta está aberta</SectionTitle>
           <p className="mb-4 text-sm leading-relaxed text-ink-soft">
             {sessions <= 1
-              ? "Sua conta está aberta só aqui."
-              : `Sua conta está aberta aqui e em mais ${sessions - 1 === 1 ? "1 lugar" : `${sessions - 1} lugares`} (outro navegador ou computador). Esqueceu aberta no computador da escola? Encerre as outras.`}
+              ? "Só neste navegador."
+              : `Aqui e em mais ${sessions - 1 === 1 ? "1 lugar" : `${sessions - 1} lugares`}. Esqueceu aberta em outro computador? Encerre as outras.`}
           </p>
           {sessions > 1 && current ? (
             <form action={endOtherSessions}>
@@ -119,7 +131,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
         {events.length ? (
           <Card>
             <SectionTitle>Mudanças na sua conta</SectionTitle>
-            <p className="mb-4 text-sm leading-relaxed text-ink-soft">Quem criou, alterou ou redefiniu algo na sua conta. Não reconhece alguma mudança? Fale com a coordenação.</p>
+            <p className="mb-4 text-sm text-ink-soft">Não reconhece alguma mudança? Fale com a coordenação.</p>
             <ol className="grid gap-3">
               {events.map((event) => (
                 <li key={event.id} className="border-b border-line pb-3 last:border-0 last:pb-0">

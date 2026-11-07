@@ -88,18 +88,14 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
 
   return (
     <>
-      <PageHeader
-        level={2}
-        title="Materiais de apoio"
-        lede="Materiais feitos para este estudante, a partir de como ele aprende: cartões com pictogramas, orientações e atividades para aplicar na sala, no AEE e em casa."
-      />
+      <PageHeader level={2} title="Materiais de apoio" />
 
       {team ? (
         <Card className="mb-8 max-w-4xl print:hidden">
           <SectionTitle>Criar um material</SectionTitle>
           {!profile ? (
             <p className="text-sm leading-relaxed text-ink-soft">
-              Primeiro, conte como o estudante aprende. É dali que saem os cartões, as adaptações e as atividades.{" "}
+              Primeiro, conte como o estudante aprende.{" "}
               <Link href={`/estudantes/${id}/perfil`} className={linkCls}>Preencher Como aprende</Link>
             </p>
           ) : (
@@ -110,6 +106,7 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
                 objectives={objectives}
                 defaultContext={user.role === "professor_sala" ? "sala_comum" : "aee"}
                 aiOn={aiOn}
+                aiConfigured={isAIEnabled()}
                 imagesOn={imagesOn}
               />
             </>
@@ -121,7 +118,7 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
         <EmptyState
           character="ideas"
           title="Os materiais aparecerão aqui"
-          hint={!team ? "Quando a equipe preparar materiais para este estudante, eles aparecem aqui." : profile ? "Escolha o tipo e a situação acima e toque em Criar material." : "Preencha Como aprende para começar a criar materiais para este estudante."}
+          hint={!team ? "Aparecem aqui quando a equipe criar." : profile ? "Escolha o tipo acima e toque em Criar material." : "Preencha Como aprende para começar."}
           action={team && !profile ? <ButtonLink href={`/estudantes/${id}/perfil`}>Preencher Como aprende</ButtonLink> : undefined}
         />
       ) : (

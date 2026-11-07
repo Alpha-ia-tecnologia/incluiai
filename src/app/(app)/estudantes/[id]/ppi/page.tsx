@@ -17,7 +17,8 @@ import { PendingButton } from "@/components/pending-button";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ObjectiveFields } from "@/components/objective-fields";
 import { BnccTag } from "@/components/bncc-tag";
-import { Archive, ArrowRight, CalendarCheck, Sparkles, Trash2 } from "lucide-react";
+import { Archive, ArrowRight, CalendarCheck, CircleCheck, ClipboardList, Cog, FilePen, FilePlus, History, ListChecks, ScanSearch, ShieldCheck, Sparkles, Target, Trash2, UserCheck } from "lucide-react";
+import { Assurances, HowToRead, Steps } from "@/components/explain";
 import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canEditStudentRecord } from "@/lib/auth";
 import { canPlanDua } from "@/lib/dua/access";
 import { DuaError } from "@/lib/dua/shared";
@@ -53,7 +54,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   if (!plan && !editable) {
     return (
       <>
-        <PageHeader level={2} title="Plano de ensino (PPI)" lede="Este estudante não tem plano ativo no momento." />
+        <PageHeader level={2} title="Plano de ensino (PPI)" lede="Sem plano ativo no momento." />
         <PastPlans plans={pastPlans} />
       </>
     );
@@ -69,12 +70,12 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     if (!isCaseStudyConcluded(student.caseStudy)) {
       return (
         <>
-          <PageHeader level={2} title="Plano de ensino (PPI)" lede="O plano parte do estudo de caso: é ele que reúne a escuta da família, do estudante e a avaliação pedagógica." />
+          <PageHeader level={2} title="Plano de ensino (PPI)" />
           <Card className="max-w-2xl border-amber-800/20 bg-amber-soft/50">
             <SectionTitle>Primeiro, conclua o estudo de caso</SectionTitle>
             <p className="text-sm leading-relaxed text-ink" role="status">{CASE_STUDY_REQUIRED_MESSAGE}</p>
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-              {student.caseStudy ? "O estudo de caso está em elaboração." : "O estudo de caso ainda não foi começado."} Atividades da turma com DUA não dependem disso e podem ser planejadas em Planejamento.
+              {student.caseStudy ? "O estudo de caso está em elaboração." : "O estudo de caso ainda não foi começado."} Atividades com DUA, em Planejamento, não dependem dele.
             </p>
             <Link href={`/estudantes/${id}/estudo-de-caso`} className={`${buttonCls} mt-4`}>
               {student.caseStudy ? "Continuar o estudo de caso" : "Começar o estudo de caso"} <ArrowRight size={16} aria-hidden />
@@ -91,7 +92,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     const manualForm = (
         <Card className="max-w-2xl">
           <SectionTitle>{draft ? "Preencher o plano do zero" : "Comece o plano do estudante"}</SectionTitle>
-          <p className="mb-5 text-sm leading-relaxed text-ink-soft">O plano individual orienta o trabalho da sala comum e do AEE. Preencha os campos com * e escolha quando a equipe voltará a avaliar o acompanhamento.</p>
+          <p className={`${hintCls} mb-5`}>Campos com * são obrigatórios.</p>
           <form action={create} className="space-y-6">
             <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} required hint="Marque o que se aplica e use Outro para acrescentar." {...multiStyle} />
             <MultiChoiceField name="commonRoomStrategies" label="Como apoiar na sala comum (opcional)" options={COMMON_ROOM_STRATEGY_OPTIONS} {...multiStyle} />
@@ -109,7 +110,18 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     if (draft) {
       return (
         <>
-          <PageHeader level={2} title="Plano de ensino (PPI)" lede="Revise a proposta, ajuste o que for preciso e escolha os objetivos. O plano só passa a valer quando você o ativar." />
+          <PageHeader level={2} title="Plano de ensino (PPI)" />
+          <div className="mb-6 grid max-w-3xl gap-3">
+            <Steps
+              label="Como ativar o plano"
+              items={[
+                { icon: FilePen, label: "Revise a proposta" },
+                { icon: ListChecks, label: "Marque os objetivos" },
+                { icon: CircleCheck, label: "Ative o plano" },
+              ]}
+            />
+            <Assurances label="Antes de ativar" items={[{ icon: UserCheck, text: "Só vale depois que você ativar" }]} />
+          </div>
           <ProposalReview
             studentId={id}
             studentName={student.name}
@@ -132,16 +144,27 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
     return (
       <>
-        <PageHeader level={2} title="Plano de ensino (PPI)" lede="Reúna o que o estudante já consegue fazer e os apoios que a equipe vai oferecer. Depois, defina os objetivos de aprendizagem." />
+        <PageHeader level={2} title="Plano de ensino (PPI)" />
         <Card className="mb-6 max-w-2xl border-brand/30 bg-brand-soft/40">
           <SectionTitle><span className="flex items-center gap-2"><Sparkles size={16} aria-hidden /> {aiOn ? "Peça uma proposta aos agentes de IA" : "Peça uma proposta automática"}</span></SectionTitle>
           <ConsentNote show={consentMissing} />
-          <p className="text-sm leading-relaxed text-ink-soft">
-            {aiOn
-              ? "Três agentes trabalham em sequência: o analista lê o estudo de caso, o planejador propõe objetivos e estratégias e o revisor confere tudo. Você revisa e decide antes de ativar o plano."
-              : "O motor de regras monta uma proposta a partir do estudo de caso e de como o estudante aprende. Você revisa e decide antes de ativar o plano."}
-          </p>
-          {!aiOn ? <p className="mt-2 text-xs leading-relaxed text-ink-soft">A IA está desligada nesta instalação. Para usar os agentes, configure a chave ANTHROPIC_API_KEY no servidor.</p> : null}
+          <Steps
+            label="Como a proposta é feita"
+            items={aiOn
+              ? [
+                  { icon: ScanSearch, label: "Analista lê o estudo de caso" },
+                  { icon: Target, label: "Planejador propõe objetivos" },
+                  { icon: ShieldCheck, label: "Revisor confere" },
+                  { icon: UserCheck, label: "Você decide e ativa" },
+                ]
+              : [
+                  { icon: ClipboardList, label: "Estudo de caso e perfil" },
+                  { icon: Cog, label: "Motor de regras propõe" },
+                  { icon: UserCheck, label: "Você decide e ativa" },
+                ]}
+          />
+          {/* Sem autorização da família, o ConsentNote acima já explica; esta linha é só para a IA sem chave. */}
+          {!aiOn && !consentMissing ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">IA desligada nesta instalação: falta a chave ANTHROPIC_API_KEY no servidor.</p> : null}
           {hasData ? (
             <form action={generate} className="mt-4">
               <PendingButton className={buttonCls} pendingText={aiOn ? "Os agentes estão analisando o caso e montando o plano." : "Preparando a proposta…"} wait={aiOn ? "plano" : undefined}>
@@ -171,6 +194,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     .map((objective) => ({ objective, supports: dua.supports.filter((support) => (support.data.planLinks ?? []).some((link) => link.planId === plan.id && link.objectiveId === objective.id)) }))
     .filter((group) => group.supports.length);
   const latestSupport = await latestSupportByObjective(id, plan.objectives.map((objective) => objective.id));
+  // A explicação da escala só aparece quando algum objetivo já mostra a escala.
+  const hasScale = plan.objectives.some((objective) => latestSupport?.has(objective.id));
 
   // Prazo do plano: quanto do tempo entre a criação e a revisão já passou.
   const today = new Date();
@@ -199,7 +224,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       {editable && !hasActiveObjectives ? (
         <Card className="mb-6 border-brand/30 bg-brand-soft/50">
           <SectionTitle>Próximo passo: definir um objetivo</SectionTitle>
-          <p className="mb-3 text-sm leading-relaxed text-ink-soft">O plano foi criado. Agora, descreva abaixo uma aprendizagem que você poderá observar nas próximas aulas.</p>
           <Link href="#novo-objetivo" className={buttonCls}>
             Definir o objetivo <ArrowRight size={16} aria-hidden />
           </Link>
@@ -217,10 +241,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                 {daysLeft !== 0 ? <span className="ml-1 text-xl text-ink-soft">{Math.abs(daysLeft) === 1 ? "dia" : "dias"}</span> : null}
               </p>
               <p className="mt-2"><StatusPill tone={reviewTone}>{reviewStatus}</StatusPill></p>
-              <p className="mt-2 text-xs leading-relaxed text-ink-soft">
-                {daysLeft > 0 ? `${daysLeft === 1 ? "Falta 1 dia" : `Faltam ${daysLeft} dias`} para a revisão, em ${formatDate(plan.reviewDate)}.` : daysLeft < 0 ? `A data de revisão (${formatDate(plan.reviewDate)}) passou há ${-daysLeft} ${daysLeft === -1 ? "dia" : "dias"}.` : `A revisão está marcada para hoje, ${formatDate(plan.reviewDate)}.`}
-                {" "}{elapsedPct === null ? "Sem base para calcular o tempo percorrido." : `O anel mostra o tempo já percorrido desde a criação do plano: ${elapsedPct}%.`}
-              </p>
+              <p className="mt-2 text-xs text-ink-soft tabular-nums">Marcada para {formatDate(plan.reviewDate)}</p>
+              <HowToRead summary="Como ler o anel">
+                {elapsedPct === null ? "Sem base para calcular o tempo percorrido." : `O anel mostra o tempo já percorrido desde a criação do plano: ${elapsedPct}%.`}
+              </HowToRead>
             </div>
           </div>
         </DataCard>
@@ -234,7 +258,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               <div className="min-w-0 flex-1 basis-40"><Legend segments={objectiveStatus} /></div>
             </div>
           ) : (
-            <p className="text-sm text-ink-soft">Nenhum objetivo no plano ainda. Defina o primeiro logo abaixo.</p>
+            <p className="text-sm text-ink-soft">Nenhum objetivo ainda.</p>
           )}
         </DataCard>
       </DataBoard>
@@ -244,15 +268,15 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         <SectionTitle>Revisão do plano</SectionTitle>
         <p className="mb-4 text-sm leading-relaxed text-ink-soft">
           {reviews.total
-            ? `${reviews.total} ${reviews.total === 1 ? "revisão registrada" : "revisões registradas"}, ${reviews.onTime} no prazo. A próxima está marcada para ${formatDate(plan.reviewDate)}.`
-            : `Ainda sem revisão registrada. A primeira está marcada para ${formatDate(plan.reviewDate)}.`}
+            ? `${reviews.total} ${reviews.total === 1 ? "revisão" : "revisões"}, ${reviews.onTime} no prazo · próxima em ${formatDate(plan.reviewDate)}`
+            : `Nenhuma revisão ainda · primeira em ${formatDate(plan.reviewDate)}`}
         </p>
         {editable ? <details open={daysLeft <= 14} className="rounded-2xl bg-surface-muted p-4">
           <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-brand-strong"><CalendarCheck size={16} aria-hidden /> Registrar a revisão feita com a equipe</summary>
           <form action={review} className="mt-3 grid gap-4">
             <div>
               <label htmlFor="review-summary" className={labelCls}>O que a equipe decidiu? (obrigatório)</label>
-              <p id="review-summary-hint" className={hintCls}>Por exemplo: objetivos mantidos, apoio reduzido, nova estratégia na sala comum.</p>
+              <p id="review-summary-hint" className={hintCls}>Ex.: objetivos mantidos, apoio reduzido, nova estratégia na sala comum.</p>
               <textarea id="review-summary" name="summary" required maxLength={600} rows={4} aria-describedby="review-summary-hint" className={textareaCls} />
             </div>
             <div className="max-w-xs">
@@ -295,7 +319,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <SectionTitle>Objetivos de aprendizagem</SectionTitle>
-      <p className="mb-4 max-w-3xl text-sm leading-relaxed text-ink-soft">Um objetivo observável descreve algo que o estudante faz e como você reconhece o resultado. Exemplo: identificar o próprio nome entre cinco opções, com pista visual, em quatro de cinco tentativas.</p>
+      <HowToRead className="-mt-2 mb-3" summary="Como ler os objetivos">
+        <p>Um objetivo observável descreve algo que o estudante faz e como você reconhece o resultado. Exemplo: identificar o próprio nome entre cinco opções, com pista visual, em quatro de cinco tentativas.</p>
+        {hasScale ? <p className="mt-2">Na escala de apoio, ir para a direita é precisar de menos apoio.</p> : null}
+      </HowToRead>
       <div className="mb-6 space-y-3">
         {plan.objectives.map((obj) => {
           const markDone = markObjectiveStatus.bind(null, id, obj.id, "alcancado");
@@ -325,7 +352,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                     initial={obj.currentSupport}
                     latest={latest.level}
                     target={obj.targetSupport}
-                    caption={`Último registro de aula em ${formatDate(latest.date)} · ${latest.count} ${latest.count === 1 ? "registro" : "registros"} para este objetivo. Ir para a direita é precisar de menos apoio.`}
+                    caption={`Último registro de aula em ${formatDate(latest.date)} · ${latest.count} ${latest.count === 1 ? "registro" : "registros"}`}
                   />
                 </div>
               ) : latestSupport ? (
@@ -367,11 +394,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             </ul>
           ) : (
             <p className="text-sm leading-relaxed text-ink-soft">
-              Nenhum apoio de atividade com DUA está ligado aos objetivos deste plano.{" "}
+              Nenhum apoio com DUA ligado ainda.{" "}
               <Link href={`/estudantes/${id}/dua`} className="font-medium text-brand-strong underline underline-offset-4">Planejar a participação em uma atividade</Link>
             </p>
           )}
-          <p className="mt-3 text-xs leading-relaxed text-ink-soft">O apoio de uma atividade não muda este plano: os objetivos continuam sendo revistos aqui, pela equipe.</p>
+          <Assurances className="mt-4" label="Sobre os apoios das atividades" items={[{ icon: ShieldCheck, text: "Apoios de atividade não mudam o plano" }]} />
         </Card>
       ) : null}
 
@@ -379,7 +406,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       <div id="novo-objetivo" className="max-w-3xl scroll-mt-6">
         <Card>
           <SectionTitle>Definir um objetivo de aprendizagem</SectionTitle>
-          <p className="mb-5 text-sm leading-relaxed text-ink-soft">Descreva a aprendizagem, o apoio e o resultado esperado. Ao salvar, essas respostas formam a frase do objetivo. Os campos com * são obrigatórios.</p>
+          <p className={`${hintCls} mb-5`}>As respostas formam a frase do objetivo. Campos com * são obrigatórios.</p>
           <form action={addObjective} className="grid min-w-0 gap-4 sm:grid-cols-2">
             <ObjectiveFields {...fieldStyle} studentId={id} />
             <ChoiceField name="condition" label="Com qual apoio ou condição? *" options={CONDITION_SUGGESTIONS} required otherPlaceholder="Ex.: com apoio de um colega" {...fieldStyle} />
@@ -407,7 +434,14 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
       {editable ? <details className="mt-8 max-w-3xl rounded-2xl border border-line p-4">
         <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-ink">Encerrar este plano</summary>
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft">O plano, os objetivos e as revisões ficam no histórico do estudante. Depois de encerrar, a equipe pode elaborar um novo plano.</p>
+        <Assurances
+          className="mt-2"
+          label="Ao encerrar"
+          items={[
+            { icon: History, text: "Plano e revisões ficam no histórico" },
+            { icon: FilePlus, text: "Depois, a equipe faz outro plano" },
+          ]}
+        />
         <form action={close} className="mt-4 grid gap-4">
           <ChoiceField name="reason" label="Por que o plano está sendo encerrado? (obrigatório)" options={[...CLOSE_REASONS]} required otherPlaceholder="Descreva o motivo" {...fieldStyle} />
           <div><button type="submit" className={dangerButtonCls}><Archive size={16} aria-hidden /> Encerrar o plano</button></div>
@@ -536,7 +570,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
               </label>
             ))}
           </div>
-          <p className="mt-2 text-xs text-ink-soft">Depois de ativar, você pode acrescentar objetivos ou marcar algum para revisão.</p>
+          <p className="mt-2 text-xs text-ink-soft">Depois de ativar, dá para acrescentar ou revisar objetivos.</p>
         </fieldset>
         <AIDisclaimer />
         <PendingButton className={buttonCls} pendingText="Ativando o plano…">Ativar plano com os objetivos marcados <ArrowRight size={16} aria-hidden /></PendingButton>

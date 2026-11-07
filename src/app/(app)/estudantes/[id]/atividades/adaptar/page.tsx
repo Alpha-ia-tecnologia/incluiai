@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FilePen, FileUp, Wand2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
 import { aiAllowedFor } from "@/lib/consent";
@@ -11,6 +11,7 @@ import { Card, PageHeader } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { ConsentNote } from "@/components/consent-note";
 import { AdaptForm } from "@/components/adapted/adapt-form";
+import { Steps } from "@/components/explain";
 import { linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,16 @@ export default async function AdaptTaskPage({ params }: { params: Promise<{ id: 
   return (
     <>
       <Link href={`/estudantes/${id}/atividades`} className={`mb-4 inline-flex min-h-11 items-center gap-2 text-sm ${linkCls}`}><ArrowLeft size={16} aria-hidden /> Atividades</Link>
-      <PageHeader level={2} title="Adaptar uma atividade ou prova da turma" lede="Envie a foto ou o PDF da folha que a turma vai usar (ou cole o texto). A plataforma adapta a apresentação ao jeito de aprender do estudante, e você revisa antes de usar." actions={<PillLink slug="adaptar-prova" />} />
+      <PageHeader level={2} title="Adaptar uma atividade ou prova da turma" actions={<PillLink slug="adaptar-prova" />} />
+      <Steps
+        label="Como funciona"
+        className="mb-6 max-w-3xl"
+        items={[
+          { icon: FileUp, label: "Foto, PDF ou texto da turma" },
+          { icon: Wand2, label: "Adapta ao jeito do estudante" },
+          { icon: FilePen, label: "Você revisa antes de usar" },
+        ]}
+      />
       <Card className="max-w-3xl">
         <ConsentNote show={isAIEnabled() && !aiOn} />
         <AdaptForm action={adaptForStudent.bind(null, id)} canRead={aiOn && hasApiKey("ANTHROPIC_API_KEY")} aiOn={aiOn} objectives={objectives} adaptLabel="Adaptar para o estudante" />

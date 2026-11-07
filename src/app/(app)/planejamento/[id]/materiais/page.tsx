@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Printer } from "lucide-react";
+import { CircleCheck, FileText, Layers, ListChecks, Printer, ShieldCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { DuaError } from "@/lib/dua/shared";
 import { loadPlanning } from "@/lib/dua/plannings";
@@ -12,6 +12,7 @@ import { ReviewBadge, secondaryCls } from "@/components/dua/dua-ui";
 import { NewMaterialForm } from "@/components/dua/materials/new-material-form";
 import { ValidateMaterialButton } from "@/components/dua/materials/validate-material-button";
 import { MaterialMetaList, materialMeta } from "@/components/dua/materials/material-meta";
+import { Assurances, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -41,11 +42,17 @@ export default async function MaterialsPage({ params }: { params: Promise<{ id: 
   return (
     <div className="grid min-w-0 gap-8">
       <section aria-labelledby="materiais-titulo" className="max-w-3xl min-w-0">
-        <h2 id="materiais-titulo" className="mb-2 font-display text-xl font-medium text-ink">Materiais da atividade</h2>
-        <p className="text-sm leading-relaxed text-ink-soft">
-          Prepare roteiros e apoios em texto selecionável a partir de uma versão do planejamento. Material de versão não validada sai como rascunho e é impresso com o aviso de RASCUNHO.
-          Antes de usar com os estudantes, confira o conteúdo e valide.
-        </p>
+        <h2 id="materiais-titulo" className="mb-3 font-display text-xl font-medium text-ink">Materiais da atividade</h2>
+        <Steps
+          label="Como preparar um material"
+          items={[
+            { icon: Layers, label: "Escolha a versão" },
+            { icon: FileText, label: "Prepare o roteiro" },
+            { icon: ListChecks, label: "Confira o conteúdo" },
+            { icon: CircleCheck, label: "Valide antes de usar" },
+          ]}
+        />
+        <Assurances label="Material sem validação" className="mt-3" items={[{ icon: ShieldCheck, text: "Sem validação, imprime como RASCUNHO" }]} />
       </section>
 
       {canCreate ? (
@@ -98,7 +105,7 @@ export default async function MaterialsPage({ params }: { params: Promise<{ id: 
             })}
           </ul>
         ) : (
-          <EmptyState character="ideas" title="Nenhum material preparado" hint={canCreate ? "Escolha a versão, o formato e a finalidade no formulário acima." : "Quando a equipe preparar materiais, eles aparecem aqui."} />
+          <EmptyState character="ideas" title="Nenhum material preparado" hint={canCreate ? "Prepare o primeiro no formulário acima." : "Aparecem aqui quando a equipe preparar."} />
         )}
       </section>
     </div>

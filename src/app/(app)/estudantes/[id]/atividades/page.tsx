@@ -23,7 +23,8 @@ const WIDE_IMAGE_KINDS = new Set(["sequencia", "cartoes"]);
 type ActivityWithImage = Activity & { image: { altText: string; kind: string; createdAt: Date } | null };
 import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS, REJECT_REASON_OPTIONS } from "@/lib/form-options";
-import { ArrowRight, Clock, FileUp, ImagePlus, Trash2, Wand2 } from "lucide-react";
+import { ArrowRight, CircleCheck, Clock, FilePen, FileUp, ImagePlus, ShieldCheck, Trash2, Wand2 } from "lucide-react";
+import { Assurances, Steps } from "@/components/explain";
 import { inputCls, labelCls, primaryButtonCls as linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
@@ -157,7 +158,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
       ) : null}
       {activity.status === "aceita" ? (
         <div className="mt-4 rounded-xl bg-brand-soft p-4">
-          <p className="mb-3 text-sm leading-relaxed text-ink">Atividade escolhida. Depois de aplicá-la, registre a participação e o apoio necessário.</p>
+          <p className="mb-3 text-sm leading-relaxed text-ink">Atividade escolhida. Depois de aplicar, registre como foi.</p>
           <Link href={`/estudantes/${studentId}/diario?activityId=${encodeURIComponent(activity.id)}`} className={linkCls}>Registrar como foi a aula <ArrowRight size={16} aria-hidden /></Link>
         </div>
       ) : null}
@@ -207,7 +208,6 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
     <>
       <PageHeader level={2}
         title="Preparar uma atividade"
-        lede="Escolha o objetivo e o conteúdo da aula. Depois, avalie as sugestões para a sala comum, o AEE e a rotina de casa."
         actions={<PrintButton label="Imprimir atividades" />}
       />
 
@@ -227,7 +227,16 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
 
       <Card className="mb-6 max-w-3xl print:hidden">
         <SectionTitle>Atividade ou prova da turma</SectionTitle>
-        <p className="mb-4 text-sm leading-relaxed text-ink-soft">Já tem a folha que a turma vai usar? Envie a foto, o PDF ou o texto: a plataforma adapta a apresentação para este estudante (na prova, sem mudar o que é avaliado), e você revisa antes de usar.</p>
+        <Steps
+          label="Como adaptar a folha da turma"
+          className="mb-3"
+          items={[
+            { icon: FileUp, label: "Foto, PDF ou texto" },
+            { icon: Wand2, label: "A plataforma adapta" },
+            { icon: FilePen, label: "Você revisa" },
+          ]}
+        />
+        <Assurances className="mb-5" label="Na prova" items={[{ icon: ShieldCheck, text: "Prova mantém o que é avaliado" }]} />
         <Link href={`/estudantes/${id}/atividades/adaptar`} className={linkCls}><FileUp size={16} aria-hidden /> Adaptar a atividade da turma</Link>
         {adapted.length ? (
           <ul className="mt-5 grid gap-2">
@@ -247,12 +256,12 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
         <SectionTitle>O que vamos trabalhar?</SectionTitle>
         {!profile ? (
           <div className="space-y-3">
-            <p className="text-sm leading-relaxed text-ink-soft">Primeiro, registre como o estudante aprende, seus interesses e os apoios de que precisa. Essas informações ajudam a preparar sugestões adequadas.</p>
+            <p className="text-sm leading-relaxed text-ink-soft">Primeiro, registre como o estudante aprende.</p>
             <Link href={`/estudantes/${id}/perfil`} className={linkCls}>Conhecer o estudante <ArrowRight size={16} aria-hidden /></Link>
           </div>
         ) : objectives.length === 0 ? (
           <div className="space-y-3">
-            <p className="text-sm leading-relaxed text-ink-soft">O plano precisa de pelo menos um objetivo ativo. Ele indica qual aprendizagem você quer observar na atividade.</p>
+            <p className="text-sm leading-relaxed text-ink-soft">O plano precisa de pelo menos um objetivo ativo.</p>
             <Link href={`/estudantes/${id}/ppi`} className={linkCls}>Definir um objetivo no plano <ArrowRight size={16} aria-hidden /></Link>
           </div>
         ) : (
@@ -271,7 +280,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
                 <input type="checkbox" name="gerarImagens" className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
                 <span>
                   <span className="flex items-center gap-1.5 font-medium text-ink"><ImagePlus size={15} aria-hidden /> Criar também uma sequência visual dos passos para cada atividade</span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">Imagens em estilo pictograma, geradas pela OpenAI sem nenhum dado pessoal. Acrescenta cerca de 1 minuto.</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">Pictogramas pela OpenAI, sem dado pessoal. Cerca de 1 minuto a mais.</span>
                 </span>
               </label>
             ) : null}
@@ -279,11 +288,15 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
               <PendingButton className={linkCls} pendingText={aiOn ? "Os agentes da sala comum, do AEE e da família estão preparando as atividades, e o revisor vai conferir." : "Preparando as sugestões…"} wait={aiOn ? "atividades" : undefined}>
                 <Wand2 size={16} aria-hidden /> Preparar 3 sugestões
               </PendingButton>
-              <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-                {aiOn
-                  ? "Três agentes de IA trabalham ao mesmo tempo, um para cada contexto (sala comum, AEE e casa), e um agente revisor confere as regras de adaptação. Leia os passos e escolha o que faz sentido para o estudante."
-                  : "Você receberá uma sugestão para cada contexto, montada pelo motor de regras. Leia os passos e escolha as atividades que fazem sentido para o estudante."}
-              </p>
+              <p className="mt-4 mb-2 text-sm text-ink-soft">{aiOn ? "Três agentes de IA trabalham ao mesmo tempo." : "Sugestões montadas pelo motor de regras."}</p>
+              <Steps
+                label="Como as sugestões são feitas"
+                items={[
+                  { icon: Wand2, label: "Sala comum, AEE e casa" },
+                  ...(aiOn ? [{ icon: ShieldCheck, label: "Revisor confere as regras" }] : []),
+                  { icon: CircleCheck, label: "Você escolhe" },
+                ]}
+              />
             </div>
           </form>
           </>
@@ -302,7 +315,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
 
       <SectionTitle>Atividades que você já avaliou</SectionTitle>
       {others.length === 0 ? (
-        <EmptyState character="learning" title="Nenhuma atividade avaliada ainda" hint="Prepare sugestões acima, confira os passos e escolha se deseja usar ou rejeitar cada atividade." />
+        <EmptyState character="learning" title="Nenhuma atividade avaliada ainda" hint="As que você usar ou rejeitar ficam aqui." />
       ) : (
         <div className="space-y-4">
           {others.map((a) => (

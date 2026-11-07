@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
-import { BookOpen, LayoutGrid, ListChecks, ListOrdered, MessagesSquare, Sparkles, Thermometer, type LucideIcon } from "lucide-react";
+import { BookOpen, LayoutGrid, ListChecks, ListOrdered, MessagesSquare, ShieldCheck, Sparkles, Thermometer, UserCheck, type LucideIcon } from "lucide-react";
 import { generateMaterial, type MaterialActionState } from "@/actions/materials";
 import { ChoiceField } from "@/components/choice-field";
 import { PendingButton } from "@/components/pending-button";
 import { MATERIAL_CONTEXTS, MATERIAL_KINDS, MATERIAL_TOPICS, type MaterialKind } from "@/lib/material-content";
 import { labelCls, inputCls, linkCls, primaryButtonCls } from "@/components/form-styles";
+import { Assurances } from "@/components/explain";
 
 // Formulário "Criar um material": tipo, situação, objetivo do plano, contexto e
 // imagens. A geração (IA ou regras) e as conferências ficam no servidor, que ao
@@ -23,11 +24,13 @@ const ICONS: Record<MaterialKind, LucideIcon> = {
 };
 
 
-export function MaterialForm({ studentId, objectives, defaultContext, aiOn, imagesOn }: {
+export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiConfigured, imagesOn }: {
   studentId: string;
   objectives: { id: string; description: string }[];
   defaultContext: string;
   aiOn: boolean;
+  // IA com chave nesta instalação (sem a autorização da família, aiOn é falso, mas a IA existe).
+  aiConfigured: boolean;
   imagesOn: boolean;
 }) {
   const [state, action] = useActionState<MaterialActionState, FormData>(generateMaterial.bind(null, studentId), { status: "idle" });
@@ -96,26 +99,36 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, imag
           <input type="checkbox" name="gerarImagens" defaultChecked className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
           <span>
             <span className="font-medium">Desenhar um pictograma para cada cartão</span>
-            <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">Pela OpenAI, só com a descrição de cada cartão: nenhum nome ou dado pessoal. Leva de 1 a 3 minutos.</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">Pela OpenAI, só com a descrição do cartão, sem dado pessoal. De 1 a 3 minutos.</span>
           </span>
         </label>
       ) : (
         <p className="rounded-2xl bg-surface-muted/60 p-3 text-xs leading-relaxed text-ink-soft">As imagens dos cartões estão desligadas nesta instalação (falta a chave OPENAI_API_KEY). O material sai com a descrição de cada pictograma.</p>
       )}
 
-      <div className="flex min-w-0 flex-wrap items-center gap-3">
-        <PendingButton
-          className={`${primaryButtonCls} shadow-e1`}
-          pendingText={aiOn ? "Os agentes de IA estão criando o material e as atividades." : "Preparando o material…"}
-          wait="material"
-        >
-          <Sparkles size={16} aria-hidden /> Criar material
-        </PendingButton>
-        <p className="min-w-0 basis-full text-xs leading-relaxed text-ink-soft sm:basis-auto sm:flex-1">
-          {aiOn
-            ? "Os agentes de IA usam o perfil (Como aprende e a parte pedagógica do estudo de caso), sem nomes nem dados pessoais. O material fica como sugestão até você aprovar."
-            : "A IA está desligada nesta instalação: o material sai pelas regras da plataforma, a partir do perfil. Fica como sugestão até você aprovar."}
-        </p>
+      <div className="grid min-w-0 gap-3">
+        {!aiConfigured ? <p className="text-xs leading-relaxed text-ink-soft">IA desligada nesta instalação: o material sai pelas regras da plataforma, a partir do perfil.</p> : null}
+        <Assurances
+          label="Como o material é criado"
+          items={[
+            ...(aiOn
+              ? [
+                  { icon: ShieldCheck, text: "Sem nomes nem dados pessoais" },
+                  { icon: ShieldCheck, text: "Só a parte pedagógica do estudo de caso" },
+                ]
+              : []),
+            { icon: UserCheck, text: "Sugestão até você aprovar" },
+          ]}
+        />
+        <div>
+          <PendingButton
+            className={`${primaryButtonCls} shadow-e1`}
+            pendingText={aiOn ? "Os agentes de IA estão criando o material e as atividades." : "Preparando o material…"}
+            wait="material"
+          >
+            <Sparkles size={16} aria-hidden /> Criar material
+          </PendingButton>
+        </div>
       </div>
 
       <div ref={resultRef} tabIndex={-1} className="outline-none" aria-live="polite">

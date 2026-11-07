@@ -68,16 +68,16 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
       return item("estudante", "Estudante", "Participação do estudante", "Decreto, art. 11, § 3º", "estudo-de-caso", status, detail);
     })(),
     item("laudo", "Sem laudo", "Sem exigência de laudo", "Decreto, art. 11, § 7º; Portaria nº 421/2026, art. 7º, § 4º", "estudo-de-caso", "info",
-      "A plataforma não pede diagnóstico nem laudo em nenhuma etapa. O diagnóstico informado pela família é opcional e só o AEE e a coordenação o veem."),
+      "Nenhuma etapa pede diagnóstico ou laudo. Se a família informar, só o AEE e a coordenação veem."),
   ];
 
   const last = plan ? (plan.reviewedAt ?? plan.createdAt) : null;
   const tea = [...needs, ...resources].filter((entry) => /tecnologia assistiva|comunicação alternativa|prancha/i.test(entry));
   const staff = resources.filter((entry) => /profissional de apoio|intérprete|guia-intérprete/i.test(entry));
   const planItems: EvidenceItem[] = [
-    item("plano", "Plano", "Plano a partir do estudo de caso", "Decreto, art. 12; Portaria, art. 7º, IV", "ppi",
+    item("plano", "Plano", "Plano a partir do estudo de caso", "Decreto, art. 12; Portaria, art. 7º, IV e § 2º", "ppi",
       plan ? "ok" : "pendente",
-      plan ? `Plano de ensino desde ${day(plan.createdAt)}: o documento único com as finalidades do PAEE e do PEI (Portaria, art. 7º, § 2º).` : concluded ? "Monte o plano de ensino a partir do estudo de caso." : "Depende do estudo de caso concluído."),
+      plan ? `Plano de ensino desde ${day(plan.createdAt)}: um só documento para o PAEE e o PEI.` : concluded ? "Monte o plano de ensino a partir do estudo de caso." : "Depende do estudo de caso concluído."),
     item("revisao", "Revisão anual", "Revisão anual do plano", "Portaria, art. 7º, § 3º", "ppi",
       !plan || !last ? "pendente" : daysSince(last, now) > YEAR_DAYS ? "pendente" : plan.reviewDate < now ? "conferir" : "ok",
       !plan || !last ? "Sem plano." : daysSince(last, now) > YEAR_DAYS ? `A última revisão foi em ${day(last)}, há mais de um ano.` : plan.reviewDate < now ? `Revisado em ${day(last)}; a revisão marcada para ${day(plan.reviewDate)} passou.` : `${plan.reviewedAt ? "Revisado" : "Feito"} em ${day(last)}; próxima revisão em ${day(plan.reviewDate)}.`),

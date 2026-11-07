@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, CalendarClock } from "lucide-react";
+import { ArrowRight, CalendarClock, EyeOff, FileDown, GitCompareArrows, ShieldCheck, Upload, UserLock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { censusOverview } from "@/lib/census";
@@ -13,6 +13,7 @@ import { saveCensusWindow, saveFndeCount, verifyCensusNow } from "@/actions/cens
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { CensusVerifyForm, CensusWindowForm, FndeForm } from "@/components/census/census-forms";
+import { Assurances, HowToRead, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function CensusPage() {
   const stages = Object.entries(estimate.byStage).sort(([a], [b]) => a.localeCompare(b));
   // O que os arquivos têm de AEE e a estimativa deixa de fora, com o motivo.
   const outside = [
-    estimate.notVerifiable && `${count(estimate.notVerifiable)} sem classe comum presencial pública nos arquivos da rede (pode estar em escola estadual ou de outro município)`,
+    estimate.notVerifiable && `${count(estimate.notVerifiable)} sem classe comum presencial pública nos arquivos da rede (pode estar no estado ou em outro município)`,
     estimate.blocked && `${count(estimate.blocked)} com vínculo que o Educacenso recusa ou não importa`,
     estimate.repeated && `${count(estimate.repeated)} com AEE em mais de uma escola (contam uma vez)`,
     estimate.otherNetwork && `${count(estimate.otherNetwork)} com AEE em escola estadual (contam para o estado)`,
@@ -45,15 +46,24 @@ export default async function CensusPage() {
 
   return (
     <>
-      <PageHeader title="Censo Escolar" lede="O INEP não tem API: a escola exporta o arquivo de migração do Educacenso e a plataforma lê, concilia com o cadastro e confere a dupla matrícula dos estudantes do AEE." />
+      <PageHeader title="Censo Escolar" />
       <div className="grid min-w-0 max-w-4xl gap-6">
+        <Steps
+          label="Como o Censo chega à plataforma"
+          items={[
+            { icon: FileDown, label: "Escola exporta do Educacenso" },
+            { icon: Upload, label: "Envia o arquivo aqui" },
+            { icon: GitCompareArrows, label: "Plataforma concilia o cadastro" },
+            { icon: ShieldCheck, label: "Confere a dupla matrícula" },
+          ]}
+        />
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <SectionTitle>Verificação na janela do Censo</SectionTitle>
               <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink"><CalendarClock size={16} aria-hidden className="text-brand-strong" /> {state.title} <Badge tone={STATUS_TONE[state.status]}>{config.times.join(" e ")}</Badge></p>
               <p className="mt-1 text-sm leading-relaxed text-ink-soft">{state.text}</p>
-              <p className="mt-1 text-xs text-ink-soft">A verificação confere os estudantes do AEE de cada escola com o último arquivo aplicado. Mudou a pendência, a coordenação recebe um aviso.</p>
+              <p className="mt-1 text-xs text-ink-soft">Compara o AEE com o último arquivo de cada escola. Mudou a pendência, a coordenação é avisada.</p>
             </div>
             <CensusVerifyForm action={verifyCensusNow} />
           </div>
@@ -67,36 +77,64 @@ export default async function CensusPage() {
 
         <section aria-labelledby="censo-contagens" className="grid min-w-0 gap-3">
           <h2 id="censo-contagens" className="text-base font-medium text-ink">Contagens {access.network ? "da rede" : "da escola"}</h2>
-          <p className="text-sm leading-relaxed text-ink-soft">
-            {overview.withFile ? `Do último arquivo aplicado de ${overview.withFile === 1 ? "1 escola" : `${overview.withFile} escolas`}` : "Nenhuma escola aplicou o arquivo do Censo ainda"}
-            {overview.schools.length > overview.withFile ? `; ${overview.schools.length - overview.withFile} sem arquivo.` : "."} Educação especial não é o mesmo que AEE: só o AEE com classe comum conta como dupla matrícula no Fundeb.
+          <p className="text-sm text-ink-soft">
+            {overview.withFile ? `Último arquivo aplicado de ${overview.withFile === 1 ? "1 escola" : `${overview.withFile} escolas`}` : "Nenhuma escola aplicou o arquivo ainda"}
+            {overview.schools.length > overview.withFile ? ` · ${overview.schools.length - overview.withFile} sem arquivo` : ""}
           </p>
           <DataBoard className="sm:grid-cols-3">
-            <StatTile label="Educação especial no Censo" value={totals.especial} hint="Alunos com a marcação de deficiência, TEA ou altas habilidades." />
+            <StatTile label="Educação especial no Censo" value={totals.especial} hint="Deficiência, TEA ou altas habilidades" />
             <StatTile label="Matrículas no AEE" value={totals.aee} />
-            <StatTile label="Dupla matrícula no arquivo" value={totals.dupla} hint="AEE com classe comum presencial no mesmo arquivo." />
-            <StatTile label="AEE sem classe comum" value={count(totals.aeeSemComum)} hint="Dupla matrícula não confirmada no arquivo." />
-            <StatTile label="Educação especial sem AEE" value={count(totals.especialSemAee)} hint="Confira se o estudante precisa do AEE." />
-            <StatTile label="Com AEE na plataforma" value={overview.platformAee} hint={`${overview.attended} com atendimento registrado nos últimos 60 dias.`} />
+            <StatTile label="Dupla matrícula no arquivo" value={totals.dupla} hint="AEE e classe comum presencial" />
+            <StatTile label="AEE sem classe comum" value={count(totals.aeeSemComum)} hint="Dupla matrícula não confirmada" />
+            <StatTile label="Educação especial sem AEE" value={count(totals.especialSemAee)} hint="Confira se precisa do AEE" />
+            <StatTile label="Com AEE na plataforma" value={overview.platformAee} hint={`${overview.attended} com atendimento nos últimos 60 dias`} />
           </DataBoard>
+          <HowToRead summary="Educação especial não é o mesmo que AEE">
+            Só o AEE com classe comum conta como dupla matrícula no Fundeb.
+          </HowToRead>
           <Card>
             <SectionTitle>AEE que o FNDE deve considerar (estimativa)</SectionTitle>
             <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink tabular-nums">{estimate.considered}</p>
             {stages.length ? <p className="mt-2 text-sm text-ink"><span className="font-medium">Por etapa:</span> {stages.map(([stage, value]) => `${STAGE_GROUPS[stage] ?? "Etapa não informada"} ${count(value)}`).join(" · ")}.</p> : null}
-            <p className="mt-2 text-xs leading-relaxed text-ink-soft">Pelas regras da Nota Técnica Conjunta nº 12/2025: aluno com deficiência, TEA ou altas habilidades; vínculo de AEE aceito pelo Educacenso em escola municipal; classe comum presencial em escola pública, no mesmo arquivo ou no de outra escola da rede; cada aluno uma vez.</p>
-            {outside.length ? <p className="mt-2 text-sm text-ink"><span className="font-medium">Fora da estimativa:</span> {outside.join("; ")}.</p> : null}
+            {outside.length ? (
+              <div className="mt-3 text-sm text-ink">
+                <p className="font-medium">Fora da estimativa:</p>
+                <ul className="mt-1 grid list-disc gap-1 pl-5">{outside.map((item) => <li key={String(item)}>{item}</li>)}</ul>
+              </div>
+            ) : null}
+            <HowToRead summary="Quem conta (Nota Técnica Conjunta nº 12/2025)" className="mt-2">
+              <ul className="grid list-disc gap-1 pl-5">
+                <li>Aluno com deficiência, TEA ou altas habilidades.</li>
+                <li>Vínculo de AEE aceito pelo Educacenso, em escola municipal.</li>
+                <li>Classe comum presencial em escola pública, no mesmo arquivo ou no de outra escola da rede.</li>
+                <li>Cada aluno conta uma vez.</li>
+              </ul>
+            </HowToRead>
           </Card>
           <Card>
             <SectionTitle>Comparação com o FNDE</SectionTitle>
-            {monitor.fndeAee !== null ? <p className="mb-2 text-sm text-ink"><span className="font-medium">Matrículas de AEE consideradas pelo FNDE{monitor.fndeYear ? ` no Fundeb ${monitor.fndeYear}` : ""}:</span> {monitor.fndeAee}. <span className="font-medium">Estimativa dos arquivos:</span> {estimate.considered}.</p> : null}
-            <p className="text-sm leading-relaxed text-ink">{access.network || monitor.fndeAee !== null ? fnde.text : "A Secretaria informa o número de matrículas de AEE que o FNDE considerou para comparar com os arquivos da rede."}</p>
+            {monitor.fndeAee !== null ? (
+              <dl className="mb-3 flex flex-wrap gap-x-8 gap-y-2">
+                <div><dt className="text-xs text-ink-soft">Consideradas pelo FNDE{monitor.fndeYear ? ` · Fundeb ${monitor.fndeYear}` : ""}</dt><dd className="font-display text-2xl font-bold tabular-nums text-ink">{monitor.fndeAee}</dd></div>
+                <div><dt className="text-xs text-ink-soft">Estimativa dos arquivos</dt><dd className="font-display text-2xl font-bold tabular-nums text-ink">{estimate.considered}</dd></div>
+              </dl>
+            ) : null}
+            <p className="text-sm leading-relaxed text-ink">{access.network || monitor.fndeAee !== null ? fnde.text : "A Secretaria informa o número do FNDE para comparar."}</p>
             {access.network ? <div className="mt-4"><FndeForm action={saveFndeCount} value={monitor.fndeAee} year={monitor.fndeYear ?? now.getFullYear()} /></div> : null}
           </Card>
         </section>
 
         <section aria-labelledby="censo-escolas" className="grid min-w-0 gap-3">
           <h2 id="censo-escolas" className="text-base font-medium text-ink">{access.network ? "Escolas" : "Sua escola"}</h2>
-          {access.network ? <p className="text-sm text-ink-soft">A rede vê os números. Os nomes ficam com a coordenação de cada escola, que importa o arquivo.</p> : null}
+          {access.network ? (
+            <Assurances
+              label="O que a rede vê"
+              items={[
+                { icon: EyeOff, text: "A rede vê só os números" },
+                { icon: UserLock, text: "Nomes ficam com a coordenação" },
+              ]}
+            />
+          ) : null}
           <ul className="grid min-w-0 gap-3">
             {overview.schools.map((school) => (
               <li key={school.id} className="min-w-0 rounded-2xl border border-line bg-paper-raised p-4">
@@ -130,7 +168,7 @@ export default async function CensusPage() {
               })}
             </ul>
           ) : (
-            <EmptyState character="care" title="Nenhuma verificação ainda" hint="As verificações aparecem aqui nos horários da janela do Censo ou quando alguém usa Verificar agora." />
+            <EmptyState character="care" title="Nenhuma verificação ainda" hint="Aparecem nos horários da janela ou em Verificar agora." />
           )}
         </section>
       </div>

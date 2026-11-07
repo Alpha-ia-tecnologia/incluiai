@@ -40,17 +40,15 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader
         title="Pessoas e acessos"
-        lede={user.role === "secretaria"
-          ? "Contas da equipe das escolas e da rede: crie, altere, redefina a senha e desative quem saiu. Famílias e terapeutas são cadastrados pela escola."
-          : "Contas da equipe da escola, das famílias e dos terapeutas: crie, vincule aos estudantes, redefina a senha e desative quem saiu."}
+        lede={user.role === "secretaria" ? "Famílias e terapeutas são cadastrados pela escola." : undefined}
         actions={<ButtonLink href="/usuarios/nova"><UserPlus size={16} aria-hidden /> Nova conta</ButtonLink>}
       />
 
       <section aria-label="Resumo das contas" className="mb-6">
         <DataBoard className="sm:grid-cols-3">
-          <StatTile label="Contas ativas" value={active.length} hint={accounts.length > active.length ? `${accounts.length - active.length} desativada(s), com o histórico guardado.` : "Nenhuma conta desativada."} />
-          <StatTile label="Primeiro acesso pendente" value={firstAccess} tone={firstAccess ? "mid" : "good"} hint="Pessoas que ainda não trocaram a senha temporária." />
-          <StatTile label="Com duas etapas" value={active.length ? `${Math.round((twoFactor / active.length) * 100)}%` : "—"} hint={`${twoFactor} de ${active.length} contas ativas entram com o código do celular.`} />
+          <StatTile label="Contas ativas" value={active.length} hint={accounts.length > active.length ? `${accounts.length - active.length} desativada(s), histórico guardado` : "Nenhuma desativada"} />
+          <StatTile label="Primeiro acesso pendente" value={firstAccess} tone={firstAccess ? "mid" : "good"} hint="Ainda com a senha temporária" />
+          <StatTile label="Com duas etapas" value={active.length ? `${Math.round((twoFactor / active.length) * 100)}%` : "—"} hint={`${twoFactor} de ${active.length} contas ativas`} />
         </DataBoard>
       </section>
 
@@ -106,7 +104,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
           </ul>
         </section>
       ) : (
-        <EmptyState character="planning" title={filtering ? "Nenhuma conta com este filtro" : "Nenhuma conta para gerenciar ainda"} hint={filtering ? "Mude a busca ou os filtros." : "Crie a primeira conta pelo botão Nova conta."} />
+        <EmptyState character="planning" title={filtering ? "Nenhuma conta com este filtro" : "Nenhuma conta para gerenciar ainda"} hint={filtering ? "Mude a busca ou os filtros." : "Use o botão Nova conta."} />
       )}
     </>
   );

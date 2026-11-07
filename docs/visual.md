@@ -82,6 +82,26 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
 - **Avisos:** `src/components/status-page.tsx`, usado pelas páginas de erro e
   de "não encontrado".
 
+## Menos texto
+
+A equipe e as famílias leem a plataforma no intervalo entre aulas e no celular.
+Cada tela diz uma vez o que precisa e mostra o resto com elementos visuais:
+
+- **Uma vez só.** Sem introdução que repete o título, sem frase que repete o
+  botão, sem atalho que já está no menu.
+- **Rótulo no lugar de frase.** Se o título ou o botão já diz o que é, a linha
+  de apoio sai.
+- **Vazio some.** Seção sem conteúdo não aparece; quando importa, uma linha.
+- **Sem rótulo pequeno acima de título.** O título fala sozinho.
+- **Elementos de `src/components/explain.tsx`:**
+  - `Steps`: o "como funciona" em etapas com ícone (2 a 5 palavras cada), no
+    lugar do parágrafo;
+  - `Assurances`: garantias (privacidade, revisão humana, o que não é
+    guardado) em selos de até 6 palavras. Aviso de privacidade ou de
+    consentimento nunca some: vira selo ou fica mais curto;
+  - `HowToRead`: definição de indicador, leitura de gráfico ou norma, a um
+    toque ("Como ler"), fechada por padrão.
+
 ## Personagens
 
 São decorativos (`aria-hidden`); o texto ao lado carrega o sentido. Cada um tem

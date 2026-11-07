@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { CalendarCheck, CalendarDays, CalendarX, Eye, Scale, Users } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { DuaError, studentsInReach } from "@/lib/dua/shared";
 import { loadPlanning } from "@/lib/dua/plannings";
@@ -13,6 +14,7 @@ import { ApplicationCard, inputDate } from "@/components/dua/applications/applic
 import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
 import { StackedBar } from "@/components/charts";
 import { ShareRing } from "@/components/viz/share-ring";
+import { Assurances, HowToRead, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -61,15 +63,27 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
   return (
     <div className="grid min-w-0 gap-8">
       <section aria-labelledby="aplicacao-titulo" className="max-w-3xl min-w-0">
-        <h2 id="aplicacao-titulo" className="mb-2 font-display text-xl font-medium text-ink">Aplicação e evidências</h2>
-        <p className="text-sm leading-relaxed text-ink-soft">
-          Registre quando, onde e com quem a atividade aconteceu e, depois, o que foi observado com cada participante.
-          A situação de execução (planejada, em andamento, concluída ou cancelada) é separada da revisão pedagógica do planejamento.
-        </p>
-        <p className="mt-2 rounded-xl bg-amber-soft px-3 py-2 text-sm leading-relaxed text-amber-900">
-          Concluir uma aplicação não registra presença, não cria atendimento do AEE e não é conclusão sobre a aprendizagem.
-          A frequência do AEE (realizado, falta ou cancelamento) tem registro próprio.
-        </p>
+        <h2 id="aplicacao-titulo" className="mb-3 font-display text-xl font-medium text-ink">Aplicação e evidências</h2>
+        <Steps
+          label="Como registrar"
+          items={[
+            { icon: CalendarDays, label: "Quando e onde" },
+            { icon: Users, label: "Com quem" },
+            { icon: Eye, label: "O que foi observado" },
+          ]}
+        />
+        <Assurances
+          label="O que concluir uma aplicação não faz"
+          className="mt-3"
+          items={[
+            { icon: CalendarX, text: "Não registra presença nem atendimento" },
+            { icon: Scale, text: "Não conclui sobre a aprendizagem" },
+            { icon: CalendarCheck, text: "Frequência do AEE tem registro próprio" },
+          ]}
+        />
+        <HowToRead summary="Situação da aplicação" className="mt-1">
+          Planejada, em andamento, concluída ou cancelada: a situação de execução é separada da revisão pedagógica do planejamento.
+        </HowToRead>
       </section>
 
       <Card className="min-w-0">
@@ -85,7 +99,7 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
           />
         ) : (
           <p className="text-sm leading-relaxed text-ink-soft">
-            Só uma versão validada pode ser aplicada. Valide antes o planejamento, na etapa de revisão.{" "}
+            Só uma versão validada pode ser aplicada.{" "}
             <Link href={`/planejamento/${planning.id}?etapa=4`} className={linkCls}>Ir para a revisão</Link>
           </p>
         )}
@@ -98,10 +112,10 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
             <StatTile
               label="Documentação das participações"
               value={`${documented} de ${participations}`}
-              chart={<ShareRing id="documentacao-geral" part={documented} whole={participations} label="Documentação das participações" caption="das participações (sem contar aplicações canceladas) têm evidência registrada, observada ou “sem oportunidade”." />}
+              chart={<ShareRing id="documentacao-geral" part={documented} whole={participations} label="Documentação das participações" caption="das participações têm evidência registrada (sem contar as canceladas)." />}
               hint="Só estudantes do seu acesso. Mede o registro, não a aprendizagem."
             />
-            <DataCard title="Critérios nas evidências registradas" hint="Cada critério de cada evidência, em todas as aplicações desta atividade. Mostra o que foi observado, não é nota.">
+            <DataCard title="Critérios nas evidências registradas" hint="Todas as aplicações desta atividade. Não é nota.">
               <StackedBar segments={observedSegments} empty="Nenhum critério observado ainda." />
               <div className="mt-4 rounded-2xl bg-surface-muted/70 px-3.5 py-3">
                 <p className="text-xs font-medium text-ink">Fora da análise</p>
@@ -113,7 +127,7 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 text-xs leading-relaxed text-ink-soft">Ficam separados porque não são progresso nem “ainda não demonstrou”: indicam que não houve como observar ou que o registro ainda falta.</p>
+                <p className="mt-2 text-xs leading-relaxed text-ink-soft">Não são progresso nem “ainda não demonstrou”.</p>
               </div>
             </DataCard>
           </DataBoard>
@@ -127,7 +141,7 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
             ))}
           </ul>
         ) : (
-          <EmptyState character="planning" title="Nenhuma aplicação registrada" hint={validatedOptions.length ? "Registre a primeira aplicação no formulário acima." : "Depois da validação, registre aqui cada vez que a atividade for aplicada."} />
+          <EmptyState character="planning" title="Nenhuma aplicação registrada" hint={validatedOptions.length ? "Registre a primeira no formulário acima." : "Registre aqui depois da validação."} />
         )}
       </section>
     </div>

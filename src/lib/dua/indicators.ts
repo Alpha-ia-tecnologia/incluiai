@@ -82,7 +82,7 @@ export async function duaIndicators(user: SessionUser, scope: { start: Date | nu
       indicator("conclusao", "Conclusão do planejamento", "Planejamentos iniciados no período que chegaram à validação até hoje ÷ planejamentos iniciados no período.", "planejamentos", validatedByCut.length, cohort.length),
       indicator("utilizacao", "Utilização das atividades", "Planejamentos validados (iniciados no período) com aplicação registrada ÷ planejamentos validados da mesma coorte.", "planejamentos", usedValidated.length, validatedByCut.length),
       indicator("documentacao", "Documentação individual", "Participações de estudantes em aplicações concluídas no período com evidência vinculada ÷ participações em aplicações concluídas no período.", "participações", documented, pairs),
-      indicator("revisao", "Revisão das sugestões", "Blocos de sugestão aceitos sem alteração ÷ blocos revisados no período (a distribuição completa aparece ao lado).", "blocos revisados", decisions.aceito, decisions.total),
+      indicator("revisao", "Revisão das sugestões", "Blocos de sugestão aceitos sem alteração ÷ blocos revisados no período (a distribuição completa fica em “Decisões sobre as sugestões”).", "blocos revisados", decisions.aceito, decisions.total),
     ],
   };
 }

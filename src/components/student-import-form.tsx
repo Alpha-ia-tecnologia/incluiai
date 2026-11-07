@@ -25,7 +25,7 @@ function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: strin
         <p className="flex items-start gap-2 text-sm font-medium text-ink"><Check size={18} aria-hidden className="mt-0.5 shrink-0 text-green" /> {state.imported === 1 ? "1 estudante importado" : `${state.imported} estudantes importados`} para {state.schoolName}.</p>
         {state.invalid?.length || state.existing?.length ? (
           <p className="text-sm leading-relaxed text-ink-soft">
-            Ficaram de fora {state.invalid?.length ? `${state.invalid.length} linha(s) com problema` : ""}{state.invalid?.length && state.existing?.length ? " e " : ""}{state.existing?.length ? `${state.existing.length} estudante(s) já cadastrado(s)` : ""}. Corrija a planilha e importe só essas linhas, se precisar.
+            Ficaram de fora {state.invalid?.length ? `${state.invalid.length} linha(s) com problema` : ""}{state.invalid?.length && state.existing?.length ? " e " : ""}{state.existing?.length ? `${state.existing.length} estudante(s) já cadastrado(s)` : ""}. Se precisar, corrija e importe só essas linhas.
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
@@ -62,7 +62,7 @@ function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: strin
         {ready.some((row) => row.similar) ? (
           <section aria-labelledby={`${id}-similar`} className="rounded-2xl bg-amber-soft p-4">
             <h3 id={`${id}-similar`} className="mb-2 text-sm font-medium text-amber">Confira antes de importar: nome igual, nascimento diferente</h3>
-            <p className="mb-2 text-sm leading-relaxed text-ink">A escola já tem um estudante com o mesmo nome e outro nascimento. Se for a mesma pessoa, corrija a data na planilha; se for outra (homônimo), pode importar.</p>
+            <p className="mb-2 text-sm leading-relaxed text-ink">Mesma pessoa? Corrija a data na planilha. Homônimo? Pode importar.</p>
             <ul className="grid gap-1 text-sm text-ink">
               {ready.filter((row) => row.similar).map((row) => <li key={row.line}>Linha {row.line} · {row.name} · {row.detail}</li>)}
             </ul>

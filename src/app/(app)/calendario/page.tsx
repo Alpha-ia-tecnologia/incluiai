@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
-import { ChevronLeft, ChevronRight, Lightbulb, Megaphone, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lightbulb, Megaphone, MessageCircle, ShieldCheck, Users } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { Character } from "@/components/character";
+import { Assurances } from "@/components/explain";
 import { PrintButton } from "@/components/print-button";
 import {
   CALENDAR_THEMES, MONTHLY_CAMPAIGNS, MONTH_NAMES, MONTH_SHORT,
@@ -78,7 +79,7 @@ export default async function CalendarPage({
       <section aria-labelledby="calendar-title" className="mb-8 grid grid-cols-[minmax(0,1fr)_80px] items-center gap-x-4 gap-y-3 rounded-3xl bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-x-7 sm:p-7 lg:grid-cols-[minmax(0,1fr)_176px] print:bg-transparent print:p-0">
         <h1 id="calendar-title" className="min-w-0 font-display text-3xl font-bold leading-[1.15] tracking-tight text-ink sm:text-4xl">Calendário inclusivo.</h1>
         <Character variant="planning" className="w-20 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-40 lg:w-44" preload />
-        <p className="col-span-2 max-w-2xl text-sm leading-relaxed text-ink-soft sm:col-span-1">Datas comemorativas da educação especial e inclusiva — como o Dia do Autismo e o Dia das Línguas de Sinais — com ideias para celebrar com toda a turma.</p>
+        <p className="col-span-2 max-w-2xl text-sm text-ink-soft sm:col-span-1">Datas da educação especial e inclusiva, com ideias para toda a turma.</p>
       </section>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -173,10 +174,15 @@ export default async function CalendarPage({
         </section>
       </div>
 
-      <p className="mt-8 flex items-start gap-3 rounded-2xl bg-surface-muted p-4 text-sm leading-relaxed text-ink-soft">
-        <ShieldCheck size={18} className="mt-0.5 shrink-0 text-brand-strong" aria-hidden />
-        <span>Celebre com toda a turma: estas datas valorizam a diversidade e não devem expor diagnósticos. Antes de mencionar a condição de um estudante, converse com ele e com a família.</span>
-      </p>
+      <Assurances
+        className="mt-8"
+        label="Cuidados ao celebrar"
+        items={[
+          { icon: Users, text: "Celebre com toda a turma" },
+          { icon: ShieldCheck, text: "Sem expor diagnósticos" },
+          { icon: MessageCircle, text: "Fale antes com estudante e família" },
+        ]}
+      />
     </>
   );
 }

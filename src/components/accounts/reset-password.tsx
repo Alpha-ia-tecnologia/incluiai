@@ -12,8 +12,8 @@ export function ResetPassword({ action }: { action: (previous: ResetState) => Pr
     return (
       <div role="status" className="grid gap-2">
         <p className="text-sm text-ink-soft">Senha temporária (aparece só agora):</p>
-        <p id="senha-temporaria" className="font-mono text-lg tracking-wider text-ink">{state.password}</p>
-        <p className="text-sm leading-relaxed text-ink-soft">As sessões abertas foram encerradas. No próximo acesso, a pessoa entra com esta senha e cria a própria.</p>
+        <p id="senha-temporaria" className="font-mono text-xl tracking-wider text-ink">{state.password}</p>
+        <p className="text-sm text-ink-soft">Sessões abertas encerradas. No próximo acesso, a pessoa cria a própria senha.</p>
       </div>
     );
   }

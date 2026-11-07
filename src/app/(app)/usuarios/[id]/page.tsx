@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, ShieldCheck, UserCheck, UserX } from "lucide-react";
+import { ArrowLeft, History, RotateCcw, ShieldCheck, UserCheck, UserX } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, twoFactorRequired } from "@/lib/auth";
 import { linkableStudents, managedAccount, schoolsFor } from "@/lib/accounts";
@@ -12,6 +12,7 @@ import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { AccountForm } from "@/components/accounts/account-form";
 import { ResetPassword } from "@/components/accounts/reset-password";
 import { dangerButtonCls, linkCls, secondaryButtonCls } from "@/components/form-styles";
+import { Assurances } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         <Card>
           <SectionTitle>Dados da conta</SectionTitle>
           {otherSchoolLinks.length ? (
-            <p className="mb-4 text-sm leading-relaxed text-ink-soft">Também vinculada a estudantes de outra escola ({otherSchoolLinks.length}). Esses vínculos ficam como estão: quem cuida deles é a escola de cada estudante.</p>
+            <p className="mb-4 text-sm leading-relaxed text-ink-soft">Também vinculada a {otherSchoolLinks.length === 1 ? "1 estudante" : `${otherSchoolLinks.length} estudantes`} de outra escola. Esses vínculos ficam com a escola de cada um.</p>
           ) : null}
           <AccountForm
             mode="edit"
@@ -66,7 +67,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             {active ? (
               <div>
                 <h3 className="mb-1 text-sm font-medium text-ink">Senha esquecida</h3>
-                <p className="mb-3 text-sm leading-relaxed text-ink-soft">Gera uma senha temporária e encerra as sessões abertas. A pessoa entra com ela e cria a própria.</p>
+                <p className="mb-3 text-sm text-ink-soft">Gera uma senha temporária e encerra as sessões abertas.</p>
                 <ResetPassword action={resetAccountPassword.bind(null, id)} />
               </div>
             ) : null}
@@ -74,8 +75,8 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
               <details className="rounded-2xl bg-surface-muted p-4">
                 <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Desligar as duas etapas (celular perdido)</summary>
                 <p className="my-3 text-sm leading-relaxed text-ink-soft">
-                  Use só se a pessoa perdeu o celular e os códigos de recuperação, depois de confirmar quem ela é.
-                  {twoFactorRequired(account.role) ? " No próximo acesso, ela liga de novo com o celular novo (é obrigatório para a equipe)." : " Ela pode ligar de novo em Segurança da conta."}
+                  Só se a pessoa perdeu o celular e os códigos de recuperação, depois de confirmar quem ela é.
+                  {twoFactorRequired(account.role) ? " No próximo acesso, ela liga de novo (obrigatório para a equipe)." : " Ela pode ligar de novo em Segurança da conta."}
                 </p>
                 <form action={resetAccountTwoFactor.bind(null, id)}>
                   <button type="submit" className={secondaryButtonCls}>Desligar as duas etapas</button>
@@ -85,7 +86,15 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             {active ? (
               <details className="rounded-2xl bg-surface-muted p-4">
                 <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Desativar a conta</summary>
-                <p className="my-3 text-sm leading-relaxed text-ink-soft">A pessoa deixa de entrar na hora (as sessões abertas são encerradas). O histórico dos registros fica guardado, e a conta pode ser reativada.</p>
+                <p className="my-3 text-sm text-ink-soft">A pessoa deixa de entrar na hora e as sessões abertas são encerradas.</p>
+                <Assurances
+                  label="O que fica"
+                  className="mb-3"
+                  items={[
+                    { icon: History, text: "O histórico fica guardado" },
+                    { icon: RotateCcw, text: "Pode ser reativada depois" },
+                  ]}
+                />
                 <form action={setAccountActive.bind(null, id, false)}>
                   <button type="submit" className={dangerButtonCls}><UserX size={16} aria-hidden /> Desativar a conta</button>
                 </form>

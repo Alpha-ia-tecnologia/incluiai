@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { HandHelping, Layers, Lightbulb, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { canPlanDua } from "@/lib/dua/access";
 import { DuaError } from "@/lib/dua/shared";
@@ -14,6 +15,7 @@ import { SupportSummary } from "@/components/dua/supports/support-summary";
 import { ParticipationStart } from "@/components/dua/student/participation-start";
 import { DataBoard, DataCard, DotStrip, withSegmentColors, type Tone } from "@/components/data-viz";
 import { BarList, SIGNAL, StackedBar, Swatch } from "@/components/charts";
+import { Assurances, HowToRead, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -64,44 +66,52 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
 
   return (
     <>
-      <PageHeader level={2}
-        title="Atividades com DUA"
-        lede="Atividades planejadas para a turma com o Desenho Universal para a Aprendizagem e o que foi planejado e observado para este estudante em cada uma."
-      />
+      <PageHeader level={2} title="Atividades com DUA" />
 
       <div className="grid min-w-0 gap-8">
         <EvidenceSummary evidence={evidence} />
 
         <Card className="min-w-0 max-w-3xl">
           <SectionTitle>Planejar participação em atividade</SectionTitle>
+          <Steps
+            label="Como funciona"
+            className="mb-5"
+            items={[
+              { icon: Layers, label: "Escolha ou crie a atividade" },
+              { icon: Users, label: "Mesmo planejamento da turma" },
+              { icon: HandHelping, label: "Planeje o apoio deste estudante" },
+            ]}
+          />
           <ParticipationStart studentId={id} plannings={planningOptions} />
         </Card>
 
         <section aria-labelledby="dua-apoios" className="min-w-0 max-w-3xl">
-          <h2 id="dua-apoios" className="mb-1 text-xl font-semibold text-ink">Apoios nas atividades</h2>
-          <p className="mb-4 text-sm text-ink-soft">Apoios individuais planejados para este estudante. Eles não mudam o perfil nem o Plano de ensino.</p>
+          <h2 id="dua-apoios" className="mb-3 text-xl font-semibold text-ink">Apoios nas atividades</h2>
           {supports.length ? (
-            <ul className="grid min-w-0 gap-3">
-              {supports.map((support) => (
-                <li key={support.id} className="min-w-0">
-                  <Card className="min-w-0">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <h3 className="min-w-0 break-words text-sm font-medium text-ink">
-                        {support.canOpenPlanning ? (
-                          <Link href={`/planejamento/${support.planningId}/apoios#apoio-${support.id}`} className={`${linkCls} inline-flex min-h-11 items-center`}>{support.planningTitle}</Link>
-                        ) : support.planningTitle}
-                      </h3>
-                      <ReviewBadge state={support.state} />
-                    </div>
-                    <p className="mb-3 text-xs text-ink-soft">
-                      Responsável: {support.responsibleName} · atualizado em {formatDate(support.updatedAt)}
-                      {support.state === "validado" && support.validatedByName && support.validatedAt ? ` · validado por ${support.validatedByName} em ${formatDate(support.validatedAt)}` : ""}
-                    </p>
-                    <SupportSummary data={support.data} showProfile={false} />
-                  </Card>
-                </li>
-              ))}
-            </ul>
+            <>
+              <Assurances label="O que o apoio não muda" className="mb-4" items={[{ icon: ShieldCheck, text: "Não muda perfil nem Plano de ensino" }]} />
+              <ul className="grid min-w-0 gap-3">
+                {supports.map((support) => (
+                  <li key={support.id} className="min-w-0">
+                    <Card className="min-w-0">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <h3 className="min-w-0 break-words text-sm font-medium text-ink">
+                          {support.canOpenPlanning ? (
+                            <Link href={`/planejamento/${support.planningId}/apoios#apoio-${support.id}`} className={`${linkCls} inline-flex min-h-11 items-center`}>{support.planningTitle}</Link>
+                          ) : support.planningTitle}
+                        </h3>
+                        <ReviewBadge state={support.state} />
+                      </div>
+                      <p className="mb-3 text-xs text-ink-soft">
+                        Responsável: {support.responsibleName} · atualizado em {formatDate(support.updatedAt)}
+                        {support.state === "validado" && support.validatedByName && support.validatedAt ? ` · validado por ${support.validatedByName} em ${formatDate(support.validatedAt)}` : ""}
+                      </p>
+                      <SupportSummary data={support.data} showProfile={false} />
+                    </Card>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
             <EmptyState character="planning" title="Nenhum apoio individual ainda" hint="Use “Planejar participação em atividade” para começar." />
           )}
@@ -109,53 +119,55 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
 
         <section aria-labelledby="dua-evidencias" className="min-w-0 max-w-3xl">
           <h2 id="dua-evidencias" className="mb-1 text-xl font-semibold text-ink">Evidências</h2>
-          <p className="mb-2 text-sm text-ink-soft">O que foi observado quando a atividade foi aplicada, na sala comum ou no AEE.</p>
-          <p className="mb-4 rounded-xl bg-amber-soft px-3 py-2 text-sm leading-relaxed text-amber-900">
-            “Não houve oportunidade de observar” e “Ainda não registrado” não querem dizer “ainda não demonstrou”. Esses critérios não contam como progresso nem como dificuldade: só o que foi observado forma o resultado.
-          </p>
           {evidence.length ? (
-            <ul className="grid min-w-0 gap-3">
-              {evidence.map((item) => <EvidenceItem key={item.id} item={item} />)}
-            </ul>
+            <>
+              <HowToRead summary="Como ler os critérios" className="mb-3">
+                “Não houve oportunidade de observar” e “Ainda não registrado” não querem dizer “ainda não demonstrou”: não contam como progresso nem como dificuldade. Só o que foi observado forma o resultado.
+              </HowToRead>
+              <ul className="grid min-w-0 gap-3">
+                {evidence.map((item) => <EvidenceItem key={item.id} item={item} />)}
+              </ul>
+            </>
           ) : (
-            <EmptyState character="planning" title="Nenhuma evidência registrada" hint="As evidências aparecem aqui quando a atividade for aplicada e o registro for feito." />
+            <EmptyState character="planning" title="Nenhuma evidência registrada" hint="Aparecem aqui depois que a atividade for aplicada." />
           )}
         </section>
 
         <section aria-labelledby="dua-proximos" className="min-w-0 max-w-3xl">
-          <h2 id="dua-proximos" className="mb-1 text-xl font-semibold text-ink">Próximos passos sugeridos</h2>
-          <p className="mb-4 text-sm text-ink-soft">Recomendações para a equipe revisar, montadas a partir das evidências e dos apoios planejados.</p>
-          <dl className="mb-4 grid min-w-0 gap-3 sm:grid-cols-3">
-            <div className="min-w-0 rounded-xl bg-brand-soft/50 p-3">
-              <dt className="text-sm font-medium text-ink">Recomendação</dt>
-              <dd className="mt-1 text-xs leading-relaxed text-ink-soft">Sugestão para a equipe conversar. Não é decisão nem resultado.</dd>
-            </div>
-            <div className="min-w-0 rounded-xl bg-surface-muted p-3">
-              <dt className="text-sm font-medium text-ink">Decisão profissional</dt>
-              <dd className="mt-1 text-xs leading-relaxed text-ink-soft">O que a equipe combina fazer, registrado por ela no planejamento ou no Plano de ensino.</dd>
-            </div>
-            <div className="min-w-0 rounded-xl bg-green-soft/60 p-3">
-              <dt className="text-sm font-medium text-ink">Resultado observado</dt>
-              <dd className="mt-1 text-xs leading-relaxed text-ink-soft">O que foi visto na aplicação da atividade, registrado nas evidências.</dd>
-            </div>
-          </dl>
+          <h2 id="dua-proximos" className="mb-3 text-xl font-semibold text-ink">Próximos passos sugeridos</h2>
           {followUp.length ? (
-            <ul className="grid min-w-0 gap-3">
-              {followUp.map((suggestion) => (
-                <li key={suggestion.text} className="min-w-0">
-                  <Card className="min-w-0">
-                    <Badge tone="brand">Recomendação para a equipe</Badge>
-                    <p className="mt-2 text-sm font-medium text-ink">{suggestion.text}</p>
-                    <dl className="mt-2 grid gap-1 text-sm">
-                      <div className="min-w-0"><dt className="inline font-medium text-ink">Com base em: </dt><dd className="inline break-words text-ink-soft">{suggestion.basis}</dd></div>
-                      <div className="min-w-0"><dt className="inline font-medium text-ink">O que falta observar: </dt><dd className="inline break-words text-ink-soft">{suggestion.pending}</dd></div>
-                    </dl>
-                  </Card>
-                </li>
-              ))}
-            </ul>
+            <>
+              <Assurances
+                label="Sobre as recomendações"
+                items={[
+                  { icon: Lightbulb, text: "Sugestão, não decisão nem resultado" },
+                  { icon: UserCheck, text: "A equipe revisa e decide" },
+                ]}
+              />
+              <HowToRead summary="Recomendação, decisão e resultado" className="mb-3">
+                <dl className="grid gap-1.5">
+                  <div><dt className="inline font-medium text-ink">Recomendação: </dt><dd className="inline">sugestão para a equipe conversar, a partir das evidências e dos apoios.</dd></div>
+                  <div><dt className="inline font-medium text-ink">Decisão profissional: </dt><dd className="inline">o que a equipe combina e registra no planejamento ou no Plano de ensino.</dd></div>
+                  <div><dt className="inline font-medium text-ink">Resultado observado: </dt><dd className="inline">o que foi visto na aplicação, registrado nas evidências.</dd></div>
+                </dl>
+              </HowToRead>
+              <ul className="grid min-w-0 gap-3">
+                {followUp.map((suggestion) => (
+                  <li key={suggestion.text} className="min-w-0">
+                    <Card className="min-w-0">
+                      <Badge tone="brand">Recomendação para a equipe</Badge>
+                      <p className="mt-2 text-sm font-medium text-ink">{suggestion.text}</p>
+                      <dl className="mt-2 grid gap-1 text-sm">
+                        <div className="min-w-0"><dt className="inline font-medium text-ink">Com base em: </dt><dd className="inline break-words text-ink-soft">{suggestion.basis}</dd></div>
+                        <div className="min-w-0"><dt className="inline font-medium text-ink">O que falta observar: </dt><dd className="inline break-words text-ink-soft">{suggestion.pending}</dd></div>
+                      </dl>
+                    </Card>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
-            <p className="text-sm text-ink-soft">Ainda não há recomendação: elas surgem a partir das evidências registradas.</p>
+            <p className="text-sm text-ink-soft">Nenhuma recomendação ainda: elas surgem das evidências.</p>
           )}
         </section>
       </div>
@@ -192,7 +204,7 @@ function EvidenceItem({ item }: { item: StudentEvidenceView }) {
 
         <p className="mt-3 text-sm text-ink">
           <span className="font-medium">{OBSERVATION_LABEL[item.observation] ?? item.observation}.</span>{" "}
-          {item.result ? RESULT_TEXT[item.result] : "Sem resultado: nenhum critério foi observado, e este registro não entra como progresso."}
+          {item.result ? RESULT_TEXT[item.result] : "Sem resultado: nenhum critério observado (não conta como progresso)."}
         </p>
 
         {item.criteria.length ? (
@@ -236,14 +248,8 @@ const plural = (value: number, one: string, many: string) => `${value} ${value =
 // Só critério observado entra na barra; "sem oportunidade" e "não registrado"
 // ficam à parte e não contam como progresso nem como dificuldade.
 function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidenceView> }) {
-  if (!evidence.length) {
-    return (
-      <section aria-labelledby="dua-resumo" className="min-w-0 max-w-3xl">
-        <h2 id="dua-resumo" className="mb-1 text-xl font-semibold text-ink">Resumo das evidências</h2>
-        <p className="text-sm text-ink-soft">O resumo aparece depois da primeira evidência registrada na aplicação de uma atividade.</p>
-      </section>
-    );
-  }
+  // Sem evidência, o resumo não aparece: a lista de evidências já mostra o vazio.
+  if (!evidence.length) return null;
   const criteria = evidence.flatMap((item) => item.criteria);
   const count = (status: CriterionStatus) => criteria.filter((criterion) => criterion.status === status).length;
   const observed = withSegmentColors((["demonstrado", "parcial", "ainda_nao_demonstrado"] as const).map((status) => ({ key: status, label: CRITERION_STATUS_LABEL[status], value: count(status) })));
@@ -257,9 +263,9 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
   return (
     <section aria-labelledby="dua-resumo" className="min-w-0 max-w-3xl">
       <h2 id="dua-resumo" className="mb-1 text-xl font-semibold text-ink">Resumo das evidências</h2>
-      <p className="mb-4 text-sm text-ink-soft">{plural(evidence.length, "evidência registrada", "evidências registradas")}, com {plural(criteria.length, "critério", "critérios")} no total. Os detalhes estão na lista de evidências.</p>
+      <p className="mb-4 text-sm tabular-nums text-ink-soft">{plural(evidence.length, "evidência", "evidências")} · {plural(criteria.length, "critério", "critérios")}</p>
       <DataBoard className="sm:grid-cols-2">
-        <DataCard title="Critérios observados" hint="Como cada critério observado ficou, somando todas as evidências." className="sm:col-span-2">
+        <DataCard title="Critérios observados" hint="Somando todas as evidências." className="sm:col-span-2">
           <StackedBar segments={observed} empty="Nenhum critério foi observado ainda." />
           <div className="mt-4 rounded-xl border border-dashed border-line p-3">
             <p className="text-xs font-medium text-ink">Fora da conta</p>
@@ -272,10 +278,10 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs leading-relaxed text-ink-soft">Esses critérios não foram observados: não contam como progresso nem como dificuldade.</p>
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">Não observados: não contam como progresso nem dificuldade.</p>
           </div>
         </DataCard>
-        <DataCard title="Resultado de cada registro" hint={ordered.length < evidence.length ? `Os ${ordered.length} registros mais recentes, do mais antigo ao mais novo.` : "Uma marca por evidência, da mais antiga à mais nova."}>
+        <DataCard title="Resultado de cada registro" hint={ordered.length < evidence.length ? `Os ${ordered.length} mais recentes, do mais antigo ao mais novo.` : "Do mais antigo ao mais novo."}>
           <DotStrip
             label="Resultado de cada evidência, da mais antiga à mais nova"
             legend={RESULT_LEGEND}
@@ -286,10 +292,10 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
             }))}
           />
           <p className="mt-3 text-xs leading-relaxed text-ink-soft">
-            {results.sim} demonstrou, {results.parcial} em parte, {results.nao} ainda não{results.none ? `; ${results.none} sem resultado, que não entra como progresso` : ""}.
+            {results.sim} demonstrou, {results.parcial} em parte, {results.nao} ainda não{results.none ? `; ${results.none} sem resultado (não conta)` : ""}.
           </p>
         </DataCard>
-        <DataCard title="Onde a atividade foi aplicada" hint="Evidências na sala comum e no AEE.">
+        <DataCard title="Onde a atividade foi aplicada">
           <BarList rows={contexts} color={SIGNAL.cyan} />
         </DataCard>
       </DataBoard>

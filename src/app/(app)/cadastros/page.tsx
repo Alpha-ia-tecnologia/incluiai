@@ -38,7 +38,6 @@ export default async function RegistriesPage() {
     <>
       <PageHeader
         title="Cadastros da rede"
-        lede="Escolas, turmas e estudantes — a base do prontuário municipal. Turmas cadastradas alimentam o cadastro de alunos e o planejamento em lote."
         actions={
           <ButtonLink href="/estudantes/novo">
             <UserPlus size={16} aria-hidden /> Cadastrar aluno
@@ -87,7 +86,7 @@ export default async function RegistriesPage() {
       <div className="mt-8">
         <SectionTitle>Escolas e turmas da rede</SectionTitle>
         {schools.length === 0 ? (
-          <EmptyState character="resources" title="Nenhuma escola cadastrada" hint="Cadastre a primeira escola acima. Depois, inclua as turmas que recebem os estudantes." />
+          <EmptyState character="resources" title="Nenhuma escola cadastrada" hint="Cadastre a primeira escola acima; depois, as turmas." />
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             {schools.map((s) => (

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, TriangleAlert } from "lucide-react";
+import { ArrowLeft, BookmarkCheck, FileX2, Link2, ShieldCheck, TriangleAlert, UserPlus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { loadImport, maskCpf } from "@/lib/census";
 import { brMoment, type FieldDiff, type PlanItem } from "@/lib/census-rules";
@@ -11,6 +11,7 @@ import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { CensusApplyForm, CensusDecisionForm } from "@/components/census/census-forms";
 import { quietButtonCls } from "@/components/form-styles";
+import { Assurances, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
     return (
       <>
         {back}
-        <PageHeader title="Prévia encerrada" lede={censusImport.status === "aplicada" ? "Esta importação já foi aplicada. Os dados das pessoas saíram da prévia e ficou só o resumo." : "Esta prévia foi descartada."} />
+        <PageHeader title="Prévia encerrada" lede={censusImport.status === "aplicada" ? "Importação aplicada. Ficou só o resumo, sem os dados das pessoas." : "Esta prévia foi descartada."} />
       </>
     );
   }
@@ -52,8 +53,9 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
   return (
     <>
       {back}
-      <PageHeader title={`Prévia do Censo: ${censusImport.fileSchoolName}`} lede={`INEP ${censusImport.fileSchoolCode} · leiaute ${stats?.edition ?? "?"} · enviado por ${censusImport.createdByName} em ${brMoment(censusImport.createdAt)}. Nada muda no cadastro até você aplicar.`} />
+      <PageHeader title={`Prévia do Censo: ${censusImport.fileSchoolName}`} lede={`INEP ${censusImport.fileSchoolCode} · leiaute ${stats?.edition ?? "?"} · enviado por ${censusImport.createdByName} em ${brMoment(censusImport.createdAt)}`} />
       <div className="grid min-w-0 max-w-4xl gap-6">
+        <Assurances label="Antes de aplicar" items={[{ icon: ShieldCheck, text: "Nada muda antes de você aplicar" }]} />
         <p className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${schoolNote.tone === "ok" ? "bg-green-soft text-green" : "bg-amber-soft text-amber"}`}>{schoolNote.text}</p>
         <DataBoard className="sm:grid-cols-4">
           <StatTile label="Alunos e pessoas no arquivo" value={stats?.persons ?? 0} hint={`${stats?.special ?? 0} do público do AEE`} />
@@ -79,7 +81,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
         {by("create").length ? (
           <section aria-labelledby="previa-cadastrar" className="grid min-w-0 gap-3">
             <h2 id="previa-cadastrar" className="text-base font-medium text-ink">Cadastrar ({by("create").length})</h2>
-            <p className="text-sm text-ink-soft">Entram na escola com a etapa estimada pela idade. Ano, turno e responsável ficam como &ldquo;A informar&rdquo; para a escola completar.</p>
+            <p className="text-sm text-ink-soft">Etapa estimada pela idade. Ano, turno e responsável ficam &ldquo;A informar&rdquo;.</p>
             <ul className="grid min-w-0 gap-3">
               {by("create").map((item) => (
                 <li key={item.key} className="min-w-0 rounded-2xl border border-line bg-paper-raised p-4">
@@ -129,7 +131,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
             {plan.missing.length ? (
               <Card>
                 <SectionTitle>Com AEE na plataforma e fora do arquivo ({plan.missing.length})</SectionTitle>
-                <p className="mb-2 text-sm text-ink-soft">Confira se o estudante tem matrícula no Censo desta escola e se nome, nascimento, CPF ou ID INEP batem.</p>
+                <p className="mb-2 text-sm text-ink-soft">Confira a matrícula no Censo desta escola e se nome, nascimento, CPF ou ID INEP batem.</p>
                 <ul className="grid gap-1 text-sm">{plan.missing.map((student) => <li key={student.id}><Link href={`/estudantes/${student.id}`} className="text-brand-strong underline underline-offset-4">{student.name}</Link></li>)}</ul>
               </Card>
             ) : null}
@@ -145,7 +147,23 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
 
         <Card>
           <SectionTitle>Aplicar a prévia</SectionTitle>
-          <p className="mb-3 text-sm leading-relaxed text-ink-soft">Cadastra e atualiza os estudantes, liga o código INEP à escola e guarda o arquivo como referência para as verificações. Ficam guardados só os alunos do público do AEE; o arquivo não fica.</p>
+          <Steps
+            label="O que acontece ao aplicar"
+            className="mb-3"
+            items={[
+              { icon: UserPlus, label: "Cadastra e atualiza estudantes" },
+              { icon: Link2, label: "Liga o INEP à escola" },
+              { icon: BookmarkCheck, label: "Vira referência das verificações" },
+            ]}
+          />
+          <Assurances
+            label="O que fica guardado"
+            className="mb-4"
+            items={[
+              { icon: ShieldCheck, text: "Guarda só o público do AEE" },
+              { icon: FileX2, text: "O arquivo não fica guardado" },
+            ]}
+          />
           <CensusApplyForm action={applyCensusImport.bind(null, importId)} blocked={plan.totals.review ? `Resolva ${plan.totals.review === 1 ? "a revisão" : `as ${plan.totals.review} revisões`} acima para aplicar.` : null} />
           <form action={discardCensusImport.bind(null, importId)} className="mt-3"><button type="submit" className={quietButtonCls}>Descartar a prévia</button></form>
           {decided.length ? <p className="mt-3 text-xs text-ink-soft">{decided.length === 1 ? "1 decisão de revisão registrada" : `${decided.length} decisões de revisão registradas`}.</p> : null}

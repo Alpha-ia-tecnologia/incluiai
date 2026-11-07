@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Check, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Check, CircleCheck, Eye, FileDown, TriangleAlert, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canOpenSchool } from "@/lib/census";
@@ -10,6 +10,7 @@ import { parseJson } from "@/lib/format";
 import { saveSchoolInep, saveStudentInep, uploadCensusFile } from "@/actions/census";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { CensusUploadForm, InepForm } from "@/components/census/census-forms";
+import { HowToRead, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
   return (
     <>
       <Link href="/censo" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline"><ArrowLeft size={16} aria-hidden /> Censo Escolar</Link>
-      <PageHeader title={`Censo: ${school.name}`} lede="O arquivo de migração da escola atualiza o cadastro e vira a referência para conferir a dupla matrícula dos estudantes do AEE." />
+      <PageHeader title={`Censo: ${school.name}`} />
       <div className="grid min-w-0 max-w-4xl gap-6">
         {applied ? <p role="status" className="flex items-center gap-2 rounded-2xl bg-green-soft px-4 py-3 text-sm font-medium text-green"><Check size={18} aria-hidden /> Arquivo aplicado: {applied[1]} {applied[1] === "1" ? "estudante cadastrado" : "estudantes cadastrados"} e {applied[2]} {applied[2] === "1" ? "atualizado" : "atualizados"}. A referência da escola foi atualizada.</p> : null}
 
@@ -57,10 +58,20 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
           <Card>
             <SectionTitle>Código INEP da escola</SectionTitle>
             <InepForm action={saveSchoolInep.bind(null, schoolId)} id="escola-inep" label="Código INEP (8 números)" name="inepCode" length={8} value={school.inepCode} />
-            <p className="mt-2 text-xs text-ink-soft">Liga o arquivo do Censo a esta escola. Sem o código, ele é preenchido ao aplicar o primeiro arquivo.</p>
+            <p className="mt-2 text-xs text-ink-soft">Sem ele, vem do primeiro arquivo aplicado.</p>
           </Card>
           <Card>
             <SectionTitle>Importar o arquivo do Censo</SectionTitle>
+            <Steps
+              label="Como importar"
+              className="mb-4"
+              items={[
+                { icon: FileDown, label: "Exporte do Educacenso" },
+                { icon: Upload, label: "Envie o arquivo" },
+                { icon: Eye, label: "Confira a prévia" },
+                { icon: CircleCheck, label: "Aplique" },
+              ]}
+            />
             {open ? <p className="mb-3 text-sm"><Link href={`/censo/importacoes/${open.id}`} className="font-medium text-brand-strong underline underline-offset-4">Continuar a prévia de {brMoment(open.createdAt)}</Link></p> : null}
             <CensusUploadForm action={uploadCensusFile.bind(null, schoolId)} />
           </Card>
@@ -70,7 +81,8 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
           <h2 id="censo-dupla" className="text-base font-medium text-ink">Dupla matrícula dos estudantes do AEE</h2>
           {result ? (
             <>
-              <p className="text-sm text-ink-soft">Conferido com o arquivo aplicado em {brMoment(result.importedAt)}: {result.coverage.confirmed} de {rows.length} {rows.length === 1 ? "estudante confirmado" : "estudantes confirmados"} no Censo com classe comum presencial e AEE, sem impedimento no vínculo.</p>
+              <p className="text-sm text-ink-soft">Conferido com o arquivo aplicado em {brMoment(result.importedAt)}: <strong className="font-medium text-ink tabular-nums">{result.coverage.confirmed} de {rows.length}</strong> {rows.length === 1 ? "confirmado" : "confirmados"}.</p>
+              <HowToRead summary="O que é confirmado">Matrícula no Censo com classe comum presencial e AEE, sem impedimento no vínculo.</HowToRead>
               {note ? <p className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${note.tone === "ok" ? "bg-green-soft text-green" : "bg-amber-soft text-amber"}`}>{note.text}</p> : null}
               {PENDING.map((status) => {
                 const list = rows.filter((row) => row.status === status);
@@ -94,7 +106,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
               {alerts.length ? (
                 <Card>
                   <SectionTitle>Com dupla matrícula, mas com alerta no vínculo ({alerts.length})</SectionTitle>
-                  <p className="mb-3 text-sm text-ink-soft">{alerts.some(blocked) ? "Os vínculos com impedimento não chegam ao Fundeb: o Educacenso recusa o arquivo ou não importa a pessoa. " : ""}Confira no Educacenso antes do fechamento.</p>
+                  <p className="mb-3 text-sm text-ink-soft">{alerts.some(blocked) ? "Vínculo com impedimento não chega ao Fundeb. " : ""}Confira no Educacenso antes do fechamento.</p>
                   <ul className="grid gap-3">
                     {alerts.map((row) => (
                       <li key={row.id} className="grid min-w-0 gap-2 rounded-xl bg-surface-muted/60 p-3">
@@ -115,7 +127,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
               ) : null}
             </>
           ) : (
-            <EmptyState character="care" title="Nenhum arquivo aplicado" hint="Importe o arquivo de migração da escola para conferir a dupla matrícula dos estudantes do AEE." />
+            <EmptyState character="care" title="Nenhum arquivo aplicado" hint="Importe o arquivo acima para conferir a dupla matrícula." />
           )}
         </section>
 

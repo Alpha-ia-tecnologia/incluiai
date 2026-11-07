@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { ChevronDown, Lock } from "lucide-react";
+import { ChevronDown, EyeOff, GitBranch, Link2, Lock } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { DuaError } from "@/lib/dua/shared";
 import { collaboratorOptions, loadPlanning, planningHistory } from "@/lib/dua/plannings";
@@ -12,6 +12,7 @@ import { VersionSummary } from "@/components/dua/history/version-summary";
 import { CollaboratorsForm } from "@/components/dua/history/collaborators-form";
 import { DataBoard, DataCard } from "@/components/data-viz";
 import { VersionSteps, type VersionStep } from "@/components/viz/version-steps";
+import { Assurances, HowToRead } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -70,15 +71,21 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
   return (
     <div className="grid min-w-0 gap-8">
       <section aria-labelledby="versoes-titulo" className="min-w-0">
-        <h2 id="versoes-titulo" className="mb-2 font-display text-xl font-medium text-ink">Versões</h2>
-        <p className="mb-4 max-w-3xl text-sm leading-relaxed text-ink-soft">
-          Uma versão validada não muda mais. Editar depois da validação abre a versão seguinte, e cada aplicação e material continua ligado à versão de onde saiu.
-        </p>
+        <h2 id="versoes-titulo" className="mb-3 font-display text-xl font-medium text-ink">Versões</h2>
+        <Assurances
+          label="Como as versões funcionam"
+          className="mb-4"
+          items={[
+            { icon: Lock, text: "Versão validada não muda mais" },
+            { icon: GitBranch, text: "Editar abre a versão seguinte" },
+            { icon: Link2, text: "Aplicações e materiais ficam na versão" },
+          ]}
+        />
         {steps.length ? (
           <DataBoard className="mb-4">
             <DataCard
               title="Linha do tempo das versões"
-              hint={`${steps.length === 1 ? "1 versão" : `${steps.length} versões`}, ${validatedCount === 1 ? "1 validada" : `${validatedCount} validadas`}. Escolha uma versão para ver os detalhes abaixo.`}
+              hint={`${steps.length === 1 ? "1 versão" : `${steps.length} versões`}, ${validatedCount === 1 ? "1 validada" : `${validatedCount} validadas`}.`}
             >
               <VersionSteps steps={steps} label="Versões do planejamento, da mais antiga à atual" />
             </DataCard>
@@ -119,10 +126,10 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
 
       <Card className="min-w-0">
         <SectionTitle>Colaboração</SectionTitle>
-        <p className="mb-4 max-w-3xl text-sm leading-relaxed text-ink-soft">
-          Colaboradores editam o planejamento com o responsável ({planning.ownerName}); professores, coordenação e gestão colaboradores também podem validar.
-          O restante da equipe da escola, inclusive a da turma, só lê o planejamento quando ele está compartilhado.
-        </p>
+        <p className="max-w-3xl text-sm text-ink-soft">Colaboradores editam com o responsável, {planning.ownerName}.</p>
+        <HowToRead summary="Quem edita, valida e lê" className="mb-3">
+          Professores, coordenação e gestão colaboradores também podem validar. O restante da equipe da escola, inclusive a da turma, só lê o planejamento quando ele está compartilhado.
+        </HowToRead>
         {access.share ? (
           <CollaboratorsForm
             planningId={planning.id}
@@ -138,8 +145,8 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
       </Card>
 
       <section aria-labelledby="eventos-titulo" className="min-w-0">
-        <h2 id="eventos-titulo" className="mb-2 font-display text-xl font-medium text-ink">Histórico de ações</h2>
-        <p className="mb-4 max-w-3xl text-sm leading-relaxed text-ink-soft">Quem fez o quê, em qual versão e quando. Nomes de estudantes não aparecem aqui: o histórico é lido por toda a equipe do planejamento.</p>
+        <h2 id="eventos-titulo" className="mb-3 font-display text-xl font-medium text-ink">Histórico de ações</h2>
+        <Assurances label="Privacidade do histórico" className="mb-4" items={[{ icon: EyeOff, text: "Sem nomes de estudantes" }]} />
         {history.events.length ? (
           <ol className="grid min-w-0 max-w-3xl gap-2">
             {history.events.map((event) => {

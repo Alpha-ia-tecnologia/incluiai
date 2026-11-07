@@ -34,7 +34,7 @@ export function ObjectiveFields({ inputClassName, labelClassName, studentId }: {
         <BnccPicker
           name="bnccCode"
           label="Habilidade da BNCC (opcional)"
-          hint="Busque por código ou palavra, ou peça uma sugestão depois de escrever o objetivo. Aparecem primeiro as do ano do estudante."
+          hint="Busque por código ou palavra. As do ano do estudante vêm primeiro."
           studentId={studentId}
           dimension={dimension}
           suggestFrom={objectiveText}

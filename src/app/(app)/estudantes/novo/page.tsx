@@ -34,7 +34,7 @@ export default async function NewStudentPage() {
     <>
       <PageHeader
         title="Cadastrar estudante"
-        lede="Conte um pouco sobre o estudante em uma conversa guiada. Ao final, revise as informações antes de criar o prontuário."
+        lede="Uma conversa guiada. Você revisa tudo antes de criar o prontuário."
       />
       <StudentRegistrationChat schools={schoolOptions} />
     </>

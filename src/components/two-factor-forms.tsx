@@ -2,11 +2,12 @@
 
 import { useActionState, useId } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { Download, KeyRound, ScanQrCode, ShieldCheck } from "lucide-react";
 import type { CodeState } from "@/actions/two-factor";
 import { confirmTwoFactorSetup, finishSecondStepSetup } from "@/actions/two-factor";
 import { BUTTON_CLS, type ButtonVariant, hintCls, inputCls, labelCls } from "@/components/form-styles";
 import { PrintButton } from "@/components/print-button";
+import { Steps } from "@/components/explain";
 
 type CodeAction = (previous: CodeState, formData: FormData) => Promise<CodeState>;
 
@@ -28,11 +29,17 @@ export function SetupFlow({ svg, secret, account, finish }: { svg: string; secre
   if (state.codes) return <RecoveryCodes codes={state.codes} finish={finish} />;
   return (
     <div className="grid gap-6">
-      <ol className="grid gap-2 text-sm leading-relaxed text-ink">
-        <li><strong className="font-medium">1.</strong> Instale no celular um aplicativo autenticador (Google Authenticator, Microsoft Authenticator, FreeOTP ou outro).</li>
-        <li><strong className="font-medium">2.</strong> No aplicativo, escolha adicionar conta e leia o QR code abaixo.</li>
-        <li><strong className="font-medium">3.</strong> Digite o código de 6 números que o aplicativo mostrar.</li>
-      </ol>
+      <div className="grid gap-2">
+        <Steps
+          label="Como ligar"
+          items={[
+            { icon: Download, label: "Instale um autenticador" },
+            { icon: ScanQrCode, label: "Leia o QR code" },
+            { icon: KeyRound, label: "Digite o código" },
+          ]}
+        />
+        <p className="text-xs text-ink-soft">Google Authenticator, Microsoft Authenticator, FreeOTP ou outro.</p>
+      </div>
       <div className="flex flex-wrap items-start gap-6">
         <div
           role="img"
@@ -88,10 +95,10 @@ function RecoveryCodes({ codes, finish }: { codes: string[]; finish: "refresh" |
     <div className="grid gap-4" role="status">
       <p className="flex items-start gap-2 text-sm font-medium text-ink">
         <ShieldCheck size={18} aria-hidden className="mt-0.5 shrink-0 text-green" />
-        Pronto. Guarde estes códigos de recuperação em lugar seguro (anote ou imprima).
+        Pronto. Guarde estes códigos de recuperação em lugar seguro.
       </p>
       <p className="text-sm leading-relaxed text-ink-soft">
-        Cada código vale uma entrada, se você estiver sem o celular. Eles não aparecem de novo: se perder, gere novos em Segurança da conta (no menu com o seu nome).
+        Cada um vale uma entrada sem o celular. Eles não aparecem de novo; se perder, gere novos em Segurança da conta (menu com o seu nome).
       </p>
       <ul aria-label="Códigos de recuperação" className="grid max-w-sm grid-cols-2 gap-2">
         {codes.map((code) => (

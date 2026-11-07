@@ -46,7 +46,7 @@ export function NewPlanningForm({ classes, reusable, defaultReuse }: { classes: 
           {reusable.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
       </Field>
-      <p className="text-xs leading-relaxed text-ink-soft sm:col-span-2">Ao partir de uma atividade existente, só o planejamento da turma é copiado: apoios individuais, evidências e materiais de estudantes ficam na atividade de origem.</p>
+      <p className="text-xs leading-relaxed text-ink-soft sm:col-span-2">Ao partir de outra atividade, só o planejamento da turma é copiado, sem dados dos estudantes.</p>
       <div className="sm:col-span-2">
         <button type="submit" disabled={pending} aria-busy={pending} className={buttonCls}>
           {pending ? "Criando…" : "Começar o planejamento"} <ArrowRight size={16} aria-hidden />

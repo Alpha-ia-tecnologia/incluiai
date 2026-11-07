@@ -1,5 +1,7 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
+import { EyeOff, KeyRound } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { loadEvidence, type StudentEvidence } from "@/lib/dossier";
 import { itemTotals } from "@/lib/evidence";
@@ -7,6 +9,7 @@ import { smallNumber } from "@/lib/assessment";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { EvidenceBadge } from "@/components/dossier/evidence-list";
+import { Assurances, HowToRead } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +34,16 @@ function Totals({ students, network }: { students: StudentEvidence[]; network: b
   );
 }
 
+// O que as normas pedem, para quem quiser conferir a base de cada item.
+function Norms({ children }: { children?: ReactNode }) {
+  return (
+    <HowToRead>
+      <p>Para cada estudante do AEE, o que o Decreto nº 12.686/2025 e a Portaria MEC nº 421/2026 pedem e o que ainda falta registrar.</p>
+      {children}
+    </HowToRead>
+  );
+}
+
 export default async function SchoolDossierPage({ searchParams }: { searchParams: Promise<{ filtro?: string | string[] }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -39,17 +52,28 @@ export default async function SchoolDossierPage({ searchParams }: { searchParams
   const filter = (await searchParams).filtro === "pendentes" ? "pendentes" : "";
   const students = await loadEvidence(!network && user.schoolId ? { schoolId: user.schoolId } : {});
   const clear = students.filter((student) => !student.summary.pendente).length;
-  const lede = "O que o Decreto nº 12.686/2025 e a Portaria MEC nº 421/2026 pedem para cada estudante do AEE e o que ainda falta registrar.";
 
   if (network) {
     const schools = [...Map.groupBy(students, (student) => student.schoolId).values()].sort((a, b) => a[0].school.localeCompare(b[0].school, "pt-BR"));
     return (
       <>
-        <PageHeader title="Dossiê de evidências" lede={`${lede} A rede vê os números, sem nomes; para abrir o dossiê de um estudante, a ficha pede o motivo.`} />
+        <PageHeader title="Dossiê de evidências" />
         <div className="grid min-w-0 max-w-4xl gap-6">
+          <div className="grid min-w-0 gap-2">
+            <Assurances
+              label="O que a rede vê"
+              items={[
+                { icon: EyeOff, text: "Números, sem nomes de estudantes" },
+                { icon: KeyRound, text: "Abrir uma ficha pede o motivo" },
+              ]}
+            />
+            <Norms>
+              <p className="mt-1">Números abaixo de 5 aparecem como “menos de 5”.</p>
+            </Norms>
+          </div>
           <DataBoard className="sm:grid-cols-2">
             <StatTile label="Estudantes" value={students.length} />
-            <StatTile label="Sem pendências" value={smallNumber(clear)} hint="Números abaixo de 5 aparecem como “menos de 5”." />
+            <StatTile label="Sem pendências" value={smallNumber(clear)} />
           </DataBoard>
           <Totals students={students} network />
           <section aria-labelledby="dossie-escolas" className="grid min-w-0 gap-3">
@@ -75,8 +99,9 @@ export default async function SchoolDossierPage({ searchParams }: { searchParams
     .sort((a, b) => b.summary.pendente - a.summary.pendente || b.summary.conferir - a.summary.conferir || a.name.localeCompare(b.name, "pt-BR"));
   return (
     <>
-      <PageHeader title="Dossiê de evidências" lede={lede} />
+      <PageHeader title="Dossiê de evidências" />
       <div className="grid min-w-0 max-w-4xl gap-6">
+        <Norms />
         <DataBoard className="sm:grid-cols-3">
           <StatTile label="Estudantes" value={students.length} />
           <StatTile label="Sem pendências" value={clear} />
