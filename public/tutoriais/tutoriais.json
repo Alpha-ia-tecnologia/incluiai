@@ -1,0 +1,312 @@
+[
+  {
+    "id": "01-primeiros-passos",
+    "title": "Primeiros passos",
+    "audience": "Toda a equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao",
+      "gestao",
+      "secretaria"
+    ],
+    "summary": "Entrar, conhecer o Início e o menu, e achar ajuda.",
+    "seconds": 111,
+    "video": "01-primeiros-passos.mp4",
+    "poster": "01-primeiros-passos.jpg"
+  },
+  {
+    "id": "02-encontrar-estudante",
+    "title": "Encontrar um estudante",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao",
+      "gestao"
+    ],
+    "summary": "Buscar pelo nome, abrir o acompanhamento e ler o próximo passo.",
+    "seconds": 91,
+    "video": "02-encontrar-estudante.mp4",
+    "poster": "02-encontrar-estudante.jpg"
+  },
+  {
+    "id": "03-estudo-de-caso",
+    "title": "Estudo de caso",
+    "audience": "Professores do AEE e coordenação",
+    "roles": [
+      "professor_aee",
+      "coordenacao"
+    ],
+    "summary": "As sete partes do estudo, como editar, salvar e imprimir.",
+    "seconds": 100,
+    "video": "03-estudo-de-caso.mp4",
+    "poster": "03-estudo-de-caso.jpg"
+  },
+  {
+    "id": "04-como-aprende",
+    "title": "Como aprende",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao"
+    ],
+    "summary": "Registrar como o estudante se comunica, aprende e participa.",
+    "seconds": 89,
+    "video": "04-como-aprende.mp4",
+    "poster": "04-como-aprende.jpg"
+  },
+  {
+    "id": "05-sondagem",
+    "title": "Sondagem",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "coordenacao"
+    ],
+    "summary": "Aplicar a linha de base e ler o apoio por área.",
+    "seconds": 106,
+    "video": "05-sondagem.mp4",
+    "poster": "05-sondagem.jpg"
+  },
+  {
+    "id": "06-plano-de-ensino",
+    "title": "Plano de ensino",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao",
+      "gestao"
+    ],
+    "summary": "Criar um objetivo observável, ligar à BNCC e registrar a revisão.",
+    "seconds": 111,
+    "video": "06-plano-de-ensino.mp4",
+    "poster": "06-plano-de-ensino.jpg"
+  },
+  {
+    "id": "07-preparar-atividade",
+    "title": "Preparar uma atividade",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao"
+    ],
+    "summary": "Pedir três sugestões, escolher a atividade e imprimir.",
+    "seconds": 91,
+    "video": "07-preparar-atividade.mp4",
+    "poster": "07-preparar-atividade.jpg"
+  },
+  {
+    "id": "08-adaptar-atividade",
+    "title": "Adaptar a atividade da turma",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao"
+    ],
+    "summary": "Adaptar a folha ou a prova da turma e imprimir.",
+    "seconds": 84,
+    "video": "08-adaptar-atividade.mp4",
+    "poster": "08-adaptar-atividade.jpg"
+  },
+  {
+    "id": "09-materiais-de-apoio",
+    "title": "Materiais de apoio",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao"
+    ],
+    "summary": "Criar uma rotina visual ou história social, aprovar e imprimir.",
+    "seconds": 72,
+    "video": "09-materiais-de-apoio.mp4",
+    "poster": "09-materiais-de-apoio.jpg"
+  },
+  {
+    "id": "10-registrar-aula",
+    "title": "Registrar uma aula",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao"
+    ],
+    "summary": "Registrar como foi a aula e a frequência do AEE.",
+    "seconds": 92,
+    "video": "10-registrar-aula.mp4",
+    "poster": "10-registrar-aula.jpg"
+  },
+  {
+    "id": "11-evolucao-e-relatorio",
+    "title": "Evolução, relatório e dossiê",
+    "audience": "Professores do AEE e coordenação",
+    "roles": [
+      "professor_aee",
+      "coordenacao",
+      "gestao"
+    ],
+    "summary": "Ver a evolução, validar o relatório do período para a família e conferir o dossiê.",
+    "seconds": 128,
+    "video": "11-evolucao-e-relatorio.mp4",
+    "poster": "11-evolucao-e-relatorio.jpg"
+  },
+  {
+    "id": "12-planejamento-dua",
+    "title": "Planejamento com DUA",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao",
+      "gestao"
+    ],
+    "summary": "Planejar uma atividade da turma em quatro etapas e validar para aplicação.",
+    "seconds": 126,
+    "video": "12-planejamento-dua.mp4",
+    "poster": "12-planejamento-dua.jpg"
+  },
+  {
+    "id": "13-jogos-educativos",
+    "title": "Jogos educativos",
+    "audience": "Professores e AEE",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao"
+    ],
+    "summary": "Jogar com o estudante e registrar a aula no fim do jogo.",
+    "seconds": 102,
+    "video": "13-jogos-educativos.mp4",
+    "poster": "13-jogos-educativos.jpg"
+  },
+  {
+    "id": "14-recursos-e-calendario",
+    "title": "Banco de recursos e calendário",
+    "audience": "Professores e equipe da escola",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao",
+      "gestao",
+      "secretaria"
+    ],
+    "summary": "Achar uma proposta pronta, imprimir o material e ver as datas inclusivas.",
+    "seconds": 109,
+    "video": "14-recursos-e-calendario.mp4",
+    "poster": "14-recursos-e-calendario.jpg"
+  },
+  {
+    "id": "15-carteirinha",
+    "title": "Carteirinha digital",
+    "audience": "AEE, coordenação e família",
+    "roles": [
+      "professor_aee",
+      "coordenacao",
+      "gestao",
+      "familia"
+    ],
+    "summary": "A família autoriza e escolhe o verso; a escola põe a foto e imprime.",
+    "seconds": 105,
+    "video": "15-carteirinha.mp4",
+    "poster": "15-carteirinha.jpg"
+  },
+  {
+    "id": "16-portal-da-familia",
+    "title": "Portal da família",
+    "audience": "Famílias",
+    "roles": [
+      "familia"
+    ],
+    "summary": "Acompanhar a escola, responder a pergunta da semana, contar conquistas e decidir as autorizações.",
+    "seconds": 171,
+    "video": "16-portal-da-familia.mp4",
+    "poster": "16-portal-da-familia.jpg"
+  },
+  {
+    "id": "17-orientacoes-do-terapeuta",
+    "title": "Orientações do terapeuta",
+    "audience": "Terapeutas da rede de saúde",
+    "roles": [
+      "terapeuta"
+    ],
+    "summary": "Conhecer o contexto escolar e enviar orientações para a escola.",
+    "seconds": 108,
+    "video": "17-orientacoes-do-terapeuta.mp4",
+    "poster": "17-orientacoes-do-terapeuta.jpg"
+  },
+  {
+    "id": "18-painel-e-dossie",
+    "title": "Painel de indicadores e dossiê",
+    "audience": "Coordenação e gestão",
+    "roles": [
+      "coordenacao",
+      "gestao"
+    ],
+    "summary": "Ver os números da escola, quem precisa de atenção e o que falta na documentação.",
+    "seconds": 123,
+    "video": "18-painel-e-dossie.mp4",
+    "poster": "18-painel-e-dossie.jpg"
+  },
+  {
+    "id": "19-pessoas-e-planilha",
+    "title": "Contas e importação de estudantes",
+    "audience": "Coordenação e gestão da escola",
+    "roles": [
+      "coordenacao",
+      "gestao",
+      "secretaria"
+    ],
+    "summary": "Criar a conta de alguém da equipe e cadastrar uma turma por planilha.",
+    "seconds": 112,
+    "video": "19-pessoas-e-planilha.mp4",
+    "poster": "19-pessoas-e-planilha.jpg"
+  },
+  {
+    "id": "20-secretaria-rede",
+    "title": "A rede em números",
+    "audience": "Secretaria de Educação",
+    "roles": [
+      "secretaria"
+    ],
+    "summary": "Acompanhar a rede pelo painel, abrir a ficha de um estudante com motivo e conferir o Censo Escolar.",
+    "seconds": 128,
+    "video": "20-secretaria-rede.mp4",
+    "poster": "20-secretaria-rede.jpg"
+  },
+  {
+    "id": "21-seguranca-da-conta",
+    "title": "Segurança da conta",
+    "audience": "Todos os perfis",
+    "roles": [
+      "professor_sala",
+      "professor_aee",
+      "apoio",
+      "coordenacao",
+      "gestao",
+      "secretaria",
+      "familia",
+      "terapeuta"
+    ],
+    "summary": "Trocar a senha e ligar a verificação em duas etapas.",
+    "seconds": 105,
+    "video": "21-seguranca-da-conta.mp4",
+    "poster": "21-seguranca-da-conta.jpg"
+  }
+]

@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { Character } from "@/components/character";
-import { ArrowRight, BookOpen, CircleHelp, GraduationCap, Route } from "lucide-react";
+import { ArrowRight, BookOpen, CircleHelp, GraduationCap, PlayCircle, Route } from "lucide-react";
 import { PILLS, readingMinutes } from "@/lib/learning-pills";
+import { tutorialsFor } from "@/lib/tutorials";
+import { TutorialCard } from "@/components/tutorial-card";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ export default async function HelpPage() {
   const family = user.role === "familia";
   const therapist = user.role === "terapeuta";
   const managing = ["secretaria", "gestao"].includes(user.role);
+  const tutorials = await tutorialsFor(user.role);
   const portal = user.studentIds.length === 1 ? `/familia/${user.studentIds[0]}` : user.studentIds.length ? "/familia" : "/";
   const steps = family ? [
     { title: "Ver o que está sendo trabalhado", text: "Abra Meu filho. Veja os objetivos apresentados pela escola, as atividades para casa e as conquistas recentes.", href: portal, action: "Abrir acompanhamento" },
@@ -57,6 +60,17 @@ export default async function HelpPage() {
         <div><p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-strong"><CircleHelp size={18} aria-hidden /> Ajuda e primeiros passos</p><h1 className="text-3xl leading-tight tracking-tight sm:text-4xl">Vamos por partes.</h1><p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft">Você não precisa conhecer todos os recursos para começar. Siga o caminho da sua rotina.</p></div>
         <Character variant="care" className="hidden w-36 sm:block" />
       </div>
+      {tutorials.length ? (
+        <section id="videos" className="mb-10" aria-labelledby="videos-title">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="videos-title" className="flex items-center gap-2 text-xl font-medium"><PlayCircle size={21} aria-hidden /> Vídeos</h2>
+            {tutorials.length > 6 ? <Link href="/ajuda/videos" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline">Ver todos ({tutorials.length})<ArrowRight size={16} aria-hidden /></Link> : null}
+          </div>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {tutorials.slice(0, 6).map((tutorial) => <li key={tutorial.id} className="min-w-0"><TutorialCard tutorial={tutorial} /></li>)}
+          </ul>
+        </section>
+      ) : null}
       <Link href="/jornada" className="mb-8 flex items-center gap-4 rounded-2xl bg-lilac-soft p-5 transition-colors hover:bg-lilac">
         <Route size={26} className="shrink-0 text-brand-strong" aria-hidden />
         <span className="min-w-0 flex-1"><span className="block text-base font-medium">Prefere um caminho guiado?</span><span className="mt-1 block text-sm leading-relaxed text-ink-soft">Em Minha jornada, a plataforma mostra o que você já fez, com os seus dados, e o próximo passo.</span></span>

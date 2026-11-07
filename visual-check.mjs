@@ -6,7 +6,7 @@
 // Os endereços com id (estudante, material, planejamento) são achados nas próprias telas.
 import puppeteer from "puppeteer-core";
 import { createRequire } from "node:module";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -14,6 +14,9 @@ const BASE = process.env.BASE ?? "http://localhost:3213";
 const OUT = process.argv[2] ?? null;
 const SCALE = process.env.TEXT_SCALE ?? null;
 const AXE = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
+// Vídeos tutoriais: só quando já foram gravados (public/tutoriais/tutoriais.json).
+const TUTORIALS = existsSync("public/tutoriais/tutoriais.json") ? JSON.parse(readFileSync("public/tutoriais/tutoriais.json", "utf8")) : [];
+const tutorialFor = (role) => TUTORIALS.find((item) => item.roles?.includes(role))?.id ?? null;
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 if (OUT) mkdirSync(OUT, { recursive: true });
 
@@ -112,6 +115,7 @@ await account("aee@escola.edu.br", "aee", async (page) => {
     student && ["adaptar", `${student}/atividades/adaptar`], adapted && ["adaptada", adapted], adapted && ["adaptada_imprimir", `${adapted}/imprimir`],
     ["jogos", "/jogos"], ...(student ? [["jogos_estudante", `/jogos?estudante=${student.split("/")[2]}`], ...["memoria", "sequencia", "associacao", "emocoes"].map((game) => [`jogar_${game}`, `/jogar/${game}?estudante=${student.split("/")[2]}&nivel=desafio`])] : []),
     ["planejamento", "/planejamento"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["pilula_sondagem", "/ajuda/pilulas/sondagem"], ["pilula_estudo", "/ajuda/pilulas/estudo-de-caso"], ["pilula_prova", "/ajuda/pilulas/adaptar-prova"], ["estudante_naoexiste", "/estudantes/naoexiste"],
+    tutorialFor("professor_aee") && ["ajuda_videos", "/ajuda/videos"], tutorialFor("professor_aee") && ["ajuda_video", `/ajuda/videos/${tutorialFor("professor_aee")}`],
   ];
 });
 

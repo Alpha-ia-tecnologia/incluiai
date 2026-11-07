@@ -100,6 +100,7 @@ Os comandos `db:*`, como `npm run db:admin`, também rodam no **Console** do ser
 | `/jornada` | **Minha jornada**: a história de cada perfil em capítulos (professora: a história de um estudante; coordenação e gestão: a da escola; Secretaria: a da rede; família e terapeuta: a própria contribuição), marcados a partir dos dados reais, com evidências, próximo passo, impacto e conquistas com data. Boas-vindas no primeiro acesso | HU01–HU10 |
 | `/painel` | **Painel de indicadores**: medidor em destaque com abas (jornada, participação e critério de sucesso, com a variação em pontos sobre o período anterior), cartões de situação, etapas da jornada, tabela de estudantes por avisos, nível de apoio, participação, meses com registro, uso da IA, objetivos, aulas, atividades e adesão, perfil agregado, **banco de práticas por perfil**, **uso e documentação do planejamento com DUA** (sem nota), família, recursos e acessos (LGPD). Filtros de período e de escola; o endereço antigo `/painel-municipal` redireciona | 10, 11, 17.6, 17.9 |
 | `/recursos` | Banco municipal com 24 recursos e 72 atividades, das cinco etapas de ensino e dos três contextos (sala comum, AEE e casa). Cada recurso tem fotografia dos materiais, preparação, modelo de apoio, três níveis de apoio à participação e continuidade (`src/lib/resource-bank.ts`; imagens em `docs/activity-images.md`), além de filtros e evidências de aplicação | 13 |
+| `/ajuda/videos` | **Vídeos tutoriais** com narração e legenda, por perfil (ver [Vídeos tutoriais](#vídeos-tutoriais)) | — |
 | `/calendario` | **Calendário inclusivo**: datas comemorativas do público do AEE (autismo, Libras, braille…), com referência legal e ideia de atividade para a turma | — |
 | `/familia/[id]` | Portal da família + **atividades de casa** + log de acessos | 12, 14 |
 
@@ -411,6 +412,43 @@ Em **Pessoas e acessos** (`/usuarios`), a gestão cuida das contas sem depender 
 ### Importar estudantes por planilha
 
 Em **Estudantes › Importar planilha** (`/estudantes/importar`), a gestão e a coordenação da escola (e a Secretaria, escolhendo a escola) cadastram uma turma inteira a partir de um CSV salvo pelo Excel ou pelo LibreOffice (ponto e vírgula ou vírgula, UTF-8 ou Windows-1252). As colunas são reconhecidas pelo nome, em qualquer ordem (há um modelo para baixar). A importação tem duas fases: **conferir**, que não grava nada e mostra as linhas prontas, as já cadastradas (mesmo nome e nascimento na escola), as com problema (com o motivo) e os nomes iguais com outro nascimento (para conferir); e **importar**, que lê a planilha de novo no servidor e grava só as linhas prontas, com o registro na linha do tempo e no histórico de acessos. Até 500 estudantes por vez. Regras puras em `src/lib/student-import.ts`, com testes. O cadastro individual também fica restrito à escola de quem cadastra.
+
+## Vídeos tutoriais
+
+Vídeos curtos, com narração e legenda, de cada tarefa da plataforma. Ficam em **Ajuda › Vídeos** (`/ajuda/videos`), e cada perfil vê os vídeos feitos para ele.
+
+Os vídeos são gravados na própria plataforma, com os dados de demonstração, por `scripts/tutoriais/gravar.mjs`. Cada roteiro, em `scripts/tutoriais/roteiros/`, faz a tarefa num Chrome automatizado, como uma pessoa faria. O gravador desenha cursor, destaque e legenda por cima da tela e narra cada passo com o Piper, uma voz neural que roda no computador: nenhum texto sai da máquina. O resultado é um MP4 em 1080p com a capa, em `public/tutoriais/`, e a lista `tutoriais.json`, que a Ajuda lê. Sem a lista, a seção não aparece.
+
+**Quando regravar:** quando uma tela mudar. Um roteiro que não acha um botão para com o erro e uma captura da tela.
+
+1. Ferramentas: um `ffmpeg` com libx264 e AAC, o Piper com a voz `pt_BR-cadu-medium` ([rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main/pt/pt_BR/cadu/medium)) e o Whisper, que revisa a narração. Com placa NVIDIA, os pacotes `nvidia-cublas-cu12` e `nvidia-cudnn-cu12==9.*` (no `LD_LIBRARY_PATH`) deixam a revisão umas 15 vezes mais rápida:
+   ```bash
+   uv venv tutoriais-venv && uv pip install --python tutoriais-venv/bin/python piper-tts imageio-ffmpeg faster-whisper num2words
+   ```
+2. Um banco de demonstração só para a gravação e um build servido com ele, **sem as chaves de IA** (as sugestões saem pelas regras, sem custo):
+   ```bash
+   DATABASE_URL="file:/tmp/tutoriais.db" npm run db:setup
+   npm run build
+   DATABASE_URL="file:/tmp/tutoriais.db" ANTHROPIC_API_KEY= DEEPSEEK_API_KEY= OPENAI_API_KEY= npx next start -p 3217
+   ```
+3. Revisar a narração. O Piper sorteia um pouco a pronúncia a cada vez; `revisar.py` gera cada fala, ouve com o Whisper e compara com o roteiro, gera de novo quando não bate, e deixa no cache a versão mais clara. No fim, lista as falas que ainda divergem:
+   ```bash
+   export BASE=http://localhost:3217 TUTORIAL_DB="file:/tmp/tutoriais.db" \
+     FFMPEG=$(tutoriais-venv/bin/python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
+     PIPER_PYTHON=tutoriais-venv/bin/python PIPER_VOICE=/caminho/pt_BR-cadu-medium.onnx
+   node scripts/tutoriais/gravar.mjs --falas > /tmp/falas.jsonl
+   tutoriais-venv/bin/python scripts/tutoriais/revisar.py /tmp/falas.jsonl --tentativas 8
+   ```
+   Quando uma fala continua confusa, reescreva a frase (nome de botão no fim da frase, sem sigla colada em artigo) ou ajuste a pronúncia em `scripts/tutoriais/fala.mjs`, e rode de novo: só as falas novas são revisadas.
+4. Gravar. `TUTORIAL_DB` faz o gravador rodar o seed antes de cada vídeo (o seed apaga tudo; use só o banco da gravação):
+   ```bash
+   node scripts/tutoriais/gravar.mjs --listar          # os roteiros
+   node scripts/tutoriais/gravar.mjs --ensaio 07       # confere o roteiro, rápido e sem gravar
+   node scripts/tutoriais/gravar.mjs 07 10             # grava estes; sem número, grava todos
+   ```
+5. Rode `npm run build` de novo: o Next só serve os arquivos que já estavam em `public/` no build.
+
+Os roteiros usam uma linguagem própria e curta: `t.say(fala, ação)` narra enquanto a ação acontece, `t.click`, `t.type`, `t.choose`, `t.point` e `t.ring` acham o elemento pelo texto visível, pelo rótulo do campo (`{ field }`) ou por seletor, e `t.poster()` marca a capa. A legenda mostra o texto do roteiro; o que a voz fala de outro jeito (siglas, nomes, palavras que ela embola) fica em `scripts/tutoriais/fala.mjs`. O ritmo, a variação da voz e a pausa entre frases ficam em `PIPER_RITMO`, `PIPER_RUIDO`, `PIPER_RUIDO_W` e `PIPER_PAUSA`.
 
 ## Arquitetura de domínio (`src/lib`)
 

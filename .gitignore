@@ -46,3 +46,6 @@ next-env.d.ts
 /prisma/*.db-wal
 /prisma/*.db-shm
 *.log
+
+# python (scripts dos vídeos tutoriais)
+__pycache__/
