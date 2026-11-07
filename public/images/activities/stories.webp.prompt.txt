@@ -1,0 +1,7 @@
+Use case: photorealistic-natural
+Asset type: landscape cover photograph for an accessible educational activity bank, 4:3 framing.
+Primary request: A story-sequencing activity prepared on a light wooden classroom table: an open wordless picture book with a simple warm illustration of a person planting a seed. Beside it, three separate large cards aligned in a row show the sequence: a seed placed in soil, the same small sprout being watered with a watering can, and the same plant grown with broad green leaves. The illustrations printed on physical paper are simple and consistent; the photograph itself is realistic.
+Style/medium: natural editorial photograph of actual paper book and cards with subtle paper texture.
+Composition/framing: slightly overhead close-up, all three story cards and open book visible, uncluttered surface.
+Lighting/mood: soft window daylight, calm welcoming inclusive school.
+Constraints: landscape 4:3, opaque background, no printed words, no numbers, no logos, no watermark, no digital icons, no real people.

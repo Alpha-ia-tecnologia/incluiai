@@ -1,0 +1,7 @@
+Use case: photorealistic-natural
+Asset type: landscape cover photograph for an accessible educational activity bank, 4:3 framing.
+Primary request: A pattern-building and sorting activity on a light wooden classroom table. In the center, a clear single row alternates red wooden circles and blue wooden squares: circle, square, circle, square, circle, square. Nearby, two shallow sorting trays hold a few matching red circles and blue squares. One empty small mat invites continuing the sequence.
+Style/medium: realistic editorial photograph, painted wooden geometric pieces with visible natural grain and tactile edges.
+Composition/framing: slightly overhead close-up, arrangement easy to read, simple spacing and plenty of clear table.
+Lighting/mood: soft window daylight, calm inclusive classroom materials.
+Constraints: landscape 4:3, opaque background, physical materials rather than illustrations, no lettering, no numbers, no logos, no watermark, no people.

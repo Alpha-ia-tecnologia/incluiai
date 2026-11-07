@@ -1,0 +1,8 @@
+Use case: photorealistic-natural
+Asset type: landscape cover photograph for an accessible educational activity bank, 4:3 framing.
+Primary request: A concrete counting activity on a light wooden classroom table: five small cream paper mats in a row, each with a large simple numeral card 1, 2, 3, 4, 5 respectively. On each mat place exactly that many smooth colored wooden counters, widely separated and easy to count: one under 1, two under 2, three under 3, four under 4, five under 5. One empty small wooden bowl at the side.
+Text (verbatim): only the five numerals "1", "2", "3", "4", "5", one per card.
+Style/medium: natural realistic editorial photograph, tactile learning materials.
+Composition/framing: overhead view, all five groups fully visible, clear separation, clean table.
+Lighting/mood: soft window daylight, calm welcoming school.
+Constraints: landscape 4:3, opaque background, accurate counter quantities, no other text, no logos, no watermark, no icons, no people.

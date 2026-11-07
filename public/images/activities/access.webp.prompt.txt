@@ -1,0 +1,7 @@
+Use case: photorealistic-natural
+Asset type: landscape cover photograph for an accessible educational activity bank, 4:3 framing.
+Primary request: An assistive access learning setup on a light wooden classroom desk: an ordinary open laptop and one large round accessible blue activation switch connected by a visible short cable, placed within comfortable reach in front of the keyboard. The laptop screen shows a clean two-choice photo activity with a real apple photo and a real ball photo, one simple rectangular focus highlight around the apple, no words. A notebook and pencil sit quietly at one side.
+Style/medium: natural realistic editorial photograph, plausible real hardware and cable connections.
+Composition/framing: three-quarter tabletop close-up, screen and large switch fully visible and recognizable, no decorative equipment.
+Lighting/mood: soft window daylight, calm inclusive classroom rather than medical setting.
+Constraints: landscape 4:3, opaque background, no text, no brands, no logos, no watermark, no people, no identifiable children.

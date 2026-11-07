@@ -1,0 +1,7 @@
+Use case: photorealistic-natural
+Asset type: landscape cover photograph for an accessible educational activity bank, 4:3 framing.
+Primary request: A voluntary texture exploration activity prepared on a light wooden classroom table: a broad shallow wooden tray containing four clearly separated large tactile samples, soft cream felt, blue woven cotton cloth, smooth pale wood, and gently ribbed cardboard. Each sample is large enough to explore with a hand. A small open fabric pouch sits beside the tray.
+Style/medium: realistic editorial material photograph with crisp visible fiber, grain and surface texture.
+Composition/framing: close-up slightly overhead, all four sample surfaces prominent and easy to distinguish, uncluttered.
+Lighting/mood: soft window daylight, calm ordinary educational setting, no sensory spectacle.
+Constraints: landscape 4:3, opaque background, no skin, no people, no clinical props, no lettering, no logos, no watermark, no icons.

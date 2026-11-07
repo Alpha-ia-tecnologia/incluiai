@@ -1,0 +1,88 @@
+.detail { min-width: 0; }
+.activity { min-width: 0; scroll-margin-top: 24px; }
+.materials { min-width: 0; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+.materialsHeading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.materialsHeading h3 { color: var(--ink); font-size: 20px; line-height: 1.4; font-weight: 700; }
+.materialsHeading p { max-width: 65ch; margin-top: 8px; color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+.sheet { min-width: 0; margin-top: 22px; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-raised); color: var(--ink); }
+.sheetHeader { margin-bottom: 18px; }
+.sheetHeader h4 { font-size: 20px; line-height: 1.35; font-weight: 700; }
+.sheetHeader > p:last-child { max-width: 70ch; margin-top: 8px; font-size: 14px; line-height: 1.6; }
+.printContext { margin-bottom: 8px; color: var(--ink-soft); font-size: 12px; }
+.cards { display: grid; grid-template-columns: repeat(var(--card-columns, 3), minmax(0, 1fr)); gap: 12px; padding: 0; list-style: none; }
+.cutCard { display: flex; min-width: 0; min-height: 100px; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px; border: 1px dashed var(--ink-soft); border-radius: 2px; background: white; color: var(--ink); text-align: center; }
+.photo { display: block; width: 100%; height: auto; max-height: 190px; aspect-ratio: 1; object-fit: contain; }
+.cardLabel { max-width: 100%; font-size: 18px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.quantity { display: flex; width: 100%; min-height: 100px; max-width: 160px; flex-wrap: wrap; align-content: center; justify-content: center; gap: 9px; padding: 12px; }
+.dot { width: 18px; height: 18px; flex: none; border: 2px solid currentColor; border-radius: 50%; background: currentColor; }
+.zero { font-size: 44px; font-weight: 700; }
+.shape { width: 100%; height: 100px; fill: var(--brand); stroke: var(--ink); stroke-width: 2px; }
+.shape[data-tone="red"] { fill: var(--coral); }
+.shape[data-tone="yellow"] { fill: var(--signal-yellow); }
+.shape[data-tone="green"] { fill: var(--green); }
+.personalize { display: flex; width: 100%; min-height: 140px; align-items: center; justify-content: center; padding: 12px; border: 1px solid var(--line); color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+.fields { display: grid; gap: 18px; }
+.field { min-width: 0; break-inside: avoid; }
+.field > p { font-size: 16px; font-weight: 700; line-height: 1.5; }
+.answerSpace { margin-top: 6px; }
+.answerLine { display: block; min-height: 30px; border-bottom: 1px solid var(--ink-soft); }
+.table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 14px; line-height: 1.5; }
+.table th, .table td { height: 48px; padding: 10px; border: 1px solid var(--ink-soft); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.table th { background: var(--surface-muted); font-weight: 700; }
+.reading { max-width: 70ch; font-size: 18px; line-height: 1.8; }
+.reading p + p { margin-top: 12px; }
+.map { width: 100%; }
+.map svg { display: block; width: 100%; height: auto; color: var(--ink); }
+.map figcaption { margin-top: 14px; font-size: 16px; line-height: 1.65; }
+.map ol { padding-left: 24px; list-style: decimal; }
+
+@media (max-width: 639px) {
+  .sheet { padding: 14px; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cutCard { padding: 9px; }
+  .cardLabel { font-size: 16px; }
+  .table th, .table td { padding: 6px; font-size: 12px; }
+}
+
+@page resource-activity-sheet { size: A4 portrait; margin: 12mm; }
+@media print {
+  :global(body):has(.detail) :global(#vlibras-access-wrapper),
+  :global(body):has(.detail) :global([vw]) { display: none !important; }
+  :global(body):has(.detail) :global(.app-frame) { min-height: 0 !important; max-width: none; background: white !important; }
+  .detail { page: resource-activity-sheet; color: #111; }
+  .detail [data-resource-screen] { display: none !important; }
+  .detail [data-resource-activity], .activityCard { break-inside: auto !important; }
+  .detail[data-resource-print-mode="activity"] [data-resource-activity]:not([data-print-selected]),
+  .detail[data-resource-print-mode="material"] [data-resource-activity]:not([data-print-selected]) { display: none !important; }
+  .detail[data-resource-print-mode="material"] [data-resource-introduction],
+  .detail[data-resource-print-mode="material"] [data-resource-instructions] { display: none !important; }
+  .activityCard { padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: white !important; }
+  .activity + .activity { break-before: page; }
+  .detail [data-print-selected] { margin-block: 0 !important; break-before: auto; }
+  .materials { margin: 0; padding: 0; border: 0; }
+  .sheet { margin: 0; padding: 0; border: 0; border-radius: 0; background: white; color: #111; break-before: page; }
+  .detail[data-resource-print-mode="material"] [data-print-selected] .sheet:first-of-type { break-before: auto; }
+  .sheetHeader { margin-bottom: 5mm; break-inside: avoid; break-after: avoid; }
+  .sheetHeader h4 { color: #111; font-size: 17pt; }
+  .sheetHeader > p:last-child { font-size: 10.5pt; }
+  .printContext { color: #333; font-size: 9pt; }
+  .cards { grid-template-columns: repeat(var(--card-columns, 3), minmax(0, 1fr)); gap: 3mm; }
+  .cutCard { min-height: 24mm; gap: 2mm; padding: 3mm; border: 0.25mm dashed #444; color: #111; break-inside: avoid; }
+  .photo { width: 100%; height: 40mm; max-height: 40mm; aspect-ratio: 1; object-fit: contain; }
+  .cardLabel { color: #111; font-size: 13pt; }
+  .quantity { min-height: 28mm; max-width: 40mm; gap: 2mm; padding: 2mm; }
+  .dot { width: 5mm; height: 5mm; border-width: 0.4mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .shape { height: 27mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .personalize { min-height: 35mm; border-color: #888; font-size: 10pt; }
+  .fields { gap: 5mm; }
+  .field > p { color: #111; font-size: 12pt; }
+  .answerLine { min-height: 8mm; border-color: #777; }
+  .table { color: #111; font-size: 10.5pt; }
+  .table th, .table td { height: 12mm; padding: 3mm; border-color: #666; font-size: 10.5pt; }
+  .table th { background: white; }
+  .table tr { break-inside: avoid; }
+  .table thead { display: table-header-group; }
+  .reading { color: #111; font-size: 13pt; }
+  .map svg { color: #111; }
+  .map figcaption { font-size: 11pt; }
+}

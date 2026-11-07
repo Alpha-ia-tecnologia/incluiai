@@ -1,0 +1,7 @@
+Use case: photorealistic-natural
+Asset type: landscape cover photograph for an accessible educational activity bank, 4:3 framing.
+Primary request: A visual arrival-routine activity prepared on a light wooden classroom table: a small real blue backpack, a plain closed school notebook, a pencil case, and a horizontal strip of three large photo cards showing the backpack, washing hands at a sink, and an open notebook. A plain kraft envelope sits beside the cards, ready to store them.
+Style/medium: natural editorial photograph, realistic worn school materials, no digital interface.
+Composition/framing: slightly overhead close-up with all objects fully visible, a simple sequence from left to right, clean uncluttered table.
+Lighting/mood: soft window daylight, calm welcoming Brazilian public-school atmosphere.
+Constraints: landscape 4:3, opaque background, recognizable practical materials, no lettering or numbers, no captions, no icons, no logos, no watermark, no people or identifiable children, no clinical equipment.
