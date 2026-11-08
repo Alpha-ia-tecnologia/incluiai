@@ -417,13 +417,13 @@ Em **Estudantes › Importar planilha** (`/estudantes/importar`), a gestão e a 
 
 Vídeos curtos, com narração e legenda, de cada tarefa da plataforma. Ficam em **Ajuda › Vídeos** (`/ajuda/videos`), e cada perfil vê os vídeos feitos para ele.
 
-Os vídeos são gravados na própria plataforma, com os dados de demonstração, por `scripts/tutoriais/gravar.mjs`. Cada roteiro, em `scripts/tutoriais/roteiros/`, faz a tarefa num Chrome automatizado, como uma pessoa faria. O gravador desenha cursor, destaque e legenda por cima da tela e narra cada passo com o Piper, uma voz neural que roda no computador: nenhum texto sai da máquina. O resultado é um MP4 em 1080p com a capa, em `public/tutoriais/`, e a lista `tutoriais.json`, que a Ajuda lê. Sem a lista, a seção não aparece.
+Os vídeos são gravados na própria plataforma, com os dados de demonstração, por `scripts/tutoriais/gravar.mjs`. Cada roteiro, em `scripts/tutoriais/roteiros/`, faz a tarefa num Chrome automatizado, como uma pessoa faria. O gravador desenha cursor, destaque e legenda por cima da tela e narra cada passo com a Kokoro (voz `pf_dora`, licença Apache 2.0), uma voz neural que roda no computador: nenhum texto sai da máquina. O resultado é um MP4 em 1080p com a capa, em `public/tutoriais/`, e a lista `tutoriais.json`, que a Ajuda lê. Sem a lista, a seção não aparece.
 
 **Quando regravar:** quando uma tela mudar. Um roteiro que não acha um botão para com o erro e uma captura da tela.
 
-1. Ferramentas: um `ffmpeg` com libx264 e AAC, o Piper com a voz `pt_BR-cadu-medium` ([rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main/pt/pt_BR/cadu/medium)) e o Whisper, que revisa a narração. Com placa NVIDIA, os pacotes `nvidia-cublas-cu12` e `nvidia-cudnn-cu12==9.*` (no `LD_LIBRARY_PATH`) deixam a revisão umas 15 vezes mais rápida:
+1. Ferramentas: um `ffmpeg` com libx264 e AAC, a [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (baixa o modelo sozinha na primeira vez) e o Whisper, que revisa a narração. Tudo num Python 3.11 ou 3.12, com uns 6 GB por causa do PyTorch. Com placa NVIDIA, voz e revisão rodam nela, bem mais rápido:
    ```bash
-   uv venv tutoriais-venv && uv pip install --python tutoriais-venv/bin/python piper-tts imageio-ffmpeg faster-whisper num2words
+   uv venv --python 3.11 tutoriais-venv && uv pip install --python tutoriais-venv/bin/python kokoro "misaki[en]" faster-whisper num2words imageio-ffmpeg
    ```
 2. Um banco de demonstração só para a gravação e um build servido com ele, **sem as chaves de IA** (as sugestões saem pelas regras, sem custo):
    ```bash
@@ -431,13 +431,13 @@ Os vídeos são gravados na própria plataforma, com os dados de demonstração,
    npm run build
    DATABASE_URL="file:/tmp/tutoriais.db" ANTHROPIC_API_KEY= DEEPSEEK_API_KEY= OPENAI_API_KEY= npx next start -p 3217
    ```
-3. Revisar a narração. O Piper sorteia um pouco a pronúncia a cada vez; `revisar.py` gera cada fala, ouve com o Whisper e compara com o roteiro, gera de novo quando não bate, e deixa no cache a versão mais clara. No fim, lista as falas que ainda divergem:
+3. Revisar a narração. A voz varia um pouco a pronúncia a cada vez; `revisar.py` gera cada fala, ouve com o Whisper e compara com o roteiro, gera de novo quando não bate, e deixa no cache a versão mais clara. No fim, lista as falas que ainda divergem:
    ```bash
    export BASE=http://localhost:3217 TUTORIAL_DB="file:/tmp/tutoriais.db" \
      FFMPEG=$(tutoriais-venv/bin/python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
-     PIPER_PYTHON=tutoriais-venv/bin/python PIPER_VOICE=/caminho/pt_BR-cadu-medium.onnx
+     VOZ_PYTHON=tutoriais-venv/bin/python
    node scripts/tutoriais/gravar.mjs --falas > /tmp/falas.jsonl
-   tutoriais-venv/bin/python scripts/tutoriais/revisar.py /tmp/falas.jsonl --tentativas 8
+   tutoriais-venv/bin/python scripts/tutoriais/revisar.py /tmp/falas.jsonl
    ```
    Quando uma fala continua confusa, reescreva a frase (nome de botão no fim da frase, sem sigla colada em artigo) ou ajuste a pronúncia em `scripts/tutoriais/fala.mjs`, e rode de novo: só as falas novas são revisadas.
 4. Gravar. `TUTORIAL_DB` faz o gravador rodar o seed antes de cada vídeo (o seed apaga tudo; use só o banco da gravação):
@@ -448,7 +448,9 @@ Os vídeos são gravados na própria plataforma, com os dados de demonstração,
    ```
 5. Rode `npm run build` de novo: o Next só serve os arquivos que já estavam em `public/` no build.
 
-Os roteiros usam uma linguagem própria e curta: `t.say(fala, ação)` narra enquanto a ação acontece, `t.click`, `t.type`, `t.choose`, `t.point` e `t.ring` acham o elemento pelo texto visível, pelo rótulo do campo (`{ field }`) ou por seletor, e `t.poster()` marca a capa. A legenda mostra o texto do roteiro; o que a voz fala de outro jeito (siglas, nomes, palavras que ela embola) fica em `scripts/tutoriais/fala.mjs`. O ritmo, a variação da voz e a pausa entre frases ficam em `PIPER_RITMO`, `PIPER_RUIDO`, `PIPER_RUIDO_W` e `PIPER_PAUSA`.
+Os roteiros usam uma linguagem própria e curta: `t.say(fala, ação)` narra enquanto a ação acontece, `t.click`, `t.type`, `t.choose`, `t.point` e `t.ring` acham o elemento pelo texto visível, pelo rótulo do campo (`{ field }`) ou por seletor, e `t.poster()` marca a capa. A legenda mostra o texto do roteiro; o que a voz fala de outro jeito (siglas, nomes, palavras que ela embola) fica em `scripts/tutoriais/fala.mjs`. A voz e a velocidade ficam em `VOZ` (padrão `pf_dora`) e `VOZ_VELOCIDADE` (1 = normal, 1.1 = mais rápida).
+
+A trilha sonora de fundo é `scripts/tutoriais/trilha.flac`. Ela entra uns 16 dB abaixo da voz (`TRILHA_VOLUME`, padrão -8 dB), abaixa sozinha enquanto a narração fala, tem fade no começo e no fim e se repete com emenda cruzada nos vídeos mais longos que ela. Com `TRILHA=` (vazio), os vídeos saem sem trilha. Para trocar a trilha ou o volume sem regravar a tela, rode `node scripts/tutoriais/mixar.mjs`: ele refaz o som dos vídeos com a narração que o gravador guardou em `WORK`.
 
 ## Arquitetura de domínio (`src/lib`)
 

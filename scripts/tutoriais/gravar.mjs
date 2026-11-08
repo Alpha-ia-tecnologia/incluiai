@@ -3,7 +3,7 @@
 // Cada roteiro (scripts/tutoriais/roteiros/*.mjs) abre a plataforma num Chrome
 // automatizado e faz a tarefa como uma pessoa faria. O gravador desenha cursor,
 // destaque e legenda por cima da tela, narra cada passo com uma voz neural que
-// roda no computador (Piper) e salva um MP4 com o quadro de capa.
+// roda no computador (Kokoro) e salva um MP4 com o quadro de capa.
 //
 //   node scripts/tutoriais/gravar.mjs                 todos os roteiros
 //   node scripts/tutoriais/gravar.mjs 03 registrar    só os que combinam
@@ -17,9 +17,10 @@
 //                 gravador roda o seed antes de cada vídeo (o seed APAGA tudo), e os vídeos
 //                 começam sempre dos mesmos dados.
 //   FFMPEG        ffmpeg com libx264 e AAC (padrão: ffmpeg)
-//   PIPER_PYTHON  Python com o pacote piper-tts; PIPER_VOICE: voz .onnx (pt_BR-cadu-medium)
-//   PIPER_RITMO, PIPER_RUIDO, PIPER_RUIDO_W, PIPER_PAUSA: ajustes da voz (ver CONFIG)
+//   VOZ_PYTHON    Python com o pacote kokoro (padrão: python3)
+//   VOZ           voz da Kokoro (padrão pf_dora); VOZ_VELOCIDADE: 1 = normal, 1.1 = mais rápida
 //   SEM_VOZ=1     grava só com legendas
+//   TRILHA, TRILHA_VOLUME: trilha sonora de fundo (ver mixar.mjs)
 //   OUT           pasta dos vídeos (padrão public/tutoriais); WORK: cache (padrão no tmp)
 import puppeteer from "puppeteer-core";
 import { execFileSync, spawn } from "node:child_process";
@@ -30,6 +31,7 @@ import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spoken } from "./fala.mjs";
+import { mux } from "./mixar.mjs";
 import { installOverlay } from "./overlay.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -40,11 +42,9 @@ const CONFIG = {
   out: env.OUT ?? join(ROOT, "public", "tutoriais"),
   work: env.WORK ?? join(tmpdir(), "incluiedu-tutoriais"),
   ffmpeg: env.FFMPEG ?? "ffmpeg",
-  python: env.PIPER_PYTHON ?? "python3",
-  voice: env.PIPER_VOICE ?? "",
-  // Ritmo (length_scale), variação da pronúncia (noise_scale), variação do tempo das
-  // sílabas (noise_w_scale) e pausa entre frases, em segundos.
-  speech: [env.PIPER_RITMO ?? "1.22", env.PIPER_RUIDO ?? "0.667", env.PIPER_RUIDO_W ?? "0.8", env.PIPER_PAUSA ?? "0.3"],
+  python: env.VOZ_PYTHON ?? "python3",
+  voice: env.VOZ ?? "pf_dora",
+  speech: [env.VOZ_VELOCIDADE ?? "1"],
   chrome: env.CHROME_PATH ?? "/usr/bin/google-chrome",
   fps: 25,
   width: 1280,
@@ -76,11 +76,11 @@ if (!selected.length) {
   process.exit(1);
 }
 
-// ---------- Narração (Piper) ----------
+// ---------- Narração (Kokoro) ----------
 
 function wavInfo(file) {
   const buffer = readFileSync(file);
-  // Piper grava PCM 16 bits mono: procura o bloco "data".
+  // O tts.py grava PCM 16 bits mono: procura o bloco "data".
   let offset = 12;
   let rate = 22050;
   while (offset < buffer.length) {
@@ -105,7 +105,6 @@ class Voice {
   }
   start() {
     if (this.process || SILENT) return;
-    if (!CONFIG.voice || !existsSync(CONFIG.voice)) throw new Error("Defina PIPER_VOICE com o caminho da voz .onnx (ou SEM_VOZ=1).");
     this.process = spawn(CONFIG.python, [join(HERE, "tts.py"), CONFIG.voice, ...CONFIG.speech], { stdio: ["pipe", "pipe", "inherit"] });
     this.ready = new Promise((resolve) => { this.onReady = resolve; });
     createInterface({ input: this.process.stdout }).on("line", (line) => {
@@ -620,13 +619,10 @@ const run = async () => {
         } else {
           const seconds = await t.recorder.stop();
           const final = join(CONFIG.out, `${scenario.id}.mp4`);
-          if (t.cues.length) {
-            const wav = join(CONFIG.work, `${scenario.id}.wav`);
-            mixNarration(t.cues, seconds, wav);
-            execFileSync(CONFIG.ffmpeg, ["-y", "-loglevel", "error", "-i", raw, "-i", wav, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "96k", "-ac", "1", "-shortest", "-movflags", "+faststart", final]);
-          } else {
-            execFileSync(CONFIG.ffmpeg, ["-y", "-loglevel", "error", "-i", raw, "-c", "copy", "-movflags", "+faststart", final]);
-          }
+          // A narração fica guardada em WORK: mixar.mjs refaz o som sem regravar a tela.
+          const wav = t.cues.length ? join(CONFIG.work, `${scenario.id}.wav`) : null;
+          if (wav) mixNarration(t.cues, seconds, wav);
+          mux({ ffmpeg: CONFIG.ffmpeg, video: raw, narration: wav, seconds, out: final });
           rmSync(raw, { force: true });
           const entry = { id: scenario.id, title: scenario.title, audience: scenario.audience, roles: scenario.roles, summary: scenario.summary, seconds: Math.round(seconds), video: `${scenario.id}.mp4`, poster: existsSync(t.posterFile) ? `${scenario.id}.jpg` : null };
           const index = manifest.findIndex((item) => item.id === scenario.id);

@@ -12,7 +12,7 @@
       "secretaria"
     ],
     "summary": "Entrar, conhecer o Início e o menu, e achar ajuda.",
-    "seconds": 111,
+    "seconds": 88,
     "video": "01-primeiros-passos.mp4",
     "poster": "01-primeiros-passos.jpg"
   },
@@ -28,7 +28,7 @@
       "gestao"
     ],
     "summary": "Buscar pelo nome, abrir o acompanhamento e ler o próximo passo.",
-    "seconds": 91,
+    "seconds": 70,
     "video": "02-encontrar-estudante.mp4",
     "poster": "02-encontrar-estudante.jpg"
   },
@@ -41,7 +41,7 @@
       "coordenacao"
     ],
     "summary": "As sete partes do estudo, como editar, salvar e imprimir.",
-    "seconds": 100,
+    "seconds": 77,
     "video": "03-estudo-de-caso.mp4",
     "poster": "03-estudo-de-caso.jpg"
   },
@@ -56,7 +56,7 @@
       "coordenacao"
     ],
     "summary": "Registrar como o estudante se comunica, aprende e participa.",
-    "seconds": 89,
+    "seconds": 71,
     "video": "04-como-aprende.mp4",
     "poster": "04-como-aprende.jpg"
   },
@@ -70,7 +70,7 @@
       "coordenacao"
     ],
     "summary": "Aplicar a linha de base e ler o apoio por área.",
-    "seconds": 106,
+    "seconds": 84,
     "video": "05-sondagem.mp4",
     "poster": "05-sondagem.jpg"
   },
@@ -86,7 +86,7 @@
       "gestao"
     ],
     "summary": "Criar um objetivo observável, ligar à BNCC e registrar a revisão.",
-    "seconds": 111,
+    "seconds": 89,
     "video": "06-plano-de-ensino.mp4",
     "poster": "06-plano-de-ensino.jpg"
   },
@@ -101,7 +101,7 @@
       "coordenacao"
     ],
     "summary": "Pedir três sugestões, escolher a atividade e imprimir.",
-    "seconds": 91,
+    "seconds": 71,
     "video": "07-preparar-atividade.mp4",
     "poster": "07-preparar-atividade.jpg"
   },
@@ -116,7 +116,7 @@
       "coordenacao"
     ],
     "summary": "Adaptar a folha ou a prova da turma e imprimir.",
-    "seconds": 84,
+    "seconds": 66,
     "video": "08-adaptar-atividade.mp4",
     "poster": "08-adaptar-atividade.jpg"
   },
@@ -131,7 +131,7 @@
       "coordenacao"
     ],
     "summary": "Criar uma rotina visual ou história social, aprovar e imprimir.",
-    "seconds": 72,
+    "seconds": 59,
     "video": "09-materiais-de-apoio.mp4",
     "poster": "09-materiais-de-apoio.jpg"
   },
@@ -146,7 +146,7 @@
       "coordenacao"
     ],
     "summary": "Registrar como foi a aula e a frequência do AEE.",
-    "seconds": 92,
+    "seconds": 71,
     "video": "10-registrar-aula.mp4",
     "poster": "10-registrar-aula.jpg"
   },
@@ -160,7 +160,7 @@
       "gestao"
     ],
     "summary": "Ver a evolução, validar o relatório do período para a família e conferir o dossiê.",
-    "seconds": 128,
+    "seconds": 98,
     "video": "11-evolucao-e-relatorio.mp4",
     "poster": "11-evolucao-e-relatorio.jpg"
   },
@@ -176,7 +176,7 @@
       "gestao"
     ],
     "summary": "Planejar uma atividade da turma em quatro etapas e validar para aplicação.",
-    "seconds": 126,
+    "seconds": 100,
     "video": "12-planejamento-dua.mp4",
     "poster": "12-planejamento-dua.jpg"
   },
@@ -191,7 +191,7 @@
       "coordenacao"
     ],
     "summary": "Jogar com o estudante e registrar a aula no fim do jogo.",
-    "seconds": 102,
+    "seconds": 83,
     "video": "13-jogos-educativos.mp4",
     "poster": "13-jogos-educativos.jpg"
   },
@@ -208,7 +208,7 @@
       "secretaria"
     ],
     "summary": "Achar uma proposta pronta, imprimir o material e ver as datas inclusivas.",
-    "seconds": 109,
+    "seconds": 84,
     "video": "14-recursos-e-calendario.mp4",
     "poster": "14-recursos-e-calendario.jpg"
   },
@@ -223,7 +223,7 @@
       "familia"
     ],
     "summary": "A família autoriza e escolhe o verso; a escola põe a foto e imprime.",
-    "seconds": 105,
+    "seconds": 81,
     "video": "15-carteirinha.mp4",
     "poster": "15-carteirinha.jpg"
   },
@@ -235,7 +235,7 @@
       "familia"
     ],
     "summary": "Acompanhar a escola, responder a pergunta da semana, contar conquistas e decidir as autorizações.",
-    "seconds": 171,
+    "seconds": 135,
     "video": "16-portal-da-familia.mp4",
     "poster": "16-portal-da-familia.jpg"
   },
@@ -247,7 +247,7 @@
       "terapeuta"
     ],
     "summary": "Conhecer o contexto escolar e enviar orientações para a escola.",
-    "seconds": 108,
+    "seconds": 83,
     "video": "17-orientacoes-do-terapeuta.mp4",
     "poster": "17-orientacoes-do-terapeuta.jpg"
   },
@@ -260,7 +260,7 @@
       "gestao"
     ],
     "summary": "Ver os números da escola, quem precisa de atenção e o que falta na documentação.",
-    "seconds": 123,
+    "seconds": 95,
     "video": "18-painel-e-dossie.mp4",
     "poster": "18-painel-e-dossie.jpg"
   },
@@ -274,7 +274,7 @@
       "secretaria"
     ],
     "summary": "Criar a conta de alguém da equipe e cadastrar uma turma por planilha.",
-    "seconds": 112,
+    "seconds": 87,
     "video": "19-pessoas-e-planilha.mp4",
     "poster": "19-pessoas-e-planilha.jpg"
   },
@@ -286,7 +286,7 @@
       "secretaria"
     ],
     "summary": "Acompanhar a rede pelo painel, abrir a ficha de um estudante com motivo e conferir o Censo Escolar.",
-    "seconds": 128,
+    "seconds": 102,
     "video": "20-secretaria-rede.mp4",
     "poster": "20-secretaria-rede.jpg"
   },
@@ -305,7 +305,7 @@
       "terapeuta"
     ],
     "summary": "Trocar a senha e ligar a verificação em duas etapas.",
-    "seconds": 105,
+    "seconds": 80,
     "video": "21-seguranca-da-conta.mp4",
     "poster": "21-seguranca-da-conta.jpg"
   }

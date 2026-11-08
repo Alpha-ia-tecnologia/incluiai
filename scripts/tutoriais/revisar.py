@@ -1,6 +1,6 @@
 # Revisão da narração dos tutoriais, antes de gravar.
 #
-# O Piper sorteia um pouco a pronúncia a cada vez: a mesma frase pode sair clara
+# A voz sorteia um pouco a pronúncia a cada vez: a mesma frase pode sair clara
 # numa geração e embolada na seguinte. Para cada fala, este script gera o áudio,
 # ouve com o Whisper (reconhecimento de fala, sem saber o texto esperado) e compara
 # com o roteiro. Se não bater, gera de novo, até `--tentativas`. A versão mais clara
@@ -9,7 +9,7 @@
 #   node scripts/tutoriais/gravar.mjs --falas [roteiros] > falas.jsonl
 #   python scripts/tutoriais/revisar.py falas.jsonl [--tentativas 4] [--insistir] [--refazer]
 #
-# Precisa de piper-tts, faster-whisper e num2words no mesmo Python, e de FFMPEG.
+# Precisa de kokoro, faster-whisper e num2words no mesmo Python, e de FFMPEG.
 # Usa a placa de vídeo (CUDA) se houver; sem ela, roda no processador, mais devagar.
 # Falas já revisadas (com o .json ao lado do .wav) são puladas; --insistir tenta de novo as
 # que ainda divergem, e --refazer revisa todas.
@@ -57,6 +57,10 @@ def errors(expected, heard):
 
 
 def whisper():
+    try:
+        import torch  # noqa: F401 — carrega as bibliotecas CUDA que vêm com o torch da Kokoro
+    except ImportError:
+        pass
     from faster_whisper import WhisperModel
 
     try:
@@ -97,14 +101,14 @@ def main():
         else:
             key = (line["voice"], tuple(line["speech"]))
             if key not in voices:
-                voices[key] = load(line["voice"], line["speech"])
-            voice, config, gap = voices[key]
+                voices[key] = load(line["voice"], *line["speech"])
+            engine = voices[key]
             wav.parent.mkdir(parents=True, exist_ok=True)
             expected = words(line["text"])
             best = previous  # com --insistir, só troca o áudio guardado por um melhor
             for attempt in range(1, options.tentativas + 1):
                 candidate = wav.with_name(f"{wav.stem}.tentativa.wav")
-                write_wav(voice, config, gap, line["spoken"], str(candidate))
+                write_wav(engine, line["spoken"], str(candidate))
                 segments, _ = model.transcribe(audio(str(candidate), ffmpeg), language="pt", beam_size=5, temperature=0, condition_on_previous_text=False, vad_filter=False)
                 heard = "".join(segment.text for segment in segments).strip()
                 count = errors(expected, words(heard))
