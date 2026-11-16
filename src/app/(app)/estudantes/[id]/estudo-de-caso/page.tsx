@@ -4,7 +4,7 @@ import { CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "
 import { prisma } from "@/lib/prisma";
 import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canSeeClinicalDetail, canEditStudentRecord } from "@/lib/auth";
 import { saveCaseStudy } from "@/actions/case-study";
-import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, parseCaseStudy, sectionProgress, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
+import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, parseCaseStudy, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
 import { splitItems } from "@/lib/form-options";
 import { formatDate } from "@/lib/format";
 import { Badge, ButtonLink, Card, PageHeader } from "@/components/ui";
@@ -177,6 +177,16 @@ export default async function CaseStudyPage({
 
   if (!canEdit) redirect(`/estudantes/${id}`);
   const save = saveCaseStudy.bind(null, id);
+  // Dois níveis: o essencial (o que é exigido para concluir, e o estudo concluído
+  // respalda a declaração no Censo Escolar) numa parte só; o restante fica em
+  // "Aprofundar", recolhido até a pessoa abrir ou já ter respostas ali.
+  const fieldValue = (field: CaseStudyField) => content[field.key] ?? (field.key === "participantes" ? AEE_TEACHER : "");
+  const answered = (fields: CaseStudyField[]) => fields.filter((field) => content[field.key]?.trim()).length;
+  const essentialFields = sections.flatMap((section) => section.fields.filter((field) => field.requiredToConclude));
+  const deeperSections = sections.map((section) => ({ ...section, fields: section.fields.filter((field) => !field.requiredToConclude) })).filter((section) => section.fields.length);
+  const deeperFields = deeperSections.flatMap((section) => section.fields);
+  const essentialFilled = answered(essentialFields);
+  const deeperFilled = answered(deeperFields);
 
   return (
     <>
@@ -194,7 +204,7 @@ export default async function CaseStudyPage({
       ) : null}
       {faltaAee ? (
         <p role="alert" className="mb-5 rounded-2xl bg-amber-soft px-4 py-3 text-sm font-medium text-amber-800">
-          {concluded ? "Salvo. Marque" : "Salvo, mas não concluído: marque"} {AEE_TEACHER} em <a href="#secao-sintese" className="underline underline-offset-4">Quem participou</a>. É quem conduz o estudo de caso, segundo o INEP.
+          {concluded ? "Salvo. Marque" : "Salvo, mas não concluído: marque"} {AEE_TEACHER} em <a href="#secao-essencial" className="underline underline-offset-4">Quem participou</a>. É quem conduz o estudo de caso, segundo o INEP.
         </p>
       ) : null}
       {reportsNote}
@@ -211,7 +221,7 @@ export default async function CaseStudyPage({
                 <li>Converse com a família e com o professor da sala comum.</li>
                 <li>Escute o estudante e observe-o em diferentes espaços da escola.</li>
                 <li>Registre o que ele já sabe e como aprende melhor.</li>
-                <li>Conclua com uma síntese e os apoios necessários. Não é preciso laudo médico.</li>
+                <li>Para concluir, basta a parte Essencial. Não é preciso laudo médico.</li>
               </ul>
             </Card>
           ) : (
@@ -220,28 +230,50 @@ export default async function CaseStudyPage({
             </p>
           )}
 
-          {sections.map((section, index) => {
-            const progress = sectionProgress(section, content);
-            return (
-              <section key={section.id} id={`secao-${section.id}`} aria-labelledby={`titulo-${section.id}`} className="ui-card scroll-mt-6">
-                <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold tabular-nums text-brand-strong">{index + 1}</span>
+          <section id="secao-essencial" aria-labelledby="titulo-essencial" className="ui-card scroll-mt-6">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 id="titulo-essencial" className="text-base font-semibold text-ink">Essencial</h3>
+                <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">É o que basta para concluir. O estudo de caso concluído respalda a declaração do estudante no Censo Escolar e abre o plano de ensino.</p>
+              </div>
+              <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium tabular-nums text-sky-ink">{essentialFilled} de {essentialFields.length}</span>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Quem participou começa com o professor do AEE, que conduz o estudo (INEP). */}
+              {essentialFields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
+            </div>
+          </section>
+
+          {/* Fechado, o conteúdo continua no formulário e é salvo junto; nenhum campo daqui é obrigatório. */}
+          <details id="aprofundar" open={deeperFilled > 0} className="group min-w-0 scroll-mt-6 rounded-2xl border border-line bg-paper-raised">
+            <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="min-w-0">
+                <span className="block text-base font-semibold text-ink">Aprofundar o estudo <span className="font-normal text-ink-soft">· opcional</span></span>
+                <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Histórico escolar, entrevista com a família, escuta do estudante, observação e avaliação pedagógica. Preencha quando tiver as informações.</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 text-xs text-ink-soft">
+                <span className="tabular-nums">{deeperFilled} de {deeperFields.length} respondidas</span>
+                <ChevronDown size={18} aria-hidden className="transition-transform group-open:rotate-180" />
+              </span>
+            </summary>
+            <div className="space-y-5 border-t border-line p-4 sm:p-5">
+              {deeperSections.map((section) => (
+                <section key={section.id} id={`secao-${section.id}`} aria-labelledby={`titulo-${section.id}`} className="scroll-mt-6 rounded-2xl border border-line p-4 sm:p-5">
+                  <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 id={`titulo-${section.id}`} className="text-base font-semibold text-ink">{section.title}</h3>
+                      <h4 id={`titulo-${section.id}`} className="text-base font-semibold text-ink">{section.title}</h4>
                       <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">{section.description}</p>
                     </div>
+                    <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium text-sky-ink">{section.source}</span>
                   </div>
-                  <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium text-sky-ink">{section.source}</span>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* Quem participou começa com o professor do AEE, que conduz o estudo (INEP). */}
-                  {section.fields.map((field) => <FieldInput key={field.key} field={field} value={content[field.key] ?? (field.key === "participantes" ? AEE_TEACHER : "")} />)}
-                </div>
-                <p className="mt-5 text-xs text-ink-soft"><span className="tabular-nums">{progress.filled} de {progress.total}</span> perguntas com resposta salva</p>
-              </section>
-            );
-          })}
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {section.fields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
+                  </div>
+                  <p className="mt-5 text-xs text-ink-soft"><span className="tabular-nums">{answered(section.fields)} de {section.fields.length}</span> perguntas com resposta salva</p>
+                </section>
+              ))}
+            </div>
+          </details>
 
           <div className="sticky bottom-[calc(96px_+_env(safe-area-inset-bottom,0px))] z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-paper-raised p-3 shadow-e2 lg:bottom-4">
             {concluded ? (
@@ -261,26 +293,25 @@ export default async function CaseStudyPage({
                 </button>
               </>
             )}
-            <p className="text-xs text-ink-soft">Para concluir, responda os itens com *.</p>
+            <p className="text-xs text-ink-soft">Para concluir, basta a parte Essencial.</p>
           </div>
         </form>
 
         <nav aria-label="Partes do estudo de caso" className="hidden self-start xl:sticky xl:top-[calc(var(--sticky-offset,0px)_+_16px)] xl:col-start-2 xl:row-start-1 xl:block">
           <p className="mb-3 text-sm font-medium">Partes do estudo</p>
           <ol className="space-y-1">
-            {sections.map((section, index) => {
-              const progress = sectionProgress(section, content);
-              const complete = progress.filled === progress.total;
-              return (
-                <li key={section.id}>
-                  <a href={`#secao-${section.id}`} className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-surface-muted">
-                    <span aria-hidden className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs ${complete ? "bg-brand text-white" : progress.filled ? "bg-brand-soft text-brand-strong" : "border border-line text-ink-soft"}`}>{index + 1}</span>
-                    <span className="min-w-0 flex-1">{section.title}</span>
-                    <span className="text-xs tabular-nums text-ink-soft">{progress.filled}/{progress.total}</span>
-                  </a>
-                </li>
-              );
-            })}
+            {[
+              { href: "#secao-essencial", label: "Essencial", filled: essentialFilled, total: essentialFields.length },
+              { href: "#aprofundar", label: "Aprofundar (opcional)", filled: deeperFilled, total: deeperFields.length },
+            ].map((part, index) => (
+              <li key={part.href}>
+                <a href={part.href} className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-surface-muted">
+                  <span aria-hidden className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs ${part.filled === part.total ? "bg-brand text-white" : part.filled ? "bg-brand-soft text-brand-strong" : "border border-line text-ink-soft"}`}>{index + 1}</span>
+                  <span className="min-w-0 flex-1">{part.label}</span>
+                  <span className="text-xs tabular-nums text-ink-soft">{part.filled}/{part.total}</span>
+                </a>
+              </li>
+            ))}
           </ol>
         </nav>
       </div>

@@ -17,6 +17,13 @@ export function PlanDocumentFields({ idPrefix, defaults = {} }: { idPrefix: stri
   const value = (key: keyof PlanDocuments) => defaults[key] ?? "";
   return (
     <div className="grid min-w-0 gap-5">
+      {/* O que a escola declara no Censo Escolar vem primeiro: os tipos de AEE
+          (registro 60) e os recursos na avaliação (registro 30). Fazem parte do PEI. */}
+      <fieldset className="grid min-w-0 gap-5 rounded-2xl border border-brand/30 bg-brand-soft/30 p-4">
+        <legend className={legendCls}>Declarado no Censo Escolar <span className="font-normal text-ink-soft">· PEI, art. 11, I e II</span></legend>
+        <MultiChoiceField name="aeeServices" label="Atendimentos do AEE" hint="Os tipos do Censo Escolar." options={AEE_SERVICE_OPTIONS} defaultValue={value("aeeServices")} {...multi} />
+        <MultiChoiceField name="assessmentAccessibility" label="Recursos na avaliação" hint="Os recursos do Censo (sala de aula e Saeb) vêm primeiro." options={ASSESSMENT_ACCESSIBILITY_OPTIONS} defaultValue={value("assessmentAccessibility")} {...multi} />
+      </fieldset>
       <fieldset className="grid min-w-0 gap-5 rounded-2xl border border-line p-4">
         <legend className={legendCls}>PAEE <span className="font-normal text-ink-soft">· Portaria, art. 10</span></legend>
         <div className="min-w-0">
@@ -34,10 +41,8 @@ export function PlanDocumentFields({ idPrefix, defaults = {} }: { idPrefix: stri
           <label htmlFor={`${idPrefix}-regular-teacher`} className={labelCls}>Professor(a) da classe comum</label>
           <input id={`${idPrefix}-regular-teacher`} name="regularTeacher" maxLength={120} defaultValue={value("regularTeacher")} autoComplete="off" className={inputCls} />
         </div>
-        <MultiChoiceField name="aeeServices" label="Atendimentos do AEE" hint="Os tipos do Censo Escolar." options={AEE_SERVICE_OPTIONS} defaultValue={value("aeeServices")} {...multi} />
         <MultiChoiceField name="aeeStrategies" label="Atividades no AEE" options={AEE_STRATEGY_OPTIONS} defaultValue={value("aeeStrategies")} {...multi} />
         <MultiChoiceField name="commonRoomStrategies" label="Na classe comum" options={COMMON_ROOM_STRATEGY_OPTIONS} defaultValue={value("commonRoomStrategies")} {...multi} />
-        <MultiChoiceField name="assessmentAccessibility" label="Na avaliação" hint="Os recursos do Censo (sala de aula e Saeb) vêm primeiro." options={ASSESSMENT_ACCESSIBILITY_OPTIONS} defaultValue={value("assessmentAccessibility")} {...multi} />
         <MultiChoiceField name="monitoring" label="Como acompanhar o plano" options={MONITORING_OPTIONS} defaultValue={value("monitoring")} {...multi} />
         <MultiChoiceField name="familyFeedback" label="Devolutiva à família" options={FAMILY_FEEDBACK_OPTIONS} defaultValue={value("familyFeedback")} {...multi} />
       </fieldset>

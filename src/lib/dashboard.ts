@@ -92,11 +92,12 @@ export function parseGauge(value: unknown): DashboardGauge {
 }
 
 // As cinco etapas da jornada, na ordem do próximo passo sugerido
-// (student-journey.ts): o passo 3 reúne plano e objetivo.
+// (student-journey.ts): o passo 2 reúne plano e objetivo, e o perfil (Como
+// aprende) vem depois dele, antes de preparar atividades.
 export const JOURNEY_STEPS = [
   { key: "estudo", label: "Estudo de caso", step: 1 },
-  { key: "perfil", label: "Perfil", step: 2 },
-  { key: "plano", label: "Plano e objetivo", step: 3 },
+  { key: "plano", label: "Plano e objetivo", step: 2 },
+  { key: "perfil", label: "Perfil", step: 3 },
   { key: "atividade", label: "Atividade", step: 4 },
   { key: "registro", label: "Registro de aula", step: 5 },
 ] as const;

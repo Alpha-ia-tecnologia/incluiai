@@ -17,8 +17,8 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
 
   const steps = [
     { label: "Estudo de caso", href: `${base}/estudo-de-caso`, complete: progress.caseStudy === "concluido" },
-    { label: "Conhecer", href: `${base}/perfil`, complete: progress.hasProfile },
     { label: "Planejar", href: `${base}/ppi`, complete: progress.hasPlan && progress.hasObjective },
+    { label: "Conhecer", href: `${base}/perfil`, complete: progress.hasProfile },
     { label: "Preparar", href: `${base}/atividades`, complete: progress.hasPreparedActivity },
     { label: "Registrar", href: `${base}/diario`, complete: progress.hasDiary },
     { label: "Ver evolução", href: `${base}/linha-do-tempo`, complete: false },

@@ -66,14 +66,16 @@ export async function upsertProfile(studentId: string, formData: FormData) {
     throw new Error("Os níveis de apoio devem estar entre 0 e 5.");
   }
 
+  // Pergunta sensorial sem resposta (opcional na conversa) fica como típica:
+  // nenhuma particularidade registrada.
+  const sensoryValue = (area: string) =>
+    String(formData.get(`sens_${area}`) ?? "").trim() || "tipica";
   const sensory = JSON.stringify({
-    auditiva: String(formData.get("sens_auditiva") ?? "tipica"),
-    visual: String(formData.get("sens_visual") ?? "tipica"),
-    tatil: String(formData.get("sens_tatil") ?? "tipica"),
-    vestibular: String(formData.get("sens_vestibular") ?? "tipica"),
-    proprioceptiva: String(
-      formData.get("sens_proprioceptiva") ?? "tipica",
-    ),
+    auditiva: sensoryValue("auditiva"),
+    visual: sensoryValue("visual"),
+    tatil: sensoryValue("tatil"),
+    vestibular: sensoryValue("vestibular"),
+    proprioceptiva: sensoryValue("proprioceptiva"),
   });
 
   const data = {

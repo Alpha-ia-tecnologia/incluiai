@@ -16,35 +16,31 @@ export type StudentNextStep = {
 };
 
 // A sugestão orienta a rotina; as outras seções continuam disponíveis.
+// A ordem segue o essencial primeiro: o estudo de caso (que respalda a declaração
+// no Censo Escolar e abre o plano), o plano de ensino e só então Como aprende,
+// que serve para preparar atividades e materiais. Os números das etapas são os
+// de JOURNEY_STEPS (src/lib/dashboard.ts).
 export function getStudentNextStep(input: StudentJourneyInput): StudentNextStep {
   const base = `/estudantes/${input.id}`;
 
-  // O estudo de caso abre o acompanhamento. Estudantes que já têm o perfil
-  // preenchido seguem a rotina; o estudo continua disponível na jornada.
-  if (!input.hasProfile && input.caseStudy !== "concluido") {
+  // O plano só abre com o estudo de caso concluído. Quem já tem plano (fichas
+  // anteriores ao estudo de caso) segue a rotina; o estudo continua disponível.
+  if (!input.hasPlan && input.caseStudy !== "concluido") {
     return {
       href: `${base}/estudo-de-caso`,
       label: input.caseStudy === "rascunho" ? "Concluir o estudo de caso" : "Fazer o estudo de caso",
       description: input.caseStudy === "rascunho"
-        ? "Complete o que falta e registre a síntese do caso."
-        : "Ouça a família, a escola e o estudante para entender as necessidades antes de planejar.",
+        ? "Complete o essencial e registre a síntese: o estudo concluído respalda a declaração no Censo Escolar."
+        : "Registre o essencial do caso: ele respalda a declaração no Censo Escolar e abre o plano de ensino.",
       step: 1,
-    };
-  }
-  if (!input.hasProfile) {
-    return {
-      href: `${base}/perfil`,
-      label: "Conhecer o estudante",
-      description: "Conte como ele se comunica, do que gosta e quais apoios ajudam a aprender.",
-      step: 2,
     };
   }
   if (!input.hasPlan) {
     return {
       href: `${base}/ppi`,
       label: "Criar o plano de ensino",
-      description: "Escolha o que trabalhar com este estudante e quando revisar o plano.",
-      step: 3,
+      description: "Registre o PAEE e o PEI e escolha o que trabalhar com este estudante.",
+      step: 2,
     };
   }
   if (!input.hasObjective) {
@@ -52,6 +48,14 @@ export function getStudentNextStep(input: StudentJourneyInput): StudentNextStep 
       href: `${base}/ppi`,
       label: "Definir um objetivo",
       description: "Adicione ao plano uma aprendizagem que você quer acompanhar.",
+      step: 2,
+    };
+  }
+  if (!input.hasProfile) {
+    return {
+      href: `${base}/perfil`,
+      label: "Conhecer o estudante",
+      description: "Antes de preparar atividades, conte como ele se comunica, do que gosta e quais apoios ajudam.",
       step: 3,
     };
   }

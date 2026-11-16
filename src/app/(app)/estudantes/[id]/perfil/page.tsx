@@ -54,12 +54,20 @@ export default async function ProfilePage({
   const p = profile;
   // Sem perfil salvo, o que o estudo de caso levantou entra como sugestão.
   const study = !p && caseStudy ? parseCaseStudy(caseStudy.content) : {};
+  // Como se comunica na escola (estudo de caso) sugere o canal de expressão: a
+  // primeira forma marcada que corresponde a um canal. A professora confere.
+  const CHANNEL_FROM_STUDY: Record<string, string> = {
+    "Fala com frases curtas": "fala", "Gestos e apontar": "gestos", "Prancha de comunicação (CAA)": "caa_prancha", "PECS": "caa_pecs",
+    "Tablet com aplicativo de CAA": "caa_alta_tecnologia", "Libras": "libras", "Olhar e expressões faciais": "olhar_acionador",
+    "Vocalizações": "vocalizacoes", "Acionador": "olhar_acionador",
+  };
   const suggested = {
+    expressiveChannel: splitItems(study.comunicacaoEscola).map((item) => CHANNEL_FROM_STUDY[item]).find(Boolean) ?? "",
     interests: splitItems(study.interessesCasa).map((item) => item.replace(/,/g, " ")),
     barriers: splitItems(study.barreiras).map((item) => Object.entries(BARRIERS).find(([, label]) => label === item)?.[0] ?? item),
     strengths: study.potencialidades ?? "",
   };
-  const hasSuggestions = Boolean(suggested.interests.length || suggested.barriers.length || suggested.strengths);
+  const hasSuggestions = Boolean(suggested.expressiveChannel || suggested.interests.length || suggested.barriers.length || suggested.strengths);
   const sensory = parseJson<Record<string, string>>(p?.sensoryProfile ?? null, {});
   const barriers = parseJson<string[]>(p?.barriers ?? null, []);
   const csv = (v: string | null | undefined) => parseJson<string[]>(v ?? null, []).join(", ");
@@ -98,6 +106,7 @@ export default async function ProfilePage({
         strengths: p.strengths ?? "",
       }
     : {
+        ...(suggested.expressiveChannel ? { expressiveChannel: suggested.expressiveChannel } : {}),
         ...(suggested.interests.length ? { interests: suggested.interests.join(", ") } : {}),
         ...(suggested.barriers.length ? { barriers: suggested.barriers } : {}),
         ...(suggested.strengths ? { strengths: suggested.strengths.replace(/;\s*/g, ", ") } : {}),

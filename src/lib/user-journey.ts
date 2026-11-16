@@ -196,7 +196,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     hasPreparedActivity: s.activities.length > 0,
     hasDiary: entries.length > 0,
   });
-  const preferred = (["estudo", "conhecer", "planejar", "preparar", entries.length ? "acompanhar" : "registrar"] as const)[next.step - 1];
+  const preferred = (["estudo", "planejar", "conhecer", "preparar", entries.length ? "acompanhar" : "registrar"] as const)[next.step - 1];
 
   const chapters = withStatus([
     {
@@ -212,16 +212,6 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: caseDone ? "Ver o estudo de caso" : s.caseStudy ? "Continuar o estudo de caso" : "Fazer o estudo de caso", href: `${path}/estudo-de-caso` },
     },
     {
-      key: "conhecer", tone: "sky",
-      title: `Conhecer como ${name} aprende`,
-      story: `Registre como ${name} se comunica, do que gosta e quais apoios ajudam.`,
-      why: "Atividades que partem dos interesses do estudante prendem a atenção e reduzem as recusas.",
-      done: !!s.profile,
-      evidence: s.profile ? `Comunicação: ${CHANNELS[s.profile.expressiveChannel] ?? s.profile.expressiveChannel}${interests.length ? `. Gosta de ${listText(interests.slice(0, 3).map((item) => item.toLowerCase()))}` : ""}.` : null,
-      date: s.profile?.updatedAt ?? null,
-      action: { label: s.profile ? "Ver como aprende" : "Contar como aprende", href: `${path}/perfil` },
-    },
-    {
       key: "planejar", tone: "peach",
       title: `Combinar o que ${name} vai aprender`,
       story: `Defina com a equipe um objetivo observável: o que ${name} vai fazer, com qual apoio, critério e prazo.`,
@@ -230,6 +220,16 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       evidence: activeObjectives[0]?.description ?? (activePlan ? "O plano está ativo, ainda sem objetivo." : null),
       date: activePlan?.createdAt ?? null,
       action: { label: activeObjectives.length ? "Abrir o plano de ensino" : "Criar o plano e o objetivo", href: `${path}/ppi` },
+    },
+    {
+      key: "conhecer", tone: "sky",
+      title: `Conhecer como ${name} aprende`,
+      story: `Registre como ${name} se comunica, do que gosta e quais apoios ajudam.`,
+      why: "Atividades que partem dos interesses do estudante prendem a atenção e reduzem as recusas.",
+      done: !!s.profile,
+      evidence: s.profile ? `Comunicação: ${CHANNELS[s.profile.expressiveChannel] ?? s.profile.expressiveChannel}${interests.length ? `. Gosta de ${listText(interests.slice(0, 3).map((item) => item.toLowerCase()))}` : ""}.` : null,
+      date: s.profile?.updatedAt ?? null,
+      action: { label: s.profile ? "Ver como aprende" : "Contar como aprende", href: `${path}/perfil` },
     },
     {
       key: "preparar", tone: "teal",

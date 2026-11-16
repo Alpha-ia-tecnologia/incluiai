@@ -75,6 +75,6 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");
-  if (missingAee) redirect(`/estudantes/${studentId}/estudo-de-caso?${status === "concluido" ? "editar=1&" : ""}faltaAee=1#secao-sintese`);
+  if (missingAee) redirect(`/estudantes/${studentId}/estudo-de-caso?${status === "concluido" ? "editar=1&" : ""}faltaAee=1#secao-essencial`);
   redirect(`/estudantes/${studentId}/estudo-de-caso${conclude || status === "concluido" ? "" : "?salvo=1"}`);
 }

@@ -277,7 +277,7 @@ function buildSteps(firstName: string): Step[] {
         helper: "Considere situações observadas em diferentes momentos da rotina.",
         kind: "choice",
         options: SENSORY_OPTIONS,
-        required: true,
+        // Sem resposta, fica sem particularidade registrada (típica).
       }),
     ),
     {
@@ -304,7 +304,7 @@ function buildSteps(firstName: string): Step[] {
       label: "Cadeira de rodas ou órtese",
       question: "Usa cadeira de rodas ou órtese?",
       kind: "yesno",
-      required: true,
+      // Sem resposta, fica como "não".
     },
     {
       field: "triggers",

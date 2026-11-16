@@ -60,11 +60,11 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
       hasPreparedActivity: !!student.activities.length, hasDiary: !!student.diaryEntries.length,
     };
     // Etapa feita é a que já tem registro; o próximo passo pode pular o estudo
-    // de caso quando o perfil já foi preenchido, e a linha mostra isso.
+    // de caso de quem já tem plano, e a linha mostra isso.
     const steps = [
       { label: JOURNEY_STEPS[0].label, done: progress.caseStudy === "concluido" },
-      { label: JOURNEY_STEPS[1].label, done: progress.hasProfile },
-      { label: JOURNEY_STEPS[2].label, done: progress.hasPlan && progress.hasObjective },
+      { label: JOURNEY_STEPS[1].label, done: progress.hasPlan && progress.hasObjective },
+      { label: JOURNEY_STEPS[2].label, done: progress.hasProfile },
       { label: JOURNEY_STEPS[3].label, done: progress.hasPreparedActivity },
       { label: JOURNEY_STEPS[4].label, done: progress.hasDiary },
     ];
@@ -162,7 +162,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                   ? { href: `${base}/diario`, label: "Registrar aula", description: "Conte como foi a aula deste estudante." }
                   : action === "acompanhar"
                     ? { href: base, label: "Ver acompanhamento", description: "Veja o plano, as aulas registradas e os próximos passos." }
-                    : action === "preparar" && next.step >= 3
+                    : action === "preparar" && next.step >= 4
                       ? { href: `${base}/atividades`, label: "Preparar atividade", description: "Veja as sugestões e escolha uma atividade para aplicar." }
                       : next;
                 return (
@@ -175,9 +175,9 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                     <div className="mt-3"><StepTrack steps={steps} current={next.step} note={next.step === 5 && steps[4].done ? "Na rotina de registros" : undefined} /></div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {student.status !== "ativo" ? <Badge>{student.status}</Badge> : null}
-                      {!student.profile ? <Badge tone="amber">Falta preencher como aprende</Badge> : !student.plans.length ? <Badge tone="amber">Plano de ensino a criar</Badge> : !student.plans[0].objectives.length ? <Badge tone="amber">Objetivo a definir</Badge> : <Badge tone="brand">Plano de ensino ativo</Badge>}
+                      {!student.plans.length ? <Badge tone="amber">{student.caseStudy?.status === "concluido" ? "Plano de ensino a criar" : "Estudo de caso a concluir"}</Badge> : !student.plans[0].objectives.length ? <Badge tone="amber">Objetivo a definir</Badge> : !student.profile ? <Badge tone="amber">Falta preencher como aprende</Badge> : <Badge tone="brand">Plano de ensino ativo</Badge>}
                     </div>
-                    <p className="mb-4 mt-4 text-sm leading-relaxed text-ink-soft">{action === "preparar" && next.step < 3 ? `Antes de preparar a atividade: ${next.description}` : selected.description}</p>
+                    <p className="mb-4 mt-4 text-sm leading-relaxed text-ink-soft">{action === "preparar" && next.step < 4 ? `Antes de preparar a atividade: ${next.description}` : selected.description}</p>
                     <Link href={selected.href} className="task-action mt-auto">{selected.label}<ArrowRight size={16} className="shrink-0" aria-hidden /></Link>
                     {selected.href !== base ? <Link href={base} className="mt-2 inline-flex min-h-11 items-center justify-center text-sm font-medium text-brand-strong">Ver acompanhamento</Link> : null}
                   </article>

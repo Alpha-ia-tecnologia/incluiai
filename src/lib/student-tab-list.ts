@@ -23,6 +23,12 @@ const PEDAGOGICAL_ONLY = new Set(["estudo-de-caso", "sondagem", "dua", "atendime
 // Leitura sem edição (Secretaria com motivo registrado): as abas de consulta.
 const READ_ONLY_TABS = new Set(["", "estudo-de-caso", "sondagem", "ppi", "atendimentos-aee", "linha-do-tempo", "materiais", "relatorios", "dossie"]);
 
+// Para a equipe pedagógica, ficam à vista as abas do caminho essencial (o que
+// respalda o Censo Escolar e a rotina de registro); as demais continuam todas
+// disponíveis no menu "Mais", e a que estiver aberta aparece na linha.
+const ESSENTIAL_TABS = new Set(["", "estudo-de-caso", "ppi", "diario", "dossie"]);
+export const isEssentialTab = (slug: string) => ESSENTIAL_TABS.has(slug);
+
 // showCaseStudy = pode ver o detalhe pedagógico (estudo de caso, DUA e frequência do AEE).
 // showDua, quando informado, esconde só a aba do DUA de quem vê o detalhe mas não planeja (secretaria).
 export function visibleTabs({ showCaseStudy, showDua = showCaseStudy, readOnly = false }: { showCaseStudy: boolean; showDua?: boolean; readOnly?: boolean }) {

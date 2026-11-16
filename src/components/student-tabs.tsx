@@ -2,27 +2,56 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { visibleTabs } from "@/lib/student-tab-list";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { isEssentialTab, visibleTabs } from "@/lib/student-tab-list";
 
 type Fade = "start" | "end" | "both" | undefined;
 
 // Quem vê cada aba: visibleTabs (src/lib/student-tab-list.ts).
 // As abas ficam numa linha que rola de lado (computador e celular); a aberta fica à vista.
+// Para a equipe pedagógica, a linha traz as abas do caminho essencial e o menu
+// "Mais" guarda as outras; nenhuma seção deixa de existir.
 export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy, readOnly = false }: { studentId: string; showCaseStudy: boolean; showDua?: boolean; readOnly?: boolean }) {
   const pathname = usePathname();
   const stripRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLAnchorElement>(null);
   const [fade, setFade] = useState<Fade>(undefined);
   const base = `/estudantes/${studentId}`;
-  const tabs = visibleTabs({ showCaseStudy, showDua, readOnly }).map((tab) => ({
+  const allTabs = visibleTabs({ showCaseStudy, showDua, readOnly }).map((tab) => ({
     ...tab,
     href: tab.slug ? `${base}/${tab.slug}` : base,
   }));
-  const activeHref = tabs.find((tab) => tab.slug
+  const activeHref = allTabs.find((tab) => tab.slug
     ? pathname === tab.href || pathname.startsWith(`${tab.href}/`)
     : pathname === base)?.href ?? base;
+  // Quem vê poucas abas (família, terapeuta, leitura da Secretaria) continua com todas na linha.
+  const split = showCaseStudy && !readOnly;
+  const tabs = split ? allTabs.filter((tab) => isEssentialTab(tab.slug) || tab.href === activeHref) : allTabs;
+  const moreTabs = split ? allTabs.filter((tab) => !isEssentialTab(tab.slug)) : [];
+
+  // Menu "Mais": guarda em que página foi aberto, e assim fecha sozinho ao navegar.
+  const menuId = useId();
+  const moreRef = useRef<HTMLDivElement>(null);
+  const [openAt, setOpenAt] = useState<string | null>(null);
+  const menuOpen = openAt === pathname;
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpenAt(null);
+      moreRef.current?.querySelector("button")?.focus();
+    };
+    const onPointer = (event: PointerEvent) => {
+      if (!moreRef.current?.contains(event.target as Node)) setOpenAt(null);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [menuOpen]);
 
   // Quais bordas têm mais abas escondidas: esmaece aquele lado e mostra a seta.
   const measure = useCallback(() => {
@@ -60,6 +89,7 @@ export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy,
 
   return (
     <nav aria-label="Seções do estudante" className="relative flex items-center border-b border-line print:hidden">
+      <div className="relative flex min-w-0 flex-1 items-center">
       {fade === "start" || fade === "both" ? (
         <button type="button" onClick={() => scrollBy(-1)} aria-label="Ver as seções anteriores" className={`${arrowCls} left-0`}>
           <ChevronLeft size={18} aria-hidden />
@@ -79,6 +109,25 @@ export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy,
         <button type="button" onClick={() => scrollBy(1)} aria-label="Ver mais seções" className={`${arrowCls} right-0`}>
           <ChevronRight size={18} aria-hidden />
         </button>
+      ) : null}
+      </div>
+      {moreTabs.length ? (
+        <div ref={moreRef} className="relative shrink-0">
+          <button type="button" aria-expanded={menuOpen} aria-controls={menuId} onClick={() => setOpenAt(menuOpen ? null : pathname)} className="tab-link gap-1">
+            Mais <ChevronDown size={15} aria-hidden className={menuOpen ? "rotate-180" : undefined} />
+          </button>
+          {menuOpen ? (
+            <ul id={menuId} aria-label="Mais seções do estudante" className="absolute right-0 top-full z-30 mt-1 w-64 rounded-2xl border border-line bg-paper-raised p-2 shadow-e2">
+              {moreTabs.map((tab) => (
+                <li key={tab.href}>
+                  <Link href={tab.href} aria-current={tab.href === activeHref ? "page" : undefined} className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink hover:bg-brand-soft aria-[current=page]:bg-brand-soft aria-[current=page]:font-medium aria-[current=page]:text-brand-strong">
+                    {tab.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
     </nav>
   );
