@@ -49,3 +49,7 @@ next-env.d.ts
 
 # python (scripts dos vídeos tutoriais)
 __pycache__/
+
+# playwright
+/test-results/
+/playwright-report/
