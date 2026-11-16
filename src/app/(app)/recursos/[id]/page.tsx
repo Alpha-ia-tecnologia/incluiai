@@ -13,8 +13,10 @@ import { BarList, SIGNAL } from "@/components/charts";
 import { DonutSummary } from "@/components/viz/donut-summary";
 import { percentOf } from "@/lib/series";
 import { ActivityPrintMaterials } from "@/components/resources/activity-print-materials";
+import { ActivityPrintPlan } from "@/components/resources/activity-print-plan";
 import { ResourcePrintButton } from "@/components/resources/resource-print-button";
 import { activityPrintMaterials } from "@/lib/resource-print-materials";
+import { networkName } from "@/lib/network";
 import styles from "@/components/resources/resource-print.module.css";
 import { quietButtonCls, secondaryButtonCls } from "@/components/form-styles";
 import {
@@ -38,6 +40,8 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   // Fotografia, preparação, modelo e níveis de apoio de cada recurso (src/lib/resource-bank.ts).
   const guide = resourcePresentation(resource);
+  const network = networkName();
+  const resourceType = RESOURCE_TYPES[resource.resourceType] ?? resource.resourceType;
   const successRate = percentOf(resource.positiveOutcomes, resource.timesUsed);
   // "Precisa de ajuste" em amarelo, não laranja: é sinal para adaptar, não fracasso.
   const outcomes = [
@@ -59,7 +63,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         lede={resource.description}
         actions={
           <>
-            <Badge tone="brand">{RESOURCE_TYPES[resource.resourceType] ?? resource.resourceType}</Badge>
+            <Badge tone="brand">{resourceType}</Badge>
             <ResourcePrintButton label="Imprimir atividades e materiais" />
           </>
         }
@@ -164,7 +168,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       <Badge tone="brand">{CONTEXTS[activity.context] ?? activity.context}</Badge>
                       <Badge><Clock size={11} aria-hidden /> {activity.durationMinutes} minutos</Badge>
-                      <Badge><Repeat size={11} aria-hidden /> {activity.timesUsed} aplicações</Badge>
+                      <Badge><Repeat size={11} aria-hidden /> {activity.timesUsed} {activity.timesUsed === 1 ? "aplicação" : "aplicações"}</Badge>
                       {activityRate !== null ? <Badge tone="green">{activityRate}% de boa resposta</Badge> : null}
                     </div>
                   </div>
@@ -212,7 +216,13 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
               </div>
               </div>
 
-              <ActivityPrintMaterials activityId={activity.id} activityTitle={activity.title} resourceTitle={resource.title} sheets={sheets} />
+              <ActivityPrintPlan
+                network={network} resourceTitle={resource.title} resourceType={resourceType} activityTitle={activity.title}
+                context={CONTEXTS[activity.context] ?? activity.context} durationMinutes={activity.durationMinutes}
+                objective={activity.objective} materials={materials} adaptations={adaptations} steps={steps}
+                evidenceCriterion={activity.evidenceCriterion} sheets={sheets}
+              />
+              <ActivityPrintMaterials activityId={activity.id} activityTitle={activity.title} resourceTitle={resource.title} sheets={sheets} network={network} />
 
               <div data-resource-screen className="mt-5 border-t border-line pt-4">
                 <p className="mb-2 text-xs text-ink-soft">Depois de aplicar, registre a resposta:</p>

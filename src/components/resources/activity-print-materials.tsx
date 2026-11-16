@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { PrintableCard, PrintableSheet } from "@/lib/resource-print-types";
+import { PrintDocumentHeader } from "./print-document-header";
 import { ResourcePrintButton } from "./resource-print-button";
 import styles from "./resource-print.module.css";
 
@@ -16,6 +17,14 @@ function CardVisual({ card }: { card: PrintableCard }) {
 }
 
 function SheetContent({ sheet }: { sheet: PrintableSheet }) {
+  // Alternativas de uma pergunta: folha inteira, numeradas na ordem da varredura.
+  if (sheet.kind === "cards" && sheet.choices) return <ol className={`${styles.cards} ${styles.choices}`} style={{ "--card-columns": sheet.columns ?? 2 } as React.CSSProperties}>
+    {sheet.cards.map((card, index) => <li key={`${card.label}-${index}`} className={styles.choiceCard} data-print-card>
+      <span className={styles.choiceNumber} aria-hidden="true">{index + 1}</span>
+      <CardVisual card={card} /><span className={styles.cardLabel}>{card.label}</span>
+    </li>)}
+  </ol>;
+
   if (sheet.kind === "cards") return <ul className={styles.cards} style={{ "--card-columns": sheet.columns ?? 3 } as React.CSSProperties}>
     {sheet.cards.map((card, index) => <li key={`${card.label}-${index}`} className={styles.cutCard} data-print-card>
       <CardVisual card={card} /><span className={styles.cardLabel}>{card.label}</span>
@@ -51,23 +60,28 @@ function SheetContent({ sheet }: { sheet: PrintableSheet }) {
   </figure>;
 }
 
-export function ActivityPrintMaterials({ activityId, activityTitle, resourceTitle, sheets }: {
+export function ActivityPrintMaterials({ activityId, activityTitle, resourceTitle, sheets, network }: {
   activityId: string;
   activityTitle: string;
   resourceTitle: string;
   sheets: PrintableSheet[];
+  network: string | null;
 }) {
+  const cutting = sheets.some((sheet) => sheet.kind === "cards" && !sheet.choices);
   return <section className={styles.materials} aria-labelledby={`material-${activityId}`} data-resource-materials>
     <div className={styles.materialsHeading} data-resource-screen>
-      <div><h3 id={`material-${activityId}`}>Material para imprimir e usar</h3><p>Os cartões e as fichas abaixo acompanham esta atividade. As bordas tracejadas orientam o recorte.</p></div>
+      <div><h3 id={`material-${activityId}`}>Material para imprimir e usar</h3><p>Os cartões e as fichas abaixo acompanham esta atividade.{cutting ? " As bordas tracejadas orientam o recorte." : ""}</p></div>
       <ResourcePrintButton activityId={activityId} materialsOnly label="Imprimir só o material" />
     </div>
     {sheets.map((sheet, index) => <section key={`${sheet.title}-${index}`} className={styles.sheet} aria-label={sheet.title} data-resource-sheet>
+      <div className={styles.printOnly}><PrintDocumentHeader network={network} kind={`Material da atividade · folha ${index + 1} de ${sheets.length}`} /></div>
       <header className={styles.sheetHeader}>
         <p className={styles.printContext}>{resourceTitle} · {activityTitle}</p>
-        <h4>{sheet.title}</h4><p>{sheet.instruction}</p>
+        <h4>{sheet.title}</h4><p data-resource-screen>{sheet.instruction}</p>
       </header>
       <SheetContent sheet={sheet} />
+      {/* No papel, a orientação de quem aplica fica separada do enunciado, no pé da folha. */}
+      <p className={`${styles.teacherNote} ${styles.printOnly}`}><strong>Orientação ao professor:</strong> {sheet.instruction}</p>
     </section>)}
   </section>;
 }

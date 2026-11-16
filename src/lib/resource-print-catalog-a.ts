@@ -11,6 +11,7 @@ const copies = (card: PrintableCard, count: number): PrintableCard[] => Array.fr
 const numbers = (last = 5): PrintableCard[] => Array.from({ length: last + 1 }, (_, index) => ({ label: String(index) }));
 const dots = (last = 5): PrintableCard[] => Array.from({ length: last }, (_, index) => ({ label: "QUANTIDADE", quantity: index + 1 }));
 const cards = (title: string, instruction: string, items: PrintableCard[], columns: 2 | 3 | 4 = 3): PrintableSheet => ({ kind: "cards", title, instruction, cards: items, columns });
+const choices = (title: string, instruction: string, items: PrintableCard[]): PrintableSheet => ({ kind: "cards", title, instruction, cards: items, columns: 2, choices: true });
 const worksheet = (title: string, instruction: string, labels: string[], lines: 1 | 2 | 3 = 2): PrintableSheet => ({ kind: "worksheet", title, instruction, fields: labels.map((label) => ({ label, lines })) });
 const table = (title: string, instruction: string, columns: string[], rows: string[][]): PrintableSheet => ({ kind: "table", title, instruction, columns, rows });
 const text = (title: string, instruction: string, paragraphs: string[]): PrintableSheet => ({ kind: "text", title, instruction, paragraphs });
@@ -103,9 +104,9 @@ export const PRINT_CATALOG_A: ActivityPrintPack[] = [
     cards("Como foi selecionar?", "Ofereça estas mensagens para o estudante avaliar o ensaio e escolher se deseja continuar.", words("ESTÁ CONFORTÁVEL", "QUERO MAIS TEMPO", "QUERO MENOS TEMPO", "QUERO REPETIR", "QUERO PARAR", "PRECISO DE OUTRO AJUSTE"), 2),
   ),
   pack(accessTitle, "Quiz acessível da turma",
-    cards("Pergunta 1: qual objeto é usado para ler uma história?", "Exemplo de conteúdo sobre objetos e seus usos. Apresente as quatro alternativas por varredura e confirme a escolha; substitua a pergunta pelo conteúdo da turma quando necessário.", [book, ball, apple, backpack], 2),
-    cards("Pergunta 2: qual objeto deixa marcas de grafite no papel?", "Leia a pergunta e percorra as quatro opções na ordem combinada. O estudante pode pedir repetição ou encerrar.", [ruler, pencil, ball, apple], 2),
-    cards("Pergunta 3: qual objeto ajuda a medir um comprimento?", "Apresente todas as alternativas sem destacar uma resposta. Registre a comunicação e os apoios no registro da aplicação.", [backpack, apple, ruler, book], 2),
+    choices("Pergunta 1: qual objeto é usado para ler uma história?", "Exemplo de conteúdo sobre objetos e seus usos. Apresente as quatro alternativas por varredura e confirme a escolha; substitua a pergunta pelo conteúdo da turma quando necessário.", [book, ball, apple, backpack]),
+    choices("Pergunta 2: qual objeto deixa marcas de grafite no papel?", "Leia a pergunta e percorra as quatro opções na ordem combinada. O estudante pode pedir repetição ou encerrar.", [ruler, pencil, ball, apple]),
+    choices("Pergunta 3: qual objeto ajuda a medir um comprimento?", "Apresente todas as alternativas sem destacar uma resposta. Registre a comunicação e os apoios no registro da aplicação.", [backpack, apple, ruler, book]),
   ),
   pack(accessTitle, "Escolher e revisar uma mensagem",
     cards("Palavras para compor uma mensagem", "Exemplo de banco para comentar uma leitura ou escolher uma brincadeira. Use somente palavras relevantes ao tema e ao vocabulário do estudante.", [...words("EU", "QUERO", "GOSTEI", "NÃO QUERO"), { ...book, label: "LER" }, { ...ball, label: "BRINCAR" }, ...words("DE NOVO", "OUTRA OPÇÃO", "COM VOCÊ", "AGORA", "DEPOIS", "TERMINAR")], 4),
