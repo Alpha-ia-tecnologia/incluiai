@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canSeeClinicalDetail, canEditStudentRecord } from "@/lib/auth";
 import { saveCaseStudy } from "@/actions/case-study";
-import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, parseCaseStudy, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
+import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, ESSENTIAL_GROUPS, parseCaseStudy, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
 import { splitItems } from "@/lib/form-options";
 import { formatDate } from "@/lib/format";
 import { Badge, ButtonLink, Card, PageHeader } from "@/components/ui";
@@ -12,7 +12,7 @@ import { PillLink } from "@/components/pill-link";
 import { Character } from "@/components/character";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { PrintButton } from "@/components/print-button";
-import { OpenDetailsOnPrint } from "@/components/open-details-on-print";
+import { CreatedNotice } from "@/components/materials/created-notice";
 import { HealthReportsNote } from "@/components/health-report-note";
 import { hintCls, inputCls, labelCls, primaryButtonCls, quietButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
 
@@ -58,11 +58,11 @@ export default async function CaseStudyPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ editar?: string; salvo?: string; faltaAee?: string }>;
+  searchParams: Promise<{ editar?: string; salvo?: string; faltaAee?: string; concluido?: string }>;
 }) {
   const { id } = await params;
   await requireStudentPage(id, "Estudo de caso");
-  const { editar, salvo, faltaAee } = await searchParams;
+  const { editar, salvo, faltaAee, concluido } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // Reúne dados da família e da escola: só a equipe pedagógica acessa.
@@ -70,9 +70,10 @@ export default async function CaseStudyPage({
 
   // Sem permissão para dado clínico, esses campos e os laudos nem chegam à página.
   const clinical = canSeeClinicalDetail(user.role);
-  const [student, caseStudy, healthReports] = await Promise.all([
+  const [student, caseStudy, activePlan, healthReports] = await Promise.all([
     prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true } }),
     prisma.caseStudy.findUnique({ where: { studentId: id } }),
+    prisma.plan.findFirst({ where: { studentId: id, status: "ativo" }, select: { id: true } }),
     clinical ? prisma.healthReport.findMany({ where: { studentId: id }, select: { status: true, reviewedAt: true } }) : Promise.resolve([]),
   ]);
 
@@ -88,11 +89,28 @@ export default async function CaseStudyPage({
   const reportsNote = clinical && canEdit ? <HealthReportsNote studentId={id} reports={healthReports} /> : null;
 
   if (concluded && (editar !== "1" || !canEdit)) {
-    // A síntese aparece em destaque no topo; na parte 7 ficam só os encaminhamentos.
-    const parts = sections.map((section, index) => {
-      const fields = section.fields.filter((field) => field.key !== "sintese");
-      return { section, number: index + 1, fields, answered: fields.filter((field) => content[field.key]?.trim()) };
-    });
+    // Leitura do estudo concluído: a síntese no topo, o que fazer em seguida, o
+    // essencial e, só se houver, o que a equipe aprofundou. Parte sem resposta
+    // não aparece: o que é opcional não deve parecer pendência.
+    const filled = (field: CaseStudyField) => Boolean(content[field.key]?.trim());
+    const allFields = sections.flatMap((section) => section.fields);
+    const essential = ESSENTIAL_GROUPS.flatMap((group) => group.keys)
+      .map((key) => allFields.find((field) => field.key === key))
+      .filter((field): field is CaseStudyField => Boolean(field) && field!.key !== "sintese" && filled(field!));
+    const deeper = sections
+      .map((section) => ({ section, fields: section.fields.filter((field) => !field.requiredToConclude && filled(field)) }))
+      .filter((part) => part.fields.length);
+    // Duas colunas pela largura do cartão, não da tela.
+    const answers = (fields: CaseStudyField[]) => (
+      <dl className="@container divide-y divide-line/70 border-t border-line px-5 pb-2 sm:px-6">
+        {fields.map((field) => (
+          <div key={field.key} className="grid min-w-0 gap-1.5 py-3.5 @lg:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] @lg:gap-6">
+            <dt className="min-w-0 text-sm text-ink-soft">{field.label}</dt>
+            <Answer field={field} value={content[field.key]} />
+          </div>
+        ))}
+      </dl>
+    );
     return (
       <>
         <PageHeader
@@ -113,6 +131,8 @@ export default async function CaseStudyPage({
           }
         />
 
+        {concluido ? <CreatedNotice>Estudo de caso salvo e concluído.</CreatedNotice> : null}
+
         <Card className="mb-6 flex items-start gap-6 border-brand/30 bg-brand-soft/50">
           <div className="min-w-0 flex-1">
             <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-strong"><CheckCircle2 size={17} aria-hidden /> Síntese do caso</h3>
@@ -120,56 +140,51 @@ export default async function CaseStudyPage({
           </div>
           <Character variant="planning" className="hidden w-20 sm:block" />
         </Card>
+
+        {/* O que fazer depois de concluir: a trilha segue para o plano de ensino. */}
+        {canEdit ? (
+          <section aria-label="Próximo passo" className="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-2xl border border-line bg-paper-raised px-5 py-4 print:hidden sm:px-6">
+            <div className="min-w-0">
+              <h3 className="text-base font-semibold text-ink">{activePlan ? "O plano de ensino já está ativo" : "Próximo passo: criar o plano de ensino"}</h3>
+              <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">
+                {activePlan
+                  ? "Volte ao estudo de caso quando algo mudar na vida escolar do estudante."
+                  : "O estudo concluído já respalda a declaração no Censo Escolar. Agora registre o PAEE e o PEI."}
+              </p>
+            </div>
+            <ButtonLink href={`/estudantes/${id}/ppi`} variant={activePlan ? "secondary" : "primary"} className="shrink-0">
+              {activePlan ? "Abrir o plano de ensino" : "Criar o plano de ensino"} <ArrowRight size={16} aria-hidden />
+            </ButtonLink>
+          </section>
+        ) : null}
         {reportsNote}
 
-        <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] print:block">
-          <nav aria-label="Partes do estudo de caso" className="min-w-0 self-start print:hidden lg:sticky lg:top-[calc(var(--sticky-offset,0px)_+_16px)]">
-            <p className="mb-3 text-sm font-medium text-ink">Partes do estudo</p>
-            <ol className="flex flex-wrap gap-2 lg:flex-col lg:gap-1">
-              {parts.map(({ section, number }) => (
-                <li key={section.id} className="min-w-0 max-w-full">
-                  <a
-                    href={`#parte-${section.id}`}
-                    className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-line bg-paper-raised px-3.5 py-2 text-sm text-ink transition-colors hover:border-brand hover:text-brand-strong lg:flex lg:rounded-xl lg:border-transparent lg:bg-transparent lg:px-3 lg:hover:bg-surface-muted"
-                  >
-                    <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold tabular-nums text-brand-strong">{number}</span>
-                    <span className="min-w-0">{section.title}</span>
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
+        <div className="min-w-0 space-y-4">
+          {clinicalNote}
+          <section aria-labelledby="leitura-essencial" className="min-w-0 rounded-2xl border border-line bg-paper-raised">
+            <h3 id="leitura-essencial" className="px-5 py-4 text-base font-medium text-ink sm:px-6">Essencial</h3>
+            {answers(essential)}
+          </section>
 
-          <div id="partes-estudo" className="min-w-0 space-y-4">
-            <OpenDetailsOnPrint selector="#partes-estudo details" />
-            {clinicalNote}
-            {parts.map(({ section, number, fields, answered }) => (
-              // Aberta por padrão: quem chega lê tudo; recolher é escolha de quem lê.
-              <details key={section.id} id={`parte-${section.id}`} open className="group min-w-0 scroll-mt-4 rounded-2xl border border-line bg-paper-raised">
-                <summary className="grid min-h-11 list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-2xl px-5 py-4 transition-colors hover:bg-surface-muted/60 group-open:rounded-b-none sm:px-6 [&::-webkit-details-marker]:hidden">
-                  <span aria-hidden className="row-span-2 flex size-8 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold tabular-nums text-brand-strong">{number}</span>
-                  <h3 className="min-w-0 text-base font-medium text-ink">{section.title}</h3>
-                  <ChevronDown size={20} aria-hidden className="col-start-3 row-span-2 row-start-1 text-ink-soft group-open:rotate-180 motion-safe:transition-transform print:hidden" />
-                  <span className="col-start-2 text-sm text-ink-soft">
-                    {section.source} · <span className="tabular-nums">{answered.length} de {fields.length}</span> {fields.length === 1 ? "pergunta respondida" : "perguntas respondidas"}
-                  </span>
-                </summary>
-                {/* Duas colunas pela largura do cartão, não da tela: com o índice ao lado, sobra menos espaço. */}
-                <div className="@container border-t border-line px-5 pb-2 sm:px-6">
-                  {answered.length ? (
-                    <dl className="divide-y divide-line/70">
-                      {answered.map((field) => (
-                        <div key={field.key} className="grid min-w-0 gap-1.5 py-3.5 @lg:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] @lg:gap-6">
-                          <dt className="min-w-0 text-sm text-ink-soft">{field.label}</dt>
-                          <Answer field={field} value={content[field.key]} />
-                        </div>
-                      ))}
-                    </dl>
-                  ) : <p className="py-4 text-sm text-ink-soft">Nenhuma informação registrada nesta parte.</p>}
-                </div>
-              </details>
-            ))}
-          </div>
+          {deeper.length ? (
+            <>
+              <h3 className="pt-2 text-sm font-medium text-ink-soft">O que a equipe aprofundou</h3>
+              {deeper.map(({ section, fields }) => (
+                <section key={section.id} aria-labelledby={`leitura-${section.id}`} className="min-w-0 rounded-2xl border border-line bg-paper-raised print:break-inside-avoid">
+                  <div className="px-5 py-4 sm:px-6">
+                    <h4 id={`leitura-${section.id}`} className="text-base font-medium text-ink">{section.title}</h4>
+                    <p className="mt-0.5 text-sm text-ink-soft">{section.source}</p>
+                  </div>
+                  {answers(fields)}
+                </section>
+              ))}
+            </>
+          ) : canEdit ? (
+            <p className="text-sm leading-relaxed text-ink-soft print:hidden">
+              Entrevista com a família, escuta do estudante, observação e avaliação pedagógica são opcionais e podem ser registradas quando houver informação.{" "}
+              <Link href={`/estudantes/${id}/estudo-de-caso?editar=1#aprofundar`} className="font-medium text-brand-strong underline underline-offset-4">Aprofundar o estudo</Link>
+            </p>
+          ) : null}
         </div>
       </>
     );
@@ -182,7 +197,9 @@ export default async function CaseStudyPage({
   // "Aprofundar", recolhido até a pessoa abrir ou já ter respostas ali.
   const fieldValue = (field: CaseStudyField) => content[field.key] ?? (field.key === "participantes" ? AEE_TEACHER : "");
   const answered = (fields: CaseStudyField[]) => fields.filter((field) => content[field.key]?.trim()).length;
-  const essentialFields = sections.flatMap((section) => section.fields.filter((field) => field.requiredToConclude));
+  const everyField = sections.flatMap((section) => section.fields);
+  const essentialGroups = ESSENTIAL_GROUPS.map((group) => ({ ...group, fields: group.keys.map((key) => everyField.find((field) => field.key === key)).filter((field): field is CaseStudyField => Boolean(field)) }));
+  const essentialFields = essentialGroups.flatMap((group) => group.fields);
   const deeperSections = sections.map((section) => ({ ...section, fields: section.fields.filter((field) => !field.requiredToConclude) })).filter((section) => section.fields.length);
   const deeperFields = deeperSections.flatMap((section) => section.fields);
   const essentialFilled = answered(essentialFields);
@@ -234,13 +251,21 @@ export default async function CaseStudyPage({
             <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 id="titulo-essencial" className="text-base font-semibold text-ink">Essencial</h3>
-                <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">É o que basta para concluir. O estudo de caso concluído respalda a declaração do estudante no Censo Escolar e abre o plano de ensino.</p>
+                <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">É o que basta para concluir, na ordem do que o INEP descreve para o estudo de caso. Concluído, ele respalda a declaração do estudante no Censo Escolar e abre o plano de ensino.</p>
               </div>
               <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium tabular-nums text-sky-ink">{essentialFilled} de {essentialFields.length}</span>
             </div>
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Quem participou começa com o professor do AEE, que conduz o estudo (INEP). */}
-              {essentialFields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
+            <div className="space-y-6">
+              {essentialGroups.map((group, index) => (
+                <fieldset key={group.title} className="min-w-0 rounded-2xl border border-line p-4 sm:p-5">
+                  <legend className="px-1 text-sm font-semibold text-ink">{index + 1}. {group.title}</legend>
+                  <p className="mb-4 text-sm leading-relaxed text-ink-soft">{group.hint}</p>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Quem participou começa com o professor do AEE, que conduz o estudo (INEP). */}
+                    {group.fields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
+                  </div>
+                </fieldset>
+              ))}
             </div>
           </section>
 
@@ -249,7 +274,7 @@ export default async function CaseStudyPage({
             <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
               <span className="min-w-0">
                 <span className="block text-base font-semibold text-ink">Aprofundar o estudo <span className="font-normal text-ink-soft">· opcional</span></span>
-                <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Entrevista com a família, escuta do estudante, observação e avaliação pedagógica. Preencha quando tiver as informações.</span>
+                <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Motivo do encaminhamento, entrevista com a família, escuta do estudante, observação e avaliação pedagógica. Preencha quando tiver as informações.</span>
               </span>
               <span className="flex shrink-0 items-center gap-2 text-xs text-ink-soft">
                 <span className="tabular-nums">{deeperFilled} de {deeperFields.length} respondidas</span>

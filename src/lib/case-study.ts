@@ -48,11 +48,11 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
     description: "Por que o caso chegou ao AEE e qual é a principal preocupação.",
     fields: [
       {
-        key: "encaminhadoPor", label: "Quem encaminhou o caso", type: "choice", requiredToConclude: true,
+        key: "encaminhadoPor", label: "Quem encaminhou o caso", type: "choice",
         options: ["Professor(a) da sala comum", "Família", "Coordenação pedagógica", "Professor(a) do AEE", "Rede de saúde", "Assistência social", "Conselho Tutelar", "Transferência de outra escola"],
       },
       {
-        key: "motivos", label: "Motivos do encaminhamento", type: "multi", requiredToConclude: true, wide: true,
+        key: "motivos", label: "Motivos do encaminhamento", type: "multi", wide: true,
         options: [
           "Dificuldade na leitura e na escrita", "Dificuldade em matemática", "Dificuldade de comunicação",
           "Dificuldade de interação com os colegas", "Comportamento que dificulta a participação", "Dificuldade de atenção",
@@ -128,7 +128,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
           "Nenhum impedimento de longo prazo observado",
         ],
       },
-      { key: "barreiras", label: "Barreiras observadas", type: "multi", wide: true, options: Object.values(BARRIERS) },
+      { key: "barreiras", label: "Barreiras observadas", type: "multi", requiredToConclude: true, wide: true, hint: "Do contexto escolar, não do estudante.", options: Object.values(BARRIERS) },
     ],
   },
   {
@@ -147,7 +147,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
         key: "aprendeMelhor", label: "Aprende melhor", type: "multi", wide: true,
         options: ["Com apoio visual", "Com material concreto", "Com repetição", "Com modelo", "Com instrução curta", "Com tecnologia", "Com movimento", "Com música"],
       },
-      { key: "potencialidades", label: "Potencialidades", type: "multi", wide: true, options: STRENGTH_OPTIONS },
+      { key: "potencialidades", label: "Potencialidades", type: "multi", requiredToConclude: true, wide: true, options: STRENGTH_OPTIONS },
     ],
   },
   {
@@ -172,7 +172,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
         ],
       },
       {
-        key: "recursos", label: "Recursos e serviços indicados", type: "multi", wide: true,
+        key: "recursos", label: "Recursos e serviços indicados", type: "multi", requiredToConclude: true, wide: true,
         options: ["AEE na sala de recursos", "Profissional de apoio", "Intérprete de Libras", "Guia-intérprete", "Transporte acessível", "Mobiliário adaptado", "Material ampliado", "Prancha de comunicação"],
       },
       {
@@ -195,6 +195,19 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
 ];
 
 export const CASE_STUDY_FIELDS = CASE_STUDY_SECTIONS.flatMap((section) => section.fields);
+
+// O essencial do estudo (os campos exigidos para concluir), na ordem do que o
+// INEP diz que o estudo de caso documenta para respaldar a declaração no Censo
+// Escolar (src/lib/federal-guidance.ts): (i) impedimentos de longo prazo,
+// potencialidades e demandas de apoio; (ii) barreiras do contexto escolar;
+// (iii) estratégias e recursos de acessibilidade. O último grupo registra quem
+// conduziu, a quem o estudo se refere e a síntese.
+export const ESSENTIAL_GROUPS: { title: string; hint: string; keys: string[] }[] = [
+  { title: "Impedimentos, potencialidades e demandas de apoio", hint: "O que se observa na participação, o que o estudante já faz bem e do que ele precisa.", keys: ["impedimentos", "potencialidades", "necessidades"] },
+  { title: "Barreiras do contexto escolar", hint: "Arquitetônicas, comunicacionais, pedagógicas, tecnológicas ou atitudinais.", keys: ["barreiras"] },
+  { title: "Estratégias e recursos de acessibilidade", hint: "O que a escola vai oferecer para o estudante participar.", keys: ["recursos"] },
+  { title: "Conclusão do estudo", hint: "Quem participou, se o estudante é público da educação especial e a síntese do caso.", keys: ["participantes", "publicoAlvo", "sintese"] },
+];
 
 // Nomes que mudaram: o que foi salvo antes aparece com o nome de hoje.
 const RENAMED: Record<string, Record<string, string>> = { barreiras: { "Física": BARRIERS.fisica } };
