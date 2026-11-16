@@ -470,6 +470,16 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
               {otherInput("Enviar resposta")}
             </form>
           ) : null}
+          {/* Pergunta opcional com opções (a frequência do atendimento): dá para seguir sem responder. */}
+          {step.optionalLabel ? (
+            <button
+              type="button"
+              onClick={() => applyAnswer(step, "")}
+              className="inline-flex min-h-11 items-center text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline sm:col-span-2"
+            >
+              {step.optionalLabel}
+            </button>
+          ) : null}
         </div>
       );
     }
