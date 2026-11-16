@@ -120,6 +120,7 @@ export async function upsertProfile(studentId: string, formData: FormData) {
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");
-  redirect(`/estudantes/${studentId}/perfil`);
+  // "salvo" leva a hora do salvamento: a tela confirma cada vez que o perfil é gravado.
+  redirect(`/estudantes/${studentId}/perfil?salvo=${Date.now()}`);
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import {
   Check,
   ChevronLeft,
@@ -16,6 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Character } from "@/components/character";
+import { CreatedNotice } from "@/components/materials/created-notice";
 import { Assurances } from "@/components/explain";
 import { primaryButtonCls } from "@/components/form-styles";
 import {
@@ -410,11 +412,15 @@ export function ProfileChat({
   firstName,
   initialAnswers = {},
   hasSavedProfile = false,
+  savedAt = null,
 }: {
   action: (formData: FormData) => Promise<void>;
   firstName: string;
   initialAnswers?: ProfileAnswers;
   hasSavedProfile?: boolean;
+  // Hora do último salvamento, vinda do redirecionamento da ação: muda a cada
+  // vez que o perfil é gravado, para a confirmação aparecer de novo.
+  savedAt?: string | null;
 }) {
   const steps = useMemo(() => buildSteps(firstName), [firstName]);
   const sections = useMemo(
@@ -429,6 +435,9 @@ export function ProfileChat({
     hasSavedProfile ? steps.length : firstMissingIndex >= 0 ? firstMissingIndex : 0,
   );
   const [editingField, setEditingField] = useState<string | null>(null);
+  // A confirmação some quando a pessoa volta a mexer nas respostas.
+  const [dismissedSave, setDismissedSave] = useState<string | null>(null);
+  const savedNotice = savedAt && dismissedSave !== savedAt ? savedAt : null;
   const [textDraft, setTextDraft] = useState("");
   const [multiDraft, setMultiDraft] = useState<string[]>([]);
   const [showReset, setShowReset] = useState(false);
@@ -478,6 +487,7 @@ export function ProfileChat({
 
     const nextAnswers = { ...answers, [step.field]: value };
     setAnswers(nextAnswers);
+    setDismissedSave(savedAt);
     setError("");
 
     if (editingField) {
@@ -523,6 +533,7 @@ export function ProfileChat({
 
   function resetConversation() {
     setAnswers(hasSavedProfile ? initialAnswers : {});
+    setDismissedSave(savedAt);
     setCurrentIndex(hasSavedProfile ? steps.length : 0);
     setEditingField(null);
     setTextDraft("");
@@ -559,7 +570,10 @@ export function ProfileChat({
       try {
         setError("");
         await action(formData);
-      } catch {
+      } catch (error) {
+        // Depois de salvar, a ação redireciona, e o redirecionamento chega aqui
+        // como erro interno do Next: ele segue adiante, não é falha ao salvar.
+        unstable_rethrow(error);
         setError("Não foi possível salvar o perfil. Revise as respostas e tente novamente.");
       }
     });
@@ -749,6 +763,7 @@ export function ProfileChat({
             answers={answers}
             pending={pending}
             error={error}
+            savedNotice={savedNotice}
             firstName={firstName}
             onEdit={edit}
             onSave={submitAll}
@@ -1054,6 +1069,7 @@ function Review({
   answers,
   pending,
   error,
+  savedNotice,
   firstName,
   onEdit,
   onSave,
@@ -1064,6 +1080,7 @@ function Review({
   answers: ProfileAnswers;
   pending: boolean;
   error: string;
+  savedNotice: string | null;
   firstName: string;
   onEdit: (step: Step) => void;
   onSave: () => void;
@@ -1127,6 +1144,13 @@ function Review({
         <p className="mt-5 rounded-xl bg-coral-soft px-4 py-3 text-sm text-coral" role="alert">
           {error}
         </p>
+      ) : null}
+
+      {/* Confirmação junto do botão, onde a pessoa está; `key` refaz o aviso (e o foco) a cada salvamento. */}
+      {savedNotice && !error && !pending ? (
+        <div className="mt-5">
+          <CreatedNotice key={savedNotice}>Perfil salvo.</CreatedNotice>
+        </div>
       ) : null}
 
       <div className="mt-6 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">

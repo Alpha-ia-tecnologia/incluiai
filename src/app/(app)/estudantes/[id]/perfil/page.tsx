@@ -37,13 +37,15 @@ export default async function ProfilePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ modo?: string }>;
+  searchParams: Promise<{ modo?: string; salvo?: string | string[] }>;
 }) {
   const { id } = await params;
   const viewer = await requireStudentPage(id, "Como aprende");
   // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.
   if (!canEditStudentRecord(viewer.role)) redirect(`/estudantes/${id}`);
-  const { modo } = await searchParams;
+  const { modo, salvo } = await searchParams;
+  // Vem do redirecionamento depois de salvar (src/actions/profile.ts).
+  const savedAt = typeof salvo === "string" && /^\d+$/.test(salvo) ? salvo : null;
   const [student, profile, caseStudy] = await Promise.all([
     prisma.student.findUniqueOrThrow({ where: { id } }),
     prisma.functionalProfile.findUnique({ where: { studentId: id } }),
@@ -125,7 +127,7 @@ export default async function ProfilePage({
 
         {p ? (
           <p className="mb-4 max-w-3xl rounded-xl bg-brand-soft/60 px-4 py-3 text-xs leading-relaxed text-brand-strong">
-            Perfil já salvo. Atualize o que mudou.
+            {savedAt ? "Perfil salvo. Atualize sempre que algo mudar." : "Perfil já salvo. Atualize o que mudou."}
           </p>
         ) : suggestionNote}
         <ProfileChat
@@ -133,6 +135,7 @@ export default async function ProfilePage({
           firstName={student.name.split(" ")[0]}
           initialAnswers={initialAnswers}
           hasSavedProfile={Boolean(p)}
+          savedAt={savedAt}
         />
       </>
     );

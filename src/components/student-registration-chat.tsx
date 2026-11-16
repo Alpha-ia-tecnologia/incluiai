@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import type { ChangeEvent, ReactNode, RefObject } from "react";
 import {
   CalendarDays,
@@ -347,7 +348,10 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
       try {
         setError("");
         await createStudent(formData);
-      } catch {
+      } catch (error) {
+        // O redirecionamento para a ficha do estudante chega aqui como erro
+        // interno do Next: ele segue adiante, não é falha ao salvar.
+        unstable_rethrow(error);
         setError("Não foi possível salvar agora. Confira os dados e tente novamente.");
       }
     });
