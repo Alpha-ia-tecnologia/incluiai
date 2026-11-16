@@ -123,6 +123,8 @@ export const PEBBLE: Readonly<Record<string, Palette>> = {
 
 // Nomes exatos dos agentes (plan-graph.ts, activity-graph.ts, generate.ts e tools.ts).
 export const PLAN_AGENTS = ["Analista do caso", "Planejador do PPI", "Revisor pedagógico"] as const;
+// Os três que escrevem ao mesmo tempo, depois do analista: o degrau do meio da treliça.
+export const PLAN_WRITERS = ["Agente do PAEE", "Agente do PEI", "Planejador do PPI"] as const;
 export const ACTIVITY_AGENTS = ["Agente da sala comum", "Agente do AEE", "Agente da família"] as const;
 export const ACTIVITY_REVIEWER = "Revisor das atividades";
 export const RULES_ENGINE = "Motor de regras";
@@ -195,11 +197,16 @@ export function planState(step: ToolStep): { stage: LongStage; rungs: Trio<RungS
   const progress = step.progress ?? [];
   if (progress.some((item) => item.agent === RULES_ENGINE)) return { stage: "regras", rungs: IDLE_RUNGS };
   if (step.ok === true) return { stage: "revisor", rungs: DONE_RUNGS };
-  const rungs: Trio<RungState> = [rungOf(latest(progress, PLAN_AGENTS[0])), rungOf(latest(progress, PLAN_AGENTS[1])), rungOf(latest(progress, PLAN_AGENTS[2]))];
+  // PAEE, PEI e objetivos são escritos em paralelo: o degrau do meio fica ativo
+  // enquanto algum deles trabalha e só se completa quando os três terminam.
+  const writing: RungState = PLAN_WRITERS.some((agent) => latest(progress, agent) === "start") ? "ativo"
+    : PLAN_WRITERS.every((agent) => latest(progress, agent) === "end") ? "feito" : "espera";
+  const rungs: Trio<RungState> = [rungOf(latest(progress, PLAN_AGENTS[0])), writing, rungOf(latest(progress, PLAN_AGENTS[2]))];
   const lastStart = progress.findLast((item) => item.phase === "start")?.agent;
-  const plannerRuns = progress.filter((item) => item.agent === PLAN_AGENTS[1] && item.phase === "start").length;
+  // Quem escreve de novo depois de uma revisão está ajustando o que o revisor devolveu.
+  const reviewed = progress.some((item) => item.agent === PLAN_AGENTS[2] && item.phase === "end");
   const stage: LongStage = lastStart === PLAN_AGENTS[0] ? "analista"
-    : lastStart === PLAN_AGENTS[1] ? (plannerRuns > 1 ? "ajustes" : "planejador")
+    : (PLAN_WRITERS as readonly string[]).includes(lastStart ?? "") ? (reviewed ? "ajustes" : "planejador")
     : lastStart === PLAN_AGENTS[2] ? "revisor"
     : "inicio";
   return { stage, rungs };
@@ -227,9 +234,9 @@ export function activityState(step: ToolStep): { stage: LongStage; buds: Trio<Bu
 
 const PLAN_LABELS: Partial<Record<LongStage, string>> = {
   analista: "O analista lê o caso…",
-  planejador: "O planejador escreve os objetivos…",
+  planejador: "Escrevendo o PAEE, o PEI e os objetivos…",
   revisor: "O revisor confere a proposta…",
-  ajustes: "O planejador ajusta a proposta…",
+  ajustes: "Os agentes ajustam a proposta…",
   regras: "As regras da plataforma montam a proposta…",
 };
 
@@ -323,7 +330,7 @@ function longTimeLine(kind: LongKind, bucket: number, leave: string, images: boo
   if (bucket >= 120) return `Já são 2 minutos. Costuma levar até ${upTo}.`;
   if (bucket >= 60) return `Já passou 1 minuto. Costuma levar até ${upTo}.`;
   if (bucket >= 20) return leave;
-  return kind === "plano" ? "Três agentes de IA, um depois do outro." : "Sala comum, AEE e casa. Depois, um revisor.";
+  return kind === "plano" ? "Analista, três agentes juntos e um revisor." : "Sala comum, AEE e casa. Depois, um revisor.";
 }
 
 // Legenda da faixa do chat (linha 1, linha 2) e o texto do anúncio (status).
@@ -439,7 +446,7 @@ export function inlineCaption(scene: InlineScene, bucket: number, withImages: bo
   return {
     title: scene === "plano" ? "Preparando a proposta de plano…" : "Criando 3 sugestões de atividade…",
     explain: scene === "plano"
-      ? "Três agentes de IA, um depois do outro: analista, planejador e revisor."
+      ? "Um analista lê o caso; três agentes escrevem o PAEE, o PEI e os objetivos ao mesmo tempo; um revisor confere."
       : "Três agentes de IA ao mesmo tempo (sala comum, AEE e casa); depois, um revisor confere.",
     time,
     late: bucket >= lateAt ? late : "",

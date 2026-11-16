@@ -53,7 +53,8 @@ export const NO_NEED = "Avaliado: não há necessidade";
 export const PLAN_PARTICIPANT_OPTIONS = ["Família", "O próprio estudante", "Coordenação pedagógica", "Gestão escolar", "Profissional de apoio"];
 export const ASSISTIVE_TECH_OPTIONS = [NO_NEED, "Prancha de comunicação", "Tablet com aplicativo de CAA", "Acionador", "Engrossador de lápis", "Lupa ou ampliação de tela", "Leitor de tela", "Material em braille", "Mobiliário adaptado"];
 export const SUPPORT_STAFF_OPTIONS = [NO_NEED, "Profissional de apoio escolar", "Tradutor e intérprete de Libras", "Guia-intérprete"];
-export const NETWORK_DEMAND_OPTIONS = ["Nenhuma demanda", "Formação da equipe em Educação Especial Inclusiva", "Formação em comunicação alternativa", "Formação em Libras", "Rede de saúde", "Assistência social (CRAS ou CREAS)", "Conselho Tutelar"];
+export const NO_DEMAND = "Nenhuma demanda";
+export const NETWORK_DEMAND_OPTIONS = [NO_DEMAND, "Formação da equipe em Educação Especial Inclusiva", "Formação em comunicação alternativa", "Formação em Libras", "Rede de saúde", "Assistência social (CRAS ou CREAS)", "Conselho Tutelar"];
 // Os tipos de AEE do Educacenso: o Censo recusa vínculo de AEE sem nenhum.
 export const AEE_SERVICE_OPTIONS = AEE_SERVICE_LABELS;
 // Na avaliação: primeiro os recursos do Educacenso (sala de aula e Saeb), depois
@@ -123,6 +124,46 @@ export function planDefaultsFromCaseStudy(content: Record<string, string>, aeeTe
     aeeServices: AEE_SERVICE_LABELS.filter((label) => services.has(label)).join("; ") || null,
     assessmentAccessibility: mapped(resources, RESOURCE_TO_ASSESSMENT),
   };
+}
+
+// ------------------------------------------------------------- proposta dos agentes
+
+// Campos em lista que a proposta dos agentes (ou das regras) pode trazer.
+export const PROPOSAL_LIST_KEYS = [
+  "accessibilityResources", "assistiveTech", "supportStaff", "networkDemands",
+  "aeeServices", "aeeStrategies", "commonRoomStrategies", "assessmentAccessibility", "monitoring", "familyFeedback",
+] as const satisfies readonly PlanDocumentKey[];
+export type ProposalListKey = (typeof PROPOSAL_LIST_KEYS)[number];
+
+// "Não precisa" só vale como registro quando está sozinho no campo.
+const EXCLUSIVE = [NO_NEED, NO_DEMAND, NO_RESOURCE];
+const fold = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+const dropExclusive = (items: string[]) => (items.length > 1 ? items.filter((item) => !EXCLUSIVE.includes(item)) : items);
+
+// Confere os itens propostos com as opções do campo: o nome reconhecido volta
+// com a grafia da lista (para o Censo e o formulário baterem). `strict` descarta
+// o que não está na lista, como nos tipos de AEE e nos profissionais de apoio.
+export function canonicalItems(items: readonly string[], options: readonly string[], config: { strict?: boolean; limit?: number } = {}): string[] {
+  const byFold = new Map(options.map((option) => [fold(option), option]));
+  const out: string[] = [];
+  for (const raw of items) {
+    const text = String(raw ?? "").replace(/;/g, ",").replace(/\s+/g, " ").trim().replace(/[.,]+$/, "");
+    const item = byFold.get(fold(text)) ?? (config.strict ? "" : text);
+    if (item && !out.includes(item)) out.push(item);
+  }
+  return dropExclusive(out).slice(0, config.limit ?? 8);
+}
+
+// Junta o que o estudo de caso já registrou com o que a proposta trouxe, campo a
+// campo e sem repetir: nada do que a equipe indicou no estudo se perde, e a
+// equipe confere tudo antes de salvar.
+export function mergeProposalDefaults(base: Partial<PlanDocuments>, proposal: Partial<Record<ProposalListKey, readonly string[]>>): Partial<PlanDocuments> {
+  const merged: Partial<PlanDocuments> = { ...base };
+  for (const key of PROPOSAL_LIST_KEYS) {
+    const items = dropExclusive([...new Set([...list(base[key]), ...(proposal[key] ?? []).map((item) => item.trim()).filter(Boolean)])]);
+    merged[key] = items.join("; ") || null;
+  }
+  return merged;
 }
 
 // O plano e o último arquivo do Censo aplicado: tipos de AEE (registro 60) e

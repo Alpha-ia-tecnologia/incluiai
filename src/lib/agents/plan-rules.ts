@@ -60,6 +60,10 @@ export function proposePlanWithRules(profile: FunctionalProfile | null, caseStud
     ],
     aeeStrategies: splitItems(study.necessidades).length ? splitItems(study.necessidades) : ["Atividades com o interesse âncora", "Ensino estruturado"],
     accessibilityResources: splitItems(study.recursos),
+    // Sem IA, os demais itens do PAEE e do PEI vêm do estudo de caso, no formulário
+    // (planDefaultsFromCaseStudy); acompanhamento e devolutiva ficam com a equipe.
+    assistiveTech: [], supportStaff: [], networkDemands: [],
+    aeeServices: [], assessmentAccessibility: [], monitoring: [], familyFeedback: [],
     reviewWeeks: 12,
     objectives: priorities(profile, study).map(({ dimension, current }) => {
       const currentSupport = Math.min(5, Math.max(1, current));

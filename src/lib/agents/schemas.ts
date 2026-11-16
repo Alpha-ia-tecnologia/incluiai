@@ -33,13 +33,52 @@ export const ProposedObjectiveSchema = z.object({
 });
 export type ProposedObjective = z.infer<typeof ProposedObjectiveSchema>;
 
-export const PlanProposalSchema = z.object({
+// O que cada agente escreve. O plano reúne o PAEE e o PEI (Portaria MEC nº
+// 421/2026, arts. 10 e 11) e os objetivos; as listas de opções de cada campo
+// vão no pedido (plan-graph.ts) e os nomes são conferidos depois, na finalização.
+export const PaeeProposalSchema = z.object({
+  accessibilityResources: z.array(z.string()).describe("Art. 10, I: materiais e recursos de acessibilidade para o estudante participar."),
+  assistiveTech: z.array(z.string()).describe("Art. 10, II: tecnologia assistiva e comunicação alternativa. Lista vazia se o caso não permite avaliar."),
+  supportStaff: z.array(z.string()).describe("Art. 10, III: profissional de apoio escolar, intérprete de Libras, guia-intérprete. Lista vazia se o caso não permite avaliar."),
+  networkDemands: z.array(z.string()).describe("Art. 10, IV: formação da equipe e articulação com a rede de proteção social."),
+});
+export type PaeeProposal = z.infer<typeof PaeeProposalSchema>;
+
+export const PeiProposalSchema = z.object({
+  aeeServices: z.array(z.string()).describe("Art. 11, I: tipos de atendimento do AEE, com os nomes do Censo Escolar, exatamente como na lista recebida."),
+  aeeStrategies: z.array(z.string()).describe("Art. 11, I: atividades no AEE."),
+  commonRoomStrategies: z.array(z.string()).describe("Art. 11, I e II: o que muda na classe comum para o estudante aprender com a turma."),
+  assessmentAccessibility: z.array(z.string()).describe("Art. 11, II: recursos de acessibilidade na avaliação."),
+  monitoring: z.array(z.string()).describe("Art. 11, III: como a equipe acompanha o plano."),
+  familyFeedback: z.array(z.string()).describe("Art. 11, IV: como e quando a família recebe a devolutiva."),
+});
+export type PeiProposal = z.infer<typeof PeiProposalSchema>;
+
+export const ObjectivesProposalSchema = z.object({
   initialSituation: z.array(z.string()).describe("O que o estudante já consegue fazer, item a item."),
+  reviewWeeks: z.number().int().describe("Em quantas semanas a equipe deve revisar o plano."),
+  objectives: z.array(ProposedObjectiveSchema).describe("De 2 a 3 objetivos observáveis."),
+});
+export type ObjectivesProposal = z.infer<typeof ObjectivesProposalSchema>;
+
+// A proposta guardada como rascunho (PlanDraft) e lida pela tela e pela ativação.
+// Os campos do PAEE e do PEI que chegaram depois têm lista vazia por padrão:
+// rascunhos gravados antes deles continuam legíveis.
+const laterList = () => z.array(z.string()).default([]);
+export const PlanProposalSchema = z.object({
+  initialSituation: z.array(z.string()),
   commonRoomStrategies: z.array(z.string()),
   aeeStrategies: z.array(z.string()),
   accessibilityResources: z.array(z.string()),
-  reviewWeeks: z.number().int().describe("Em quantas semanas a equipe deve revisar o plano."),
-  objectives: z.array(ProposedObjectiveSchema).describe("De 2 a 3 objetivos observáveis."),
+  assistiveTech: laterList(),
+  supportStaff: laterList(),
+  networkDemands: laterList(),
+  aeeServices: laterList(),
+  assessmentAccessibility: laterList(),
+  monitoring: laterList(),
+  familyFeedback: laterList(),
+  reviewWeeks: z.number().int(),
+  objectives: z.array(ProposedObjectiveSchema),
 });
 export type PlanProposal = z.infer<typeof PlanProposalSchema>;
 
@@ -52,6 +91,17 @@ export const ReviewSchema = z.object({
   })),
 });
 export type Review = z.infer<typeof ReviewSchema>;
+
+// Revisão do plano parte a parte, para devolver só o que precisa ser refeito.
+export const PLAN_PARTS = ["paee", "pei", "objetivos"] as const;
+export type PlanPart = (typeof PLAN_PARTS)[number];
+export const PlanReviewSchema = z.object({
+  avaliacoes: z.array(z.object({
+    parte: z.enum(PLAN_PARTS),
+    aprovado: z.boolean(),
+    problemas: ReviewSchema.shape.problemas,
+  })).describe("Uma avaliação para cada parte: paee, pei e objetivos."),
+});
 
 // ---------- Atividades ----------
 export const AgentCardSchema = z.object({

@@ -48,11 +48,16 @@ export function profileText(profile: FunctionalProfile) {
   ].filter(Boolean).join("\n");
 }
 
+// "Público da educação especial" segue só como sim, em avaliação ou não: a
+// categoria (deficiência, transtorno do espectro autista, altas habilidades) é
+// informação de diagnóstico e fica na plataforma.
+const withoutCategory = (key: string, value: string) => (key === "publicoAlvo" ? value.replace(/^Sim:.*$/, "Sim") : value);
+
 export function caseStudyText(content: string | null | undefined) {
   const study = parseCaseStudy(content);
   return CASE_STUDY_FIELDS
     .filter((field) => !EXCLUDED_CASE_FIELDS.has(field.key) && study[field.key])
-    .map((field) => `${field.label}: ${field.type === "multi" ? splitItems(study[field.key]).join(", ") : study[field.key]}`)
+    .map((field) => `${field.label}: ${field.type === "multi" ? splitItems(study[field.key]).join(", ") : withoutCategory(field.key, study[field.key])}`)
     .join("\n");
 }
 

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  ACTIVITY_AGENTS, ACTIVITY_REVIEWER, ILLUSTRATION, PLAN_AGENTS, RULES_ENGINE, TIP_POOLS, TOOL_FAMILY, TOOL_HINTS, WAIT_LABELS,
+  ACTIVITY_AGENTS, ACTIVITY_REVIEWER, ILLUSTRATION, PLAN_AGENTS, PLAN_WRITERS, RULES_ENGINE, TIP_POOLS, TOOL_FAMILY, TOOL_HINTS, WAIT_LABELS,
   artFor, chatCaption, deriveGarden, endingCaption, inlineCaption, longBudget, sunAngle,
 } from "./garden-scenes.ts";
 import { TOOL_LABELS } from "./labels.ts";
@@ -24,7 +24,7 @@ test("nomes dos agentes batem com os grafos e com as ferramentas", () => {
   const activity = readFileSync(new URL("../agents/activity-graph.ts", import.meta.url), "utf8");
   const generate = readFileSync(new URL("../agents/generate.ts", import.meta.url), "utf8");
   const tools = readFileSync(new URL("./tools.ts", import.meta.url), "utf8");
-  for (const name of PLAN_AGENTS) assert.ok(plan.includes(`"${name}"`), name);
+  for (const name of [...PLAN_AGENTS, ...PLAN_WRITERS]) assert.ok(plan.includes(`"${name}"`), name);
   for (const name of [...ACTIVITY_AGENTS, ACTIVITY_REVIEWER]) assert.ok(activity.includes(`"${name}"`), name);
   assert.ok(generate.includes(`"${RULES_ENGINE}"`));
   assert.ok(tools.includes(`"${ILLUSTRATION}"`));
@@ -96,7 +96,20 @@ test("plano: só o degrau do agente real acende; ajustes e regras", () => {
     ["Analista do caso", "start"], ["Analista do caso", "end"], ["Planejador do PPI", "start"], ["Planejador do PPI", "end"],
     ["Revisor pedagógico", "start"], ["Revisor pedagógico", "end"], ["Planejador do PPI", "start"]) })], false);
   assert.equal(again.long?.stage, "ajustes");
-  assert.equal(again.label, "O planejador ajusta a proposta…");
+  assert.equal(again.label, "Os agentes ajustam a proposta…");
+  // PAEE, PEI e objetivos em paralelo: o degrau do meio só se completa com os três.
+  const writing = deriveGarden([step("propor_plano", undefined, { progress: progress(
+    ["Analista do caso", "start"], ["Analista do caso", "end"], ["Agente do PAEE", "start"], ["Agente do PEI", "start"], ["Planejador do PPI", "start"], ["Agente do PAEE", "end"]) })], false);
+  assert.equal(writing.long?.stage, "planejador");
+  assert.equal(writing.label, "Escrevendo o PAEE, o PEI e os objetivos…");
+  assert.deepEqual(writing.rungs, ["feito", "ativo", "espera"]);
+  const written = deriveGarden([step("propor_plano", undefined, { progress: progress(
+    ["Analista do caso", "end"], ["Agente do PAEE", "end"], ["Agente do PEI", "end"], ["Planejador do PPI", "end"], ["Revisor pedagógico", "start"]) })], false);
+  assert.deepEqual(written.rungs, ["feito", "feito", "ativo"]);
+  const fixing = deriveGarden([step("propor_plano", undefined, { progress: progress(
+    ["Analista do caso", "end"], ["Agente do PAEE", "end"], ["Agente do PEI", "end"], ["Planejador do PPI", "end"],
+    ["Revisor pedagógico", "start"], ["Revisor pedagógico", "end"], ["Agente do PEI", "start"]) })], false);
+  assert.equal(fixing.long?.stage, "ajustes");
   assert.equal(chatCaption(again, 0, 30, "popup", true).hint, "O revisor pediu ajustes. Isso é normal.");
   const rules = deriveGarden([step("propor_plano", undefined, { progress: progress(["Analista do caso", "start"], ["Analista do caso", "fail"], ["Motor de regras", "start"]) })], false);
   assert.equal(rules.long?.stage, "regras");

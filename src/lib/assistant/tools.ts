@@ -260,7 +260,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
     });
 
   const proporPlano = define(ctx, "propor_plano",
-    "Pede aos agentes de IA uma proposta de plano (PPI) para o estudante, a partir do estudo de caso e de como aprende. Demora de 1 a 3 minutos e tem custo; chame só quando a pessoa pedir claramente. A proposta fica aguardando revisão em /estudantes/ID/ppi#proposta.",
+    "Pede aos agentes de IA uma proposta de plano (PAEE, PEI e objetivos) para o estudante, a partir do estudo de caso e de como aprende. Demora de 1 a 3 minutos e tem custo; chame só quando a pessoa pedir claramente. A proposta fica aguardando revisão em /estudantes/ID/ppi#proposta.",
     z.object({ estudante: studentRef }),
     async (args, report) => {
       const id = await resolveStudentId(ctx, args.estudante);
@@ -272,8 +272,10 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
         `Revisão sugerida em ${proposal.reviewWeeks} semanas. O estudante já consegue: ${proposal.initialSituation.join("; ")}.`,
         `Objetivos propostos:\n${proposal.objectives.map((objective, index) => `${index + 1}. [${DIMENSIONS[objective.dimension] ?? objective.dimension}] ${objective.action}, ${objective.condition}, em ${objective.criterion}, em ${objective.deadlineWeeks} semanas (apoio ${objective.currentSupport} → ${objective.targetSupport}). Por quê: ${objective.rationale}`).join("\n")}`,
         `Estratégias para a sala comum: ${proposal.commonRoomStrategies.join("; ")}.`,
+        proposal.aeeServices.length ? `Atendimentos do AEE sugeridos (nomes do Censo): ${proposal.aeeServices.join("; ")}.` : "",
+        "A proposta também sugere os itens do PAEE e do PEI (recursos, tecnologia assistiva, apoio, rede, avaliação, acompanhamento e devolutiva) para a equipe conferir.",
         `A pessoa revisa, escolhe os objetivos e ativa o plano em /estudantes/${id}/ppi#proposta.`,
-      ].join("\n");
+      ].filter(Boolean).join("\n");
     });
 
   const gerarAtividades = define(ctx, "gerar_atividades",

@@ -9,9 +9,9 @@ import { SUPPORT_LEVELS, DIMENSIONS } from "@/lib/scale";
 import { CONDITION_SUGGESTIONS, CRITERION_SUGGESTIONS, buildObjectiveDescription } from "@/lib/objective";
 import { isAIEnabled } from "@/lib/agents/model";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded, parseCaseStudy } from "@/lib/case-study";
-import type { CaseAnalysis, PlanProposal, TraceStep } from "@/lib/agents/schemas";
+import { PlanProposalSchema, type CaseAnalysis, type PlanProposal, type TraceStep } from "@/lib/agents/schemas";
 import { DEADLINE_WEEKS, INITIAL_SITUATION_OPTIONS } from "@/lib/form-options";
-import { PAEE_ITEMS, PEI_ITEMS, censusDifferences, missingCount, missingPlanItems, planDefaultsFromCaseStudy, type CensusDifference, type PlanDocuments, type PlanItem } from "@/lib/plan-documents";
+import { PAEE_ITEMS, PEI_ITEMS, censusDifferences, mergeProposalDefaults, missingCount, missingPlanItems, planDefaultsFromCaseStudy, type CensusDifference, type PlanDocuments, type PlanItem } from "@/lib/plan-documents";
 import { censusMetaOf } from "@/lib/census";
 import { PLAN_RULES } from "@/lib/federal-guidance";
 import { FederalGuidance } from "@/components/federal-guidance";
@@ -131,7 +131,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <ProposalReview
             studentId={id}
             studentName={student.name}
-            proposal={JSON.parse(draft.content) as PlanProposal}
+            proposal={PlanProposalSchema.parse(JSON.parse(draft.content))}
             analysis={draft.analysis ? (JSON.parse(draft.analysis) as CaseAnalysis) : null}
             trace={JSON.parse(draft.trace) as TraceStep[]}
             source={draft.source}
@@ -161,7 +161,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             items={aiOn
               ? [
                   { icon: ScanSearch, label: "Analista lê o estudo de caso" },
-                  { icon: Target, label: "Planejador propõe objetivos" },
+                  { icon: Target, label: "Três agentes propõem o PAEE, o PEI e os objetivos" },
                   { icon: ShieldCheck, label: "Revisor confere" },
                   { icon: UserCheck, label: "Você decide e ativa" },
                 ]
@@ -570,12 +570,8 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
         <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} defaultValue={proposal.initialSituation} required {...multiStyle} />
         <PlanDocumentFields
           idPrefix="proposta"
-          defaults={{
-            ...documentDefaults,
-            commonRoomStrategies: proposal.commonRoomStrategies.join("; ") || null,
-            aeeStrategies: proposal.aeeStrategies.join("; ") || null,
-            accessibilityResources: proposal.accessibilityResources.join("; ") || null,
-          }}
+          // O que o estudo de caso registrou e o que a proposta trouxe, campo a campo: a equipe confere tudo antes de ativar.
+          defaults={mergeProposalDefaults(documentDefaults, proposal)}
         />
         <div>
           <label htmlFor="proposal-review-date" className={labelCls}>Quando a equipe vai revisar este plano? *</label>
