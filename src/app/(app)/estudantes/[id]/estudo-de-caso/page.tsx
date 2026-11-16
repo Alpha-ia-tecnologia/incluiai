@@ -249,7 +249,7 @@ export default async function CaseStudyPage({
             <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
               <span className="min-w-0">
                 <span className="block text-base font-semibold text-ink">Aprofundar o estudo <span className="font-normal text-ink-soft">· opcional</span></span>
-                <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Histórico escolar, entrevista com a família, escuta do estudante, observação e avaliação pedagógica. Preencha quando tiver as informações.</span>
+                <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Entrevista com a família, escuta do estudante, observação e avaliação pedagógica. Preencha quando tiver as informações.</span>
               </span>
               <span className="flex shrink-0 items-center gap-2 text-xs text-ink-soft">
                 <span className="tabular-nums">{deeperFilled} de {deeperFields.length} respondidas</span>

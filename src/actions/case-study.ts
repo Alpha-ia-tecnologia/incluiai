@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, canSeeClinicalDetail, getCurrentUser } from "@/lib/auth";
-import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, conductedByAee, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
+import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, RETIRED_CASE_FIELDS, conductedByAee, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
 
 const MAX_LENGTH = 3000;
 
@@ -22,8 +22,11 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
   }
 
   const clinical = canSeeClinicalDetail(user.role);
-  const stored = clinical ? null : parseCaseStudy((await prisma.caseStudy.findUnique({ where: { studentId }, select: { content: true } }))?.content);
+  const previous = parseCaseStudy((await prisma.caseStudy.findUnique({ where: { studentId }, select: { content: true } }))?.content);
+  const stored = clinical ? null : previous;
   const content: CaseStudyContent = {};
+  // Respostas de campos que saíram do formulário continuam guardadas no estudo.
+  for (const key of RETIRED_CASE_FIELDS) if (previous[key]) content[key] = previous[key];
   for (const field of CASE_STUDY_FIELDS) {
     // Sem permissão para dado clínico, o campo continua como estava (o formulário nem o mostra).
     if (!clinical && CLINICAL_CASE_FIELDS.has(field.key)) {

@@ -8,7 +8,6 @@
 // conduzido pelo professor do AEE (src/lib/federal-guidance.ts).
 
 import {
-  AEE_FREQUENCY_OPTIONS,
   COMMUNICATION_OPTIONS,
   INTEREST_OPTIONS,
   STRENGTH_OPTIONS,
@@ -65,19 +64,6 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
     ],
   },
   {
-    id: "historico",
-    title: "Histórico escolar",
-    source: "Secretaria da escola e família",
-    description: "Trajetória escolar e apoios que o estudante já recebeu.",
-    fields: [
-      { key: "idadeEntrada", label: "Com que idade entrou na escola", type: "choice", options: ["Antes dos 2 anos", "Entre 2 e 3 anos", "Entre 4 e 5 anos", "Com 6 anos ou mais", "Não sabe informar"] },
-      { key: "frequencia", label: "Frequência escolar", type: "choice", options: ["Regular", "Faltas ocasionais", "Faltas frequentes", "Afastamento prolongado"] },
-      { key: "reprovacoes", label: "Reprovações", type: "choice", options: ["Nenhuma", "1 reprovação", "2 reprovações", "3 ou mais"] },
-      { key: "jaFrequentou", label: "Já frequentou", type: "multi", options: ["Creche", "Pré-escola", "Outra escola regular", "Escola especial", "Classe especial", "AEE em outra escola"] },
-      { key: "apoiosAnteriores", label: "Apoios que já recebeu", type: "multi", wide: true, options: ["AEE", "Profissional de apoio", "Reforço escolar", "Intérprete de Libras", "Material adaptado", "Comunicação alternativa", "Nenhum"] },
-    ],
-  },
-  {
     id: "familia",
     title: "Entrevista com a família",
     source: "Família ou responsáveis",
@@ -85,8 +71,6 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
     fields: [
       { key: "entrevistados", label: "Quem participou da entrevista", type: "multi", options: ["Mãe", "Pai", "Avó", "Avô", "Responsável legal", "Cuidador(a)"] },
       { key: "moraCom", label: "Com quem mora", type: "multi", options: ["Mãe", "Pai", "Avós", "Irmãos", "Tios", "Padrasto ou madrasta", "Família acolhedora", "Acolhimento institucional"] },
-      { key: "andou", label: "Quando começou a andar", type: "choice", options: ["Antes de 1 ano", "Entre 1 e 2 anos", "Depois dos 2 anos", "Ainda não anda", "Não sabe informar"] },
-      { key: "falou", label: "Quando começou a falar", type: "choice", options: ["Até 2 anos", "Entre 2 e 3 anos", "Depois dos 3 anos", "Ainda não fala", "Não sabe informar"] },
       {
         key: "saude", label: "Questões de saúde que afetam a rotina escolar", type: "multi", wide: true,
         hint: "Registre só o que a escola precisa saber para cuidar e incluir.",
@@ -101,16 +85,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
         hint: "Não é obrigatório: laudo não pode ser exigido para matrícula, AEE ou Censo (Portaria MEC nº 421/2026, art. 7º, § 4º).",
         options: ["Deficiência intelectual", "Deficiência física", "Deficiência visual", "Deficiência auditiva ou surdez", "Surdocegueira", "Deficiência múltipla", "Transtorno do espectro autista", "Altas habilidades ou superdotação", "Em investigação", "Sem diagnóstico"],
       },
-      { key: "comunicacaoCasa", label: "Como se comunica em casa", type: "multi", wide: true, options: COMMUNICATION_OPTIONS },
-      {
-        key: "autonomiaCasa", label: "O que faz sozinho(a) em casa", type: "multi", wide: true,
-        options: ["Come sem ajuda", "Veste-se sem ajuda", "Usa o banheiro sem ajuda", "Escova os dentes", "Guarda os brinquedos", "Ajuda em tarefas da casa", "Brinca com outras crianças"],
-      },
       { key: "interessesCasa", label: "Do que gosta em casa", type: "multi", wide: true, options: INTEREST_OPTIONS },
-      {
-        key: "expectativas", label: "O que a família espera da escola", type: "multi", wide: true,
-        options: ["Que aprenda a ler e escrever", "Que faça amigos", "Que se comunique melhor", "Que ganhe autonomia", "Que se sinta bem na escola", "Que acompanhe a turma"],
-      },
     ],
   },
   {
@@ -143,10 +118,6 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
       {
         key: "interacao", label: "Interação", type: "multi", wide: true,
         options: ["Busca os colegas", "Aceita a aproximação dos colegas", "Prefere ficar sozinho(a)", "Interage mais com adultos", "Tem um colega de referência", "Tem conflitos frequentes"],
-      },
-      {
-        key: "comportamento", label: "Durante as atividades", type: "multi", wide: true,
-        options: ["Mantém a atenção na tarefa", "Distrai-se com facilidade", "Movimenta-se muito", "Fica agitado(a) com barulho", "Segue os combinados", "Precisa de lembretes frequentes", "Organiza o próprio material"],
       },
       {
         key: "impedimentos", label: "Impedimentos de longo prazo observados na escola", type: "multi", requiredToConclude: true, wide: true,
@@ -190,7 +161,6 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
         hint: "Público do AEE: estudantes com deficiência, transtorno do espectro autista ou altas habilidades/superdotação.",
         options: ["Sim: estudante com deficiência", "Sim: transtorno do espectro autista", "Sim: altas habilidades ou superdotação", "Em avaliação pela equipe", "Não é público do AEE: acompanhar na sala comum"],
       },
-      { key: "frequenciaAee", label: "Frequência sugerida para o AEE", type: "choice", options: AEE_FREQUENCY_OPTIONS },
       {
         key: "necessidades", label: "Necessidades educacionais identificadas", type: "multi", requiredToConclude: true, wide: true,
         hint: "As que são tipo de AEE no Censo já vêm marcadas no PEI.",
@@ -228,6 +198,15 @@ export const CASE_STUDY_FIELDS = CASE_STUDY_SECTIONS.flatMap((section) => sectio
 
 // Nomes que mudaram: o que foi salvo antes aparece com o nome de hoje.
 const RENAMED: Record<string, Record<string, string>> = { barreiras: { "Física": BARRIERS.fisica } };
+
+// Campos que saíram do formulário por não alimentarem nenhuma outra parte da
+// plataforma (histórico escolar, marcos do desenvolvimento, rotina em casa,
+// comportamento nas atividades e frequência sugerida do AEE). As respostas já
+// dadas continuam guardadas: a ação de salvar as mantém (src/actions/case-study.ts).
+export const RETIRED_CASE_FIELDS: readonly string[] = [
+  "idadeEntrada", "frequencia", "reprovacoes", "jaFrequentou", "apoiosAnteriores",
+  "andou", "falou", "comunicacaoCasa", "autonomiaCasa", "expectativas", "comportamento", "frequenciaAee",
+];
 
 export function parseCaseStudy(content: string | null | undefined): CaseStudyContent {
   if (!content) return {};
