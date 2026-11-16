@@ -50,8 +50,10 @@ export const DIMENSIONS: Record<string, string> = {
   regulacao: "Regulação",
 };
 
+// Os cinco tipos de barreira que o INEP lista no estudo de caso. A chave
+// "fisica" ficou da versão anterior; o nome é o do INEP (arquitetônica).
 export const BARRIERS: Record<string, string> = {
-  fisica: "Física",
+  fisica: "Arquitetônica",
   comunicacional: "Comunicacional",
   pedagogica: "Pedagógica",
   atitudinal: "Atitudinal",

@@ -423,6 +423,19 @@ model Plan {
   commonRoomStrategies   String?
   aeeStrategies          String?
   accessibilityResources String?
+  // PAEE e PEI no mesmo documento (Portaria MEC nº 421/2026, art. 7º, § 2º), com
+  // quem elabora cada um (orientação do INEP para o Censo Escolar) e o conteúdo
+  // mínimo dos arts. 10 e 11. Planos anteriores ficam sem eles até a equipe completar.
+  aeeTeacher              String? // professor(a) do AEE: elabora o PAEE
+  regularTeacher          String? // professor(a) da classe comum: elabora o PEI
+  participants            String? // quem mais participou (família, o próprio estudante...)
+  assistiveTech           String? // PAEE, art. 10, II: tecnologia assistiva e CAA
+  supportStaff            String? // PAEE, art. 10, III: profissional de apoio e intérpretes
+  networkDemands          String? // PAEE, art. 10, IV: formação e rede de proteção social
+  aeeServices             String? // PEI, art. 11, I: tipos de atendimento do AEE, com os nomes do Educacenso (registro 60)
+  assessmentAccessibility String? // PEI, art. 11, II: acessibilidade na avaliação (os recursos do Educacenso, registro 30, primeiro)
+  monitoring              String? // PEI, art. 11, III: acompanhamento e monitoramento
+  familyFeedback          String? // PEI, art. 11, IV: devolutivas à família
   reviewDate             DateTime
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt

@@ -14,6 +14,8 @@ import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { CensusVerifyForm, CensusWindowForm, FndeForm } from "@/components/census/census-forms";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
+import { FederalGuidance } from "@/components/federal-guidance";
+import { CENSUS_RULES } from "@/lib/federal-guidance";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +59,18 @@ export default async function CensusPage() {
             { icon: ShieldCheck, label: "Confere a dupla matrícula" },
           ]}
         />
+        <Card>
+          <SectionTitle>Registro de referência para declarar no Censo</SectionTitle>
+          {overview.platformAee ? (
+            <>
+              <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink tabular-nums">
+                {count(overview.referenced)}<span className="ml-1.5 text-xl font-normal text-ink-soft">de {overview.platformAee}</span>
+              </p>
+              <p className="mt-2 mb-4 text-sm text-ink-soft">estudantes com AEE têm estudo de caso concluído ou PAEE</p>
+            </>
+          ) : null}
+          <FederalGuidance rules={CENSUS_RULES} summary="O que basta para declarar" />
+        </Card>
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -146,7 +160,8 @@ export default async function CensusPage() {
                 {school.note && school.note.tone !== "ok" ? <p className="mt-2 text-xs leading-relaxed text-amber-800">{school.note.text}</p> : null}
                 <p className="mt-2 text-sm text-ink">
                   {school.platformAee} {school.platformAee === 1 ? "estudante" : "estudantes"} com AEE na plataforma
-                  {school.coverage ? `; dupla matrícula confirmada para ${count(school.coverage.confirmed)}${school.coverage.percent !== null ? ` (${school.coverage.percent}%)` : ""}.` : "."}
+                  {school.coverage ? `; dupla matrícula confirmada para ${count(school.coverage.confirmed)}${school.coverage.percent !== null ? ` (${school.coverage.percent}%)` : ""}` : ""}
+                  {school.platformAee ? `; registro de referência para ${count(school.referenced)}.` : "."}
                 </p>
                 {school.canOpen ? <p className="mt-2 text-sm"><Link href={`/censo/escolas/${school.id}`} className="inline-flex min-h-11 items-center gap-1 font-medium text-brand-strong underline underline-offset-4">Abrir a escola <ArrowRight size={16} aria-hidden /></Link></p> : null}
               </li>

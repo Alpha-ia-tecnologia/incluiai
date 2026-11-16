@@ -6,6 +6,7 @@ import { buildObjectiveDescription } from "@/lib/objective";
 import { validBnccCode } from "@/lib/bncc";
 import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
 import { assertCaseStudyConcluded, assertNoActivePlan, closeStudentPlan, reviewStudentPlan, setObjectiveStatus } from "@/lib/records";
+import { planDocumentsFromForm } from "@/lib/plan-documents";
 
 // Plano de ensino: equipe com acesso ao estudante e estudo de caso concluído (CA02).
 export async function createPlan(studentId: string, formData: FormData) {
@@ -19,14 +20,13 @@ export async function createPlan(studentId: string, formData: FormData) {
       studentId,
       status: "ativo",
       initialSituation: String(formData.get("initialSituation") ?? "").trim(),
-      commonRoomStrategies: String(formData.get("commonRoomStrategies") ?? "").trim() || null,
-      aeeStrategies: String(formData.get("aeeStrategies") ?? "").trim() || null,
-      accessibilityResources: String(formData.get("accessibilityResources") ?? "").trim() || null,
+      // PAEE e PEI: estratégias, recursos, autoria e o conteúdo mínimo da Portaria.
+      ...planDocumentsFromForm((name) => formData.get(name)),
       reviewDate,
     },
   });
   await prisma.timelineEvent.create({
-    data: { studentId, type: "plano", title: "PPI elaborado", description: "Plano individual de acompanhamento criado." },
+    data: { studentId, type: "plano", title: "PAEE e PEI elaborados", description: "Plano de ensino criado a partir do estudo de caso." },
   });
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: "Plano individual (preenchido pela equipe)" } });
   revalidatePath("/estudantes/[id]", "layout");
@@ -95,6 +95,18 @@ export async function reviewPlan(studentId: string, planId: string, formData: Fo
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");
+}
+
+// Completar ou atualizar o PAEE e o PEI do plano ativo (planos anteriores à
+// orientação do INEP não tinham autoria nem todo o conteúdo mínimo).
+export async function updatePlanDocuments(studentId: string, planId: string, formData: FormData) {
+  const user = await requireStudentTeam(studentId);
+  const plan = await prisma.plan.findFirst({ where: { id: planId, studentId, status: "ativo" }, select: { id: true } });
+  if (!plan) throw new Error("Plano ativo não encontrado para este estudante.");
+  await prisma.plan.update({ where: { id: plan.id }, data: planDocumentsFromForm((name) => formData.get(name)) });
+  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "editou", detail: "PAEE e PEI do plano de ensino" } });
+  revalidatePath("/estudantes/[id]", "layout");
+  revalidatePath("/dossie");
 }
 
 // Encerrar o plano (com motivo). Depois disso, a equipe pode elaborar um novo.

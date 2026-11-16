@@ -26,7 +26,7 @@ Pedagógica, não clínica: o AEE não depende de laudo e nenhuma etapa pede dia
 ## Operating Context
 
 - Escolas públicas municipais; uso na sala do AEE, na sala comum e entre aulas, em computador, tablet e celular.
-- Normas que a plataforma documenta: Nota Técnica MEC/SECADI/DPEE nº 04/2014, Decreto nº 12.686/2025, Portaria MEC nº 421/2026 e o Censo Escolar (Educacenso).
+- Normas que a plataforma documenta: Nota Técnica MEC/SECADI/DPEE nº 04/2014, Decreto nº 12.686/2025, Portaria MEC nº 421/2026, a orientação do INEP sobre os registros para declarar o público da educação especial no Censo (31/08/2026) e o Censo Escolar (Educacenso). As telas que seguem essas normas mostram o selo "Orientação do Governo Federal" com o link para o gov.br.
 - Produção em PostgreSQL (EasyPanel); desenvolvimento em SQLite com contas de demonstração (`demo123`).
 
 ## Capabilities and Constraints

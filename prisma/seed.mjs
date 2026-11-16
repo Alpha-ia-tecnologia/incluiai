@@ -139,6 +139,7 @@ async function main() {
         comunicacaoEscola: "Prancha de comunicação (CAA); Gestos e apontar",
         interacao: "Interage mais com adultos; Tem um colega de referência",
         comportamento: "Fica agitado(a) com barulho; Precisa de lembretes frequentes",
+        impedimentos: "Na fala e na comunicação; Na interação social; Na atenção e na autorregulação",
         barreiras: "Comunicacional; Pedagógica",
         leitura: "Reconhece algumas letras",
         escrita: "Pré-silábica",

@@ -5,6 +5,7 @@ import { parseJson } from "./format";
 import { digitsOnly, identityKeys, parseEducacensoFile, specialEdPersons, type CensusPerson, type ParseStats } from "./educacenso";
 import { buildSyncPlan, censusCounts, regularOnlyIds, schoolFundebNote, sumCounts, toSnapshot, type AeeEstimate, type CensusCounts, type CoverageRow, type ReviewDecision, type SchoolInfo, type SyncPlan } from "./census-rules";
 import { aeeEstimate, isoDay, networkSnapshots, schoolCoverage, schoolStudents } from "./census-core";
+import { censusReference, type CensusReferenceRecord } from "./federal-guidance";
 
 // Censo Escolar (Educacenso) na escola: o arquivo de migração vira uma prévia,
 // a equipe revisa e aplica; a aplicação atualiza o cadastro e guarda a
@@ -112,7 +113,9 @@ export async function discardImport(user: SessionUser, importId: string) {
   await prisma.censusImport.update({ where: { id: importId }, data: { status: "descartada", persons: "[]", regularOnly: "[]" } });
 }
 
-type CensusMeta = { syncedAt: string; schoolInep: string; aee: boolean; regular: boolean; aeeClass: string | null; regularClass: string | null; services: string[] };
+// O que o último arquivo aplicado declarou para o estudante: tipos de AEE
+// (registro 60) e recursos nas avaliações (registro 30). `resources` veio depois.
+export type CensusMeta = { syncedAt: string; schoolInep: string; aee: boolean; regular: boolean; aeeClass: string | null; regularClass: string | null; services: string[]; resources?: string[] };
 export const censusMetaOf = (value: string | null) => parseJson<CensusMeta | null>(value, null);
 
 // CPF na tela: só os dígitos do meio (a prévia não precisa do número inteiro).
@@ -126,7 +129,7 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
   if (plan.totals.review) return { error: `Resolva ${plan.totals.review === 1 ? "a revisão" : `as ${plan.totals.review} revisões`} antes de aplicar.` };
   const now = new Date();
   const byKey = new Map(persons.map((person) => [person.key, person]));
-  const meta = (person: CensusPerson) => JSON.stringify({ syncedAt: now.toISOString(), schoolInep: censusImport.fileSchoolCode, aee: person.hasAee, regular: person.hasRegular, aeeClass: person.aeeClassName || null, regularClass: person.regularClassName || null, services: person.aeeServices } satisfies CensusMeta);
+  const meta = (person: CensusPerson) => JSON.stringify({ syncedAt: now.toISOString(), schoolInep: censusImport.fileSchoolCode, aee: person.hasAee, regular: person.hasRegular, aeeClass: person.aeeClassName || null, regularClass: person.regularClassName || null, services: person.aeeServices, resources: person.assessmentResources } satisfies CensusMeta);
   const log = (studentId: string, action: string, detail: string) => ({ studentId, actorId: user.id, actor: user.name, role: user.role, action, detail: detail.slice(0, 200) });
   let created = 0;
   let updated = 0;
@@ -195,8 +198,23 @@ export type SchoolOverview = {
   coverage: { confirmed: number; pending: number; percent: number | null; rows: CoverageRow[] } | null;
   platformAee: number;
   attended: number;
+  referenced: number; // com AEE e registro de referência (orientação do INEP)
   canOpen: boolean;
 };
+
+// Orientação do INEP: para declarar o estudante no Censo, basta um registro de
+// referência; o estudo de caso concluído ou o PAEE já bastam. Laudo não entra.
+const REFERENCED = { OR: [{ caseStudy: { is: { status: "concluido" } } }, { plans: { some: { status: "ativo" } } }] };
+
+export type ReferenceRow = { id: string; name: string; backed: boolean; records: CensusReferenceRecord[] };
+export async function schoolReferences(schoolId: string): Promise<ReferenceRow[]> {
+  const students = await prisma.student.findMany({
+    where: { schoolId, status: "ativo", hasAEE: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, caseStudy: { select: { status: true } }, plans: { where: { status: "ativo" }, select: { id: true }, take: 1 } },
+  });
+  return students.map((student) => ({ id: student.id, name: student.name, ...censusReference({ caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: student.plans.length > 0 }) }));
+}
 
 // Visão do Censo: por escola, as contagens do último arquivo, a dupla matrícula dos
 // estudantes do AEE e o que a plataforma registra. A Secretaria recebe só os números.
@@ -214,9 +232,10 @@ export async function censusOverview(user: SessionUser) {
   for (const school of schools) {
     const result = school.censusSnapshot ? await schoolCoverage(school.id, network) : null;
     const where = { schoolId: school.id, status: "ativo", hasAEE: true };
-    const [platformAee, attended] = await Promise.all([
+    const [platformAee, attended, referenced] = await Promise.all([
       prisma.student.count({ where }),
       prisma.student.count({ where: { ...where, aeeSessions: { some: { status: "realizado", date: { gte: since } } } } }),
+      prisma.student.count({ where: { ...where, ...REFERENCED } }),
     ]);
     rows.push({
       id: school.id, name: school.name, inepCode: school.inepCode,
@@ -224,7 +243,7 @@ export async function censusOverview(user: SessionUser) {
       counts: school.censusSnapshot ? parseJson<CensusCounts | null>(school.censusSnapshot.counts, null) : null,
       note: result ? schoolFundebNote(result.info) : null,
       coverage: result ? { confirmed: result.coverage.confirmed, pending: result.coverage.pending, percent: result.coverage.percent, rows: access.network ? [] : result.coverage.rows } : null,
-      platformAee, attended, canOpen: canOpenSchool(user, school.id),
+      platformAee, attended, referenced, canOpen: canOpenSchool(user, school.id),
     });
   }
   const withFile = rows.filter((row) => row.counts);
@@ -239,6 +258,7 @@ export async function censusOverview(user: SessionUser) {
     withFile: withFile.length,
     platformAee: rows.reduce((sum, row) => sum + row.platformAee, 0),
     attended: rows.reduce((sum, row) => sum + row.attended, 0),
+    referenced: rows.reduce((sum, row) => sum + row.referenced, 0),
     pending: rows.reduce((sum, row) => sum + (row.coverage?.pending ?? 0), 0),
   };
 }

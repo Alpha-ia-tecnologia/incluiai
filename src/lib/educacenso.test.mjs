@@ -45,6 +45,9 @@ for (const edition of [2025, 2026]) {
     assert.deepEqual([dante.special, dante.hasAee, dante.hasRegular, dante.stageGroup, dante.regularClassName], [true, true, true, "302", "2º ANO A"]);
     assert.deepEqual(dante.aeeServices, ["Desenvolvimento de funções cognitivas", "Comunicação alternativa e aumentativa (CAA)"]);
     assert.deepEqual([dante.aeeLinks, dante.aeeLinksWithoutService, dante.scheduleOverlap], [1, 0, false]);
+    // Registro 30, campos 36 a 48: os recursos nas avaliações do INEP (mesmas posições nas duas edições).
+    assert.deepEqual(dante.assessmentResources, ["Auxílio ledor", "Tempo adicional"]);
+    assert.deepEqual(byName["NOVA ALUNA DA SILVA"].assessmentResources, []);
     assert.deepEqual(byName["NOVA ALUNA DA SILVA"].aeeServices, ["Desenvolvimento de vida autônoma"]);
     // Classe especial não é classe comum: não confirma a dupla matrícula.
     assert.equal(byName["ALUNA DA CLASSE ESPECIAL"].hasRegular, false);

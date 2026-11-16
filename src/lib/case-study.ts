@@ -2,7 +2,10 @@
 // família, da escola e do próprio estudante antes de planejar. Segue o roteiro
 // usual da educação especial (identificação do caso, coleta de informações em
 // diferentes fontes, análise e encaminhamentos). Não depende de laudo: o AEE é
-// atendimento pedagógico (Nota Técnica MEC/SECADI/DPEE nº 04/2014).
+// atendimento pedagógico (Nota Técnica MEC/SECADI/DPEE nº 04/2014). Segue também
+// o que o INEP descreve para o Censo Escolar: impedimentos observados na escola,
+// potencialidades e demandas de apoio; as cinco barreiras; estratégias e recursos;
+// conduzido pelo professor do AEE (src/lib/federal-guidance.ts).
 
 import {
   AEE_FREQUENCY_OPTIONS,
@@ -12,6 +15,9 @@ import {
   type ChoiceOption,
 } from "./form-options";
 import { BARRIERS } from "./scale";
+import { AEE_TEACHER, REGULAR_TEACHER } from "./federal-guidance";
+
+export { AEE_TEACHER, REGULAR_TEACHER };
 
 export type CaseStudyField = {
   key: string;
@@ -92,7 +98,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
       },
       {
         key: "diagnostico", label: "Diagnóstico informado pela família ou em laudo (opcional)", type: "multi", wide: true,
-        hint: "Não é obrigatório. O AEE é pedagógico e não depende de laudo (Nota Técnica MEC/SECADI/DPEE nº 04/2014).",
+        hint: "Não é obrigatório: laudo não pode ser exigido para matrícula, AEE ou Censo (Portaria MEC nº 421/2026, art. 7º, § 4º).",
         options: ["Deficiência intelectual", "Deficiência física", "Deficiência visual", "Deficiência auditiva ou surdez", "Surdocegueira", "Deficiência múltipla", "Transtorno do espectro autista", "Altas habilidades ou superdotação", "Em investigação", "Sem diagnóstico"],
       },
       { key: "comunicacaoCasa", label: "Como se comunica em casa", type: "multi", wide: true, options: COMMUNICATION_OPTIONS },
@@ -142,6 +148,15 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
         key: "comportamento", label: "Durante as atividades", type: "multi", wide: true,
         options: ["Mantém a atenção na tarefa", "Distrai-se com facilidade", "Movimenta-se muito", "Fica agitado(a) com barulho", "Segue os combinados", "Precisa de lembretes frequentes", "Organiza o próprio material"],
       },
+      {
+        key: "impedimentos", label: "Impedimentos de longo prazo observados na escola", type: "multi", requiredToConclude: true, wide: true,
+        hint: "O que se vê na participação, sem diagnóstico.",
+        options: [
+          "Na visão", "Na audição", "Na fala e na comunicação", "Na mobilidade e na locomoção", "Na coordenação motora",
+          "Na interação social", "Na atenção e na autorregulação", "Na compreensão e na aprendizagem", "Na autonomia na rotina",
+          "Nenhum impedimento de longo prazo observado",
+        ],
+      },
       { key: "barreiras", label: "Barreiras observadas", type: "multi", wide: true, options: Object.values(BARRIERS) },
     ],
   },
@@ -178,10 +193,12 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
       { key: "frequenciaAee", label: "Frequência sugerida para o AEE", type: "choice", options: AEE_FREQUENCY_OPTIONS },
       {
         key: "necessidades", label: "Necessidades educacionais identificadas", type: "multi", requiredToConclude: true, wide: true,
+        hint: "As que são tipo de AEE no Censo já vêm marcadas no PEI.",
         options: [
-          "Comunicação alternativa e aumentativa", "Ensino de Libras", "Ensino do braille", "Orientação e mobilidade",
-          "Adequação de materiais", "Tecnologia assistiva", "Enriquecimento curricular", "Desenvolvimento da autonomia",
-          "Apoio à interação social", "Apoio à autorregulação",
+          "Comunicação alternativa e aumentativa", "Ensino de Libras", "Ensino da Língua Portuguesa como segunda língua", "Ensino do braille",
+          "Ensino do cálculo no Soroban", "Orientação e mobilidade", "Recursos ópticos e não ópticos", "Ensino da informática acessível",
+          "Adequação de materiais", "Tecnologia assistiva", "Enriquecimento curricular", "Desenvolvimento de funções cognitivas",
+          "Desenvolvimento da autonomia", "Apoio à interação social", "Apoio à autorregulação",
         ],
       },
       {
@@ -194,7 +211,8 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
       },
       {
         key: "participantes", label: "Quem participou do estudo de caso", type: "multi", requiredToConclude: true, wide: true,
-        options: ["Professor(a) do AEE", "Professor(a) da sala comum", "Coordenação pedagógica", "Gestão escolar", "Família", "O próprio estudante", "Profissional de apoio", "Terapeuta"],
+        hint: "Conduz: professor(a) do AEE, com a sala comum e a família (INEP).",
+        options: [AEE_TEACHER, REGULAR_TEACHER, "Coordenação pedagógica", "Gestão escolar", "Família", "O próprio estudante", "Profissional de apoio", "Terapeuta"],
       },
       {
         key: "sintese", label: "Síntese do caso", type: "textarea", requiredToConclude: true, wide: true,
@@ -208,14 +226,23 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
 
 export const CASE_STUDY_FIELDS = CASE_STUDY_SECTIONS.flatMap((section) => section.fields);
 
+// Nomes que mudaram: o que foi salvo antes aparece com o nome de hoje.
+const RENAMED: Record<string, Record<string, string>> = { barreiras: { "Física": BARRIERS.fisica } };
+
 export function parseCaseStudy(content: string | null | undefined): CaseStudyContent {
   if (!content) return {};
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(content) as unknown;
-    return parsed && typeof parsed === "object" ? (parsed as CaseStudyContent) : {};
+    parsed = JSON.parse(content);
   } catch {
     return {};
   }
+  if (!parsed || typeof parsed !== "object") return {};
+  const study = { ...(parsed as CaseStudyContent) };
+  for (const [key, names] of Object.entries(RENAMED)) {
+    if (typeof study[key] === "string") study[key] = study[key].split(";").map((item) => names[item.trim()] ?? item.trim()).join("; ");
+  }
+  return study;
 }
 
 export function sectionProgress(section: CaseStudySection, content: CaseStudyContent) {
@@ -230,6 +257,12 @@ export const CLINICAL_CASE_FIELDS: ReadonlySet<string> = new Set(["diagnostico",
 export function missingToConclude(content: CaseStudyContent): CaseStudyField[] {
   return CASE_STUDY_FIELDS.filter((field) => field.requiredToConclude && !content[field.key]?.trim());
 }
+
+// O INEP descreve o estudo de caso conduzido pelo professor do AEE: sem ele
+// entre os participantes, o estudo não conclui.
+const participantsOf = (content: CaseStudyContent) => (content.participantes ?? "").split(/[;\n]/).map((item) => item.trim());
+export const conductedByAee = (content: CaseStudyContent) => participantsOf(content).includes(AEE_TEACHER);
+export const withRegularTeacher = (content: CaseStudyContent) => participantsOf(content).includes(REGULAR_TEACHER);
 
 // O Plano de ensino (PPI/PAEE) parte do estudo de caso CONCLUÍDO — inclusive a
 // proposta preparada pela IA ou pelas regras (descritivo DUA, CA02). O planejamento

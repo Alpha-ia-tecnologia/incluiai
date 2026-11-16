@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, canSeeClinicalDetail, getCurrentUser } from "@/lib/auth";
-import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
+import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, conductedByAee, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
 
 const MAX_LENGTH = 3000;
 
@@ -39,13 +39,18 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
     throw new Error("Preencha os campos essenciais antes de concluir o estudo de caso.");
   }
 
+  // Conduzido pelo professor do AEE (INEP): sem ele entre os participantes, o
+  // estudo é salvo, mas não conclui, e a página avisa. Nada do que foi preenchido se perde.
+  const missingAee = conclude && !conductedByAee(content);
+  const concluding = conclude && !missingAee;
+
   const existing = await prisma.caseStudy.findUnique({ where: { studentId }, select: { status: true } });
-  const status = conclude ? "concluido" : existing?.status === "concluido" ? "concluido" : "rascunho";
+  const status = concluding ? "concluido" : existing?.status === "concluido" ? "concluido" : "rascunho";
   const data = {
     content: JSON.stringify(content),
     status,
     updatedBy: user.name,
-    ...(conclude && existing?.status !== "concluido" ? { concludedAt: new Date() } : {}),
+    ...(concluding && existing?.status !== "concluido" ? { concludedAt: new Date() } : {}),
   };
   await prisma.caseStudy.upsert({
     where: { studentId },
@@ -56,7 +61,7 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
   await prisma.accessLog.create({
     data: { studentId, actor: user.name, role: user.role, action: existing ? "editou" : "criou", detail: "Estudo de caso" },
   });
-  if (conclude && existing?.status !== "concluido") {
+  if (concluding && existing?.status !== "concluido") {
     await prisma.timelineEvent.create({
       data: {
         studentId,
@@ -70,5 +75,6 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");
+  if (missingAee) redirect(`/estudantes/${studentId}/estudo-de-caso?${status === "concluido" ? "editar=1&" : ""}faltaAee=1#secao-sintese`);
   redirect(`/estudantes/${studentId}/estudo-de-caso${conclude || status === "concluido" ? "" : "?salvo=1"}`);
 }

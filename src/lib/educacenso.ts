@@ -42,6 +42,7 @@ export type CensusPerson = {
   regularClassName: string;
   stageGroup: string; // etapa agregada da classe comum (301 a 308)
   aeeServices: string[];
+  assessmentResources: string[]; // recursos em sala de aula e nas avaliações do INEP (registro 30, campos 36 a 48)
   aeeLinks: number; // vínculos em turmas de AEE
   aeeLinksWithoutService: number; // vínculos de AEE sem nenhum tipo de atendimento marcado
   activityLinks: number; // vínculos em AEE ou atividade complementar (o Educacenso aceita até 4)
@@ -54,7 +55,9 @@ export type ParsedCensusFile = { edition: Edition; school: CensusSchool | null; 
 const COMMON = {
   school: { code: 2, name: 6, dependency: 21, privateCategory: 32, municipalPartnership: 34 },
   schoolClass: { systemCode: 3, inepCode: 4, name: 5, mediation: 6, scheduleStart: 7 },
-  person: { systemCode: 3, inepId: 4, cpf: 5, name: 6, birthDate: 7, specialFlag: 17, specialTypesStart: 18, specialTypesCount: 11 },
+  // Recursos (36 a 48; 49 é "Nenhum"): iguais em 2025 e 2026, pois os 2 campos
+  // novos do registro 30 em 2026 (91 e 103, formação docente) vêm depois.
+  person: { systemCode: 3, inepId: 4, cpf: 5, name: 6, birthDate: 7, specialFlag: 17, specialTypesStart: 18, specialTypesCount: 11, resourcesStart: 36 },
   enrollment: { personSystemCode: 3, personInepId: 4, classSystemCode: 5, classInepCode: 6 },
 };
 // 2025: tipo de turma em marcações (14 curricular, 15 atividade complementar, 16 AEE).
@@ -91,6 +94,26 @@ export const AEE_SERVICE_LABELS = [
   "Orientação e mobilidade",
   "Comunicação alternativa e aumentativa (CAA)",
   "Recursos ópticos e não ópticos",
+];
+
+// Registro 30: recursos para uso do(a) aluno(a) em sala de aula e para
+// participação nas avaliações do INEP (Saeb), na ordem do leiaute. O Educacenso
+// pede ao menos um (ou "Nenhum") para o público da educação especial com
+// matrícula, e o Anexo 4 diz quais valem para cada deficiência.
+export const ASSESSMENT_RESOURCE_LABELS = [
+  "Auxílio ledor",
+  "Auxílio transcrição",
+  "Guia-intérprete",
+  "Tradutor-intérprete de Libras",
+  "Leitura labial",
+  "Prova ampliada (fonte 18)",
+  "Prova superampliada (fonte 24)",
+  "CD com áudio para deficiente visual",
+  "Prova de Língua Portuguesa como segunda língua",
+  "Prova em vídeo em Libras",
+  "Material didático em braille",
+  "Prova em braille",
+  "Tempo adicional",
 ];
 
 const field = (fields: string[], position: number) => (fields[position - 1] ?? "").trim();
@@ -182,6 +205,7 @@ function parsePerson(fields: string[]): CensusPerson | null {
     regularClassName: "",
     stageGroup: "",
     aeeServices: [],
+    assessmentResources: ASSESSMENT_RESOURCE_LABELS.filter((_, index) => flag(fields, layout.resourcesStart + index)),
     aeeLinks: 0,
     aeeLinksWithoutService: 0,
     activityLinks: 0,

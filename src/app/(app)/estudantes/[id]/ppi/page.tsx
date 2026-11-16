@@ -2,15 +2,20 @@
 import { ConsentNote } from "@/components/consent-note";
 import { aiAllowedFor } from "@/lib/consent";
 import { prisma } from "@/lib/prisma";
-import { createPlan, createObjective, markObjectiveStatus, reviewPlan, closePlan } from "@/actions/plan";
+import { createPlan, createObjective, markObjectiveStatus, reviewPlan, closePlan, updatePlanDocuments } from "@/actions/plan";
 import { activatePlanDraft, discardPlanDraft, generatePlanDraft } from "@/actions/plan-ai";
 import { formatDate } from "@/lib/format";
 import { SUPPORT_LEVELS, DIMENSIONS } from "@/lib/scale";
 import { CONDITION_SUGGESTIONS, CRITERION_SUGGESTIONS, buildObjectiveDescription } from "@/lib/objective";
 import { isAIEnabled } from "@/lib/agents/model";
-import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "@/lib/case-study";
+import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded, parseCaseStudy } from "@/lib/case-study";
 import type { CaseAnalysis, PlanProposal, TraceStep } from "@/lib/agents/schemas";
-import { ACCESSIBILITY_RESOURCE_OPTIONS, AEE_STRATEGY_OPTIONS, COMMON_ROOM_STRATEGY_OPTIONS, DEADLINE_WEEKS, INITIAL_SITUATION_OPTIONS } from "@/lib/form-options";
+import { DEADLINE_WEEKS, INITIAL_SITUATION_OPTIONS } from "@/lib/form-options";
+import { PAEE_ITEMS, PEI_ITEMS, censusDifferences, missingCount, missingPlanItems, planDefaultsFromCaseStudy, type CensusDifference, type PlanDocuments, type PlanItem } from "@/lib/plan-documents";
+import { censusMetaOf } from "@/lib/census";
+import { PLAN_RULES } from "@/lib/federal-guidance";
+import { FederalGuidance } from "@/components/federal-guidance";
+import { PlanDocumentFields } from "@/components/plan-document-fields";
 import { PageHeader, Card, SectionTitle, Badge, SupportPill, AIDisclaimer } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { PendingButton } from "@/components/pending-button";
@@ -54,7 +59,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   if (!plan && !editable) {
     return (
       <>
-        <PageHeader level={2} title="Plano de ensino (PPI)" lede="Sem plano ativo no momento." />
+        <PageHeader level={2} title="Plano de ensino (PAEE e PEI)" lede="Sem plano ativo no momento." />
         <PastPlans plans={pastPlans} />
       </>
     );
@@ -64,13 +69,13 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     const create = createPlan.bind(null, id);
     const [draft, student] = await Promise.all([
       prisma.planDraft.findUnique({ where: { studentId: id } }),
-      prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true, profile: { select: { id: true } }, caseStudy: { select: { id: true, status: true } } } }),
+      prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true, profile: { select: { id: true } }, caseStudy: { select: { id: true, status: true, content: true } } } }),
     ]);
     // Plano de ensino só com estudo de caso concluído (CA02): o servidor também barra.
     if (!isCaseStudyConcluded(student.caseStudy)) {
       return (
         <>
-          <PageHeader level={2} title="Plano de ensino (PPI)" />
+          <PageHeader level={2} title="Plano de ensino (PAEE e PEI)" />
           <Card className="max-w-2xl border-amber-800/20 bg-amber-soft/50">
             <SectionTitle>Primeiro, conclua o estudo de caso</SectionTitle>
             <p className="text-sm leading-relaxed text-ink" role="status">{CASE_STUDY_REQUIRED_MESSAGE}</p>
@@ -89,15 +94,15 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     const aiOn = await aiAllowedFor(id);
     const consentMissing = isAIEnabled() && !aiOn;
     const generate = generatePlanDraft.bind(null, id);
+    // O PAEE já parte do que o estudo de caso registrou; a equipe confere antes de salvar.
+    const caseDefaults = planDefaultsFromCaseStudy(parseCaseStudy(student.caseStudy?.content), viewer.role === "professor_aee" ? viewer.name : null);
     const manualForm = (
         <Card className="max-w-2xl">
           <SectionTitle>{draft ? "Preencher o plano do zero" : "Comece o plano do estudante"}</SectionTitle>
           <p className={`${hintCls} mb-5`}>Campos com * são obrigatórios.</p>
           <form action={create} className="space-y-6">
             <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} required hint="Marque o que se aplica e use Outro para acrescentar." {...multiStyle} />
-            <MultiChoiceField name="commonRoomStrategies" label="Como apoiar na sala comum (opcional)" options={COMMON_ROOM_STRATEGY_OPTIONS} {...multiStyle} />
-            <MultiChoiceField name="aeeStrategies" label="Como apoiar no AEE (opcional)" options={AEE_STRATEGY_OPTIONS} {...multiStyle} />
-            <MultiChoiceField name="accessibilityResources" label="Recursos de acessibilidade (opcional)" options={ACCESSIBILITY_RESOURCE_OPTIONS} {...multiStyle} />
+            <PlanDocumentFields idPrefix="novo" defaults={caseDefaults} />
             <div>
               <label htmlFor="reviewDate" className={labelCls}>Quando a equipe vai revisar este plano? *</label>
               <input id="reviewDate" name="reviewDate" type="date" required className={inputCls} />
@@ -110,7 +115,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     if (draft) {
       return (
         <>
-          <PageHeader level={2} title="Plano de ensino (PPI)" />
+          <PageHeader level={2} title="Plano de ensino (PAEE e PEI)" />
+          <FederalGuidance rules={PLAN_RULES} summary="Quem elabora o PAEE e o PEI" className="mb-6 max-w-3xl" />
           <div className="mb-6 grid max-w-3xl gap-3">
             <Steps
               label="Como ativar o plano"
@@ -132,6 +138,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             createdBy={draft.createdBy}
             createdAt={draft.createdAt}
             aiOn={aiOn}
+            documentDefaults={caseDefaults}
           />
           <details className="mt-6 max-w-2xl">
             <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-brand-strong">Prefere preencher o plano do zero?</summary>
@@ -144,7 +151,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
     return (
       <>
-        <PageHeader level={2} title="Plano de ensino (PPI)" />
+        <PageHeader level={2} title="Plano de ensino (PAEE e PEI)" />
+        <FederalGuidance rules={PLAN_RULES} summary="Quem elabora o PAEE e o PEI" className="mb-6 max-w-3xl" />
         <Card className="mb-6 max-w-2xl border-brand/30 bg-brand-soft/40">
           <SectionTitle><span className="flex items-center gap-2"><Sparkles size={16} aria-hidden /> {aiOn ? "Peça uma proposta aos agentes de IA" : "Peça uma proposta automática"}</span></SectionTitle>
           <ConsentNote show={consentMissing} />
@@ -186,6 +194,14 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const addObjective = createObjective.bind(null, id, plan.id);
   const review = reviewPlan.bind(null, id, plan.id);
   const close = closePlan.bind(null, id, plan.id);
+  const updateDocuments = updatePlanDocuments.bind(null, id, plan.id);
+  // Conteúdo mínimo e autoria do PAEE e do PEI (Portaria, arts. 10 e 11; INEP).
+  const missing = missingPlanItems(plan);
+  const missingTotal = missingCount(plan);
+  // O que o último arquivo do Censo declarou e o que o estudo de caso sugere para completar o plano.
+  const studentRecord = await prisma.student.findUniqueOrThrow({ where: { id }, select: { census: true, caseStudy: { select: { content: true } } } });
+  const differences = censusDifferences(plan, censusMetaOf(studentRecord.census));
+  const suggested = planDefaultsFromCaseStudy(parseCaseStudy(studentRecord.caseStudy?.content));
   const reviews = reviewSummary(plan.reviews);
   const hasActiveObjectives = plan.objectives.some((objective) => objective.status === "ativo");
   // Apoios de atividades com DUA ligados aos objetivos deste plano, agrupados por objetivo.
@@ -214,10 +230,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   return (
     <>
       <PageHeader level={2}
-        title="Plano de ensino (PPI)"
+        title="Plano de ensino (PAEE e PEI)"
         lede={`Criado em ${formatDate(plan.createdAt)} · data de revisão: ${formatDate(plan.reviewDate)}`}
         actions={<div className="flex flex-wrap items-center gap-2"><PillLink slug="objetivo-bncc" />{overdue ? <Badge tone="coral">Hora de revisar com a equipe</Badge> : <Badge tone="green">Plano ativo</Badge>}</div>}
       />
+      <FederalGuidance rules={PLAN_RULES} summary="Quem elabora o PAEE e o PEI" className="mb-6 max-w-3xl" />
 
       {/* O próximo passo segue a regra da jornada (botão no cabeçalho da ficha). Só
           quando o passo é aqui mesmo (plano sem objetivo ativo) o cartão leva ao formulário. */}
@@ -302,21 +319,26 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         ) : null}
       </Card>
 
-      <div className="mb-6 grid gap-4 lg:grid-cols-2">
-        <Card>
-          <SectionTitle>O que o estudante já consegue fazer</SectionTitle>
-          <p className="text-sm leading-relaxed text-ink">{plan.initialSituation}</p>
-        </Card>
-        <Card>
-          <SectionTitle>Apoios combinados pela equipe</SectionTitle>
-          <dl className="space-y-3 text-sm">
-            {plan.commonRoomStrategies ? (<div><dt className="font-medium text-ink">Na sala comum</dt><dd className="mt-1 text-ink-soft">{plan.commonRoomStrategies}</dd></div>) : null}
-            {plan.aeeStrategies ? (<div><dt className="font-medium text-ink">No AEE</dt><dd className="mt-1 text-ink-soft">{plan.aeeStrategies}</dd></div>) : null}
-            {plan.accessibilityResources ? (<div><dt className="font-medium text-ink">Recursos de acessibilidade</dt><dd className="mt-1 text-ink-soft">{plan.accessibilityResources}</dd></div>) : null}
-          </dl>
-          {!plan.commonRoomStrategies && !plan.aeeStrategies && !plan.accessibilityResources ? <p className="text-sm text-ink-soft">Nenhum apoio foi descrito na criação deste plano.</p> : null}
-        </Card>
+      <Card className="mb-4">
+        <SectionTitle>O que o estudante já consegue fazer</SectionTitle>
+        <p className="text-sm leading-relaxed text-ink">{plan.initialSituation}</p>
+      </Card>
+      <div className="mb-4 grid min-w-0 gap-4 lg:grid-cols-2">
+        <PlanDocumentCard id="paee" title="PAEE" norm="art. 10" teacherLabel="Professor(a) do AEE" teacher={plan.aeeTeacher} participants={plan.participants} items={PAEE_ITEMS} plan={plan} missing={missing.paee} alsoMissing={missing.authorship.filter((item) => item === "participação da família")} showMissing={editable} />
+        <PlanDocumentCard id="pei" title="PEI" norm="art. 11" teacherLabel="Professor(a) da classe comum" teacher={plan.regularTeacher} items={PEI_ITEMS} plan={plan} missing={missing.pei} showMissing={editable} differences={differences} />
       </div>
+      {editable ? (
+        <details id="completar-paee-pei" className="mb-6 max-w-3xl scroll-mt-6 rounded-2xl border border-line p-4">
+          <summary className="flex min-h-11 cursor-pointer flex-wrap items-center gap-2 py-2 text-sm font-medium text-brand-strong">
+            <FilePen size={16} aria-hidden /> {missingTotal ? "Completar o PAEE e o PEI" : "Editar o PAEE e o PEI"}
+            {missingTotal ? <Badge tone="amber">{missingTotal} a registrar</Badge> : null}
+          </summary>
+          <form action={updateDocuments} className="mt-4 grid gap-5">
+            <PlanDocumentFields idPrefix="editar" defaults={{ ...plan, aeeServices: plan.aeeServices ?? suggested.aeeServices ?? null, assessmentAccessibility: plan.assessmentAccessibility ?? suggested.assessmentAccessibility ?? null }} />
+            <div><PendingButton className={buttonCls} pendingText="Salvando o PAEE e o PEI…"><CircleCheck size={16} aria-hidden /> Salvar o PAEE e o PEI</PendingButton></div>
+          </form>
+        </details>
+      ) : null}
 
       <SectionTitle>Objetivos de aprendizagem</SectionTitle>
       <HowToRead className="-mt-2 mb-3" summary="Como ler os objetivos">
@@ -497,7 +519,7 @@ function dateInput(weeks: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function ProposalReview({ studentId, studentName, proposal, analysis, trace, source, createdBy, createdAt, aiOn }: {
+function ProposalReview({ studentId, studentName, proposal, analysis, trace, source, createdBy, createdAt, aiOn, documentDefaults }: {
   studentId: string;
   studentName: string;
   proposal: PlanProposal;
@@ -509,6 +531,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
   // A nova proposta usa a IA se ela estiver ligada agora, qualquer que tenha
   // sido a origem da proposta anterior.
   aiOn: boolean;
+  documentDefaults: Partial<PlanDocuments>;
 }) {
   const activate = activatePlanDraft.bind(null, studentId);
   const discard = discardPlanDraft.bind(null, studentId);
@@ -545,9 +568,15 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
 
       <form action={activate} className="space-y-6">
         <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} defaultValue={proposal.initialSituation} required {...multiStyle} />
-        <MultiChoiceField name="commonRoomStrategies" label="Como apoiar na sala comum" options={COMMON_ROOM_STRATEGY_OPTIONS} defaultValue={proposal.commonRoomStrategies} {...multiStyle} />
-        <MultiChoiceField name="aeeStrategies" label="Como apoiar no AEE" options={AEE_STRATEGY_OPTIONS} defaultValue={proposal.aeeStrategies} {...multiStyle} />
-        <MultiChoiceField name="accessibilityResources" label="Recursos de acessibilidade" options={ACCESSIBILITY_RESOURCE_OPTIONS} defaultValue={proposal.accessibilityResources} {...multiStyle} />
+        <PlanDocumentFields
+          idPrefix="proposta"
+          defaults={{
+            ...documentDefaults,
+            commonRoomStrategies: proposal.commonRoomStrategies.join("; ") || null,
+            aeeStrategies: proposal.aeeStrategies.join("; ") || null,
+            accessibilityResources: proposal.accessibilityResources.join("; ") || null,
+          }}
+        />
         <div>
           <label htmlFor="proposal-review-date" className={labelCls}>Quando a equipe vai revisar este plano? *</label>
           <input id="proposal-review-date" name="reviewDate" type="date" required defaultValue={dateInput(proposal.reviewWeeks)} className={inputCls} />
@@ -587,6 +616,55 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
         </form>
       </div>
     </Card>
+  );
+}
+
+// Só a inicial: siglas como AEE e CAA continuam em maiúsculas.
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+
+// PAEE ou PEI do plano: quem elaborou e o conteúdo mínimo registrado. O que
+// falta aparece numa linha só, para quem pode completar.
+function PlanDocumentCard({ id, title, norm, teacherLabel, teacher, participants, items, plan, missing, alsoMissing = [], showMissing, differences = [] }: {
+  id: string;
+  title: string;
+  norm: string;
+  teacherLabel: string;
+  teacher: string | null;
+  participants?: string | null;
+  items: readonly PlanItem[];
+  plan: Partial<PlanDocuments>;
+  missing: readonly PlanItem[];
+  alsoMissing?: readonly string[];
+  showMissing: boolean;
+  differences?: readonly CensusDifference[];
+}) {
+  const recorded = items.filter((item) => plan[item.key]?.trim());
+  return (
+    <section id={id} aria-labelledby={`${id}-titulo`} className="ui-card min-w-0">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h2 id={`${id}-titulo`} className="text-sm font-semibold tracking-tight text-ink">{title}</h2>
+        <span className="text-xs text-ink-soft">Portaria MEC nº 421/2026, {norm}</span>
+      </div>
+      <dl className="grid gap-3 text-sm">
+        {teacher ? <div><dt className="font-medium text-ink">{teacherLabel}</dt><dd className="mt-1 break-words text-ink-soft">{teacher}</dd></div> : null}
+        {participants ? <div><dt className="font-medium text-ink">Também participaram</dt><dd className="mt-1 break-words text-ink-soft">{participants}</dd></div> : null}
+        {recorded.map((item) => <div key={item.key}><dt className="font-medium text-ink">{item.label}</dt><dd className="mt-1 break-words text-ink-soft">{plan[item.key]}</dd></div>)}
+      </dl>
+      {showMissing && (missing.length || alsoMissing.length || !teacher) ? (
+        <p className="mt-3 text-sm text-amber-800">
+          <a href="#completar-paee-pei" className="underline underline-offset-4">A registrar</a>: {[!teacher && teacherLabel, ...missing.map((item) => item.label), ...alsoMissing].filter((label): label is string => Boolean(label)).map(lowerFirst).join(", ")}.
+        </p>
+      ) : null}
+      {/* O Censo declara o que o plano registra: a diferença aparece para quem confere o Educacenso. */}
+      {differences.length ? (
+        <div className="mt-3 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber-800">
+          <p className="font-medium">Diferente do último arquivo do Censo</p>
+          <ul className="mt-1 grid gap-1">
+            {differences.map((difference) => <li key={difference.key} className="break-words">{difference.label} no Censo: {difference.census.join(", ") || "nenhum"}.</li>)}
+          </ul>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

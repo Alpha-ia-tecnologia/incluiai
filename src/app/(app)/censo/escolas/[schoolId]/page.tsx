@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Check, CircleCheck, Eye, FileDown, TriangleAlert, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { canOpenSchool } from "@/lib/census";
+import { canOpenSchool, schoolReferences } from "@/lib/census";
 import { schoolCoverage } from "@/lib/census-core";
 import { BLOCKING_ISSUES, COVERAGE_HINT, COVERAGE_LABEL, ISSUE_LABEL, MATCH_LABEL, brMoment, schoolFundebNote, type CoverageRow, type CoverageStatus } from "@/lib/census-rules";
 import { parseJson } from "@/lib/format";
@@ -11,6 +11,8 @@ import { saveSchoolInep, saveStudentInep, uploadCensusFile } from "@/actions/cen
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { CensusUploadForm, InepForm } from "@/components/census/census-forms";
 import { HowToRead, Steps } from "@/components/explain";
+import { FederalGuidance } from "@/components/federal-guidance";
+import { CENSUS_RULES } from "@/lib/federal-guidance";
 
 export const dynamic = "force-dynamic";
 
@@ -36,10 +38,14 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
   if (!canOpenSchool(user, schoolId)) redirect("/censo");
   const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { id: true, name: true, inepCode: true } });
   if (!school) notFound();
-  const [result, imports] = await Promise.all([
+  const [result, imports, references] = await Promise.all([
     schoolCoverage(schoolId),
     prisma.censusImport.findMany({ where: { schoolId }, orderBy: { createdAt: "desc" }, take: 5, select: { id: true, status: true, createdAt: true, createdByName: true, result: true } }),
+    schoolReferences(schoolId),
   ]);
+  // Orientação do INEP: estudo de caso concluído ou PAEE respaldam a declaração no Censo.
+  const unreferenced = references.filter((row) => !row.backed);
+  const referenced = references.filter((row) => row.backed);
   const applied = (await searchParams).aplicado?.match(/^(\d+)-(\d+)$/);
   const open = imports.find((item) => item.status === "previa");
   const rows = result?.coverage.rows ?? [];
@@ -130,6 +136,35 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
             <EmptyState character="care" title="Nenhum arquivo aplicado" hint="Importe o arquivo acima para conferir a dupla matrícula." />
           )}
         </section>
+
+        {references.length ? (
+          <section aria-labelledby="censo-referencia" className="grid min-w-0 gap-3">
+            <h2 id="censo-referencia" className="text-base font-medium text-ink">Registro de referência para declarar no Censo</h2>
+            <p className="text-sm text-ink-soft"><strong className="font-medium text-ink tabular-nums">{referenced.length} de {references.length}</strong> com estudo de caso concluído ou PAEE.</p>
+            <FederalGuidance rules={CENSUS_RULES} summary="O que basta para declarar" />
+            {unreferenced.length ? (
+              <Card>
+                <SectionTitle>Sem registro de referência ({unreferenced.length})</SectionTitle>
+                <ul className="grid gap-2">
+                  {unreferenced.map((row) => (
+                    <li key={row.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-3 py-2">
+                      <Link href={`/estudantes/${row.id}`} className="min-w-0 break-words text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
+                      <Link href={`/estudantes/${row.id}/estudo-de-caso`} className="inline-flex min-h-11 items-center text-sm text-ink-soft underline underline-offset-4">Concluir o estudo de caso</Link>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ) : null}
+            {referenced.length ? (
+              <details className="rounded-2xl border border-line bg-paper-raised p-4">
+                <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-ink">Com registro de referência ({referenced.length})</summary>
+                <ul className="mt-2 grid gap-1 text-sm text-ink">
+                  {referenced.map((row) => <li key={row.id}>{row.name} <span className="text-ink-soft">({row.records.join(", ")})</span></li>)}
+                </ul>
+              </details>
+            ) : null}
+          </section>
+        ) : null}
 
         {imports.length ? (
           <section aria-labelledby="censo-importacoes" className="grid min-w-0 gap-2">

@@ -211,7 +211,7 @@ let danteHref = "";
   for (const [tab, heading] of [
     ["", "Dante"],
     ["/perfil", "Como aprende"],
-    ["/ppi", "Plano de ensino (PPI)"],
+    ["/ppi", "Plano de ensino (PAEE e PEI)"],
     ["/atividades", "Preparar uma atividade"],
     ["/diario", "Registrar aula ou atendimento"],
     ["/linha-do-tempo", "Evolução"],
@@ -233,6 +233,33 @@ let danteHref = "";
       await clickByText(page, "Registrar revisão");
       await page.waitForFunction((text) => document.querySelector("#revisao")?.textContent.includes(text), { timeout: 20000 }, note).catch(() => {});
       check("plano: revisão registrada no histórico", await page.evaluate((text) => Boolean(document.querySelector("#revisao")?.textContent.includes(text)), note));
+    }
+  }
+  // PAEE e PEI (Portaria MEC nº 421/2026; orientação do INEP): o selo federal, os
+  // dois documentos e completar quem elaborou cada um.
+  {
+    await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
+    const text = await page.evaluate(() => document.body.innerText);
+    check("plano: selo de orientação do Governo Federal com o link do INEP", text.includes("Orientação do Governo Federal") && await page.evaluate(() => Boolean(document.querySelector('a[href^="https://www.gov.br/inep/"]'))));
+    check("plano: PAEE e PEI com a base na Portaria", Boolean(await page.$("#paee")) && Boolean(await page.$("#pei")) && text.includes("Portaria MEC nº 421/2026, art. 10") && text.includes("Portaria MEC nº 421/2026, art. 11"));
+    const opened = await page.evaluate(() => { const details = document.querySelector("#completar-paee-pei"); if (details) details.open = true; return Boolean(details); });
+    if (!opened) check("plano: formulário do PAEE e do PEI presente", false);
+    else {
+      const stamp = String(Date.now()).slice(-5);
+      // Atendimentos do AEE e recursos na avaliação com os nomes do Educacenso; os atendimentos vêm do estudo de caso.
+      const form = await page.evaluate(() => {
+        const box = document.querySelector("#completar-paee-pei");
+        const checked = [...box.querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.closest("label")?.textContent.trim());
+        return { text: box.textContent, checked };
+      });
+      check("plano: PEI com os tipos de AEE e os recursos do Censo", form.text.includes("Atendimentos do AEE") && form.text.includes("Ensino do cálculo no Soroban") && form.text.includes("Auxílio ledor") && form.text.includes("Prova superampliada (fonte 24)"));
+      check("plano: atendimento do AEE sugerido pelo estudo de caso", form.checked.includes("Comunicação alternativa e aumentativa (CAA)"), form.checked.join(", "));
+      await page.evaluate(() => { for (const id of ["#editar-aee-teacher", "#editar-regular-teacher"]) document.querySelector(id).value = ""; });
+      await page.type("#editar-aee-teacher", `Ana AEE ${stamp}`);
+      await page.type("#editar-regular-teacher", `Bruno Regente ${stamp}`);
+      await clickByText(page, "Salvar o PAEE e o PEI");
+      await page.waitForFunction((value) => document.querySelector("#pei")?.textContent.includes(value), { timeout: 20000 }, `Bruno Regente ${stamp}`).catch(() => {});
+      check("plano: PAEE e PEI completados com quem elaborou", await page.evaluate((value) => Boolean(document.querySelector("#paee")?.textContent.includes(`Ana AEE ${value}`) && document.querySelector("#pei")?.textContent.includes(`Bruno Regente ${value}`)), stamp));
     }
   }
   check("prontuário sem erros de cliente", errors.length === 0, errors.join("; "));
@@ -1458,6 +1485,7 @@ if (!ONLY_WAIT) {
     check("dossiê: aba com o checklist das normas", body.includes("Dossiê de evidências") && body.includes("Estudo de caso concluído") && body.includes("Decreto, art. 11, § 3º") && body.includes("PEI: devolutivas à família"));
     check("dossiê: a devolutiva validada conta como evidência", /Último relatório do período validado em \d{2}\/\d{2}\/\d{4}/.test(body));
     check("dossiê: sem exigência de laudo", body.includes("Sem exigência de laudo"));
+    check("dossiê: registro de referência do Censo, pela orientação do INEP", body.includes("Orientação do Governo Federal") && body.includes("Registro de referência para declarar no Censo Escolar") && body.includes("Respaldo da declaração"));
     check("dossiê: cada item leva ao registro", await page.evaluate(() => [...document.querySelectorAll("a")].some((link) => link.textContent.includes("Ver o registro") && link.getAttribute("href").endsWith("/estudo-de-caso"))));
     await page.goto(`${BASE}${dante}/dossie/imprimir`, { waitUntil: "networkidle2" });
     body = await textOf(page);
@@ -1525,9 +1553,10 @@ if (!ONLY_WAIT) {
   {
     const line = (count, values) => Array.from({ length: count }, (_, index) => values[index + 1] ?? "").join("|");
     const person = (code, inep, name, birth) => line(108, { 1: "30", 2: "21000001", 3: code, 4: inep, 6: name, 7: birth, 17: "1", 27: "1" });
-    const enroll = (code, klass, caa) => line(32, { 1: "60", 2: "21000001", 3: code, 5: klass, ...(caa ? { 18: "1" } : {}) });
+    const enroll = (code, klass, caa, extra = {}) => line(32, { 1: "60", 2: "21000001", 3: code, 5: klass, ...(caa ? { 18: "1" } : {}), ...extra });
     const weekdays = (interval) => Object.fromEntries([8, 9, 10, 11, 12].map((day) => [day, interval]));
     // Ravi: AEE sem tipo de atendimento. Aluna nova: AEE na terça de manhã, no horário da classe comum.
+    // Dante: no arquivo, também "Desenvolvimento de vida autônoma" (campo 10), que o PEI não registra.
     const file = [
       line(56, { 1: "00", 2: "21000001", 3: "1", 6: "EMEF MARIA FIRMINA DOS REIS", 21: "3", 34: "0" }),
       line(70, { 1: "20", 2: "21000001", 3: "T2B", 5: "2 ANO B", 6: "1", ...weekdays("07:00-11:00"), 14: "1", 15: "0", 16: "0", 25: "302" }),
@@ -1537,7 +1566,7 @@ if (!ONLY_WAIT) {
       person("P2", "210000000002", "RAVI ALMEIDA", "25/01/2017"),
       person("P3", "210000000003", "ALUNA NOVA DO CENSO", "15/08/2018"),
       person("P4", "", "LIVIA SANTOS", "02/07/2014"),
-      enroll("P1", "T2B"), enroll("P1", "SRM", true), enroll("P2", "SRM"), enroll("P3", "T2B"), enroll("P3", "SRM2", true), enroll("P4", "T2B"),
+      enroll("P1", "T2B"), enroll("P1", "SRM", true, { 10: "1" }), enroll("P2", "SRM"), enroll("P3", "T2B"), enroll("P3", "SRM2", true), enroll("P4", "T2B"),
       "99|",
     ].join("\r\n");
     const filePath = join(mkdtempSync(join(tmpdir(), "censo-")), "migracao.txt");
@@ -1577,6 +1606,11 @@ if (!ONLY_WAIT) {
     check("censo: dupla matrícula não confirmada para quem está só no AEE", /Matrícula no AEE sem classe comum[\s\S]*Ravi Almeida[\s\S]*sem tipo de atendimento/.test(body));
     check("censo: dupla matrícula com alerta de horário coincidente", /Com dupla matrícula, mas com alerta no vínculo[\s\S]*Aluna Nova do Censo[\s\S]*Horário do AEE coincide/.test(body));
     check("censo: Dante confirmado com classe comum e AEE", await page.evaluate(() => [...document.querySelectorAll("details")].some((item) => item.textContent.includes("Confirmados") && item.textContent.includes("Dante Oliveira"))));
+    check("censo: registro de referência na escola, com o selo federal", body.includes("Registro de referência para declarar no Censo") && body.includes("Orientação do Governo Federal") && await page.evaluate(() => [...document.querySelectorAll("details")].some((item) => item.textContent.includes("Com registro de referência") && item.textContent.includes("Dante Oliveira"))));
+    // O PEI de Dante e o arquivo aplicado: a diferença nos tipos de AEE aparece no plano.
+    await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
+    const pei = await page.evaluate(() => document.querySelector("#pei")?.textContent ?? "");
+    check("censo: o PEI aponta o tipo de AEE diferente do arquivo", pei.includes("Diferente do último arquivo do Censo") && pei.includes("Desenvolvimento de vida autônoma"), pei.slice(-300));
     await page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
     await clickByText(page, "Verificar agora");
     await page.waitForFunction(() => document.body.innerText.includes("Verificação registrada"), { timeout: 20000 }).catch(() => {});

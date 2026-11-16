@@ -9,6 +9,7 @@ import { DataBoard, StatTile } from "@/components/data-viz";
 import { EvidenceList } from "@/components/dossier/evidence-list";
 import { secondaryButtonCls } from "@/components/form-styles";
 import { Assurances, HowToRead } from "@/components/explain";
+import { FederalGuidance } from "@/components/federal-guidance";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
         actions={<Link href={`/estudantes/${id}/dossie/imprimir`} className={secondaryButtonCls}><Printer size={16} aria-hidden /> Imprimir ou salvar em PDF</Link>}
       />
       <div className="grid min-w-0 max-w-3xl gap-6">
+        <FederalGuidance />
         <div className="grid min-w-0 gap-2">
           <DataBoard className="sm:grid-cols-3">
             <StatTile label="Em dia" value={ok} />
@@ -36,7 +38,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
             <StatTile label="Pendentes" value={pendente} />
           </DataBoard>
           <HowToRead>
-            <p>Cada item é uma exigência do Decreto nº 12.686/2025 (com a redação do Decreto nº 12.773/2025) ou da Portaria MEC nº 421/2026, com o artigo ao lado.</p>
+            <p>Cada item é uma exigência do Decreto nº 12.686/2025 (com a redação do Decreto nº 12.773/2025), da Portaria MEC nº 421/2026 ou da orientação do INEP para o Censo Escolar, com a fonte ao lado.</p>
             <dl className="mt-2 grid gap-1">
               <div><dt className="inline font-medium text-ink">Em dia: </dt><dd className="inline">o registro está na plataforma e no prazo.</dd></div>
               <div><dt className="inline font-medium text-ink">Conferir: </dt><dd className="inline">registro incompleto ou prazo vencido.</dd></div>

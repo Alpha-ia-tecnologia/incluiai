@@ -9,6 +9,7 @@ import { buildObjectiveDescription } from "@/lib/objective";
 import { createPlanDraft } from "@/lib/agents/generate";
 import { assertCaseStudyConcluded, assertNoActivePlan } from "@/lib/records";
 import { PlanProposalSchema } from "@/lib/agents/schemas";
+import { planDocumentsFromForm } from "@/lib/plan-documents";
 
 const requireTeam = requireStudentTeam;
 
@@ -44,9 +45,8 @@ export async function activatePlanDraft(studentId: string, formData: FormData) {
       studentId,
       status: "ativo",
       initialSituation,
-      commonRoomStrategies: text("commonRoomStrategies") || null,
-      aeeStrategies: text("aeeStrategies") || null,
-      accessibilityResources: text("accessibilityResources") || null,
+      // PAEE e PEI: estratégias da proposta revisadas, autoria e o conteúdo mínimo da Portaria.
+      ...planDocumentsFromForm((name) => formData.get(name)),
       reviewDate,
       objectives: {
         create: chosen.map((index) => {
@@ -72,7 +72,7 @@ export async function activatePlanDraft(studentId: string, formData: FormData) {
     data: {
       studentId,
       type: "plano",
-      title: "PPI elaborado",
+      title: "PAEE e PEI elaborados",
       description: `Plano criado a partir de proposta ${draft.source === "ia" ? "dos agentes de IA" : "do motor de regras"}, revisada pela equipe, com ${chosen.length} objetivo(s).`,
     },
   });

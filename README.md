@@ -83,7 +83,7 @@ Os comandos `db:*`, como `npm run db:admin`, também rodam no **Console** do ser
 | `/` | Painel da escola (escopo por perfil) + perguntas para reunião | 10, 9 |
 | `/estudantes` · `/novo` | Prontuário + **geração em lote por turma** | 2, 17.8 |
 | `/estudantes/[id]` | Visão geral: evolução, estratégias, **perguntas para reunião**, articulação intersetorial | 6, 9 |
-| `/estudantes/[id]/estudo-de-caso` | **Estudo de caso** (diagnóstico pedagógico): motivo, histórico escolar, entrevista com a família, escuta do estudante, observação, avaliação pedagógica e síntese; rascunho, conclusão e relatório imprimível. Não exige laudo | — |
+| `/estudantes/[id]/estudo-de-caso` | **Estudo de caso** (diagnóstico pedagógico): motivo, histórico escolar, entrevista com a família, escuta do estudante, observação (com os impedimentos de longo prazo observados na escola e as cinco barreiras do INEP), avaliação pedagógica e síntese; rascunho, conclusão e relatório imprimível. Só conclui com o professor do AEE entre os participantes, como descreve o INEP. Não exige laudo | — |
 | `/estudantes/[id]/estudo-de-caso/laudos` | **Laudos e relatórios de saúde** (opcionais): o AEE e a coordenação anexam o laudo; a IA lê o texto anonimizado e sugere orientações e campos do estudo de caso, que a equipe revisa antes de juntar | — |
 | `/estudantes/[id]/carteirinha` | **Carteirinha digital** (com a autorização da família): foto, nome, escola e turma; no verso, o que a família escolher (como ajudar e contato de emergência) e o QR, que só abre a ficha para quem entra na plataforma com permissão | — |
 | `/jogos` e `/jogar/[jogo]` | **Jogos educativos do AEE**: 19 jogos com fotografias numa só página, com filtro por habilidade e uma prancha de comunicação. Com o estudante escolhido, o nível vem do "Como aprende" e o professor registra a aula no fim de qualquer jogo | — |
@@ -252,9 +252,31 @@ O sino no topo de cada tela leva a **Avisos** e mostra quantos avisos são novos
 
 Regras puras em `src/lib/family-contact.ts`, com testes.
 
+## PAEE e PEI (orientação do Governo Federal)
+
+O **Plano de ensino** é o documento único que reúne o PAEE e o PEI, como a Portaria MEC nº 421/2026 permite (art. 7º, § 2º). Ele segue a orientação do INEP sobre os registros para declarar o público da educação especial no Censo Escolar ([página do INEP](https://www.gov.br/inep/pt-br/acesso-a-informacao/perguntas-frequentes/censo-escolar/educacao-especial/quais-sao-os-registros-administrativos), publicada em 31/08/2026). As telas que aplicam essas regras mostram o selo **Orientação do Governo Federal**, com as normas e o link para o gov.br (`src/components/federal-guidance.tsx`).
+
+- **PAEE** (Portaria, art. 10): elaborado pelo professor do AEE, com o da classe comum, a família e, quando possível, o estudante. Registra:
+    - materiais e recursos (I);
+    - tecnologia assistiva e CAA (II);
+    - profissional de apoio, intérprete de Libras e guia-intérprete (III);
+    - formação e rede de proteção social (IV).
+  "Avaliado: não há necessidade" também conta como registro, porque a Portaria pede a avaliação.
+- **PEI** (Portaria, art. 11): elaborado pelo professor da classe comum, com o apoio do AEE e da equipe escolar. Registra:
+    - os atendimentos do AEE, com os 11 tipos do Educacenso (registro 60), e as atividades no AEE e na classe comum (I);
+    - a acessibilidade no currículo e na avaliação (II). Na avaliação, os 13 recursos do Educacenso para a sala de aula e o Saeb (registro 30, campos 36 a 48) vêm primeiro;
+    - como o plano será acompanhado (III);
+    - a devolutiva à família (IV).
+- **De onde vem:** o plano só nasce do estudo de caso concluído, e o formulário já sugere o que o estudo registrou: recursos, encaminhamentos, participantes, os atendimentos do AEE (a partir das necessidades que são tipo de AEE no Censo) e os intérpretes. A equipe confere antes de salvar. Monitoramento e devolutiva não vêm prontos.
+- **Igual ao Censo:** com o arquivo do Educacenso aplicado, o PEI mostra quando os atendimentos do AEE ou os recursos na avaliação diferem do que a escola declarou, e o dossiê aponta o mesmo.
+- **Planos anteriores:** em **Completar o PAEE e o PEI**, a equipe registra a autoria e o conteúdo que faltava. A Portaria dá três anos, a partir de 18/05/2026, para as redes adequarem os documentos que já tinham (art. 37).
+- **Revisão anual:** continua como antes (art. 7º, § 3º).
+
+Regras puras em `src/lib/plan-documents.ts` e `src/lib/federal-guidance.ts`, com testes.
+
 ## Dossiê de evidências
 
-A aba **Dossiê** do estudante mostra, item por item, o que o Decreto nº 12.686/2025 (com a redação do Decreto nº 12.773/2025) e a Portaria MEC nº 421/2026 pedem. Para cada item, diz se o registro está na plataforma e leva até ele. Cada item recebe uma situação:
+A aba **Dossiê** do estudante mostra, item por item, o que o Decreto nº 12.686/2025 (com a redação do Decreto nº 12.773/2025), a Portaria MEC nº 421/2026 e a orientação do INEP para o Censo Escolar pedem. Para cada item, diz se o registro está na plataforma e leva até ele. Cada item recebe uma situação:
 
 - **Em dia:** o registro existe.
 - **Para conferir:** o registro está incompleto ou o prazo venceu.
@@ -265,10 +287,12 @@ Os itens são agrupados assim:
 - **Estudo de caso** (Decreto, art. 11):
     - estudo concluído;
     - as quatro etapas do § 1º;
+    - os impedimentos observados na escola e a condução pelo professor do AEE, com o da sala comum (INEP);
     - a participação da família e a do estudante (§ 3º);
     - a nota de que nenhuma etapa exige laudo (§ 7º).
 - **Plano: PAEE e PEI.** O plano de ensino é o documento único que a Portaria permite (art. 7º, § 2º). Os itens são:
     - o plano a partir do estudo de caso;
+    - quem elaborou o PAEE e o PEI e a participação da família (INEP);
     - a revisão anual (art. 7º, § 3º);
     - o conteúdo mínimo do PAEE (art. 10) e do PEI (art. 11);
     - a devolutiva à família, que é o relatório do período validado.
@@ -276,6 +300,7 @@ Os itens são agrupados assim:
     - os atendimentos do AEE nos últimos 30 dias;
     - a sondagem em dia;
     - as autorizações da família.
+- **Censo Escolar** (orientação do INEP): o registro de referência para declarar o estudante. Estudo de caso concluído ou PAEE bastam. Como a orientação diz que os registros não são obrigatórios para declarar, a falta aparece como "para conferir", e não como pendência. Também compara o PEI com o último arquivo do Censo aplicado: atendimentos do AEE (registro 60) e recursos (registro 30).
 
 Há também uma versão para imprimir ou salvar em PDF. Cada impressão fica no histórico de acessos que a família vê.
 
@@ -339,6 +364,8 @@ O INEP não tem API pública. A troca oficial é o **arquivo de migração** (TX
     - escola estadual: o AEE conta para o estado;
     - escola federal ou privada sem convênio: nada conta;
     - instituição conveniada: o AEE conta se ela atuar só em educação especial.
+- **Registro de referência (orientação do INEP):** para cada estudante com AEE, a plataforma diz se há estudo de caso concluído ou PAEE, que bastam para respaldar a declaração no Censo. Na escola, quem não tem aparece com o atalho para o estudo de caso. A Secretaria vê só os números. O laudo fica de fora de propósito: é dado clínico e não pode ser exigido (Portaria, art. 7º, § 4º). O registro não muda a conferência da dupla matrícula, porque o INEP não o torna obrigatório para declarar.
+- **Plano e arquivo:** ao aplicar o arquivo, a ficha do estudante guarda os tipos de AEE (registro 60) e os recursos para a sala de aula e o Saeb (registro 30, campos 36 a 48, nas mesmas posições em 2025 e 2026). O PEI e o dossiê mostram quando o plano registra outra coisa. O tipo de deficiência (campos 18 a 28) continua sem ser guardado.
 - **Dupla matrícula entre escolas:** a classe comum presencial pode estar no arquivo de outra escola pública da rede, e a verificação procura lá.
 - **Conciliação das contagens:**
     - Por escola e na rede: educação especial no Censo, matrículas no AEE, dupla matrícula (por etapa agregada), AEE sem classe comum, educação especial sem AEE e estudantes com AEE na plataforma.

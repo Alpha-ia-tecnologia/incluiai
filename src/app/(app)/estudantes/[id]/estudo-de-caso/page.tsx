@@ -4,7 +4,7 @@ import { CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "
 import { prisma } from "@/lib/prisma";
 import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canSeeClinicalDetail, canEditStudentRecord } from "@/lib/auth";
 import { saveCaseStudy } from "@/actions/case-study";
-import { CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, parseCaseStudy, sectionProgress, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
+import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, parseCaseStudy, sectionProgress, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
 import { splitItems } from "@/lib/form-options";
 import { formatDate } from "@/lib/format";
 import { Badge, ButtonLink, Card, PageHeader } from "@/components/ui";
@@ -58,11 +58,11 @@ export default async function CaseStudyPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ editar?: string; salvo?: string }>;
+  searchParams: Promise<{ editar?: string; salvo?: string; faltaAee?: string }>;
 }) {
   const { id } = await params;
   await requireStudentPage(id, "Estudo de caso");
-  const { editar, salvo } = await searchParams;
+  const { editar, salvo, faltaAee } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // Reúne dados da família e da escola: só a equipe pedagógica acessa.
@@ -192,6 +192,11 @@ export default async function CaseStudyPage({
           <Sprout size={18} aria-hidden className="sprout-mark" /> Rascunho salvo. Continue quando tiver novas informações.
         </p>
       ) : null}
+      {faltaAee ? (
+        <p role="alert" className="mb-5 rounded-2xl bg-amber-soft px-4 py-3 text-sm font-medium text-amber-800">
+          {concluded ? "Salvo. Marque" : "Salvo, mas não concluído: marque"} {AEE_TEACHER} em <a href="#secao-sintese" className="underline underline-offset-4">Quem participou</a>. É quem conduz o estudo de caso, segundo o INEP.
+        </p>
+      ) : null}
       {reportsNote}
 
       {/* Dois filhos só: o aviso dos campos clínicos fica dentro do formulário, senão ocupa a coluna larga e empurra o formulário para a de 260 px.
@@ -230,7 +235,8 @@ export default async function CaseStudyPage({
                   <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium text-sky-ink">{section.source}</span>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
-                  {section.fields.map((field) => <FieldInput key={field.key} field={field} value={content[field.key] ?? ""} />)}
+                  {/* Quem participou começa com o professor do AEE, que conduz o estudo (INEP). */}
+                  {section.fields.map((field) => <FieldInput key={field.key} field={field} value={content[field.key] ?? (field.key === "participantes" ? AEE_TEACHER : "")} />)}
                 </div>
                 <p className="mt-5 text-xs text-ink-soft"><span className="tabular-nums">{progress.filled} de {progress.total}</span> perguntas com resposta salva</p>
               </section>

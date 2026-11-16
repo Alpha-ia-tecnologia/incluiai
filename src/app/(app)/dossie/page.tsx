@@ -10,6 +10,7 @@ import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { EvidenceBadge } from "@/components/dossier/evidence-list";
 import { Assurances, HowToRead } from "@/components/explain";
+import { FederalGuidance } from "@/components/federal-guidance";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ function Totals({ students, network }: { students: StudentEvidence[]; network: b
 function Norms({ children }: { children?: ReactNode }) {
   return (
     <HowToRead>
-      <p>Para cada estudante do AEE, o que o Decreto nº 12.686/2025 e a Portaria MEC nº 421/2026 pedem e o que ainda falta registrar.</p>
+      <p>Para cada estudante do AEE, o que o Decreto nº 12.686/2025, a Portaria MEC nº 421/2026 e a orientação do INEP para o Censo Escolar pedem e o que ainda falta registrar.</p>
       {children}
     </HowToRead>
   );
@@ -59,6 +60,7 @@ export default async function SchoolDossierPage({ searchParams }: { searchParams
       <>
         <PageHeader title="Dossiê de evidências" />
         <div className="grid min-w-0 max-w-4xl gap-6">
+          <FederalGuidance />
           <div className="grid min-w-0 gap-2">
             <Assurances
               label="O que a rede vê"
@@ -101,6 +103,7 @@ export default async function SchoolDossierPage({ searchParams }: { searchParams
     <>
       <PageHeader title="Dossiê de evidências" />
       <div className="grid min-w-0 max-w-4xl gap-6">
+        <FederalGuidance />
         <Norms />
         <DataBoard className="sm:grid-cols-3">
           <StatTile label="Estudantes" value={students.length} />
