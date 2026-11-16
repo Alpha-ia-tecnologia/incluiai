@@ -90,9 +90,9 @@ export default async function StudentLayout({
               {ageFrom(student.birthDate)} anos · {student.gradeYear} ({student.className}) · {SHIFTS[student.shift] ?? student.shift} · {STAGES[student.stage] ?? student.stage} · {student.school.name}
             </p>
             {/* Selos embaixo da identidade: o nome e a turma ficam numa linha só. */}
-            {student.hasAEE || student.supportProfessional || student.accessibilityNotes ? (
+            {student.aeeFrequency || student.supportProfessional || student.accessibilityNotes ? (
               <div className="student-head-detail mt-2 flex min-w-0 flex-wrap gap-1.5">
-                {student.hasAEE ? <Badge tone="brand">AEE {student.aeeFrequency ?? ""}</Badge> : null}
+                {student.aeeFrequency ? <Badge tone="brand">AEE {student.aeeFrequency}</Badge> : null}
                 {student.supportProfessional ? <Badge tone="green">Profissional de apoio</Badge> : null}
                 {student.accessibilityNotes ? <Badge tone="amber">{student.accessibilityNotes}</Badge> : null}
               </div>

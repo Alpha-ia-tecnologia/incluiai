@@ -29,7 +29,8 @@ export async function createStudent(formData: FormData) {
   const className = String(formData.get("className") ?? "").trim();
   const shift = String(formData.get("shift") ?? "").trim();
   const guardianName = String(formData.get("guardianName") ?? "").trim();
-  const hasAEE = formData.get("hasAEE") === "on";
+  // Todo estudante cadastrado é atendido pela educação especial: o cadastro não
+  // pergunta mais se recebe AEE, e a frequência do atendimento é opcional.
   const aeeFrequency = String(formData.get("aeeFrequency") ?? "").trim();
   const parsedBirthDate = new Date(`${birthDate}T12:00:00`);
 
@@ -51,7 +52,6 @@ export async function createStudent(formData: FormData) {
     !className ||
     !isValidShift(shift) ||
     !guardianName ||
-    (hasAEE && !aeeFrequency) ||
     Number.isNaN(parsedBirthDate.getTime()) ||
     parsedBirthDate > new Date()
   ) {
@@ -67,8 +67,8 @@ export async function createStudent(formData: FormData) {
       className,
       shift,
       schoolId,
-      hasAEE,
-      aeeFrequency: hasAEE ? aeeFrequency : null,
+      hasAEE: true,
+      aeeFrequency: aeeFrequency || null,
       supportProfessional: formData.get("supportProfessional") === "on",
       guardianName,
       guardianPhone:

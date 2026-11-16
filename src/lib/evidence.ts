@@ -3,7 +3,7 @@
 // (com a redação do 12.773/2025), da Portaria MEC nº 421/2026 e da orientação
 // do INEP para o Censo Escolar, diz se o registro está na plataforma e onde.
 // Aponta o registro; não é parecer jurídico.
-import { AEE_TEACHER, REGULAR_TEACHER, censusReference } from "./federal-guidance.ts";
+import { AEE_TEACHER, REGULAR_TEACHER, censusReference, specialEducationAnswer } from "./federal-guidance.ts";
 import { censusDifferences, missingPlanItems, type CensusDeclared, type PlanDocuments } from "./plan-documents.ts";
 
 export type EvidenceStatus = "ok" | "conferir" | "pendente" | "info";
@@ -140,7 +140,7 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
 
   // Orientação do INEP: para declarar o estudante no Censo, basta um registro de
   // referência (estudo de caso ou PAEE já bastam). Não é obrigatório, por isso "conferir".
-  const reference = censusReference({ caseStudyConcluded: concluded, hasActivePlan: Boolean(plan) });
+  const reference = censusReference({ caseStudyConcluded: concluded, hasActivePlan: Boolean(plan), specialEducation: specialEducationAnswer(content.publicoAlvo) });
   // O Censo declara o que o PEI registra: atendimentos do AEE (registro 60) e recursos (registro 30).
   const census = input.census ?? null;
   const differences = plan ? censusDifferences(plan, census) : [];
@@ -154,7 +154,7 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
   const censusItems: EvidenceItem[] = [
     item("censo_registro", "Registro para o Censo", "Registro de referência para declarar no Censo Escolar", "INEP, Censo Escolar (31/08/2026)", "estudo-de-caso",
       reference.backed ? "ok" : "conferir",
-      reference.backed ? `Respaldo da declaração: ${reference.records.join(", ")}.` : "Sem estudo de caso concluído nem PAEE. Qualquer um deles basta; laudo não pode ser exigido."),
+      reference.backed ? `Respaldo da declaração: ${reference.records.join(", ")}.` : reference.pending ? `${reference.pending} Sem PAEE, a declaração fica sem registro de referência.` : "Sem estudo de caso concluído nem PAEE. Qualquer um deles basta; laudo não pode ser exigido."),
     item("censo_plano", "Plano e Censo", "Atendimentos do AEE e recursos iguais aos do Censo", "Educacenso, registros 30 e 60", "ppi", censusPlan.status, censusPlan.detail),
   ];
 

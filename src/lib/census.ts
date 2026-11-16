@@ -5,7 +5,7 @@ import { parseJson } from "./format";
 import { digitsOnly, identityKeys, parseEducacensoFile, specialEdPersons, type CensusPerson, type ParseStats } from "./educacenso";
 import { buildSyncPlan, censusCounts, regularOnlyIds, schoolFundebNote, sumCounts, toSnapshot, type AeeEstimate, type CensusCounts, type CoverageRow, type ReviewDecision, type SchoolInfo, type SyncPlan } from "./census-rules";
 import { aeeEstimate, isoDay, networkSnapshots, schoolCoverage, schoolStudents } from "./census-core";
-import { censusReference, type CensusReferenceRecord } from "./federal-guidance";
+import { censusReference, specialEducationAnswer, type CensusReferenceRecord } from "./federal-guidance";
 
 // Censo Escolar (Educacenso) na escola: o arquivo de migração vira uma prévia,
 // a equipe revisa e aplica; a aplicação atualiza o cadastro e guarda a
@@ -143,7 +143,7 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
         const student = await tx.student.create({
           data: {
             name: data.name, birthDate: new Date(`${data.birthDate}T12:00:00`), stage: data.stage, gradeYear: "A informar", className: data.className, shift: "A informar",
-            schoolId: censusImport.schoolId, hasAEE: data.hasAEE, guardianName: "A informar", inepId: data.inepId, cpf: data.cpf, census: meta(person), avatarHue: Math.floor(Math.random() * 360),
+            schoolId: censusImport.schoolId, hasAEE: true, guardianName: "A informar", inepId: data.inepId, cpf: data.cpf, census: meta(person), avatarHue: Math.floor(Math.random() * 360),
             timeline: { create: { type: "avaliacao", title: "Cadastro pelo arquivo do Censo Escolar", description: "A etapa foi estimada pela idade. Confira ano, turma, turno e responsável." } },
           },
         });
@@ -204,16 +204,26 @@ export type SchoolOverview = {
 
 // Orientação do INEP: para declarar o estudante no Censo, basta um registro de
 // referência; o estudo de caso concluído ou o PAEE já bastam. Laudo não entra.
-const REFERENCED = { OR: [{ caseStudy: { is: { status: "concluido" } } }, { plans: { some: { status: "ativo" } } }] };
+// O estudo só respalda quando conclui que o estudante é público da educação
+// especial (censusReference): "em avaliação" e "não é público" ficam de fora. O
+// conteúdo do estudo é JSON, por isso a busca pelo trecho da resposta.
+const STUDY_BACKS = { status: "concluido", NOT: [{ content: { contains: '"publicoAlvo":"Em avaliação' } }, { content: { contains: '"publicoAlvo":"Não' } }] };
+const REFERENCED = { OR: [{ caseStudy: { is: STUDY_BACKS } }, { plans: { some: { status: "ativo" } } }] };
 
-export type ReferenceRow = { id: string; name: string; backed: boolean; records: CensusReferenceRecord[] };
+export type ReferenceRow = { id: string; name: string; backed: boolean; records: CensusReferenceRecord[]; pending: string | null };
 export async function schoolReferences(schoolId: string): Promise<ReferenceRow[]> {
   const students = await prisma.student.findMany({
-    where: { schoolId, status: "ativo", hasAEE: true },
+    where: { schoolId, status: "ativo" },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, caseStudy: { select: { status: true } }, plans: { where: { status: "ativo" }, select: { id: true }, take: 1 } },
+    select: { id: true, name: true, caseStudy: { select: { status: true, content: true } }, plans: { where: { status: "ativo" }, select: { id: true }, take: 1 } },
   });
-  return students.map((student) => ({ id: student.id, name: student.name, ...censusReference({ caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: student.plans.length > 0 }) }));
+  return students.map((student) => ({
+    id: student.id, name: student.name,
+    ...censusReference({
+      caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: student.plans.length > 0,
+      specialEducation: specialEducationAnswer(parseJson<Record<string, string>>(student.caseStudy?.content, {}).publicoAlvo),
+    }),
+  }));
 }
 
 // Visão do Censo: por escola, as contagens do último arquivo, a dupla matrícula dos
@@ -231,7 +241,7 @@ export async function censusOverview(user: SessionUser) {
   const rows: SchoolOverview[] = [];
   for (const school of schools) {
     const result = school.censusSnapshot ? await schoolCoverage(school.id, network) : null;
-    const where = { schoolId: school.id, status: "ativo", hasAEE: true };
+    const where = { schoolId: school.id, status: "ativo" };
     const [platformAee, attended, referenced] = await Promise.all([
       prisma.student.count({ where }),
       prisma.student.count({ where: { ...where, aeeSessions: { some: { status: "realizado", date: { gte: since } } } } }),

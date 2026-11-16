@@ -18,7 +18,9 @@ export const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 export async function schoolStudents(schoolId: string): Promise<PlatformStudent[]> {
   const students = await prisma.student.findMany({ where: { schoolId, status: "ativo" }, select: { id: true, name: true, birthDate: true, inepId: true, cpf: true, hasAEE: true }, orderBy: { name: "asc" } });
-  return students.map((student) => ({ ...student, birthDate: isoDay(student.birthDate) }));
+  // Todo estudante cadastrado é tratado como atendido: a conferência com o
+  // arquivo vale para todos, qualquer que seja a marcação antiga de AEE no cadastro.
+  return students.map((student) => ({ ...student, hasAEE: true, birthDate: isoDay(student.birthDate) }));
 }
 
 export type NetworkSnapshot = { schoolId: string; name: string; info: SchoolInfo; persons: SnapshotPerson[]; regularOnly: string[]; importedAt: Date };

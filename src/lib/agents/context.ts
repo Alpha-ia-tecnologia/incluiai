@@ -26,7 +26,7 @@ const supportText = (level: number) => {
 };
 
 function studentLine(student: Student) {
-  return `Estudante de ${ageFrom(student.birthDate)} anos, ${student.gradeYear}, ${STAGES[student.stage] ?? student.stage}.${student.hasAEE ? ` Frequenta o AEE (${student.aeeFrequency ?? "frequência não informada"}).` : " Ainda não frequenta o AEE."}${student.supportProfessional ? " Conta com profissional de apoio." : ""}`;
+  return `Estudante de ${ageFrom(student.birthDate)} anos, ${student.gradeYear}, ${STAGES[student.stage] ?? student.stage}.${student.aeeFrequency ? ` Recebe atendimento educacional especializado (${student.aeeFrequency}).` : " Recebe atendimento educacional especializado."}${student.supportProfessional ? " Conta com profissional de apoio." : ""}`;
 }
 
 export function profileText(profile: FunctionalProfile) {

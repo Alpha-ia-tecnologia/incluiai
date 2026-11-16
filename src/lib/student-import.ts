@@ -160,11 +160,9 @@ export function readStudentSheet(text: string, today: Date = new Date()): { rows
     if (!shift) errors.push("turno em branco");
     const guardianName = cell("guardianName").replace(/\s+/g, " ");
     if (!guardianName) errors.push("responsável em branco");
-    const aee = normalize(cell("hasAEE"));
-    if (!YES.has(aee) && !NO.has(aee)) errors.push(`AEE: use sim ou não ("${cell("hasAEE")}")`);
-    const hasAEE = YES.has(aee);
+    // Todo estudante cadastrado é atendido: a coluna "aee" de planilhas antigas é
+    // aceita e ignorada, e a frequência do atendimento é opcional.
     const aeeFrequency = cell("aeeFrequency") || null;
-    if (hasAEE && !aeeFrequency) errors.push("informe a frequência do AEE (ex.: 2x por semana)");
     const support = normalize(cell("supportProfessional"));
     if (!YES.has(support) && !NO.has(support)) errors.push(`profissional de apoio: use sim ou não ("${cell("supportProfessional")}")`);
     if (name && birthDate) {
@@ -179,7 +177,7 @@ export function readStudentSheet(text: string, today: Date = new Date()): { rows
       values: {
         name, birthDate: birthDate!, stage: stage!, gradeYear: gradeYear.slice(0, 40), className: className.slice(0, 40), shift,
         guardianName: guardianName.slice(0, 120), guardianPhone: cell("guardianPhone").slice(0, 40) || null,
-        hasAEE, aeeFrequency: hasAEE ? aeeFrequency!.slice(0, 60) : null, supportProfessional: YES.has(support),
+        hasAEE: true, aeeFrequency: aeeFrequency?.slice(0, 60) ?? null, supportProfessional: YES.has(support),
       },
     };
   });
@@ -191,9 +189,9 @@ export const studentKey = (name: string, birthDate: string) => `${normalize(name
 
 // Modelo para baixar: ponto e vírgula e BOM, como o Excel em português abre.
 export const IMPORT_TEMPLATE = "﻿" + [
-  "nome;nascimento;etapa;ano;turma;turno;responsavel;telefone;aee;frequencia_aee;profissional_de_apoio",
-  "Exemplo Estudante Um;15/03/2018;Anos iniciais;2º ano;Turma A;Manhã;Nome do Responsável;(98) 90000-0000;sim;2x por semana;não",
-  "Exemplo Estudante Dois;02/09/2014;;6º ano;Turma B;Tarde;Nome da Responsável;;não;;não",
+  "nome;nascimento;etapa;ano;turma;turno;responsavel;telefone;frequencia_aee;profissional_de_apoio",
+  "Exemplo Estudante Um;15/03/2018;Anos iniciais;2º ano;Turma A;Manhã;Nome do Responsável;(98) 90000-0000;2x por semana;não",
+  "Exemplo Estudante Dois;02/09/2014;;6º ano;Turma B;Tarde;Nome da Responsável;;;não",
 ].join("\r\n") + "\r\n";
 
 // As linhas do modelo mostram o formato; não são estudantes e não entram no cadastro.

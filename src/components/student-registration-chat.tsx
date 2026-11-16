@@ -146,22 +146,14 @@ function buildSteps(schools: SchoolOption[]): Step[] {
       optionalLabel: "Prefiro informar depois",
     },
     {
-      field: "hasAEE",
-      question: "O estudante está matriculado no AEE?",
-      hint: "Atendimento Educacional Especializado.",
-      kind: "options",
-      options: yesNo,
-      required: true,
-    },
-    {
       field: "aeeFrequency",
-      question: "Com qual frequência participa do AEE?",
+      question: "Com qual frequência é atendido?",
+      hint: "Atendimento Educacional Especializado.",
       kind: "options",
       options: toOptions(AEE_FREQUENCY_OPTIONS),
       allowOther: true,
       placeholder: "Ex.: 2 vezes por semana, à tarde",
-      required: true,
-      visible: (answers) => answers.hasAEE === "sim",
+      optionalLabel: "Prefiro informar depois",
     },
     {
       field: "supportProfessional",
@@ -247,9 +239,6 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
       delete nextAnswers.className;
       delete nextAnswers.gradeYear;
       delete nextAnswers.shift;
-    }
-    if (step.field === "hasAEE" && cleanValue === "nao") {
-      delete nextAnswers.aeeFrequency;
     }
     // Turma cadastrada: já sugere o turno dela na próxima pergunta.
     const schoolClass = registeredClasses.find((item) => item.name === cleanValue);
@@ -337,7 +326,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
     const formData = new FormData();
     for (const step of visibleSteps) {
       const value = answers[step.field] ?? "";
-      if (step.field === "hasAEE" || step.field === "supportProfessional") {
+      if (step.field === "supportProfessional") {
         if (value === "sim") formData.append(step.field, "on");
       } else {
         formData.append(step.field, value);
@@ -637,7 +626,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
                 icon={<CalendarDays size={16} aria-hidden />}
                 title="Responsável e apoios"
                 steps={visibleSteps.filter((step) =>
-                  ["guardianName", "guardianPhone", "hasAEE", "aeeFrequency", "supportProfessional", "accessibilityNotes"].includes(step.field),
+                  ["guardianName", "guardianPhone", "aeeFrequency", "supportProfessional", "accessibilityNotes"].includes(step.field),
                 )}
                 answers={answers}
                 schools={schools}
@@ -805,8 +794,7 @@ function summaryLabel(field: string) {
     shift: "Turno",
     guardianName: "Responsável",
     guardianPhone: "Telefone",
-    hasAEE: "Atendimento AEE",
-    aeeFrequency: "Frequência do AEE",
+    aeeFrequency: "Frequência do atendimento",
     supportProfessional: "Profissional de apoio",
     accessibilityNotes: "Informações de acessibilidade",
   };

@@ -309,7 +309,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-3xl">Painel de indicadores</h1>
           <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
             <span className="font-medium text-ink">{scope.schoolName ?? "Toda a rede"}</span>
-            {o.students ? <> · <span data-testid="total-estudantes">{plural(o.students, "estudante", "estudantes")}</span> ({o.withAEE} no AEE) · {plural(o.schools, "escola", "escolas")} · {plural(o.classes, "turma", "turmas")}</> : null}
+            {o.students ? <> · <span data-testid="total-estudantes">{plural(o.students, "estudante", "estudantes")}</span> {plural(o.schools, "escola", "escolas")} · {plural(o.classes, "turma", "turmas")}</> : null}
             {" "}· {PERIODS[period]}{scope.start ? ` (desde ${formatDate(scope.start)})` : ""} · atualizado em {updatedAt}
           </p>
         </div>

@@ -346,7 +346,8 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     },
     overview: {
       students: total,
-      withAEE: count((student) => student.hasAEE),
+      // Todo estudante cadastrado é atendido.
+      withAEE: total,
       withSupportProfessional: count((student) => student.supportProfessional),
       schools: schoolId ? 1 : schools.length,
       classes: classCount,

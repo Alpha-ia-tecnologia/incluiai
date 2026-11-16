@@ -9,7 +9,7 @@ import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
 import { canSeeClinicalDetail, canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { parseCaseStudy } from "@/lib/case-study";
 import { guidanceForPlan, parseAccepted } from "@/lib/health-report";
-import { censusReference } from "@/lib/federal-guidance";
+import { censusReference, specialEducationAnswer } from "@/lib/federal-guidance";
 import type { FunctionalProfile } from "@prisma/client";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
 import { DataBoard, DataCard, StatusPill, SupportBars, SupportChart } from "@/components/data-viz";
@@ -72,10 +72,11 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   // registro só entra quando o acompanhamento já começou.
   const alerts = studentAlerts({ plans: student.plans, entries: student.diaryEntries })
     .filter((alert) => alert.kind !== "sem_registro" || Boolean(activePlan) || student.diaryEntries.length > 0);
-  // Censo Escolar (orientação do INEP): para o estudante do AEE, o estudo de caso
-  // concluído ou o plano ativo respaldam a declaração.
-  const census = pedagogical && student.hasAEE
-    ? censusReference({ caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: Boolean(activePlan) })
+  // Censo Escolar (orientação do INEP): o estudo de caso concluído ou o plano
+  // ativo respaldam a declaração do estudante como público da educação especial.
+  // Vale igual para todos os estudantes acompanhados, com ou sem AEE.
+  const census = pedagogical
+    ? censusReference({ caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: Boolean(activePlan), specialEducation: specialEducationAnswer(parseCaseStudy(student.caseStudy?.content).publicoAlvo) })
     : null;
   const worked = strategiesThatWorked(student.diaryEntries);
   const workedCounts = pedagogical ? countItems(student.diaryEntries.map((entry) => entry.whatWorked), 8) : [];
@@ -104,9 +105,13 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
           ) : (
             <Card className="border-amber-800/20 bg-amber-soft/50">
               <SectionTitle>Censo Escolar</SectionTitle>
-              <p className="text-sm leading-relaxed text-ink">Falta o registro de referência para declarar este estudante. O estudo de caso concluído já basta, e para concluir é preciso só a parte Essencial.</p>
-              <Link href={`/estudantes/${student.id}/estudo-de-caso`} className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-strong hover:underline">
-                {student.caseStudy ? "Concluir o estudo de caso" : "Fazer o estudo de caso"} <ArrowRight size={15} aria-hidden />
+              <p className="text-sm leading-relaxed text-ink">
+                {census.pending
+                  ? `${census.pending} Enquanto for assim, ele não serve de registro de referência para a declaração.`
+                  : "Falta o registro de referência para declarar este estudante. O estudo de caso concluído já basta, e para concluir é preciso só a parte Essencial."}
+              </p>
+              <Link href={`/estudantes/${student.id}/estudo-de-caso${census.pending ? "?editar=1" : ""}`} className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-strong hover:underline">
+                {census.pending ? "Rever o estudo de caso" : student.caseStudy ? "Concluir o estudo de caso" : "Fazer o estudo de caso"} <ArrowRight size={15} aria-hidden />
               </Link>
             </Card>
           )

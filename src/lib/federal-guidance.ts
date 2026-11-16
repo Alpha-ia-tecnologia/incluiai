@@ -41,12 +41,27 @@ export const REGULAR_TEACHER = "Professor(a) da sala comum";
 
 export type CensusReferenceRecord = "Estudo de caso" | "PAEE" | "PEI";
 
+// O que o estudo de caso respondeu em "Público da educação especial"
+// (src/lib/case-study.ts). null: estudo sem essa resposta, de antes de ela existir.
+export type SpecialEducationAnswer = "sim" | "em_avaliacao" | "nao" | null;
+export function specialEducationAnswer(value: string | null | undefined): SpecialEducationAnswer {
+  const text = (value ?? "").trim();
+  return text.startsWith("Sim") ? "sim" : text.startsWith("Em avaliação") ? "em_avaliacao" : text.startsWith("Não") ? "nao" : null;
+}
+
 // Registro de referência para declarar o estudante no Censo: o estudo de caso
 // concluído ou o plano ativo (PAEE e PEI no mesmo documento). O laudo fica de
-// fora de propósito: é dado clínico e não pode ser exigido.
-export function censusReference(input: { caseStudyConcluded: boolean; hasActivePlan: boolean }): { backed: boolean; records: CensusReferenceRecord[] } {
+// fora de propósito: é dado clínico e não pode ser exigido. O estudo só respalda
+// a declaração quando conclui que o estudante é público da educação especial:
+// "em avaliação" ou "não é público" não respaldam, e `pending` diz por quê.
+export function censusReference(input: { caseStudyConcluded: boolean; hasActivePlan: boolean; specialEducation?: SpecialEducationAnswer }): { backed: boolean; records: CensusReferenceRecord[]; pending: string | null } {
   const records: CensusReferenceRecord[] = [];
-  if (input.caseStudyConcluded) records.push("Estudo de caso");
+  const answer = input.specialEducation ?? null;
+  const studyCounts = input.caseStudyConcluded && answer !== "em_avaliacao" && answer !== "nao";
+  if (studyCounts) records.push("Estudo de caso");
   if (input.hasActivePlan) records.push("PAEE", "PEI");
-  return { backed: records.length > 0, records };
+  const pending = !input.caseStudyConcluded || studyCounts ? null
+    : answer === "em_avaliacao" ? "O estudo de caso está concluído, mas registra que a equipe ainda avalia se o estudante é público da educação especial."
+      : "O estudo de caso concluiu que o estudante não é público da educação especial.";
+  return { backed: records.length > 0, records, pending };
 }

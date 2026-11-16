@@ -150,7 +150,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       if (!list.length) return "Nenhum estudante encontrado com esse filtro.";
       const lines = list.slice(0, 60).map((student) => {
         const next = journeyInput(student);
-        return `- ${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.gradeYear}, ${student.className}, ${SHIFTS[student.shift] ?? student.shift}, ${ctx.privacy.schoolLabel(student.schoolId)}; AEE: ${student.hasAEE ? "sim" : "não"}; próximo passo: ${next.label} (${next.href}); último registro de aula: ${student.diaryEntries[0] ? formatDate(student.diaryEntries[0].date) : "nenhum"}.`;
+        return `- ${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.gradeYear}, ${student.className}, ${SHIFTS[student.shift] ?? student.shift}, ${ctx.privacy.schoolLabel(student.schoolId)}; próximo passo: ${next.label} (${next.href}); último registro de aula: ${student.diaryEntries[0] ? formatDate(student.diaryEntries[0].date) : "nenhum"}.`;
       });
       return `${plural(list.length, "estudante", "estudantes")}${list.length > 60 ? " (mostrando 60)" : ""}:\n${lines.join("\n")}`;
     });
@@ -184,7 +184,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       const health = s.intersectorReports[0];
       const sections = [
         `# ${label} (id ${id})`,
-        `${s.gradeYear}, ${s.className}, ${SHIFTS[s.shift] ?? s.shift}, ${ctx.privacy.schoolLabel(s.schoolId)}. ${ageFrom(s.birthDate)} anos, ${STAGES[s.stage] ?? s.stage}. AEE: ${s.hasAEE ? `sim${s.aeeFrequency ? ` (${s.aeeFrequency})` : ""}` : "não"}. Profissional de apoio: ${s.supportProfessional ? "sim" : "não"}.${s.accessibilityNotes ? ` Recursos de acessibilidade: ${s.accessibilityNotes}.` : ""}`,
+        `${s.gradeYear}, ${s.className}, ${SHIFTS[s.shift] ?? s.shift}, ${ctx.privacy.schoolLabel(s.schoolId)}. ${ageFrom(s.birthDate)} anos, ${STAGES[s.stage] ?? s.stage}. Atendimento: ${s.aeeFrequency ?? "frequência não informada"}. Profissional de apoio: ${s.supportProfessional ? "sim" : "não"}.${s.accessibilityNotes ? ` Recursos de acessibilidade: ${s.accessibilityNotes}.` : ""}`,
         `Páginas: resumo /estudantes/${id} · estudo de caso /estudantes/${id}/estudo-de-caso · como aprende /estudantes/${id}/perfil · plano /estudantes/${id}/ppi · atividades /estudantes/${id}/atividades · materiais /estudantes/${id}/materiais · registrar aula /estudantes/${id}/diario · evolução /estudantes/${id}/linha-do-tempo`,
         `\n## Jornada\nPróximo passo sugerido: ${next.label} (${next.href}). Estudo de caso: ${s.caseStudy?.status === "concluido" ? "concluído" : s.caseStudy ? "em rascunho" : "não feito"}. Como aprende: ${s.profile ? "preenchido" : "não preenchido"}. Plano ativo: ${activePlan ? "sim" : "não"}. Atividades preparadas: ${counts.aceita + counts.aplicada}. Registros de aula: ${s.diaryEntries.length}.`,
         alerts.length ? `Avisos: ${alerts.map((alert) => alert.message).join(" ")}` : "Avisos: nenhum.",
@@ -533,7 +533,7 @@ function therapistTools(ctx: ToolContext): BetaRunnableTool[] {
       const s = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { profile: true, intersectorReports: { orderBy: { createdAt: "desc" }, take: 3 } } });
       return [
         `# ${ctx.privacy.studentLabel(studentId)} (página: /terapeuta)`,
-        `${s.gradeYear}, ${STAGES[s.stage] ?? s.stage}. AEE: ${s.hasAEE ? "sim" : "não"}.`,
+        `${s.gradeYear}, ${STAGES[s.stage] ?? s.stage}.`,
         `## Como aprende (registrado pela escola)\n${s.profile ? profileText(s.profile) : "A escola ainda não preencheu o perfil."}`,
         `## Relatórios enviados\n${s.intersectorReports.map((report) => `- ${formatDate(report.createdAt)}: comunicação: ${report.communication}; recursos: ${report.accessResources}; estratégias: ${report.strategiesToTry}; orientações: ${report.schoolGuidance}; objetivos compartilhados: ${report.sharedGoals}.`).join("\n") || "Nenhum relatório ainda."}`,
       ].join("\n\n");

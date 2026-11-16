@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AEE_SERVICE_OPTIONS, ASSESSMENT_ACCESSIBILITY_OPTIONS, PLAN_DOCUMENT_KEYS, censusDifferences, missingCount, missingPlanItems, planDefaultsFromCaseStudy, planDocumentsFromForm } from "./plan-documents.ts";
 import { AEE_SERVICE_LABELS, ASSESSMENT_RESOURCE_LABELS } from "./educacenso.ts";
-import { CENSUS_RULES, FEDERAL_SOURCE_LINE, INEP_CENSUS_GUIDANCE, censusReference } from "./federal-guidance.ts";
+import { CENSUS_RULES, FEDERAL_SOURCE_LINE, INEP_CENSUS_GUIDANCE, censusReference, specialEducationAnswer } from "./federal-guidance.ts";
 
 test("formulário: vazio vira null, texto é aparado e limitado", () => {
   const form = new Map([["aeeTeacher", "  Ana Souza "], ["monitoring", ""], ["familyFeedback", "x".repeat(900)]]);
@@ -44,9 +44,23 @@ test("sugestões a partir do estudo de caso", () => {
 });
 
 test("Censo: um registro de referência basta, e o laudo não entra", () => {
-  assert.deepEqual(censusReference({ caseStudyConcluded: false, hasActivePlan: false }), { backed: false, records: [] });
-  assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: false }), { backed: true, records: ["Estudo de caso"] });
-  assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: true }), { backed: true, records: ["Estudo de caso", "PAEE", "PEI"] });
+  assert.deepEqual(censusReference({ caseStudyConcluded: false, hasActivePlan: false }), { backed: false, records: [], pending: null });
+  assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: false }), { backed: true, records: ["Estudo de caso"], pending: null });
+  assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: true }), { backed: true, records: ["Estudo de caso", "PAEE", "PEI"], pending: null });
+  // O estudo só respalda quando conclui que o estudante é público da educação especial.
+  assert.equal(specialEducationAnswer("Sim: estudante com deficiência"), "sim");
+  assert.equal(specialEducationAnswer("Em avaliação pela equipe"), "em_avaliacao");
+  assert.equal(specialEducationAnswer("Não é público do AEE: acompanhar na sala comum"), "nao");
+  assert.equal(specialEducationAnswer(undefined), null);
+  assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: false, specialEducation: "sim" }).records, ["Estudo de caso"]);
+  const evaluating = censusReference({ caseStudyConcluded: true, hasActivePlan: false, specialEducation: "em_avaliacao" });
+  assert.equal(evaluating.backed, false);
+  assert.match(evaluating.pending, /ainda avalia/);
+  const notPublic = censusReference({ caseStudyConcluded: true, hasActivePlan: false, specialEducation: "nao" });
+  assert.deepEqual([notPublic.backed, notPublic.records], [false, []]);
+  assert.match(notPublic.pending, /não é público/);
+  // Com plano ativo, o PAEE e o PEI respaldam mesmo assim.
+  assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: true, specialEducation: "em_avaliacao" }).records, ["PAEE", "PEI"]);
   assert.match(INEP_CENSUS_GUIDANCE.url, /^https:\/\/www\.gov\.br\/inep\//);
   assert.match(FEDERAL_SOURCE_LINE, /INEP\/MEC.*Decreto nº 12\.686\/2025.*Portaria MEC nº 421\/2026/);
   assert.ok(CENSUS_RULES.some((rule) => /Laudo médico não pode ser exigido/.test(rule)));

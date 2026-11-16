@@ -651,6 +651,12 @@ function PlanDocumentCard({ id, title, norm, teacherLabel, teacher, participants
           <a href="#completar-paee-pei" className="underline underline-offset-4">A registrar</a>: {[!teacher && teacherLabel, ...missing.map((item) => item.label), ...alsoMissing].filter((label): label is string => Boolean(label)).map(lowerFirst).join(", ")}.
         </p>
       ) : null}
+      {/* Para conferir, sem impedir nada: o Educacenso recusa o vínculo no AEE sem tipo de atendimento. */}
+      {showMissing && missing.some((item) => item.key === "aeeServices") ? (
+        <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber-800">
+          Para conferir: sem os atendimentos do AEE no plano, a escola fica sem referência para o tipo de atendimento, que o Educacenso exige no vínculo do AEE.
+        </p>
+      ) : null}
       {/* O Censo declara o que o plano registra: a diferença aparece para quem confere o Educacenso. */}
       {differences.length ? (
         <div className="mt-3 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber-800">

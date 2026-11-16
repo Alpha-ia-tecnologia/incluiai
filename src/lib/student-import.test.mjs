@@ -61,12 +61,14 @@ test("cada linha diz o que falta, e repetidos são apontados", () => {
   ].join("\n");
   const { rows } = readStudentSheet(sheet, today);
   assert.deepEqual(rows.map((row) => row.line), [2, 3, 4, 5]);
-  assert.deepEqual(rows[0].errors, ["nascimento no futuro", "informe a frequência do AEE (ex.: 2x por semana)"]);
+  // Todo estudante cadastrado é atendido: a coluna "aee" é ignorada e a frequência é opcional.
+  assert.deepEqual(rows[0].errors, ["nascimento no futuro"]);
   assert.ok(rows[1].errors.includes("nascimento inválido (use DD/MM/AAAA)"));
   assert.ok(rows[1].errors.includes("turma em branco"));
   assert.ok(rows[1].errors.some((error) => error.startsWith("informe a etapa")));
-  assert.ok(rows[1].errors.some((error) => error.startsWith("AEE: use sim ou não")));
+  assert.ok(!rows[1].errors.some((error) => error.startsWith("AEE")));
   assert.equal(rows[2].errors.length, 0);
+  assert.equal(rows[2].values.hasAEE, true);
   assert.deepEqual(rows[3].errors, ["repetido na planilha (linha 4)"]);
 });
 

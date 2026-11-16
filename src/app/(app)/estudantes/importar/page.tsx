@@ -22,8 +22,7 @@ const REQUIRED = [
 const OPTIONAL = [
   ["etapa", "Educação infantil, Anos iniciais, Anos finais, Ensino médio ou EJA (vazia: sai do ano)"],
   ["telefone", "do responsável"],
-  ["aee", "sim ou não"],
-  ["frequencia_aee", "obrigatória com AEE, como 2x por semana"],
+  ["frequencia_aee", "opcional, como 2x por semana"],
   ["profissional_de_apoio", "sim ou não"],
 ];
 
