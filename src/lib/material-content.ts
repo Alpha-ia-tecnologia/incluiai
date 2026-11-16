@@ -3,9 +3,10 @@
 // testado com node --test (src/lib/material-content.test.mjs).
 //
 // Um material completo traz os cartões (com a descrição do pictograma), como
-// apresentar ao estudante, como usar, de 2 a 3 atividades para aplicar com o
-// material, o porquê de cada adaptação (ligado ao perfil) e os recursos de
-// acessibilidade. A IA propõe; o profissional aprova antes do uso.
+// preparar e apresentar ao estudante, como usar, as atividades para aplicar o
+// material (sala comum, AEE e casa, cada uma com o que registrar depois), o
+// porquê de cada adaptação (ligado ao perfil ou à regra de adaptação) e os
+// recursos de acessibilidade. A IA propõe; o profissional aprova antes do uso.
 
 export type MaterialKind = "rotina_visual" | "historia_social" | "prancha_caa" | "sequencia_tarefa" | "quadro_escolhas" | "regulacao";
 export type MaterialContext = "sala_comum" | "aee" | "casa";
@@ -49,6 +50,7 @@ export type MaterialActivity = {
   successCriterion: string;
   planB: string;
   classParticipation?: string;
+  record?: string; // o que observar e registrar depois de aplicar
 };
 export type MaterialAdaptation = { text: string; basis: string };
 export type MaterialContent = {
@@ -56,6 +58,7 @@ export type MaterialContent = {
   purpose: string;
   intro: string;
   cards: MaterialCard[];
+  preparation: string[]; // como montar: imprimir, recortar, onde deixar
   howToUse: string[];
   activities: MaterialActivity[];
   adaptations: MaterialAdaptation[];
@@ -79,6 +82,7 @@ export function normalizeMaterialContent(value: unknown): MaterialContent {
       visual: text(card.visual) || text(card.hint) || text(card.label),
       alt: text(card.alt) || text(card.label),
     })).filter((card) => card.label),
+    preparation: list<string>(raw.preparation).filter((item) => typeof item === "string"),
     howToUse: list<string>(raw.howToUse).filter((item) => typeof item === "string"),
     activities: list<MaterialActivity>(raw.activities).filter((item) => item && typeof item.title === "string"),
     adaptations: list<MaterialAdaptation>(raw.adaptations).filter((item) => item && typeof item.text === "string"),
@@ -156,26 +160,39 @@ const CLINICAL = /\b(diagnos\w*|laudo\w*|cid\b|cid[- ]?\d{1,2}\b|tea\b|tdah\b|au
 // O pictograma não pode pedir texto escrito na imagem.
 const TEXT_IN_IMAGE = /\b(com|contendo|mostrando|escrev\w*)\s+(o |a |um |uma )?(texto|palavras?|frase|legenda|letreiro|nome)\b|\blegenda\b|\bletreiro\b/i;
 
-export function checkMaterial(content: MaterialContent, rules: { kind: MaterialKind; toleranceMinutes: number }): string[] {
+type MaterialRules = { kind: MaterialKind; toleranceMinutes: number };
+export const hasClinicalLanguage = (value: unknown) => CLINICAL.test(normalizeText(JSON.stringify(value)));
+
+// As verificações também valem parte a parte (cartões, cada atividade), para o
+// revisor dos agentes devolver só o que precisa ser refeito.
+export function checkMaterialCards(cards: MaterialCard[], kind: MaterialKind): string[] {
   const problems: string[] = [];
-  const range = MATERIAL_KINDS.find((item) => item.kind === rules.kind)?.cards ?? [3, 12];
-  if (content.cards.length < range[0] || content.cards.length > range[1]) problems.push(`Use de ${range[0]} a ${range[1]} cartões (vieram ${content.cards.length}).`);
-  const limit = rules.kind === "historia_social" ? 20 : 8;
-  const longCards = content.cards.filter((card) => words(card.label) > limit);
+  const range = MATERIAL_KINDS.find((item) => item.kind === kind)?.cards ?? [3, 12];
+  if (cards.length < range[0] || cards.length > range[1]) problems.push(`Use de ${range[0]} a ${range[1]} cartões (vieram ${cards.length}).`);
+  const limit = kind === "historia_social" ? 20 : 8;
+  const longCards = cards.filter((card) => words(card.label) > limit);
   if (longCards.length) problems.push(`${longCards.length} cartão(ões) com texto longo: no máximo ${limit} palavras por cartão.`);
-  if (content.cards.some((card) => !card.visual.trim() || TEXT_IN_IMAGE.test(card.visual))) problems.push("Toda descrição visual deve mostrar uma cena ou objeto, sem pedir texto escrito na imagem.");
+  if (cards.some((card) => !card.visual.trim() || TEXT_IN_IMAGE.test(card.visual))) problems.push("Toda descrição visual deve mostrar uma cena ou objeto, sem pedir texto escrito na imagem.");
+  return problems;
+}
+
+export function checkMaterialActivity(activity: MaterialActivity, toleranceMinutes: number): string[] {
+  const problems: string[] = [];
+  const max = activity.context === "casa" ? Math.min(10, toleranceMinutes || 10) : toleranceMinutes || 25;
+  if (activity.durationMinutes > max) problems.push(`"${activity.title}" dura ${activity.durationMinutes} min; o limite é ${max} min.`);
+  if (activity.steps.length < 3 || activity.steps.length > 6) problems.push(`"${activity.title}" tem ${activity.steps.length} passos; use de 3 a 6.`);
+  if (activity.steps.some((step) => words(step) > 30)) problems.push(`"${activity.title}" tem passo longo demais: uma ação por passo.`);
+  if (!activity.successCriterion.trim()) problems.push(`"${activity.title}" precisa de um critério de sucesso observável.`);
+  if (activity.context === "sala_comum" && !activity.classParticipation?.trim()) problems.push(`"${activity.title}" é na sala comum: diga como a turma participa junto.`);
+  return problems;
+}
+
+export function checkMaterial(content: MaterialContent, rules: MaterialRules): string[] {
+  const problems = checkMaterialCards(content.cards, rules.kind);
   if (content.activities.length < 2 || content.activities.length > 3) problems.push(`Proponha de 2 a 3 atividades para aplicar o material (vieram ${content.activities.length}).`);
-  for (const activity of content.activities) {
-    const max = activity.context === "casa" ? Math.min(10, rules.toleranceMinutes || 10) : rules.toleranceMinutes || 25;
-    if (activity.durationMinutes > max) problems.push(`"${activity.title}" dura ${activity.durationMinutes} min; o limite é ${max} min.`);
-    if (activity.steps.length < 3 || activity.steps.length > 6) problems.push(`"${activity.title}" tem ${activity.steps.length} passos; use de 3 a 6.`);
-    if (activity.steps.some((step) => words(step) > 30)) problems.push(`"${activity.title}" tem passo longo demais: uma ação por passo.`);
-    if (!activity.successCriterion.trim()) problems.push(`"${activity.title}" precisa de um critério de sucesso observável.`);
-    if (activity.context === "sala_comum" && !activity.classParticipation?.trim()) problems.push(`"${activity.title}" é na sala comum: diga como a turma participa junto.`);
-  }
+  for (const activity of content.activities) problems.push(...checkMaterialActivity(activity, rules.toleranceMinutes));
   if (!content.adaptations.length || content.adaptations.some((item) => !item.basis.trim())) problems.push("Cada adaptação precisa dizer em que item do perfil se baseia.");
-  const allText = normalizeText(JSON.stringify(content));
-  if (CLINICAL.test(allText)) problems.push("Retire linguagem clínica ou menção a diagnóstico.");
+  if (hasClinicalLanguage(content)) problems.push("Retire linguagem clínica ou menção a diagnóstico.");
   return problems;
 }
 
@@ -183,7 +200,7 @@ const clip = (value: unknown, max: number) => String(value ?? "").replace(/\s+/g
 const clipList = (value: unknown, maxItems: number, maxChars: number) => (Array.isArray(value) ? value.map((item) => clip(item, maxChars)).filter(Boolean).slice(0, maxItems) : []);
 
 // Ajustes finais em tudo o que vier da IA: limites de tamanho e de tempo, sem confiar no modelo.
-export function finalizeMaterial(content: MaterialContent, rules: { kind: MaterialKind; toleranceMinutes: number }): MaterialContent {
+export function finalizeMaterial(content: MaterialContent, rules: MaterialRules): MaterialContent {
   const range = MATERIAL_KINDS.find((item) => item.kind === rules.kind)?.cards ?? [3, 12];
   const contexts: MaterialContext[] = ["sala_comum", "aee", "casa"];
   return {
@@ -191,6 +208,7 @@ export function finalizeMaterial(content: MaterialContent, rules: { kind: Materi
     purpose: clip(content.purpose, 400),
     intro: clip(content.intro, 400),
     cards: content.cards.slice(0, range[1]).map((card) => ({ label: clip(card.label, 160), caption: clip(card.caption, 200) || undefined, visual: clip(card.visual, 300), alt: clip(card.alt, 200) || clip(card.label, 160) })),
+    preparation: clipList(content.preparation, 6, 240),
     howToUse: clipList(content.howToUse, 8, 300),
     activities: content.activities.slice(0, 3).map((activity) => {
       const context = contexts.includes(activity.context) ? activity.context : "aee";
@@ -209,9 +227,10 @@ export function finalizeMaterial(content: MaterialContent, rules: { kind: Materi
         successCriterion: clip(activity.successCriterion, 240),
         planB: clip(activity.planB, 300),
         classParticipation: context === "sala_comum" ? clip(activity.classParticipation, 300) || undefined : undefined,
+        record: clip(activity.record, 300) || undefined,
       };
     }),
-    adaptations: (content.adaptations ?? []).map((item) => ({ text: clip(item.text, 240), basis: clip(item.basis, 200) })).filter((item) => item.text).slice(0, 10),
+    adaptations: (content.adaptations ?? []).map((item) => ({ text: clip(item.text, 240), basis: clip(item.basis, 200) })).filter((item) => item.text).slice(0, 12),
     accessibility: clipList(content.accessibility, 8, 120),
     familyTip: clip(content.familyTip, 400),
     reviewNotes: clipList(content.reviewNotes, 8, 240),
@@ -324,6 +343,7 @@ function rulesActivities(input: RulesInput, cards: MaterialCard[]): MaterialActi
     responseForms: forms,
     ...ladder,
     successCriterion: `Indica o cartão certo em pelo menos ${Math.max(2, Math.ceil(cards.length / 2))} momentos, com o apoio previsto.`,
+    record: "Registre quantos cartões o estudante indicou e qual apoio foi preciso.",
     planB: `Se aparecerem sinais de cansaço, oferecer ${calm} e retomar com menos cartões.`,
   };
   const inUse: MaterialActivity = context === "casa"
@@ -337,6 +357,7 @@ function rulesActivities(input: RulesInput, cards: MaterialCard[]): MaterialActi
         responseForms: forms,
         ...ladder,
         successCriterion: "A família registra se o estudante usou os cartões na situação.",
+        record: "Conte à escola em que momentos o material ajudou e em quais não.",
         planB: `Se não der certo, usar só os primeiros cartões e oferecer ${calm}.`,
       }
     : {
@@ -349,6 +370,7 @@ function rulesActivities(input: RulesInput, cards: MaterialCard[]): MaterialActi
         responseForms: forms,
         ...ladder,
         successCriterion: "Acompanha a situação usando os cartões, com no máximo a pista combinada.",
+        record: "Registre em quais momentos o estudante usou os cartões e o apoio que foi preciso.",
         planB: `Se a situação ficar difícil, oferecer ${calm} e retomar a partir do último cartão.`,
         classParticipation: "A turma usa a mesma rotina no quadro, e um colega ajuda a virar os cartões.",
       };
@@ -364,6 +386,11 @@ export function rulesMaterial(input: RulesInput): { title: string; content: Mate
     purpose: `${MATERIAL_KIND_LABEL[kind]}${situation ? ` para ${firstLower(situation)}` : ""}: ${MATERIAL_KINDS.find((item) => item.kind === kind)!.description.toLowerCase()}`,
     intro: kind === "historia_social" ? "Leia com o estudante antes da situação, com calma, uma frase de cada vez." : "Apresente o material antes da situação e use os cartões durante ela.",
     cards,
+    preparation: [
+      "Imprima em papel firme, de preferência em tamanho A4.",
+      kind === "historia_social" ? "Grampeie as páginas na ordem, como um livrinho." : "Recorte os cartões nas linhas e, se puder, plastifique.",
+      "Deixe o material onde o estudante alcança e vê durante a situação.",
+    ],
     howToUse: [
       "Apresente o material num momento tranquilo, antes de precisar dele.",
       "Use sempre as mesmas palavras dos cartões.",

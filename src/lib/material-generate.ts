@@ -9,10 +9,12 @@ import { CHANNELS } from "./scale";
 import { createAgentModel } from "./agents/model";
 import { loadAnonymizer } from "./agents/anonymize";
 import { recordDeepSeekUse } from "./agents/audit";
-import { caseStudyText, profileText } from "./agents/context";
+import { materialContextText } from "./agents/context";
 import { describeAgentError, reporting, type AgentReport } from "./agents/generate";
 import { runMaterialAgent } from "./agents/material-agent";
 import type { TraceStep } from "./agents/schemas";
+import { guidanceForPlan, parseAccepted } from "./health-report";
+import { applicableRules } from "./rules";
 import { isImageGenerationEnabled } from "./images/openai-images";
 import { generateMaterialImages } from "./images/material-images";
 import {
@@ -21,8 +23,10 @@ import {
 } from "./material-content";
 
 // Geração do material de apoio, usada pela página Materiais de apoio e pelo
-// assistente. Com IA ligada, o agente cria o material a partir do perfil (sem
-// dados pessoais); sem IA ou se ela falhar, o motor de regras cria. O material
+// assistente. Com IA ligada, os agentes (criador, um especialista por contexto e
+// revisor) criam o material a partir do objetivo do plano, do perfil, das regras
+// de adaptação e dos registros de aula (sem dados pessoais); sem IA ou se ela
+// falhar, o motor de regras cria. O material
 // nasce "sugerido": um profissional aprova antes do uso. Nada aqui é ação pública.
 
 export type MaterialRequest = { kind: string; topic: string; context: string; objectiveId?: string | null; withImages: boolean };
@@ -60,7 +64,7 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
   if (!student.profile) throw new Error("Preencha Como aprende antes de gerar materiais.");
   // O objetivo precisa ser do plano DESTE estudante (nada de vínculo entre pessoas diferentes).
   const objective = request.objectiveId
-    ? await prisma.objective.findFirst({ where: { id: request.objectiveId, plan: { studentId } }, select: { id: true, description: true, action: true, condition: true, criterion: true } })
+    ? await prisma.objective.findFirst({ where: { id: request.objectiveId, plan: { studentId } }, select: { id: true, dimension: true, action: true, condition: true, criterion: true, currentSupport: true, targetSupport: true, bnccCode: true } })
     : null;
   if (request.objectiveId && !objective) throw new Error("O objetivo escolhido não é do plano deste estudante.");
   const objectiveText = objective ? `${objective.action}, ${objective.condition}, ${objective.criterion}` : null;
@@ -74,12 +78,18 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
   if (await aiAllowedFor(studentId)) {
     const anonymizer = await loadAnonymizer(studentId);
     const agents = createAgentModel(anonymizer);
-    const contextText = [
-      `## Como aprende\n${profileText(student.profile)}`,
-      student.caseStudy ? `\n## Estudo de caso (parte pedagógica)\n${caseStudyText(student.caseStudy.content)}` : "",
-    ].filter(Boolean).join("\n");
     try {
-      const generated = await runMaterialAgent({ kind, topic, context, objective: objectiveText, contextText, facts }, reporting(agents.model, report));
+      // O mesmo que os agentes das atividades recebem: registros de aula (o que
+      // funcionou) e orientações de laudos que a equipe revisou e aceitou.
+      const [entries, reports] = await Promise.all([
+        prisma.diaryEntry.findMany({ where: { studentId }, orderBy: { date: "asc" } }),
+        prisma.healthReport.findMany({ where: { studentId, reviewedAt: { not: null } }, select: { accepted: true } }),
+      ]);
+      const contextText = materialContextText({
+        student, profile: student.profile, caseStudyContent: student.caseStudy?.content, objective, entries,
+        reportGuidance: guidanceForPlan(reports.map((item) => parseAccepted(item.accepted))),
+      });
+      const generated = await runMaterialAgent({ kind, topic, context, contextText, rules: applicableRules(student.profile), facts }, reporting(agents.model, report));
       result = { title: generated.title, content: generated.content };
       source = "ia";
       trace = [{ agent: "Anonimização", summary: anonymizer.summary() ?? "Nenhuma informação pessoal encontrada nos textos enviados à IA." }, ...generated.trace];

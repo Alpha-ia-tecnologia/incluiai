@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Accessibility, CircleCheck, Clock, House, Lightbulb, Printer, Target, Trash2, TriangleAlert, Users } from "lucide-react";
+import { Accessibility, CircleCheck, Clock, House, Lightbulb, Printer, Scissors, Target, Trash2, TriangleAlert, Users } from "lucide-react";
 import { approveMaterial, deleteMaterial } from "@/actions/materials";
 import { Badge } from "@/components/ui";
 import { dangerButtonCls, primaryButtonCls, quietButtonCls } from "@/components/form-styles";
@@ -77,6 +77,7 @@ function ActivityCard({ activity, index, studentId, materialId, printMode, canEd
       <dl className="mt-3 grid min-w-0 gap-2 border-t border-line pt-3 text-sm sm:grid-cols-2">
         <div className="min-w-0"><dt className="font-medium text-ink">Deu certo quando</dt><dd className="text-ink-soft">{activity.successCriterion}</dd></div>
         <div className="min-w-0"><dt className="font-medium text-ink">Se não der certo</dt><dd className="text-ink-soft">{activity.planB}</dd></div>
+        {activity.record ? <div className="min-w-0 sm:col-span-2"><dt className="font-medium text-ink">O que registrar depois</dt><dd className="text-ink-soft">{activity.record}</dd></div> : null}
       </dl>
       {canEdit && !printMode ? <div className="mt-3"><SendActivityButton studentId={studentId} materialId={materialId} index={index} title={activity.title} /></div> : null}
     </li>
@@ -191,6 +192,12 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
       ) : null}
 
       <div className="mt-6 grid min-w-0 gap-4 md:grid-cols-2">
+        {content.preparation.length ? (
+          <section className="min-w-0 rounded-2xl bg-surface-muted/60 p-4 print:break-inside-avoid">
+            <h3 className="flex items-center gap-2 text-sm font-medium text-ink"><Scissors size={16} aria-hidden /> Como preparar</h3>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-soft">{content.preparation.map((item) => <li key={item}>{item}</li>)}</ol>
+          </section>
+        ) : null}
         {content.howToUse.length ? (
           <section className="min-w-0 rounded-2xl bg-surface-muted/60 p-4 print:break-inside-avoid">
             <h3 className="flex items-center gap-2 text-sm font-medium text-ink"><Lightbulb size={16} aria-hidden /> Como usar</h3>

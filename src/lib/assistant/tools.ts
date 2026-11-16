@@ -320,7 +320,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
     });
 
   const criarMaterial = define(ctx, "criar_material",
-    "Cria um material de apoio a partir do perfil do estudante, com cartões, orientações e 2 a 3 atividades para aplicar: rotina visual, passo a passo de uma tarefa, história social, prancha de comunicação, quadro de escolhas ou cartões de autorregulação. Com imagens=true, desenha um pictograma por cartão (leva até 1 minuto). O material fica como sugestão em /estudantes/ID/materiais até a equipe aprovar.",
+    "Cria um material de apoio a partir do perfil do estudante, com cartões, como preparar e usar, e atividades para aplicar na sala comum, no AEE e em casa: rotina visual, passo a passo de uma tarefa, história social, prancha de comunicação, quadro de escolhas ou cartões de autorregulação. Com imagens=true, desenha um pictograma por cartão (leva até 1 minuto). O material fica como sugestão em /estudantes/ID/materiais até a equipe aprovar.",
     z.object({
       estudante: studentRef,
       tipo: z.enum(["rotina_visual", "sequencia_tarefa", "historia_social", "prancha_caa", "quadro_escolhas", "regulacao"]),

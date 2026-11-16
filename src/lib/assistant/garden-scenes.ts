@@ -388,12 +388,12 @@ export function endingCaption(outcome: GardenOutcome, awaiting: number): Caption
 
 export function inlineThresholds(scene: InlineScene, withImages: boolean): readonly number[] {
   if (scene === "imagem") return INLINE_IMAGE_THRESHOLDS;
-  if (scene === "material") return withImages ? INLINE_LONG_THRESHOLDS : INLINE_IMAGE_THRESHOLDS;
+  if (scene === "material") return withImages ? INLINE_LONG_IMAGES_THRESHOLDS : INLINE_LONG_THRESHOLDS;
   return scene === "atividades" && withImages ? INLINE_LONG_IMAGES_THRESHOLDS : INLINE_LONG_THRESHOLDS;
 }
 
 export function inlineTypical(scene: InlineScene, withImages: boolean): number {
-  if (scene === "material") return withImages ? 150 : 60;
+  if (scene === "material") return withImages ? 240 : 180;
   return scene === "imagem" ? 60 : scene === "atividades" && withImages ? 240 : 180;
 }
 
@@ -410,17 +410,20 @@ export function inlineCaption(scene: InlineScene, bucket: number, withImages: bo
     };
   }
   if (scene === "material") {
-    const lateAt = withImages ? 180 : 60;
+    // Criador, três atividades em paralelo e revisor (material-agent.ts): o
+    // mesmo ritmo das atividades do plano, mais os pictogramas quando pedidos.
+    const lateAt = withImages ? 240 : 180;
     return {
       title: "Criando o material de apoio…",
       explain: withImages
-        ? "Um agente de IA monta os cartões e as atividades a partir do perfil; depois, um pictograma por cartão. Sem nenhum dado pessoal."
-        : "Um agente de IA monta os cartões e as atividades a partir do perfil, sem nenhum dado pessoal.",
+        ? "Os agentes de IA criam os cartões, uma atividade para a sala comum, uma para o AEE e uma para casa, e um revisor confere tudo; depois, um pictograma por cartão. Sem nenhum dado pessoal."
+        : "Os agentes de IA criam os cartões, uma atividade para a sala comum, uma para o AEE e uma para casa, e um revisor confere tudo. Sem nenhum dado pessoal.",
       time: bucket >= lateAt ? late
-        : bucket >= 120 ? "Já são 2 minutos. Com imagens, costuma levar até 3 minutos."
-        : bucket >= 60 ? "Já passou 1 minuto. Ainda desenhando os pictogramas."
+        : bucket >= 180 ? "Já são 3 minutos. Com imagens, costuma levar até 4 minutos."
+        : bucket >= 120 ? "Já são 2 minutos. O revisor está conferindo o material."
+        : bucket >= 60 ? "Já passou 1 minuto. As atividades estão sendo escritas."
         : bucket >= 20 ? "Mantenha esta página aberta até o material aparecer."
-        : withImages ? "Costuma levar de 1 a 3 minutos, com as imagens." : "Costuma levar de 20 a 60 segundos.",
+        : withImages ? "Costuma levar de 2 a 4 minutos, com as imagens." : "Costuma levar de 1 a 3 minutos.",
       late: bucket >= lateAt ? late : "",
     };
   }

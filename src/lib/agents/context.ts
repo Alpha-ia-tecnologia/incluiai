@@ -122,3 +122,33 @@ export function activityContextText(input: {
     `\n## Registros de aula\n${diaryText(entries.filter((entry) => !entry.objectiveId || entry.objectiveId === objective.id))}`,
   ].filter(Boolean).join("\n");
 }
+
+// Contexto para materiais de apoio: quem é o estudante (idade e etapa, sem nome),
+// o objetivo do plano que o material apoia (quando há), como aprende, a parte
+// pedagógica do estudo de caso, as orientações aceitas de laudos e o que os
+// registros de aula mostram que funcionou.
+export function materialContextText(input: {
+  student: Student;
+  profile: FunctionalProfile;
+  caseStudyContent?: string | null;
+  objective?: Pick<Objective, "id" | "dimension" | "action" | "condition" | "criterion" | "currentSupport" | "targetSupport" | "bnccCode"> | null;
+  entries?: DiaryEntry[];
+  reportGuidance?: string[];
+}) {
+  const { student, profile, caseStudyContent, objective, entries = [], reportGuidance = [] } = input;
+  const study = caseStudyText(caseStudyContent);
+  return [
+    studentLine(student),
+    objective
+      ? [
+        `\n## Objetivo do plano que o material apoia\n${objective.action}, ${objective.condition}, em ${objective.criterion} (${DIMENSIONS[objective.dimension] ?? objective.dimension}).`,
+        `Apoio atual: ${supportText(objective.currentSupport)}. Apoio que queremos alcançar: ${supportText(objective.targetSupport)}.`,
+        objective.bnccCode ? `Habilidade da BNCC: ${objective.bnccCode}.` : "",
+      ].filter(Boolean).join("\n")
+      : "\n## Objetivo do plano\nNenhum objetivo vinculado: o material e as atividades se ligam à situação pedida.",
+    `\n## Como aprende\n${profileText(profile)}`,
+    study ? `\n## Estudo de caso (parte pedagógica)\n${study}` : "",
+    reportGuidance.length ? `\n## Orientações para a escola vindas de laudos (aceitas pela equipe)\n${reportGuidance.map((text) => `- ${text}`).join("\n")}` : "",
+    `\n## Registros de aula\n${diaryText(objective ? entries.filter((entry) => !entry.objectiveId || entry.objectiveId === objective.id) : entries)}`,
+  ].filter(Boolean).join("\n");
+}
