@@ -72,7 +72,7 @@ export function SuggestionReview({ planningId, purpose, supportId, profileRefs =
             </fieldset>
           ) : null}
           <button type="button" onClick={request} disabled={pending} aria-busy={pending} className={`${buttonCls} justify-self-start`}>
-            <Sparkles size={16} aria-hidden /> {pending ? (aiOn ? "Preparando sugestões… pode levar alguns segundos" : "Preparando sugestões…") : aiOn ? "Pedir sugestões para revisão" : "Pedir sugestões pelas regras da plataforma"}
+            <Sparkles size={16} aria-hidden /> {pending ? (aiOn ? "Preparando sugestões… costuma levar de 1 a 2 minutos" : "Preparando sugestões…") : aiOn ? "Pedir sugestões para revisão" : "Pedir sugestões pelas regras da plataforma"}
           </button>
           <ResultMessage result={result && !result.ok ? result : null} />
         </div>

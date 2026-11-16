@@ -167,3 +167,11 @@ test("falha de um agente interrompe a geração (quem chama cai para o motor de 
   };
   await assert.rejects(runMaterialAgent(input(), model), /sem resposta/);
 });
+
+test("vários agentes falhando juntos: chega o erro original, não o agregado do grafo", async () => {
+  const model = async (request) => {
+    if (request.agent === MATERIAL_AGENT) return design();
+    throw new Error("limite de uso atingido");
+  };
+  await assert.rejects(runMaterialAgent(input(), model), (error) => !(error instanceof AggregateError) && /limite de uso/.test(error.message));
+});

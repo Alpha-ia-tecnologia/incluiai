@@ -60,7 +60,7 @@ Código: regras puras em `src/lib/dua/domain.ts`, `access.ts` e `checks.ts`. Dad
 
 ## Sugestões (IA ou regras)
 
-- **Com chave de IA**, a sugestão usa a cadeia que já existe (Claude e, se falhar, DeepSeek). O contexto leva só campos pedagógicos do planejamento e, no apoio individual, os itens do perfil que o profissional escolheu.
+- **Com chave de IA**, a sugestão usa a cadeia que já existe (Claude e, se falhar, DeepSeek) e é feita por agentes em grafo (`suggestion-agents.ts`): o Analista das barreiras distribui de 3 a 5 focos entre os princípios; um especialista por princípio (engajamento, representação, ação e expressão) escreve os blocos, em paralelo; o Revisor das sugestões confere a aderência ao objetivo, aos critérios e às barreiras e devolve só o princípio reprovado (uma correção). O que o revisor ainda apontar aparece no bloco e na verificação "Revisão pelos agentes"; a decisão continua sendo do professor. O contexto leva só campos pedagógicos do planejamento e, no apoio individual, os itens do perfil que o profissional escolheu.
 - **Antes do envio**, os nomes conhecidos viram papéis ([ESTUDANTE], [FAMILIAR]...) e o texto é conferido de novo (`prepareContext`). Se sobrar um identificador, nada é enviado e a sugestão fica "bloqueada".
 - **Sem chave**, as sugestões vêm das regras da plataforma (barreira → opção conhecida) e passam pela mesma revisão.
 - **Verificações** (`checkBlocks`): estrutura, barreira inexistente (vira hipótese a verificar), identificadores, diagnóstico ou redução por deficiência, observação ou frequência apresentada como evidência, mudança de objetivo e critério novo. Blocos barrados só podem ser recusados.

@@ -23,3 +23,8 @@ export type AgentModel = <T>(request: AgentRequest<T>) => Promise<T>;
 export type AgentProgress = { agent: string; phase: "queued" | "start" | "end" | "fail" };
 
 export class AgentOutputError extends Error {}
+
+// Vários agentes em paralelo que falham juntos chegam do LangGraph como um
+// AggregateError. Quem chama precisa do erro original (limite de uso, chave,
+// conexão) para explicar a falha e decidir o que fazer.
+export const firstAgentError = (error: unknown): unknown => (error instanceof AggregateError && error.errors.length ? error.errors[0] : error);

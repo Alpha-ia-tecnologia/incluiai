@@ -33,6 +33,9 @@ export type RawBlock = {
   suggestedEvidence: string;
   pendingInformation: string[];
   criterionProposal: string | null;
+  // Pontos que o revisor dos agentes ainda apontou depois da correção (suggestion-agents.ts).
+  // Não fazem parte da resposta do modelo: acompanham o bloco para o professor conferir.
+  reviewerNotes?: string[];
 };
 export type RawBlocks = { blocks: RawBlock[] };
 
@@ -154,6 +157,7 @@ export function checkBlocks(raw: RawBlocks, context: DuaAiContext, people: strin
     if (changesCriterion) counts.criterion += 1;
     const principles = [...new Set(item.principles.filter((principle) => DUA_PRINCIPLES.includes(principle)))];
     if (!principles.length) problems.push("Não indicou o princípio relacionado; escolha antes de aceitar.");
+    for (const note of (item.reviewerNotes ?? []).slice(0, 3)) problems.push(`Revisor: ${clip(note, 300)}`);
     const barrierText = barrierId ? context.barriers.find((barrier) => barrier.id === barrierId)?.description ?? "" : hypothesis ?? "";
     return {
       id: randomUUID(),

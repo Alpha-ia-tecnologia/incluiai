@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 import type { AdaptationRule } from "../rules";
 import { ACTIVITY_AGENT_SYSTEM, BASE_SYSTEM } from "./prompts.ts";
 import { CONTEXT_KEYS, type ActivityContext, type TraceStep } from "./schemas.ts";
-import type { AgentModel } from "./types";
+import { firstAgentError, type AgentModel } from "./types.ts";
 import {
   ACCESSIBILITY_BY_KIND, MATERIAL_CONTEXT_LABEL, MATERIAL_KINDS, MATERIAL_KIND_LABEL,
   checkMaterialActivity, checkMaterialCards, finalizeMaterial, hasClinicalLanguage, normalizeMaterialContent, profileAdaptations,
@@ -308,7 +308,9 @@ const PART_LABEL: Record<Part, string> = { material: "Material", sala_comum: "At
 
 export async function runMaterialAgent(input: MaterialAgentInput, model: AgentModel): Promise<{ title: string; content: MaterialContent; trace: TraceStep[] }> {
   const rules = { kind: input.kind, toleranceMinutes: input.facts.toleranceMinutes };
-  const result = await buildMaterialGraph(model).invoke({ request: requestText(input), kind: input.kind, toleranceMinutes: input.facts.toleranceMinutes });
+  const result = await buildMaterialGraph(model)
+    .invoke({ request: requestText(input), kind: input.kind, toleranceMinutes: input.facts.toleranceMinutes })
+    .catch((error: unknown) => { throw firstAgentError(error); });
   const design = result.design;
   // A atividade do contexto principal do pedido vem primeiro.
   const order = [input.context, ...CONTEXT_KEYS.filter((context) => context !== input.context)];

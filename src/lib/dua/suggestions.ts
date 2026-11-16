@@ -1,16 +1,16 @@
 import "server-only";
 import { aiAllowedFor } from "../consent";
 import { randomUUID } from "node:crypto";
-import { z } from "zod/v4";
 import { prisma } from "../prisma";
 import type { SessionUser } from "../auth";
 import { parseJson } from "../format";
 import { AGENT_MODEL, DEEPSEEK_MODEL, createAgentModel, isAIEnabled } from "../agents/model";
 import { createAnonymizer, nameTokens, type Anonymizer } from "../agents/anonymize";
 import { checkBlocks, prepareContext, rulesBlocks, type DuaAiContext, type RawBlocks } from "./checks";
+import { runDuaSuggestionAgents, type DuaAgentsResult } from "./suggestion-agents";
 import { describeAgentError } from "../agents/generate";
 import {
-  DUA_PRINCIPLES, suggestionStateAfter,
+  DUA_PRINCIPLES, PRINCIPLE_LABEL, suggestionStateAfter,
   type AiBlock, type AiCheck, type AiPurpose, type AiState, type DuaContent, type DuaPrinciple, type DuaSupportData,
 } from "./domain";
 import { planningAccess } from "./access";
@@ -20,15 +20,17 @@ import { DuaError, audit, basisHashOf, canWorkWithStudent, clip, contentOf, late
 // do planejamento e, no apoio individual, os itens do perfil que o profissional
 // escolheu. Antes de qualquer envio externo os nomes conhecidos viram papéis e o
 // texto é conferido de novo: se sobrar identificador, a consulta não acontece.
-// A resposta tem campos previsíveis (6.2) e passa por verificações (6.3) que
-// apoiam — não substituem — a revisão humana. Nada aqui grava no planejamento:
+// Com IA, os agentes de suggestion-agents.ts trabalham em grafo: um analista
+// distribui os focos, um especialista por princípio do DUA escreve os blocos e um
+// revisor devolve o que não adere ao planejamento. A resposta tem campos
+// previsíveis (6.2) e passa por verificações (6.3) que apoiam — não substituem —
+// a revisão humana. Nada aqui grava no planejamento:
 // só a decisão do profissional, bloco a bloco, incorpora a sugestão ao rascunho.
 //
 // Sem chave de IA, as mesmas regras de revisão valem para sugestões montadas
 // pelas regras da plataforma (barreira → opções conhecidas).
 
-export const DUA_PROMPT_VERSION = "dua-sugestoes-2026-10-v1";
-const AGENT = "dua_planejador";
+export const DUA_PROMPT_VERSION = "dua-sugestoes-2026-11-v2";
 
 // ------------------------------------------------------------- 6.1 preparação do contexto
 
@@ -54,32 +56,6 @@ function duaAnonymizer(names: Awaited<ReturnType<typeof knownNames>>, studentNam
     schools: names.schools,
   });
 }
-
-// ------------------------------------------------------------- 6.2 estrutura da resposta
-
-const BlockSchema = z.object({
-  objectiveConsidered: z.string().describe("O objetivo do professor, preservando o sentido. Se propuser mudança, escreva a mudança aqui."),
-  barrierId: z.string().nullable().describe("Id de uma barreira recebida, ou null."),
-  hypothesis: z.string().nullable().describe("Hipótese a verificar quando a barreira não estiver na lista, ou null."),
-  strategy: z.string().describe("Ação concreta e verificável: quais materiais, para qual finalidade, em que momento e como."),
-  principles: z.array(z.enum(DUA_PRINCIPLES as unknown as [DuaPrinciple, ...DuaPrinciple[]])),
-  justification: z.string().describe("Relação entre a estratégia, a barreira e o objetivo."),
-  resources: z.array(z.string()).describe("Materiais, organização ou apoios necessários."),
-  suggestedEvidence: z.string().describe("O que poderá ser observado durante a atividade, ligado aos critérios."),
-  pendingInformation: z.array(z.string()).describe("Dados ou decisões que dependem do professor."),
-  criterionProposal: z.string().nullable().describe("Novo critério observável, ou null."),
-});
-export const DuaBlocksSchema = z.object({ blocks: z.array(BlockSchema).describe("De 1 a 5 blocos.") });
-
-const POLICY = `Você apoia professores brasileiros a planejar atividades com o Desenho Universal para a Aprendizagem
-(DUA, Diretrizes 3.0 do CAST): engajamento, representação e ação e expressão. Use só o contexto pedagógico recebido,
-que já vem sem dados pessoais. Refira-se a quem aprende como "o estudante" ou "a turma".
-Regras: não invente observações, falas, resultados ou características; não emita diagnóstico clínico nem cite
-deficiência; não reduza a complexidade do objetivo por causa de deficiência; preserve o objetivo informado pelo
-professor (se propuser mudança, deixe-a explícita em objectiveConsidered); não transforme frequência em evidência de
-aprendizagem; não aprove o próprio conteúdo. Toda resposta é sugestão para revisão profissional.
-Retorne de 1 a 5 blocos. Alterar a forma de apresentação ou de resposta precisa manter a possibilidade de observar a
-habilidade definida. principles usa: engajamento | representacao | acao_expressao.`;
 
 // ------------------------------------------------------------- pedido
 
@@ -136,6 +112,7 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
   let provider = useAI ? "ia" : "regras";
   let model: string | null = useAI ? null : "regras-dua-v1";
   let raw: RawBlocks | null = null;
+  let review: DuaAgentsResult["review"] | null = null;
   let error: string | null = null;
   let removed = 0;
 
@@ -149,8 +126,11 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
       removed = prepared.removed;
       const agents = createAgentModel(anonymizer);
       try {
-        raw = await agents.model({ agent: AGENT, system: POLICY, prompt: `Contexto pedagógico sem dados pessoais (${input.purpose === "apoio_individual" ? "apoio individual" : "opções para a turma"}):\n${prepared.prompt}`, schema: DuaBlocksSchema, effort: "medium" });
-        const viaDeepSeek = agents.deepseekAgents().includes(AGENT);
+        ({ raw, review } = await runDuaSuggestionAgents({
+          prompt: `Contexto pedagógico sem dados pessoais (${input.purpose === "apoio_individual" ? "apoio individual" : "opções para a turma"}):\n${prepared.prompt}`,
+          context, people: names.people, schools: names.schools,
+        }, agents.model));
+        const viaDeepSeek = agents.deepseekAgents().length > 0;
         model = viaDeepSeek ? DEEPSEEK_MODEL : AGENT_MODEL;
         if (viaDeepSeek && support) await studentLog({ ...user, name: "Agentes de IA", role: "sistema" }, support.studentId, "enviou", "Informações pedagógicas, sem dados pessoais, enviadas ao DeepSeek (sugestão de apoio na atividade com DUA)");
       } catch (failure) {
@@ -168,6 +148,16 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
   if (raw) {
     ({ blocks, checks } = checkBlocks(raw, context, names.people, names.schools));
     if (!blocks.length) { state = "falhou"; error = "A resposta não trouxe nenhuma sugestão aproveitável."; }
+    // O revisor dos agentes apoia a revisão do professor: o que ele ainda apontou vai junto dos blocos.
+    if (review) {
+      checks.push({
+        name: "Revisão pelos agentes",
+        passed: review.pending.length === 0,
+        detail: review.pending.length
+          ? `Depois de uma correção, o revisor ainda apontou pontos em: ${review.pending.map((principle) => PRINCIPLE_LABEL[principle].toLowerCase()).join(", ")}. Eles aparecem nos blocos.`
+          : `Analista, um especialista por princípio do DUA e revisor: nenhum ponto pendente${review.rounds > 1 ? ", depois de uma correção" : ""}.`,
+      });
+    }
   }
   const suggestion = await prisma.duaSuggestion.create({
     data: { ...base, provider, model, state, checks: JSON.stringify(checks), blocks: JSON.stringify(blocks), removedCount: removed, error },
