@@ -7,7 +7,7 @@ import { percentOf } from "@/lib/series";
 // já está no rótulo do anel, por isso fica oculto para o leitor de tela.
 // Azul-claro por padrão: é informação, não avaliação.
 
-export function ShareRing({ id, part, whole, label, caption, color = SIGNAL.cyan, size = 56 }: {
+export function ShareRing({ id, part, whole, label, caption, color = SIGNAL.brand, size = 56 }: {
   id: string;
   part: number;
   whole: number;

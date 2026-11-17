@@ -19,7 +19,7 @@ export default async function CardNoticePage({ params }: { params: Promise<{ mot
   const notice = NOTICES[motivo as keyof typeof NOTICES];
   if (!notice) notFound();
   return (
-    <StatusPage character="care" eyebrow="Carteirinha" title={notice.title} actions={<Link href="/" className="task-action">Ir para o início</Link>}>
+    <StatusPage character="care" eyebrow="Carteirinha" title={notice.title} actions={<Link href="/" className="task-action task-action-on-navy">Ir para o início</Link>}>
       <p>{notice.text}</p>
     </StatusPage>
   );

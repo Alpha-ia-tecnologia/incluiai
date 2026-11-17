@@ -27,24 +27,24 @@ export function Shell({ user, notices = { unread: 0, latest: null }, children }:
       <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
       <Suspense fallback={null}><NavigationProgress /></Suspense>
       <aside className="nav-rail" aria-label="Menu lateral">
-        <Link href={home} aria-label="IncluiEdu — início" className="mb-8 flex items-center gap-2.5 px-2 text-brand">
-          <Sprout size={28} aria-hidden /><span className="text-xl font-semibold tracking-tight">IncluiEdu</span>
+        <Link href={home} aria-label="IncluiEdu — início" className="mb-8 flex items-center gap-3 px-2.5 text-on-navy">
+          <Sprout size={32} className="text-accent-sky" aria-hidden /><span className="text-2xl font-semibold tracking-tight">IncluiEdu</span>
         </Link>
-        <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-2">
+        <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1.5">
           {links.map((link, index) => {
             const Icon = ICONS[link.icon];
             const groupStart = link.section === "management" && links[index - 1]?.section !== "management";
             return <div key={link.href}>
-              {groupStart ? <p className="mb-2 mt-5 px-3 text-xs font-medium text-ink-soft">Gestão da rede</p> : null}
-              <NavLink href={link.href} label={link.label} exact={link.exact}><Icon size={20} className="shrink-0" aria-hidden /></NavLink>
+              {groupStart ? <p className="mb-2 mt-5 px-3.5 text-sm font-medium text-on-navy-soft">Gestão da rede</p> : null}
+              <NavLink href={link.href} label={link.label} exact={link.exact}><Icon size={22} className="shrink-0" aria-hidden /></NavLink>
             </div>;
           })}
         </nav>
-        <div className="mt-6 border-t border-line pt-4">
-          <Link href="/conta/seguranca" className="mb-3 flex min-h-6 items-center gap-2 text-xs text-ink-soft hover:text-brand-strong"><ShieldCheck size={15} aria-hidden /> Segurança da conta</Link>
-          <p className="truncate text-sm font-medium">{user.name}</p>
-          <p className="mt-1 text-xs text-ink-soft">{ROLES[user.role] ?? user.role}</p>
-          <form action={logout} className="mt-3"><button type="submit" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-sm text-ink-soft hover:bg-coral-soft hover:text-coral"><LogOut size={18} aria-hidden /> Sair da plataforma</button></form>
+        <div className="mt-6 border-t border-navy-line pt-4">
+          <Link href="/conta/seguranca" className="mb-3 flex min-h-6 items-center gap-2 text-sm text-on-navy-soft hover:text-on-navy"><ShieldCheck size={17} aria-hidden /> Segurança da conta</Link>
+          <p className="truncate text-base font-medium">{user.name}</p>
+          <p className="mt-1 text-sm text-on-navy-soft">{ROLES[user.role] ?? user.role}</p>
+          <form action={logout} className="mt-3"><button type="submit" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-base text-on-navy-soft hover:bg-navy-hover hover:text-on-navy"><LogOut size={20} aria-hidden /> Sair da plataforma</button></form>
         </div>
       </aside>
       <div className="app-content">

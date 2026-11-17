@@ -76,10 +76,10 @@ export default async function CalendarPage({
 
   return (
     <>
-      <section aria-labelledby="calendar-title" className="mb-8 grid grid-cols-[minmax(0,1fr)_80px] items-center gap-x-4 gap-y-3 rounded-3xl bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-x-7 sm:p-7 lg:grid-cols-[minmax(0,1fr)_176px] print:bg-transparent print:p-0">
-        <h1 id="calendar-title" className="min-w-0 font-display text-3xl font-bold leading-[1.15] tracking-tight text-ink sm:text-4xl">Calendário inclusivo.</h1>
+      <section aria-labelledby="calendar-title" className="mb-8 grid grid-cols-[minmax(0,1fr)_80px] items-center gap-x-4 gap-y-3 rounded-3xl surface-navy p-5 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-x-7 sm:p-7 lg:grid-cols-[minmax(0,1fr)_176px] print:bg-transparent print:p-0">
+        <h1 id="calendar-title" className="min-w-0 font-display text-3xl font-bold leading-[1.15] tracking-tight text-on-navy sm:text-4xl">Calendário inclusivo.</h1>
         <Character variant="planning" className="w-20 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-40 lg:w-44" preload />
-        <p className="col-span-2 max-w-2xl text-sm text-ink-soft sm:col-span-1">Datas da educação especial e inclusiva, com ideias para toda a turma.</p>
+        <p className="col-span-2 max-w-2xl text-sm text-on-navy-soft sm:col-span-1">Datas da educação especial e inclusiva, com ideias para toda a turma.</p>
       </section>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

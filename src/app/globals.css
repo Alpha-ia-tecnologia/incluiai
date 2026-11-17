@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 /* Paleta IncluiEdu, no padrão visual da apresentação (Buriti de Inácia Vaz, 2026)
-   - Azul-marinho (ink, navy) nos textos e títulos; azul (brand) em ações,
-     navegação ativa e ilustrações; azul-claro e cinza-azulado nas superfícies.
+   - Azul-marinho (ink, navy) nos textos e títulos; azul (brand) em ações
+     e ilustrações; cinza-azulado nas superfícies, com os cartões em branco.
+   - O marinho também é superfície (surface-navy): menu lateral, barra do
+     celular, heróis, destaque do Painel, boas-vindas, avisos e login. Sobre
+     ele, o texto usa on-navy (títulos) e on-navy-soft (apoio), e a ação e o
+     item ativo usam o azul-claro (accent-sky) com texto ink-strong.
+     As regras de uso estão em docs/visual.md.
    - Verde, creme/âmbar e coral: estado (alcançado, atenção, alerta).
    - Azul-claro, amarelo e verde da apresentação: só preenchimento, com texto
      marinho por cima (sobre branco não chegam a 4.5:1).
@@ -11,13 +16,18 @@
    Todo texto *-ink sobre o *-soft correspondente fica acima de 4.5:1. */
 :root {
   color-scheme: light;
-  --canvas: #e6eef0;
-  --paper: #f7faf9;
+  --canvas: #dce6eb;
+  --paper: #f3f6f8;
   --paper-raised: #ffffff;
   --ink: #0b3550;
   --ink-soft: #4a6577;
-  --line: #d6e3e8;
+  --line: #cddbe2;
   --navy: #0b3550;
+  /* Sobre o marinho: texto (12.8:1), texto de apoio (8.6:1), linha e realce. */
+  --on-navy: #ffffff;
+  --on-navy-soft: #c3d7e3;
+  --navy-line: rgb(255 255 255 / 0.16);
+  --navy-hover: rgb(255 255 255 / 0.1);
   --brand: #0a6a9a;
   --brand-strong: #08547a;
   --brand-soft: #e2f1f8;
@@ -31,7 +41,7 @@
   --lilac-soft: #e6f3f9;
   --lilac: #cfe5f1;
   --lilac-cool: #d8e6ee;
-  --surface-muted: #edf4f5;
+  --surface-muted: #e6eef1;
   --sky-soft: #e2f1f8;
   --sky-ink: #0a6a9a;
   --teal-soft: #d3ede8;
@@ -45,6 +55,8 @@
   --shadow-e1: 0 2px 8px rgb(11 53 80 / 0.03);
   --shadow-e2: 0 8px 24px rgb(11 53 80 / 0.08);
   --shadow-glow: 0 0 0 4px rgb(79 179 227 / 0.35);
+  /* Moldura das telas de entrada e painel do Assistente: sombra longa, no marinho. */
+  --shadow-frame: 0 24px 80px -36px rgb(11 53 80 / 0.24);
   --ease-alpha: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Painel de indicadores: sinais verde (bom), amarelo (intermediário) e
@@ -90,6 +102,11 @@
   --color-ink-soft: var(--ink-soft);
   --color-line: var(--line);
   --color-navy: var(--navy);
+  --color-on-navy: var(--on-navy);
+  --color-on-navy-soft: var(--on-navy-soft);
+  --color-navy-line: var(--navy-line);
+  --color-navy-hover: var(--navy-hover);
+  --color-accent-sky: var(--accent-sky);
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
@@ -129,6 +146,7 @@
   --shadow-e1: var(--shadow-e1);
   --shadow-e2: var(--shadow-e2);
   --shadow-glow: var(--shadow-glow);
+  --shadow-frame: var(--shadow-frame);
 }
 
 body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font-noto), system-ui, sans-serif; }
@@ -146,11 +164,11 @@ button:not(:disabled), summary { cursor: pointer; }
   input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: var(--shadow-glow); }
 }
 /* Lista de seleção: continua o controle nativo (o mais acessível), com a seta e o
-   espaço da plataforma. Fora de camada para valer sobre o px-* dos utilitários. */
+   espaço da plataforma. A seta é o azul da marca (--brand), escrito no SVG. Fora de camada para valer sobre o px-* dos utilitários. */
 select:not([multiple]):not([size]) {
   appearance: none;
   padding-right: 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237952a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230a6a9a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.875rem center;
   background-size: 16px;
@@ -182,30 +200,44 @@ html[data-text-scale] .status-pill { white-space: normal; }
   box-shadow: 0 20px 70px rgb(11 53 80 / 0.08);
 }
 .nav-rail {
-  position: sticky; top: 34px; display: flex; width: 224px; height: calc(100dvh - 70px);
+  position: sticky; top: 34px; display: flex; width: 268px; height: calc(100dvh - 70px);
   flex-shrink: 0; flex-direction: column; overflow-y: auto; border-radius: 22px;
-  background: var(--surface-muted); padding: 24px 14px 16px;
+  background: var(--navy); color: var(--on-navy); padding: 28px 16px 18px;
+  scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.28) transparent;
 }
 .rail-link {
-  display: flex; min-height: 48px; width: 100%; align-items: center; gap: 12px;
-  padding: 12px; border-radius: 12px; color: var(--ink); font-size: 0.875rem; line-height: 1.4;
-  transition: background 160ms ease;
+  display: flex; min-height: 52px; width: 100%; align-items: center; gap: 14px;
+  padding: 13px 14px; border-radius: 12px; color: var(--on-navy-soft); font-size: 1rem; line-height: 1.35;
+  transition: background 160ms ease, color 160ms ease;
 }
-.rail-link:hover { background: var(--brand-soft); }
-.rail-link[aria-current="page"] { background: var(--brand); color: #fff; font-weight: 500; }
+.rail-link:hover { background: var(--navy-hover); color: var(--on-navy); }
+.rail-link[aria-current="page"] { background: var(--accent-sky); color: var(--ink-strong); font-weight: 500; }
+/* Superfície marinho (menu lateral, boas-vindas): o foco do teclado troca o azul,
+   que some no marinho (2.2:1), pelo azul-claro (5.4:1). */
+.surface-navy { background: var(--navy); color: var(--on-navy); }
+.nav-rail :focus-visible, .surface-navy :focus-visible, .mobile-nav-item:focus-visible { outline-color: var(--accent-sky); }
+/* No papel, o marinho vira fundo claro com texto escuro: a impressão padrão não
+   pinta fundos, e o texto branco sumiria. */
+@media print {
+  .surface-navy { background: transparent; color: var(--ink); --on-navy: var(--ink); --on-navy-soft: var(--ink-soft); --navy-line: var(--line); --navy-hover: var(--surface-muted); }
+}
 .mobile-nav { display: none; }
 .mobile-nav-item {
   display: flex; min-height: 56px; min-width: 0; flex: 1; flex-direction: column;
   align-items: center; justify-content: center; gap: 5px; border-radius: 12px; padding: 8px 3px;
-  font-size: 0.75rem; line-height: 1.3; text-align: center;
+  font-size: 0.75rem; line-height: 1.3; text-align: center; color: var(--on-navy-soft);
 }
-.mobile-nav-item[aria-current="page"], .mobile-nav-item[data-active="true"] { background: var(--brand); color: white; }
+/* A barra do celular é o menu lateral em outro formato: marinho, item ativo em azul-claro. */
+.mobile-nav-item[aria-current="page"], .mobile-nav-item[data-active="true"] { background: var(--accent-sky); color: var(--ink-strong); font-weight: 500; }
 .mobile-menu { min-width: 0; flex: 1; }
 .mobile-menu-panel { position: fixed; left: 16px; right: 16px; bottom: calc(98px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 130px); overflow-y: auto; border: 1px solid var(--line); border-radius: 22px; padding: 18px; background: var(--paper-raised); box-shadow: var(--shadow-e2); }
 .task-action { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 12px 20px; background: var(--brand); color: white; font-size: 0.875rem; font-weight: 500; line-height: 1.4; text-align: center; transition: background 160ms ease; }
 .task-action:hover { background: var(--brand-strong); }
 .task-action-secondary { background: var(--brand-soft); color: var(--brand-strong); }
 .task-action-secondary:hover { background: var(--lilac); }
+/* A ação sobre o marinho: azul-claro com texto marinho escuro (6.7:1). */
+.task-action-on-navy { background: var(--accent-sky); color: var(--ink-strong); }
+.task-action-on-navy:hover { background: var(--on-navy); }
 /* O fim da página reserva o espaço do botão do Assistente, que nunca cobre o último item. */
 .app-content { min-width: 0; flex: 1; padding: 7px 32px 96px; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1fr) 296px; gap: 34px; }
@@ -218,28 +250,31 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
 .stat-lilac-cool { background: var(--lilac-cool); }
 .stat-lilac-warm { background: var(--lilac-warm); }
 @layer components { .ui-card { border: 1px solid var(--line); border-radius: 22px; background: var(--paper-raised); padding: 22px; } }
-/* Painel de indicadores: quadro cinza com cartões brancos, destaque azul,
-   texturas listradas e linha de etapas. As ações usam o azul da plataforma;
-   lima, amarelo e laranja ficam só para dados. */
+/* Painel de indicadores: quadro cinza com cartões brancos, destaque em marinho
+   (dash-hero + surface-navy), texturas listradas e linha de etapas. As ações,
+   as etapas e as quantidades usam o azul da plataforma; lima, amarelo e
+   laranja ficam só para o estado dos dados. */
 @layer components {
   .dash-board { border-radius: 30px; background: var(--surface-muted); padding: 14px; }
   .dash-card { border-radius: 22px; background: var(--paper-raised); padding: 20px; }
-  .dash-hero { border-radius: 30px; background: linear-gradient(160deg, var(--lilac-soft) 0%, var(--brand-soft) 55%, var(--paper-raised) 100%); }
+  .dash-hero { border-radius: 30px; }
   .hatch { background-image: repeating-linear-gradient(120deg, rgb(0 0 0 / 0.1) 0 1.5px, transparent 1.5px 5px); }
   .pill-action { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--brand); padding: 0 24px; color: white; font-size: 0.875rem; font-weight: 500; transition: background 160ms ease; }
   .pill-action:hover { background: var(--brand-strong); }
+  .pill-action-on-navy { background: var(--accent-sky); color: var(--ink-strong); }
+  .pill-action-on-navy:hover { background: var(--on-navy); }
   .circle-link { display: inline-flex; width: 36px; height: 36px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); transition: background 160ms ease, color 160ms ease, border-color 160ms ease; }
   .circle-link:hover { border-color: var(--brand); background: var(--brand); color: white; }
   .stepper { display: grid; grid-template-columns: repeat(5, minmax(104px, 1fr)); }
   .stepper-item { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0 6px; text-align: center; }
-  .stepper-item:not(:last-child)::after { content: ""; position: absolute; top: 17px; left: calc(50% + 24px); right: calc(-50% + 24px); border-top: 1.5px dashed #bfd0d8; }
+  .stepper-item:not(:last-child)::after { content: ""; position: absolute; top: 17px; left: calc(50% + 24px); right: calc(-50% + 24px); border-top: 1.5px dashed var(--line); }
 }
 /* Assistente: botão flutuante e painel, acima da navegação do celular. Ficam
    na camada de componentes para os utilitários (hidden, print:hidden) valerem. */
 @layer components {
   .assistant-fab { position: fixed; right: 22px; bottom: 22px; z-index: 45; display: inline-flex; min-height: 52px; align-items: center; gap: 8px; border-radius: 999px; padding: 0 18px 0 16px; background: var(--brand); color: white; font-size: 0.875rem; font-weight: 500; box-shadow: var(--shadow-e2); transition: background 160ms ease, transform 160ms ease; }
   .assistant-fab:hover { background: var(--brand-strong); transform: translateY(-1px); }
-  .assistant-panel { position: fixed; right: 22px; bottom: 86px; z-index: 46; display: flex; width: min(420px, calc(100vw - 44px)); height: min(680px, calc(100dvh - 120px)); flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: var(--paper); box-shadow: 0 24px 70px rgb(60 40 90 / 0.22); container-type: size; }
+  .assistant-panel { position: fixed; right: 22px; bottom: 86px; z-index: 46; display: flex; width: min(420px, calc(100vw - 44px)); height: min(680px, calc(100dvh - 120px)); flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: var(--paper); box-shadow: 0 24px 70px rgb(11 53 80 / 0.22); container-type: size; }
   /* Botão fechado: anel vazado = resposta em preparo; ponto cheio = pronta;
      losango laranja = aviso (falhou ou a conexão caiu). A forma separa os
      estados, não só a cor. Parados. */
@@ -363,7 +398,7 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
 @media (max-width: 1023px) {
   .nav-rail { display: none; }
   .app-content { padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
-  .mobile-nav { position: fixed; z-index: 40; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 4px; border: 1px solid var(--line); border-radius: 22px; padding: 7px; background: var(--paper-raised); box-shadow: var(--shadow-e2); }
+  .mobile-nav { position: fixed; z-index: 40; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 4px; border: 1px solid var(--navy-line); border-radius: 22px; padding: 7px; background: var(--navy); box-shadow: var(--shadow-e2); }
 }
 /* Carteirinha do estudante: tamanho de cartão (85,6 × 54 mm), na tela e no papel.
    Em telas estreitas o cartão encolhe inteiro, para não rolar de lado. */

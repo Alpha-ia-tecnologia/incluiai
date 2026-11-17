@@ -51,7 +51,7 @@ export function SupportCard({ support, options, suggestions, aiOn, today }: Prop
             <details className="min-w-0 rounded-xl border border-line px-4">
               <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-brand-strong">Editar o apoio</summary>
               <div className="pb-4">
-                {support.state === "validado" ? <p className="mb-4 rounded-xl bg-amber-soft px-3 py-2 text-sm text-amber-900">Este apoio está validado. Salvar uma alteração devolve o apoio para rascunho, até nova validação.</p> : null}
+                {support.state === "validado" ? <p className="mb-4 rounded-xl bg-amber-soft px-3 py-2 text-sm text-amber">Este apoio está validado. Salvar uma alteração devolve o apoio para rascunho, até nova validação.</p> : null}
                 <SupportForm
                   planningId={support.planningId}
                   student={support.student}

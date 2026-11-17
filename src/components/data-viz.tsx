@@ -7,16 +7,18 @@ import { HatchedDonut, SIGNAL, type ChartSegment } from "./charts";
 // brancos sobre quadro cinza (dash-board / dash-card), números grandes,
 // pílulas de situação (lima = bom, amarelo = intermediário, laranja = atenção,
 // azul-claro = informação) e gráficos em SVG listrado, sem biblioteca.
+// Quantidade sem juízo (contagens, usos, partes) sai no azul da marca.
 // Regras de acesso: todo gráfico tem o valor também em texto (aria-label ou
 // tabela para leitor de tela) e nenhuma informação depende só da cor.
 
 export type Tone = "good" | "mid" | "alert" | "neutral" | "info";
-const TONE_CLASSES: Record<Tone, string> = {
+// Pílulas e contadores: as cinco situações têm o mesmo peso (cor cheia, texto escuro).
+export const TONE_CLASSES: Record<Tone, string> = {
   good: "bg-signal-lime text-ink-strong",
   mid: "bg-signal-yellow text-ink-strong",
   alert: "bg-signal-orange text-ink-strong",
   neutral: "bg-signal-track text-ink-soft",
-  info: "bg-sky-soft text-sky-ink",
+  info: "bg-accent-sky text-ink-strong",
 };
 export const TONE_COLOR: Record<Tone, string> = { good: SIGNAL.lime, mid: SIGNAL.yellow, alert: SIGNAL.orange, neutral: SIGNAL.track, info: SIGNAL.cyan };
 
@@ -178,7 +180,7 @@ export function SupportChart({ points, start, target, label, height = 168 }: { p
 }
 
 // Anel com percentual (listrado). Sem base (null), mostra o texto e não desenha arco.
-export function RingStat({ id, value, label, size = 112, color = SIGNAL.lime, children }: { id: string; value: number | null; label: string; size?: number; color?: string; children?: ReactNode }) {
+export function RingStat({ id, value, label, size = 112, color = SIGNAL.brand, children }: { id: string; value: number | null; label: string; size?: number; color?: string; children?: ReactNode }) {
   const pct = value === null ? 0 : Math.min(100, Math.max(0, value));
   return (
     <HatchedDonut id={id} size={size} thickness={Math.round(size / 8)} label={value === null ? `${label}: sem base para cálculo` : `${label}: ${pct}%`} segments={[{ key: "feito", label, value: pct, color }, { key: "falta", label: "restante", value: 100 - pct, color: SIGNAL.track }]}>
@@ -260,7 +262,7 @@ export function MiniColumns({ points, label }: { points: ReadonlyArray<{ label: 
     <div className="min-w-0">
       <div className="flex h-14 items-end gap-1" role="img" aria-label={`${label}: ${points.map((point) => `${point.title}, ${point.value}`).join("; ")}`}>
         {points.map((point, index) => (
-          <div key={`${point.label}-${index}`} title={`${point.title}: ${point.value}`} className="hatch viz-grow-y min-w-0 flex-1 rounded-t-md rounded-b-sm" style={{ height: `${Math.max(point.value > 0 ? 12 : 6, (point.value / max) * 100)}%`, backgroundColor: point.value > 0 ? SIGNAL.lime : SIGNAL.track }} />
+          <div key={`${point.label}-${index}`} title={`${point.title}: ${point.value}`} className="hatch viz-grow-y min-w-0 flex-1 rounded-t-md rounded-b-sm" style={{ height: `${Math.max(point.value > 0 ? 12 : 6, (point.value / max) * 100)}%`, backgroundColor: point.value > 0 ? SIGNAL.brand : SIGNAL.track }} />
         ))}
       </div>
       <div className="mt-1 flex justify-between text-xs text-ink-soft" aria-hidden><span>{points[0]?.label}</span><span>{points.at(-1)?.label}</span></div>

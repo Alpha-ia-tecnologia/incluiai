@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 import { StatusPage } from "@/components/status-page";
-import { primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { primaryOnNavyCls, quietButtonCls } from "@/components/form-styles";
 
 // Falha inesperada ao montar uma tela: o menu continua à mão e a pessoa pode
 // tentar de novo sem perder o lugar.
@@ -19,7 +19,7 @@ export default function AppError({ error, unstable_retry }: { error: Error & { d
       eyebrow="Algo não saiu como esperado"
       title="Não foi possível abrir esta tela agora"
       actions={<>
-        <button type="button" onClick={() => unstable_retry()} className={primaryButtonCls}><RotateCcw size={16} aria-hidden /> Tentar de novo</button>
+        <button type="button" onClick={() => unstable_retry()} className={primaryOnNavyCls}><RotateCcw size={16} aria-hidden /> Tentar de novo</button>
         <Link href="/" className={quietButtonCls}><ArrowLeft size={16} aria-hidden /> Voltar para o início</Link>
       </>}
     >

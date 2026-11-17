@@ -47,7 +47,7 @@ export function StepReview({ content, update, readOnly, planningId, access, vers
       </div>
 
       {problems.length ? (
-        <div className="rounded-xl bg-amber-soft p-4 text-sm text-amber-900">
+        <div className="rounded-xl bg-amber-soft p-4 text-sm text-amber">
           <p className="font-medium">Para validar, ainda falta:</p>
           <ul className="mt-2 grid gap-1">
             {problems.map((problem) => (

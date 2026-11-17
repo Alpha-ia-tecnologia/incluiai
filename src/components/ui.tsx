@@ -39,7 +39,7 @@ const KPI_CARD_TONES: Record<KpiTone, string> = {
 
 const KPI_ICON_TONES: Record<KpiTone, string> = {
   info: "bg-sky-soft text-sky-ink",
-  amber: "bg-amber-soft text-amber-800",
+  amber: "bg-amber-soft text-amber",
   coral: "bg-coral-soft text-coral",
   green: "bg-green-soft text-green",
   neutral: "bg-line/60 text-ink-soft",
@@ -89,8 +89,9 @@ export function PageHeader({ title, lede, actions, level = 1 }: { title: string;
   );
 }
 
-// Herói das telas principais: faixa azul-clara com o título, o personagem do assunto
-// e, se houver, ações e números (HeroStat). O personagem é decorativo; no
+// Herói das telas principais: faixa em marinho com o título, o personagem do assunto
+// e, se houver, ações e números (HeroStat). O que entra em `actions` e `children`
+// usa as versões sobre o marinho (primaryOnNavyCls, Assurances onNavy…). O personagem é decorativo; no
 // celular fica pequeno acima do título, para títulos longos não encostarem nele.
 export function PageHero({ title, lede, eyebrow, character, actions, children, preload = false }: {
   title: string;
@@ -102,11 +103,11 @@ export function PageHero({ title, lede, eyebrow, character, actions, children, p
   preload?: boolean;
 }) {
   return (
-    <section className="page-hero mb-8 grid min-w-0 gap-y-3 rounded-3xl bg-lilac-soft/65 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-8 sm:p-8">
+    <section className="page-hero surface-navy mb-8 grid min-w-0 gap-y-3 rounded-3xl p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-8 sm:p-8">
       <div className="min-w-0 sm:row-start-1">
-        {eyebrow ? <p className="mb-2 flex items-center gap-2 text-sm font-medium text-brand-strong">{eyebrow}</p> : null}
-        <h1 className="font-display text-2xl font-bold leading-[1.15] tracking-tight text-ink sm:text-4xl">{title}</h1>
-        {lede ? <div className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-soft sm:text-base">{lede}</div> : null}
+        {eyebrow ? <p className="mb-2 flex items-center gap-2 text-sm font-medium text-on-navy-soft">{eyebrow}</p> : null}
+        <h1 className="font-display text-2xl font-bold leading-[1.15] tracking-tight text-on-navy sm:text-4xl">{title}</h1>
+        {lede ? <div className="mt-3 max-w-2xl text-sm leading-relaxed text-on-navy-soft sm:text-base">{lede}</div> : null}
         {actions ? <div className="mt-5 flex flex-wrap gap-2">{actions}</div> : null}
         {children ? <div className="mt-5">{children}</div> : null}
       </div>
@@ -145,7 +146,7 @@ type BadgeTone = "brand" | "amber" | "coral" | "green" | "neutral";
 
 const BADGE_TONES: Record<BadgeTone, string> = {
   brand: "bg-brand-soft text-brand-strong",
-  amber: "bg-amber-soft text-amber-800",
+  amber: "bg-amber-soft text-amber",
   coral: "bg-coral-soft text-coral",
   green: "bg-green-soft text-green",
   neutral: "bg-line/60 text-ink-soft",
@@ -173,7 +174,7 @@ export function SupportPill({ level }: { level: number }) {
 
 export function AIDisclaimer() {
   return (
-    <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2 text-xs leading-relaxed text-amber-900">
+    <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2 text-xs leading-relaxed text-amber">
       Sugestão para análise do profissional — não substitui avaliação pedagógica ou clínica.
     </p>
   );

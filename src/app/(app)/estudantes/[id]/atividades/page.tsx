@@ -63,7 +63,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
       </div>
 
       {reviewNotes.length && activity.status === "sugerida" ? (
-        <div className="mt-4 rounded-xl bg-amber-soft px-4 py-3 text-sm text-amber-900">
+        <div className="mt-4 rounded-xl bg-amber-soft px-4 py-3 text-sm text-amber">
           <p className="font-medium">O agente revisor pediu para você conferir:</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">{reviewNotes.map((note) => <li key={note}>{note}</li>)}</ul>
         </div>

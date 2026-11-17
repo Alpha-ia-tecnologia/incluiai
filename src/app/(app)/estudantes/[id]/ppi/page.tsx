@@ -76,7 +76,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       return (
         <>
           <PageHeader level={2} title="Plano de ensino (PAEE e PEI)" />
-          <Card className="max-w-2xl border-amber-800/20 bg-amber-soft/50">
+          <Card className="max-w-2xl border-amber/20 bg-amber-soft/50">
             <SectionTitle>Primeiro, conclua o estudo de caso</SectionTitle>
             <p className="text-sm leading-relaxed text-ink" role="status">{CASE_STUDY_REQUIRED_MESSAGE}</p>
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">
@@ -647,19 +647,19 @@ function PlanDocumentCard({ id, title, norm, teacherLabel, teacher, participants
         {recorded.map((item) => <div key={item.key}><dt className="font-medium text-ink">{item.label}</dt><dd className="mt-1 break-words text-ink-soft">{plan[item.key]}</dd></div>)}
       </dl>
       {showMissing && (missing.length || alsoMissing.length || !teacher) ? (
-        <p className="mt-3 text-sm text-amber-800">
+        <p className="mt-3 text-sm text-amber">
           <a href="#completar-paee-pei" className="underline underline-offset-4">A registrar</a>: {[!teacher && teacherLabel, ...missing.map((item) => item.label), ...alsoMissing].filter((label): label is string => Boolean(label)).map(lowerFirst).join(", ")}.
         </p>
       ) : null}
       {/* Para conferir, sem impedir nada: o Educacenso recusa o vínculo no AEE sem tipo de atendimento. */}
       {showMissing && missing.some((item) => item.key === "aeeServices") ? (
-        <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber-800">
+        <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber">
           Para conferir: sem os atendimentos do AEE no plano, a escola fica sem referência para o tipo de atendimento, que o Educacenso exige no vínculo do AEE.
         </p>
       ) : null}
       {/* O Censo declara o que o plano registra: a diferença aparece para quem confere o Educacenso. */}
       {differences.length ? (
-        <div className="mt-3 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber-800">
+        <div className="mt-3 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber">
           <p className="font-medium">Diferente do último arquivo do Censo</p>
           <ul className="mt-1 grid gap-1">
             {differences.map((difference) => <li key={difference.key} className="break-words">{difference.label} no Censo: {difference.census.join(", ") || "nenhum"}.</li>)}

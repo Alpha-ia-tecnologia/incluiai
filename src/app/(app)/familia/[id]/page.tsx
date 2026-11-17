@@ -98,7 +98,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       <PageHero
         character="care"
         title={`Acompanhamento de ${firstName}`}
-        actions={<><ReadAloud targetId="conteudo" label="Ouvir esta página" /><TextSizeControl /></>}
+        actions={<><ReadAloud targetId="conteudo" label="Ouvir esta página" /><TextSizeControl onNavy /></>}
       />
       {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} character={false} />) : null}
 
@@ -225,7 +225,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                 title: t.title,
                 body: t.description || undefined,
                 marker: <Trophy size={16} />,
-                markerClassName: "bg-amber-soft text-amber-800",
+                markerClassName: "bg-amber-soft text-amber",
               }))}
             />
           </Card>

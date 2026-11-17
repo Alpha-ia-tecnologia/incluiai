@@ -175,7 +175,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
                 <ul className="mt-4 space-y-3">
                   {journey.milestones.map((milestone) => (
                     <li key={milestone.key} className="flex items-start gap-3">
-                      <span className={`flex size-9 shrink-0 items-center justify-center rounded-full ${milestone.achieved ? "bg-amber-soft text-amber-800" : "bg-surface-muted text-ink-soft"}`}>
+                      <span className={`flex size-9 shrink-0 items-center justify-center rounded-full ${milestone.achieved ? "bg-amber-soft text-amber" : "bg-surface-muted text-ink-soft"}`}>
                         {milestone.achieved ? <Trophy size={16} aria-hidden /> : <Lock size={14} aria-hidden />}
                       </span>
                       <span className="min-w-0">

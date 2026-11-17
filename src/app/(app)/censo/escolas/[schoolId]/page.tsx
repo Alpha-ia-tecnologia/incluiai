@@ -23,7 +23,7 @@ function Issues({ row }: { row: CoverageRow }) {
   if (!row.issues.length) return null;
   return (
     <ul className="grid gap-1">
-      {row.issues.map((issue) => <li key={issue} className="flex gap-1.5 text-xs leading-relaxed text-amber-800"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {ISSUE_LABEL[issue]}</li>)}
+      {row.issues.map((issue) => <li key={issue} className="flex gap-1.5 text-xs leading-relaxed text-amber"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {ISSUE_LABEL[issue]}</li>)}
     </ul>
   );
 }

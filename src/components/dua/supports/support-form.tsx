@@ -135,7 +135,7 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
                     <span className="min-w-0 break-words">
                       <span className="font-medium">{option.label}:</span> {option.value}
                       <span className="mt-0.5 block text-xs text-ink-soft">{option.source} · {option.dateLabel}</span>
-                      {previous && previous.version !== option.version ? <span className="mt-0.5 block text-xs text-amber-900">O perfil mudou depois da escolha. Ao salvar, vale a versão atual.</span> : null}
+                      {previous && previous.version !== option.version ? <span className="mt-0.5 block text-xs text-amber">O perfil mudou depois da escolha. Ao salvar, vale a versão atual.</span> : null}
                     </span>
                   </label>
                 </li>
@@ -202,7 +202,7 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
         <div className="grid min-w-0 gap-4 pb-4">
           <p className="text-sm leading-relaxed text-ink-soft">Use só quando o estudante precisar de um objetivo diferente do da turma. Ele precisa ser explícito, justificado e ligado a um objetivo do Plano de ensino. Para retirar, apague o texto.</p>
           {!objectives.length && !hasIndividual ? (
-            <p className="rounded-xl bg-amber-soft px-3 py-2 text-sm text-amber-900">Sem objetivos no Plano de ensino ativo, não há como ligar um objetivo individual. Mantenha o objetivo da turma com apoios, ou defina antes o objetivo no plano.</p>
+            <p className="rounded-xl bg-amber-soft px-3 py-2 text-sm text-amber">Sem objetivos no Plano de ensino ativo, não há como ligar um objetivo individual. Mantenha o objetivo da turma com apoios, ou defina antes o objetivo no plano.</p>
           ) : (
             <>
               <Field id={`${prefix}-objetivo`} label="Objetivo individual nesta atividade">

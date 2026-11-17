@@ -16,6 +16,10 @@ export const primaryButtonCls = `${buttonBase} bg-brand px-5 py-2.5 text-white h
 export const secondaryButtonCls = `${buttonBase} bg-brand-soft px-5 py-2.5 text-brand-strong hover:bg-lilac`;
 export const quietButtonCls = `${buttonBase} border border-line bg-paper-raised px-4 py-2.5 text-ink hover:border-ink-soft`;
 export const dangerButtonCls = `${buttonBase} px-4 py-2.5 text-coral hover:bg-coral-soft`;
+// Sobre o marinho (heróis e páginas de aviso): a ação principal em azul-claro
+// com texto marinho escuro; a outra, em contorno claro. O discreto (branco) serve como está.
+export const primaryOnNavyCls = `${buttonBase} bg-accent-sky px-5 py-2.5 text-ink-strong hover:bg-on-navy`;
+export const secondaryOnNavyCls = `${buttonBase} border border-navy-line bg-navy-hover px-5 py-2.5 text-on-navy hover:bg-navy-line`;
 
 export type ButtonVariant = "primary" | "secondary" | "quiet" | "danger";
 export const BUTTON_CLS: Record<ButtonVariant, string> = {

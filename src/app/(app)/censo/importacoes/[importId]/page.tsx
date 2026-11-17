@@ -21,7 +21,7 @@ const DECISION_LABEL = { link: "Vínculo escolhido na revisão", create: "Cadast
 
 function Warnings({ item }: { item: PlanItem }) {
   if (!item.warnings.length) return null;
-  return <ul className="mt-2 grid gap-1">{item.warnings.map((warning) => <li key={warning} className="flex gap-1.5 text-xs leading-relaxed text-amber-800"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {warning}</li>)}</ul>;
+  return <ul className="mt-2 grid gap-1">{item.warnings.map((warning) => <li key={warning} className="flex gap-1.5 text-xs leading-relaxed text-amber"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {warning}</li>)}</ul>;
 }
 
 function Undo({ importId, personKey }: { importId: string; personKey: string }) {

@@ -6,7 +6,7 @@ import { SIGNAL } from "@/components/charts";
 // tela. Valor zero não desenha preenchimento. Feita de <span> para caber
 // também dentro de links e textos.
 
-export function UsageMeter({ value, max, color = SIGNAL.lime, track = "bg-signal-track", className = "" }: {
+export function UsageMeter({ value, max, color = SIGNAL.brand, track = "bg-signal-track", className = "" }: {
   value: number;
   max: number;
   color?: string;

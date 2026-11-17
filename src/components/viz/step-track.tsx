@@ -1,7 +1,8 @@
 import { SIGNAL } from "@/components/charts";
 
 // Linha compacta de etapas (ex.: as 5 etapas do acompanhamento do estudante).
-// Etapa feita = cheia e listrada; etapa atual = contorno escuro; as demais =
+// Etapa feita = cheia e listrada, no azul da marca (o mesmo das etapas em
+// Estudantes, na ficha e no Painel); etapa atual = contorno escuro; as demais =
 // trilho. A textura e o contorno separam os estados além da cor, e o texto
 // "Etapa N de 5" diz a posição sem depender do desenho.
 
@@ -24,7 +25,7 @@ export function StepTrack({ steps, current, note }: { steps: ReadonlyArray<StepI
               key={step.label}
               title={`${index + 1}. ${step.label}: ${state}`}
               className={`h-2.5 min-w-0 flex-1 rounded-full ${step.done ? "hatch viz-grow-x" : ""} ${isCurrent ? "ring-2 ring-ink-strong ring-offset-1 ring-offset-paper-raised" : ""}`}
-              style={{ backgroundColor: step.done ? SIGNAL.lime : isCurrent ? "var(--signal-lime-soft)" : SIGNAL.track }}
+              style={{ backgroundColor: step.done ? SIGNAL.brand : isCurrent ? "var(--brand-soft)" : SIGNAL.track }}
             >
               <span className="sr-only">{index + 1}. {step.label}: {state}</span>
             </li>

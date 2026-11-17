@@ -224,7 +224,7 @@ function SaveIndicator({ status, readOnly, onKeepMine, onUseTheirs, onRetry }: {
   if (readOnly && status.kind === "salvo") return null;
   if (status.kind === "conflito") {
     return (
-      <div role="alert" className="mb-4 rounded-2xl border border-amber-800/20 bg-amber-soft p-4 text-sm text-amber-900">
+      <div role="alert" className="mb-4 rounded-2xl border border-amber/20 bg-amber-soft p-4 text-sm text-amber">
         <p className="flex items-start gap-2 font-medium"><TriangleAlert size={16} aria-hidden className="mt-0.5 shrink-0" /> {status.byName} salvou este planejamento enquanto você editava. Suas últimas alterações ainda não foram gravadas.</p>
         <p className="mt-1 leading-relaxed">Escolha antes de continuar: ficar com a versão salva por {status.byName} (as suas alterações desde então se perdem) ou gravar a sua por cima da dele(a).</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -234,7 +234,7 @@ function SaveIndicator({ status, readOnly, onKeepMine, onUseTheirs, onRetry }: {
       </div>
     );
   }
-  if (status.kind === "validado") return <p role="alert" className="mb-4 rounded-2xl bg-amber-soft p-4 text-sm text-amber-900">{status.message}</p>;
+  if (status.kind === "validado") return <p role="alert" className="mb-4 rounded-2xl bg-amber-soft p-4 text-sm text-amber">{status.message}</p>;
   if (status.kind === "erro") {
     return (
       <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-coral-soft p-3 text-sm text-coral">

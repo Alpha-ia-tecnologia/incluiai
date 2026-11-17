@@ -30,15 +30,18 @@ export function JourneyBar({ journey }: { journey: Journey }) {
 }
 
 // Primeiro acesso: a história do perfil em poucas linhas e um convite para começar.
-// character={false}: a página já tem o seu personagem no topo (portal da família).
+// character={false}: a página já tem o seu herói em marinho no topo (portal da
+// família, terapeuta); aí as boas-vindas viram um cartão claro, para não empilhar
+// dois blocos escuros.
 export function JourneyWelcome({ journey, character = true }: { journey: Journey; character?: boolean }) {
   const start = journey.current ?? journey.chapters[0];
+  const navy = character;
   return (
-    <section aria-labelledby="boas-vindas-titulo" className="mb-7 overflow-hidden rounded-3xl bg-lilac-soft p-5 sm:p-7 print:hidden">
+    <section aria-labelledby="boas-vindas-titulo" className={`mb-7 overflow-hidden rounded-3xl p-5 sm:p-7 print:hidden ${navy ? "surface-navy" : "border border-line bg-paper-raised"}`}>
       <div className="flex items-start gap-5">
         <div className="min-w-0 flex-1">
-          <h2 id="boas-vindas-titulo" className="font-display text-2xl font-medium leading-tight tracking-tight text-ink sm:text-3xl">{journey.welcome.headline}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft sm:text-base">{journey.welcome.text}</p>
+          <h2 id="boas-vindas-titulo" className={`font-display text-2xl font-medium leading-tight tracking-tight sm:text-3xl ${navy ? "text-on-navy" : "text-ink"}`}>{journey.welcome.headline}</h2>
+          <p className={`mt-2 max-w-2xl text-sm leading-relaxed sm:text-base ${navy ? "text-on-navy-soft" : "text-ink-soft"}`}>{journey.welcome.text}</p>
           {journey.chapters.length ? (
             <ol className="mt-5 grid gap-2 sm:grid-cols-3">
               {journey.chapters.slice(0, 3).map((chapter, index) => (
@@ -52,12 +55,12 @@ export function JourneyWelcome({ journey, character = true }: { journey: Journey
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {start ? (
               <form action={startJourney.bind(null, start.action.href)}>
-                <PendingButton className="task-action" pendingText="Abrindo o capítulo...">Começar: {start.action.label} <ArrowRight size={16} aria-hidden /></PendingButton>
+                <PendingButton className={`task-action ${navy ? "task-action-on-navy" : ""}`} pendingText="Abrindo o capítulo...">Começar: {start.action.label} <ArrowRight size={16} aria-hidden /></PendingButton>
               </form>
             ) : null}
             {/* A história completa fica em "Minha jornada", no menu. */}
             <form action={dismissWelcome}>
-              <button type="submit" className="min-h-12 rounded-xl px-4 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline">Agora não</button>
+              <button type="submit" className={`min-h-12 rounded-xl px-4 text-sm underline-offset-4 hover:underline ${navy ? "text-on-navy-soft hover:text-on-navy" : "text-ink-soft hover:text-ink"}`}>Agora não</button>
             </form>
           </div>
         </div>
@@ -75,7 +78,7 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
   const summary = `${journey.completed} de ${total} capítulos`;
   if (layout === "strip") {
     return (
-      <section aria-label="Sua jornada" className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-lilac-soft px-4 py-3.5 sm:px-5 print:hidden">
+      <section aria-label="Sua jornada" className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-line bg-paper-raised px-4 py-3.5 sm:px-5 print:hidden">
         <div className="min-w-[180px] flex-1">
           <p className="flex items-center gap-2 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Sua jornada · {summary}</p>
           <p className="mt-1 text-sm font-medium text-ink">{current ? `Próximo: ${current.title}` : journey.completed < total ? "Você está em dia. O restante aguarda a outra parte." : "Todos os capítulos concluídos. A história continua a cada semana."}</p>

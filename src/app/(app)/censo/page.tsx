@@ -157,7 +157,7 @@ export default async function CensusPage() {
                   {school.coverage ? (school.coverage.pending ? <Badge tone="amber">{count(school.coverage.pending)} com pendência</Badge> : <Badge tone="green">Sem pendências</Badge>) : <Badge>Sem arquivo aplicado</Badge>}
                 </div>
                 <p className="mt-1 text-xs text-ink-soft">{school.inepCode ? `INEP ${school.inepCode}` : "Sem código INEP"}{school.importedAt ? ` · arquivo aplicado em ${brMoment(school.importedAt)}${school.importedByName ? ` por ${school.importedByName}` : ""}` : ""}</p>
-                {school.note && school.note.tone !== "ok" ? <p className="mt-2 text-xs leading-relaxed text-amber-800">{school.note.text}</p> : null}
+                {school.note && school.note.tone !== "ok" ? <p className="mt-2 text-xs leading-relaxed text-amber">{school.note.text}</p> : null}
                 <p className="mt-2 text-sm text-ink">
                   {school.platformAee} {school.platformAee === 1 ? "estudante" : "estudantes"} com AEE na plataforma
                   {school.coverage ? `; dupla matrícula confirmada para ${count(school.coverage.confirmed)}${school.coverage.percent !== null ? ` (${school.coverage.percent}%)` : ""}` : ""}

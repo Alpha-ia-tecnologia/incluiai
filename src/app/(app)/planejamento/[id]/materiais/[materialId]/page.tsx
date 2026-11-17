@@ -28,7 +28,7 @@ export default async function MaterialPrintPage({ params }: { params: Promise<{ 
   const draft = material.state !== "validado";
   const large = material.format === "fonte_ampliada";
   const notice = (
-    <p className="rounded-xl border-2 border-current bg-amber-soft px-4 py-3 text-base font-semibold leading-snug text-amber-900">
+    <p className="rounded-xl border-2 border-current bg-amber-soft px-4 py-3 text-base font-semibold leading-snug text-amber">
       {DRAFT_NOTICE}
     </p>
   );

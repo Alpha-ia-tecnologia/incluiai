@@ -8,7 +8,7 @@ import { SHIFTS } from "@/lib/scale";
 import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS } from "@/lib/form-options";
 import { PageHero, Badge, EmptyState } from "@/components/ui";
-import { primaryButtonCls, quietButtonCls, secondaryButtonCls } from "@/components/form-styles";
+import { primaryButtonCls, primaryOnNavyCls, quietButtonCls, secondaryOnNavyCls } from "@/components/form-styles";
 import { isAccountManager } from "@/lib/user-admin";
 import { Character } from "@/components/character";
 import { StepTrack } from "@/components/viz/step-track";
@@ -93,8 +93,8 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         lede={action ? "Procure pelo nome ou escolha uma turma. Depois, selecione o estudante para continuar." : "Encontre um estudante e veja qual é o próximo passo do acompanhamento."}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link href="/estudantes/novo" className={primaryButtonCls}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>
-            {isAccountManager(user.role) ? <Link href="/estudantes/importar" className={secondaryButtonCls}><FileSpreadsheet size={18} aria-hidden /> Importar planilha</Link> : null}
+            <Link href="/estudantes/novo" className={primaryOnNavyCls}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>
+            {isAccountManager(user.role) ? <Link href="/estudantes/importar" className={secondaryOnNavyCls}><FileSpreadsheet size={18} aria-hidden /> Importar planilha</Link> : null}
           </div>
         }
       />

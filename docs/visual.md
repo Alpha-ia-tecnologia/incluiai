@@ -1,10 +1,11 @@
 # Padrão visual do IncluiEdu
 
 Regras para manter a aplicação com a mesma cara em todas as telas. A identidade
-segue a apresentação da plataforma (outubro de 2026): azul-marinho e azul,
-superfícies azul-claras, a faixa azul-claro, amarelo e verde, personagens em
-azul-claro e a fonte Noto Sans, com títulos e números em negrito. Estas regras
-organizam o uso dela.
+segue a apresentação da plataforma (outubro de 2026): azul-marinho e azul, a
+faixa azul-claro, amarelo e verde, personagens em azul-claro e a fonte Noto
+Sans, com títulos e números em negrito. Desde novembro de 2026, o marinho
+também é superfície: ele ancora cada tela (menu e herói) e o conteúdo fica em
+cartões brancos sobre um fundo cinza-azulado. Estas regras organizam o uso.
 
 ## Cores
 
@@ -12,12 +13,41 @@ organizam o uso dela.
 - **Azul** (`brand`, `brand-strong`, `brand-soft`, `lilac`, nome que ficou dos
   tokens antigos): marca e ações, em toda a aplicação, inclusive no Painel.
   Texto e títulos em azul-marinho (`ink`).
+- **Marinho como superfície** (`navy`, com a classe `surface-navy`): o menu
+  lateral, a barra do celular, o herói das telas principais, o destaque do
+  Painel, as boas-vindas do início, as páginas de aviso e o painel do login.
+  Um bloco marinho por tela, além do menu: dois empilhados pesam.
+  - Texto: `on-navy` (títulos, 12,8:1) e `on-navy-soft` (apoio, 8,6:1). Nunca
+    `ink`, `ink-soft` nem `brand` sobre o marinho.
+  - Ação e item ativo: azul-claro (`accent-sky`) com texto `ink-strong`
+    (6,7:1): `primaryOnNavyCls`, `task-action-on-navy`, `pill-action-on-navy`.
+    A segunda ação usa `secondaryOnNavyCls`; o botão discreto serve como está.
+  - Linhas e realce: `navy-line` e `navy-hover`.
+  - Foco do teclado em azul-claro (o azul da marca some no marinho).
+  - No papel, a superfície vira fundo claro com texto escuro (regra de
+    impressão em `globals.css`): não use cor fixa dentro dela.
+- **Superfícies claras:** cartões em branco (`paper-raised`) com borda `line`
+  sobre `paper`; quadros em `surface-muted`. O azul-claro (`brand-soft`,
+  `lilac-*`) fica para destaque pontual (aviso, item escolhido, passo atual),
+  não para o fundo de uma faixa inteira.
 - **Azul-claro, amarelo e verde da apresentação** (`accent-sky`, `signal-yellow`,
   `signal-lime`): só preenchimento (faixas, gráficos, selos), com texto marinho
   por cima. Sobre branco, não chegam a 4.5:1.
 - **Verde, âmbar e coral**: estado (alcançado, atenção, alerta).
-- **Verde, amarelo e laranja** (`signal-*`): só em dados (bom, intermediário,
-  atenção), sempre com o valor também em texto e com `ink-strong` por cima.
+- **Verde, amarelo e laranja** (`signal-*`): só em dados e só para estado
+  (bom, intermediário, atenção), sempre com o valor também em texto e com
+  `ink-strong` por cima.
+- **Gráficos** (`src/components/charts.tsx`, objeto `SIGNAL`, que lê os tokens
+  por nome):
+  - quantidade sem juízo (contagens, usos, partes de um todo, etapas
+    cumpridas): azul da marca (`SIGNAL.brand`), o padrão de barras, colunas,
+    anéis e medidores;
+  - estado: lima, amarelo e laranja;
+  - estado informativo (estável, aceita, realizado): azul-claro (`SIGNAL.cyan`).
+  As cinco situações das pílulas (`StatusPill`) têm o mesmo peso: cor cheia e
+  texto escuro. O degradê do medidor mistura só os três sinais.
+- **Âmbar:** só o token (`text-amber`, `border-amber`). Nada de `amber-800`
+  nem de outra cor da paleta padrão do Tailwind.
 - **Céu, verde-água, pêssego, sálvia e rosa**: categorias (tipos de tarefa,
   temas do calendário).
 
@@ -63,7 +93,10 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
 - **`src/components/ui.tsx`:**
   - `PageHeader`: `level={2}` para o título de uma aba dentro da ficha do
     estudante, que já tem o h1 com o nome;
-  - `PageHero`: faixa azul-clara com o personagem, nas telas principais;
+  - `PageHero`: faixa em marinho com o personagem, nas telas principais. O
+    que entra nela usa as versões sobre o marinho: `primaryOnNavyCls`,
+    `secondaryOnNavyCls`, `Assurances onNavy`, `HowToRead onNavy`,
+    `PillLink onNavy`, `TextSizeControl onNavy`;
   - `HeroStat`;
   - `EmptyState`: com `character` e `action`;
   - `Button` e `ButtonLink`;

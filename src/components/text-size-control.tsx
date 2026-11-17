@@ -40,7 +40,8 @@ const OPTIONS: { value: TextScale; label: string; size: string }[] = [
   { value: "3", label: "Texto maior", size: "text-lg" },
 ];
 
-export function TextSizeControl() {
+// onNavy: dentro de um herói em marinho (portal da família).
+export function TextSizeControl({ onNavy = false }: { onNavy?: boolean } = {}) {
   const scale = useSyncExternalStore(subscribe, current, () => "1" as TextScale);
   const choose = (value: TextScale) => {
     apply(value);
@@ -53,7 +54,7 @@ export function TextSizeControl() {
   };
   return (
     <div role="group" aria-label="Tamanho do texto" className="flex items-center gap-1 print:hidden">
-      <span aria-hidden className="mr-1 text-xs text-ink-soft">Texto</span>
+      <span aria-hidden className={`mr-1 text-xs ${onNavy ? "text-on-navy-soft" : "text-ink-soft"}`}>Texto</span>
       {OPTIONS.map((option) => (
         <button
           key={option.value}
@@ -61,7 +62,7 @@ export function TextSizeControl() {
           aria-label={option.label}
           aria-pressed={scale === option.value}
           onClick={() => choose(option.value)}
-          className={`flex min-h-11 min-w-11 items-center justify-center rounded-full font-medium transition-colors ${option.size} ${scale === option.value ? "bg-brand text-white" : "bg-surface-muted text-ink hover:bg-line"}`}
+          className={`flex min-h-11 min-w-11 items-center justify-center rounded-full font-medium transition-colors ${option.size} ${scale === option.value ? (onNavy ? "bg-accent-sky text-ink-strong" : "bg-brand text-white") : "bg-surface-muted text-ink hover:bg-line"}`}
         >
           A
         </button>

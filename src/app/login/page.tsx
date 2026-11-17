@@ -36,7 +36,7 @@ export default async function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-3 sm:p-6 lg:p-8">
-      <div className="grid w-full max-w-[1320px] overflow-hidden rounded-3xl bg-paper p-2 shadow-[0_24px_80px_-36px_rgba(80,50,110,0.24)] sm:rounded-3xl sm:p-3 lg:grid-cols-[1fr_1fr]">
+      <div className="grid w-full max-w-[1320px] overflow-hidden rounded-3xl bg-paper p-2 shadow-frame sm:rounded-3xl sm:p-3 lg:grid-cols-[1fr_1fr]">
         <section className="flex flex-col px-5 py-6 sm:px-10 sm:py-9 xl:px-16">
           <Link href="/login" className="inline-flex w-fit items-center gap-3 text-ink">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-brand text-paper">
@@ -46,7 +46,7 @@ export default async function LoginPage() {
           </Link>
 
           <div className="mx-auto w-full max-w-[400px] py-12 sm:py-16 lg:py-20">
-            <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3.5 py-2 text-xs text-ink">
+            <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-surface-muted px-3.5 py-2 text-xs text-ink">
               <span className="size-1.5 rounded-full bg-brand" aria-hidden="true" />
               Um espaço para cada possibilidade
             </span>
@@ -68,26 +68,26 @@ export default async function LoginPage() {
           </p>
         </section>
 
-        <aside className="flex flex-col rounded-2xl bg-[var(--surface-muted)] px-5 py-8 sm:rounded-3xl sm:px-8 sm:py-10 xl:px-10" aria-labelledby="demo-title">
+        <aside className="surface-navy flex flex-col rounded-2xl px-5 py-8 sm:rounded-3xl sm:px-8 sm:py-10 xl:px-10" aria-labelledby="demo-title">
           <div className="mb-8 flex items-center justify-between">
             <span className="inline-flex items-center gap-2 rounded-full bg-paper-raised px-3.5 py-2 text-xs text-ink">
               <Sparkles size={14} strokeWidth={1.7} aria-hidden="true" />
               Educação que aproxima
             </span>
-            <span className="flex size-9 items-center justify-center rounded-full border border-ink/15" aria-hidden="true">
+            <span className="flex size-9 items-center justify-center rounded-full border border-navy-line text-on-navy-soft" aria-hidden="true">
               <ArrowUpRight size={19} strokeWidth={1.6} />
             </span>
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_96px] items-center gap-3 sm:grid-cols-[minmax(0,1fr)_180px] lg:grid-cols-[minmax(0,1fr)_144px] xl:grid-cols-[minmax(0,1fr)_180px]">
-            <p className="font-display text-3xl font-bold leading-[1.14] tracking-[-0.045em] text-ink sm:text-4xl lg:text-3xl xl:text-4xl">Muitas conexões.<br />Um só propósito.</p>
+            <p className="font-display text-3xl font-bold leading-[1.14] tracking-[-0.045em] text-on-navy sm:text-4xl lg:text-3xl xl:text-4xl">Muitas conexões.<br />Um só propósito.</p>
             <Character variant="care" className="w-full" preload />
           </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-soft">Toda trajetória é única. Juntos, construímos caminhos para que cada estudante possa aprender e se desenvolver.</p>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-on-navy-soft">Toda trajetória é única. Juntos, construímos caminhos para que cada estudante possa aprender e se desenvolver.</p>
 
           <div className="mb-4 mt-9 flex flex-wrap items-end justify-between gap-3">
-            <h2 id="demo-title" className="text-sm font-medium text-ink">{demo ? "Explore a plataforma" : "Um espaço para cada perfil"}</h2>
-            <span className="text-xs text-ink-soft">{demo ? "Contas de demonstração" : "Quem usa a plataforma"}</span>
+            <h2 id="demo-title" className="text-sm font-medium text-on-navy">{demo ? "Explore a plataforma" : "Um espaço para cada perfil"}</h2>
+            <span className="text-xs text-on-navy-soft">{demo ? "Contas de demonstração" : "Quem usa a plataforma"}</span>
           </div>
           <ul className="grid gap-2.5 sm:grid-cols-2">
             {cards.map(({ key, label, detail, icon: Icon, color }) => (
@@ -101,11 +101,11 @@ export default async function LoginPage() {
             ))}
           </ul>
           {demo ? (
-            <p className="mt-5 text-xs leading-relaxed text-ink-soft">
+            <p className="mt-5 text-xs leading-relaxed text-on-navy-soft">
               Cada perfil tem seu espaço. A senha de todas as contas é <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">demo123</strong>.
             </p>
           ) : (
-            <p className="mt-5 text-xs leading-relaxed text-ink-soft">
+            <p className="mt-5 text-xs leading-relaxed text-on-navy-soft">
               Primeiro acesso? A conta é criada pela Secretaria de Educação ou pela gestão da escola, que entrega uma senha temporária; na primeira entrada, você cria a sua. Esqueceu a senha? Peça uma nova a quem criou a sua conta.
             </p>
           )}

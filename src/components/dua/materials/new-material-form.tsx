@@ -72,7 +72,7 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
           </select>
         </Field>
         {chosen && chosen.state !== "validado" ? (
-          <p className="rounded-xl bg-amber-soft px-3 py-2 text-sm leading-relaxed text-amber-900 sm:col-span-2">
+          <p className="rounded-xl bg-amber-soft px-3 py-2 text-sm leading-relaxed text-amber sm:col-span-2">
             A versão {chosen.version} está como “{REVIEW_STATE_LABEL[chosen.state]}”: o material sai como rascunho, impresso com o aviso de RASCUNHO, e só pode ser validado depois que a versão for validada.
           </p>
         ) : null}

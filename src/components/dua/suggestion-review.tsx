@@ -102,7 +102,7 @@ function SuggestionCard({ planningId, suggestion, canDecide, beforeChange }: { p
       </p>
       {suggestion.error ? <p role="alert" className="mt-3 flex items-start gap-2 rounded-xl bg-coral-soft px-3 py-2 text-sm text-coral"><ShieldAlert size={16} aria-hidden className="mt-0.5 shrink-0" /> {suggestion.error}</p> : null}
       {suggestion.stale ? (
-        <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2 text-sm text-amber-900">
+        <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2 text-sm text-amber">
           <strong className="font-medium">Volte a conferir:</strong> o objetivo, os critérios ou as barreiras mudaram depois desta sugestão. Para aceitar um bloco, confirme que ele ainda faz sentido.
         </p>
       ) : null}
@@ -167,15 +167,15 @@ function BlockCard({ index, planningId, suggestionId, block, stale, canDecide, b
   const decided = block.decision !== "pendente";
   const highlight = block.flags.changesObjective || block.flags.changesCriterion || block.flags.individual;
   return (
-    <li className={`min-w-0 rounded-xl border p-3 sm:p-4 ${block.flags.blocked ? "border-coral/40 bg-coral-soft/30" : highlight ? "border-amber-800/30 bg-amber-soft/30" : "border-line bg-paper"}`}>
+    <li className={`min-w-0 rounded-xl border p-3 sm:p-4 ${block.flags.blocked ? "border-coral/40 bg-coral-soft/30" : highlight ? "border-amber/30 bg-amber-soft/30" : "border-line bg-paper"}`}>
       <p className="text-sm font-medium text-ink">Bloco {index + 1}</p>
       {block.flags.changesObjective ? (
-        <p className="mt-2 rounded-lg bg-amber-soft px-3 py-2 text-sm text-amber-900"><strong className="font-medium">Altera o objetivo:</strong> “{block.objectiveConsidered}”. O objetivo do planejamento não muda ao aceitar; se quiser usar esta formulação, edite-o na etapa 1.</p>
+        <p className="mt-2 rounded-lg bg-amber-soft px-3 py-2 text-sm text-amber"><strong className="font-medium">Altera o objetivo:</strong> “{block.objectiveConsidered}”. O objetivo do planejamento não muda ao aceitar; se quiser usar esta formulação, edite-o na etapa 1.</p>
       ) : null}
       {block.flags.changesCriterion && block.criterionProposal ? (
-        <p className="mt-2 rounded-lg bg-amber-soft px-3 py-2 text-sm text-amber-900"><strong className="font-medium">Propõe critério novo:</strong> “{block.criterionProposal}”. Só entra se você marcar ao aceitar.</p>
+        <p className="mt-2 rounded-lg bg-amber-soft px-3 py-2 text-sm text-amber"><strong className="font-medium">Propõe critério novo:</strong> “{block.criterionProposal}”. Só entra se você marcar ao aceitar.</p>
       ) : null}
-      {block.flags.individual ? <p className="mt-2 rounded-lg bg-amber-soft px-3 py-2 text-sm text-amber-900"><strong className="font-medium">Altera um apoio individual:</strong> ao aceitar, o texto entra no apoio e ele volta para rascunho até nova validação.</p> : null}
+      {block.flags.individual ? <p className="mt-2 rounded-lg bg-amber-soft px-3 py-2 text-sm text-amber"><strong className="font-medium">Altera um apoio individual:</strong> ao aceitar, o texto entra no apoio e ele volta para rascunho até nova validação.</p> : null}
       {block.flags.problems.length ? (
         <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-coral">
           {block.flags.problems.map((problem) => <li key={problem}>{problem}</li>)}

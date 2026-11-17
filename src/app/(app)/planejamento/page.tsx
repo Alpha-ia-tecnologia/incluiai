@@ -60,7 +60,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
         character="planning"
         title="Planejamento com DUA"
         lede="Desenho Universal para a Aprendizagem: formas diferentes de acessar, participar e mostrar o que aprendeu."
-        actions={<PillLink slug="dua" />}
+        actions={<PillLink slug="dua" onNavy />}
       />
 
       <div className="mb-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
@@ -102,7 +102,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
             <StatTile
               label="Aplicações registradas"
               value={totalApplications}
-              chart={<UsageMeter value={applied} max={all.length} color={SIGNAL.cyan} />}
+              chart={<UsageMeter value={applied} max={all.length} />}
               hint={`${applied} de ${plural(all.length, "planejamento", "planejamentos")} já ${applied === 1 ? "aplicado" : "aplicados"}. Mede uso, não aprendizagem.`}
             />
             <DataCard title="Compartilhamento">

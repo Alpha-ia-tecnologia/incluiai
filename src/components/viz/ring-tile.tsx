@@ -5,7 +5,7 @@ import { SIGNAL } from "@/components/charts";
 // Cartão com anel e número grande, como o do "Minha jornada". Sem base
 // (pct null), o anel fica vazio e o centro mostra "—", nunca 0%.
 
-export function RingTile({ id, pct, label, value, hint, color = SIGNAL.lime, children }: {
+export function RingTile({ id, pct, label, value, hint, color = SIGNAL.brand, children }: {
   id: string;
   pct: number | null;
   label: string;

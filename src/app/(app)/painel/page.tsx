@@ -21,7 +21,7 @@ import { Assurances, HowToRead } from "@/components/explain";
 import {
   BarList, ColumnChart, HatchedDonut, HatchedGauge, Legend, MonthGrid, SIGNAL, StackedBar, SupportScale, type ChartSegment,
 } from "@/components/charts";
-import { RingStat, StatTile, StatusPill, TrendBadge, withSegmentColors, type Tone } from "@/components/data-viz";
+import { RingStat, StatTile, StatusPill, TONE_CLASSES, TrendBadge, withSegmentColors, type Tone } from "@/components/data-viz";
 import { ShareRing } from "@/components/viz/share-ring";
 import { UsageMeter } from "@/components/viz/usage-meter";
 import { Character } from "@/components/character";
@@ -29,22 +29,15 @@ import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
-// Linguagem visual inspirada em painéis de score: destaque com medidor em
-// degradê, cartões brancos sobre quadro cinza, pílulas de situação (lima =
-// bom, amarelo = intermediário, laranja = atenção) e botões pretos.
+// Linguagem visual inspirada em painéis de score: destaque em marinho com
+// medidor em degradê, cartões brancos sobre quadro cinza, pílulas de situação
+// (lima = bom, amarelo = intermediário, laranja = atenção) e quantidades no
+// azul da marca.
 
 const ROLE_LABELS: Record<string, string> = { ...ROLES, terapeuta: "Terapeuta" };
 const ACCESS_LABELS: Record<string, string> = { visualizou: "Consultas", criou: "Inclusões", editou: "Alterações", enviou: "Envios à IA de reserva (DeepSeek)" };
 const SHORT_ALERTS: Record<string, string> = { sem_registro: "Sem registro há 7+ dias", plano_vencido: "Revisão vencida", sem_plano: "Sem plano", queda_participacao: "Queda de participação" };
 
-// Cores dos contadores; as mesmas da pílula de situação (src/components/data-viz.tsx).
-const TONE_CLASSES: Record<Tone, string> = {
-  good: "bg-signal-lime text-ink-strong",
-  mid: "bg-signal-yellow text-ink-strong",
-  alert: "bg-signal-orange text-ink-strong",
-  neutral: "bg-signal-track text-ink-soft",
-  info: "bg-sky-soft text-sky-ink",
-};
 const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
@@ -137,7 +130,7 @@ function AiStat({ label, value, detail, wide = false, children }: { label: strin
 
 // Indicador de uso do DUA: sem pílula de "bom" ou "atenção", porque não é nota.
 // Sem denominador, mostra "sem base" (nunca 0%).
-// O anel é azul-claro (informação) e fica fora da leitura de tela: o valor,
+// O anel é azul da marca (quantidade) e fica fora da leitura de tela: o valor,
 // ou "sem base", já está escrito ao lado. Sem base, o anel fica sem arco.
 function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denominator, value, noBaseText }: {
   ringId: string; label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null; noBaseText: string;
@@ -147,7 +140,7 @@ function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denomina
       <CardHeader title={label} help={definition} />
       <div className="flex min-w-0 items-center gap-4">
         <div aria-hidden className="shrink-0">
-          <RingStat id={ringId} value={value} label={label} size={64} color={SIGNAL.cyan}><span /></RingStat>
+          <RingStat id={ringId} value={value} label={label} size={64}><span /></RingStat>
         </div>
         <div className="min-w-0">
           {value === null
@@ -353,13 +346,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <section id="visao-geral" aria-label="Visão geral" className="grid scroll-mt-20 grid-cols-1 gap-3.5 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]">
             {/* Coluna da direita (vem primeiro no celular): destaque e cartões de situação */}
             <div className="contents xl:order-2 xl:flex xl:min-w-0 xl:flex-col xl:gap-3.5">
-              <section aria-labelledby="destaque-titulo" className="dash-hero relative order-1 min-w-0 px-5 pb-6 pt-8 text-center sm:px-8 xl:order-none">
+              <section aria-labelledby="destaque-titulo" className="dash-hero surface-navy relative order-1 min-w-0 px-5 pb-6 pt-8 text-center sm:px-8 xl:order-none">
                 <Character variant="resources" className="absolute right-4 top-4 hidden w-16 sm:block xl:w-20" />
-                <h2 id="destaque-titulo" className="font-display text-3xl font-medium leading-tight tracking-tight text-ink sm:text-4xl">Olá, {firstName(user.name)}</h2>
-                <p className="mt-1 text-xl font-light leading-snug text-ink sm:text-2xl">Este é o acompanhamento {scopePhrase}</p>
-                <nav aria-label="Indicador do medidor" className="mx-auto mt-5 inline-flex max-w-full flex-wrap justify-center gap-1 rounded-full border border-black/5 bg-white/40 p-1">
+                <h2 id="destaque-titulo" className="font-display text-3xl font-medium leading-tight tracking-tight text-on-navy sm:text-4xl">Olá, {firstName(user.name)}</h2>
+                <p className="mt-1 text-xl font-light leading-snug text-on-navy-soft sm:text-2xl">Este é o acompanhamento {scopePhrase}</p>
+                <nav aria-label="Indicador do medidor" className="mx-auto mt-5 inline-flex max-w-full flex-wrap justify-center gap-1 rounded-full border border-navy-line bg-navy-hover p-1">
                   {(Object.keys(GAUGES) as DashboardGauge[]).map((key) => (
-                    <Link key={key} href={href({ indicador: key })} scroll={false} aria-current={key === gaugeKey ? "page" : undefined} className="inline-flex min-h-9 items-center rounded-full px-4 text-sm text-ink-soft transition-colors hover:text-ink aria-[current=page]:bg-white aria-[current=page]:text-ink aria-[current=page]:shadow-e1">
+                    <Link key={key} href={href({ indicador: key })} scroll={false} aria-current={key === gaugeKey ? "page" : undefined} className="inline-flex min-h-9 items-center rounded-full px-4 text-sm text-on-navy-soft transition-colors hover:text-on-navy aria-[current=page]:bg-accent-sky aria-[current=page]:font-medium aria-[current=page]:text-ink-strong">
                       {GAUGES[key]}
                     </Link>
                   ))}
@@ -368,14 +361,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <HatchedGauge value={gauge.value} label={`${GAUGES[gaugeKey]}: ${gauge.value === null ? "sem dados" : `${gauge.value}%`}, em uma escala de 0 a 100%.`} />
                   <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
                     <StatusPill tone={gauge.pill.tone}>{gauge.pill.text}{"deltaText" in gauge && gauge.deltaText ? <span className="sr-only">: {gauge.deltaText}</span> : null}</StatusPill>
-                    <p className="mt-1 font-display text-5xl font-bold leading-none tracking-tight text-ink sm:text-5xl">{gauge.value ?? "—"}{gauge.value !== null ? <span className="text-[0.5em]">%</span> : null}</p>
+                    <p className="mt-1 font-display text-5xl font-bold leading-none tracking-tight text-on-navy sm:text-5xl">{gauge.value ?? "—"}{gauge.value !== null ? <span className="text-[0.5em]">%</span> : null}</p>
                   </div>
                 </div>
-                <p className="mx-auto mt-4 max-w-sm text-xs text-ink-soft">{gauge.context}</p>
-                <HowToRead className="mx-auto max-w-sm">{gauge.definition}</HowToRead>
+                <p className="mx-auto mt-4 max-w-sm text-xs text-on-navy-soft">{gauge.context}</p>
+                <HowToRead onNavy className="mx-auto max-w-sm">{gauge.definition}</HowToRead>
                 {scope.network
-                  ? <a href="#atencao" className="pill-action mx-auto mt-5 max-w-sm">Ver estudantes com avisos</a>
-                  : <Link href="/estudantes?acao=registrar" className="pill-action mx-auto mt-5 max-w-sm">Registrar uma aula</Link>}
+                  ? <a href="#atencao" className="pill-action pill-action-on-navy mx-auto mt-5 max-w-sm">Ver estudantes com avisos</a>
+                  : <Link href="/estudantes?acao=registrar" className="pill-action pill-action-on-navy mx-auto mt-5 max-w-sm">Registrar uma aula</Link>}
               </section>
 
               <div className="order-2 grid min-w-0 grid-cols-2 gap-3.5 xl:order-none 2xl:grid-cols-3">
@@ -397,13 +390,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       const complete = step.done === o.students;
                       return (
                         <li key={step.key} className="stepper-item">
-                          <span className={`relative z-10 flex size-[34px] items-center justify-center rounded-full text-xs font-semibold ${complete ? "bg-brand text-white" : step.done > 0 ? "border-2 border-signal-lime bg-signal-lime-soft text-ink-strong" : "border-2 border-dashed border-[#bfd0d8] bg-paper-raised text-ink-soft"}`}>
+                          <span className={`relative z-10 flex size-[34px] items-center justify-center rounded-full text-xs font-semibold ${complete ? "bg-brand text-white" : step.done > 0 ? "border-2 border-brand bg-brand-soft text-brand-strong" : "border-2 border-dashed border-line bg-paper-raised text-ink-soft"}`}>
                             {complete ? <Check size={17} strokeWidth={3} aria-hidden /> : step.done}
                           </span>
                           <span className="mt-2 text-xs text-ink-soft">Etapa {step.step}</span>
                           <span className="text-sm font-medium leading-snug text-ink">{step.label}</span>
                           <span className="mt-0.5 text-xs text-ink-soft">{step.done} de {o.students}</span>
-                          {step.here ? <span className="mt-1.5 rounded-full bg-signal-yellow-soft px-2 py-0.5 text-xs font-medium text-ink-strong">{step.here} {step.step === 5 ? "na rotina" : "nesta etapa"}</span> : null}
+                          {step.here ? <span className="mt-1.5 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand-strong">{step.here} {step.step === 5 ? "na rotina" : "nesta etapa"}</span> : null}
                         </li>
                       );
                     })}
@@ -563,9 +556,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </div>
                 <MonthGrid years={cal.years} />
                 <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
-                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border-2 border-[#cfe6b4] bg-signal-lime" />Com registro</li>
+                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border-2 border-signal-lime-soft bg-signal-lime" />Com registro</li>
                   <li className="flex items-center gap-1.5"><span aria-hidden className="flex size-3 items-center justify-center rounded-full bg-signal-orange" />Mês letivo sem registro</li>
-                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-dashed border-[#bfd0d8]" />Mês atual</li>
+                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-dashed border-line" />Mês atual</li>
                   <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-line bg-paper" />Recesso (janeiro)</li>
                 </ul>
               </section>
@@ -598,7 +591,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <AiStat label="Planos propostos pela IA" value={ai.planProposals.ia} detail={`${plural(ai.planProposals.regras, "proposto", "propostos")} pelo motor de regras`} />
                 <AiStat label="Propostas aguardando revisão" value={ai.draftsPending} detail={ai.draftsPending ? "o professor decide" : "nenhuma pendente"} />
                 <AiStat label="Atividades criadas pela IA" value={ai.activities.total} wide detail={ai.activities.adhesion === null ? "Adesão: sem atividades avaliadas para calcular." : `Adesão de ${ai.activities.adhesion}%: ${ai.activities.used} de ${plural(ai.activities.decided, "avaliada foi aceita ou aplicada", "avaliadas foram aceitas ou aplicadas")}.`}>
-                  {ai.activities.adhesion !== null ? <UsageMeter value={ai.activities.adhesion} max={100} color={SIGNAL.cyan} /> : null}
+                  {ai.activities.adhesion !== null ? <UsageMeter value={ai.activities.adhesion} max={100} /> : null}
                 </AiStat>
                 <AiStat label="Imagens geradas" value={ai.images} />
                 <AiStat label="Envios à IA de reserva" value={ai.deepseekSends} />
@@ -762,7 +755,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="dash-card"><CardHeader title="Etapa de ensino" /><BarList rows={p.byStage} /></div>
               <div className="dash-card"><CardHeader title="Canais de comunicação" /><BarList rows={p.channels} empty="Nenhum perfil preenchido." /></div>
               <div className="dash-card"><CardHeader title="Barreiras ativas" /><BarList rows={p.barriers} color={SIGNAL.yellow} empty="Nenhuma barreira registrada." /></div>
-              <div className="dash-card"><CardHeader title="Hipersensibilidade sensorial" /><BarList rows={p.hypersensitivity} color={SIGNAL.cyan} empty="Nenhuma hipersensibilidade registrada." /></div>
+              <div className="dash-card"><CardHeader title="Hipersensibilidade sensorial" /><BarList rows={p.hypersensitivity} empty="Nenhuma hipersensibilidade registrada." /></div>
             </div>
             {p.withoutProfile ? <p className="mt-3 px-1 text-xs text-ink-soft">{plural(p.withoutProfile, "estudante sem perfil de aprendizagem fica", "estudantes sem perfil de aprendizagem ficam")} fora destes números.</p> : null}
             {p.practices.length ? (
@@ -863,11 +856,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="grid gap-3.5 lg:grid-cols-2">
                 <div className="dash-card">
                   <CardHeader title="Pessoas com acesso" hint={scope.schoolId ? "Equipe da escola, famílias e terapeutas dos estudantes" : "Todos os usuários da rede"} />
-                  <BarList rows={team.byRole.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} color={SIGNAL.cyan} empty="Nenhum usuário cadastrado." />
+                  <BarList rows={team.byRole.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} empty="Nenhum usuário cadastrado." />
                 </div>
                 <div className="dash-card">
                   <CardHeader title="Acessos registrados" hint={`${plural(team.actors, "pessoa acessou", "pessoas acessaram")} dados de estudantes · ${periodText}`} />
-                  <BarList rows={team.access.map((row) => ({ ...row, label: ACCESS_LABELS[row.key] }))} color={SIGNAL.cyan} empty="Nenhum acesso registrado no período." />
+                  <BarList rows={team.access.map((row) => ({ ...row, label: ACCESS_LABELS[row.key] }))} empty="Nenhum acesso registrado no período." />
                 </div>
               </div>
             </Section>

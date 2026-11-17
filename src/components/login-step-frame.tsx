@@ -9,7 +9,7 @@ import { quietButtonCls } from "@/components/form-styles";
 export function LoginStepFrame({ badge, icon, title, lede, children }: { badge: string; icon: ReactNode; title: string; lede: string; children: ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-3 sm:p-6">
-      <div className="w-full max-w-xl rounded-3xl bg-paper px-5 py-8 shadow-[0_24px_80px_-36px_rgba(80,50,110,0.24)] sm:px-10 sm:py-10">
+      <div className="w-full max-w-xl rounded-3xl bg-paper px-5 py-8 shadow-frame sm:px-10 sm:py-10">
         <Link href="/login" className="mb-10 flex w-fit items-center gap-3 text-ink">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-brand text-paper">
             <Sprout size={23} strokeWidth={1.7} aria-hidden="true" />
@@ -17,7 +17,7 @@ export function LoginStepFrame({ badge, icon, title, lede, children }: { badge: 
           <span className="font-display text-2xl font-semibold tracking-tight">IncluiEdu<span className="text-ink-soft">.</span></span>
         </Link>
 
-        <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3.5 py-2 text-xs text-ink">
+        <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-surface-muted px-3.5 py-2 text-xs text-ink">
           {icon}
           {badge}
         </span>

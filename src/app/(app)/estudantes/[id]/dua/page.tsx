@@ -296,7 +296,7 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
           </p>
         </DataCard>
         <DataCard title="Onde a atividade foi aplicada">
-          <BarList rows={contexts} color={SIGNAL.cyan} />
+          <BarList rows={contexts} />
         </DataCard>
       </DataBoard>
     </section>

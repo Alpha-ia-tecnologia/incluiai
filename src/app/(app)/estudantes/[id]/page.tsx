@@ -103,7 +103,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               <span><span className="font-medium">Censo Escolar:</span> com registro de referência ({census.records.join(", ")}).</span>
             </p>
           ) : (
-            <Card className="border-amber-800/20 bg-amber-soft/50">
+            <Card className="border-amber/20 bg-amber-soft/50">
               <SectionTitle>Censo Escolar</SectionTitle>
               <p className="text-sm leading-relaxed text-ink">
                 {census.pending

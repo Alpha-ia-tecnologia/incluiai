@@ -67,7 +67,7 @@ function ActivityCard({ activity, index, studentId, materialId, printMode, canEd
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-ink-soft">Escada de apoio</p>
             <dl className="mt-1.5 grid gap-1.5 text-sm">
-              <div className="rounded-lg bg-amber-soft/60 px-2.5 py-1.5"><dt className="text-xs font-medium text-amber-900">Se ficar difícil</dt><dd className="text-ink">{activity.supportBelow}</dd></div>
+              <div className="rounded-lg bg-amber-soft/60 px-2.5 py-1.5"><dt className="text-xs font-medium text-amber">Se ficar difícil</dt><dd className="text-ink">{activity.supportBelow}</dd></div>
               <div className="rounded-lg bg-brand-soft/60 px-2.5 py-1.5"><dt className="text-xs font-medium text-brand-strong">Apoio de hoje</dt><dd className="text-ink">{activity.supportTarget}</dd></div>
               <div className="rounded-lg bg-green-soft/70 px-2.5 py-1.5"><dt className="text-xs font-medium text-green">Quando estiver pronto</dt><dd className="text-ink">{activity.supportAbove}</dd></div>
             </dl>
@@ -102,7 +102,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
   return (
     <article id={`material-${material.id}`} aria-labelledby={`material-${material.id}-titulo`} className="min-w-0 scroll-mt-24 rounded-2xl border border-line bg-paper-raised p-4 shadow-e1 print:border-0 print:shadow-none sm:p-6">
       {!approved ? (
-        <p className={`mb-4 flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${printMode ? "border-2 border-amber-800 font-medium text-amber-900" : "bg-amber-soft text-amber-900"}`}>
+        <p className={`mb-4 flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${printMode ? "border-2 border-amber font-medium text-amber" : "bg-amber-soft text-amber"}`}>
           <TriangleAlert size={16} aria-hidden className="mt-0.5 shrink-0" />
           {printMode ? "SUGESTÃO — material ainda não aprovado pela equipe para uso pedagógico." : "Sugestão: revise o conteúdo e aprove antes de usar com o estudante."}
         </p>
@@ -152,7 +152,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
       {content.intro ? <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-soft"><span className="font-medium text-ink">Como apresentar:</span> {content.intro}</p> : null}
 
       {content.reviewNotes.length && !approved ? (
-        <div className="mt-4 rounded-xl border border-amber-800/20 bg-amber-soft/50 p-3 text-sm text-amber-900 print:hidden">
+        <div className="mt-4 rounded-xl border border-amber/20 bg-amber-soft/50 p-3 text-sm text-amber print:hidden">
           <p className="font-medium">Confira antes de aprovar</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">{content.reviewNotes.map((note) => <li key={note}>{note}</li>)}</ul>
         </div>

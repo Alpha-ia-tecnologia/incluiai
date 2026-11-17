@@ -24,7 +24,7 @@ export default async function PrintAdaptedTaskPage({ params }: { params: Promise
         <Link href={`/estudantes/${id}/atividades/adaptadas/${task.id}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline"><ArrowLeft size={16} aria-hidden /> Voltar para a atividade</Link>
         <PrintButton label="Imprimir ou salvar em PDF" />
       </div>
-      {task.status !== "aprovada" ? <p className="mb-4 rounded-xl border-2 border-amber-800 px-3 py-2 text-sm font-medium text-amber-900">RASCUNHO: ainda não aprovada pela equipe.</p> : null}
+      {task.status !== "aprovada" ? <p className="mb-4 rounded-xl border-2 border-amber px-3 py-2 text-sm font-medium text-amber">RASCUNHO: ainda não aprovada pela equipe.</p> : null}
       <AdaptedView content={taskContent(task.content, task.title)} highlight={options.includes("destacar_comando")} icons={options.includes("apoio_visual")} {...printSettings(options)} forStudent />
     </div>
   );
