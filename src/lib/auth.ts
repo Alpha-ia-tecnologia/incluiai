@@ -6,7 +6,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { db, isPlatformArea } from "./prisma";
 import { LOGIN_WINDOW_MS, MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
 import { can, isLinkedRole, isPlatformRole, isRole, type Role } from "./roles";
-import { canAccessStudent as canReachStudent, canWorkWithStudent, linkedStudentIds } from "./policy";
+import { canWorkWithStudent, linkedStudentIds } from "./policy";
 
 const SESSION_COOKIE = "incluiedu_session";
 // Cookie só por HTTPS em produção; SESSION_COOKIE_SECURE=0 libera o teste local
@@ -169,8 +169,6 @@ export async function activeGrant(user: SessionUser, studentId: string): Promise
   const prisma = await db();
   return prisma.accessGrant.findFirst({ where: { userId: user.id, studentId, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: "desc" }, select: { expiresAt: true } });
 }
-
-export const canAccessStudent = (user: SessionUser, schoolId: string, studentId: string): boolean => canReachStudent(user, { id: studentId, schoolId });
 
 export const STUDENT_FORBIDDEN = "Você não tem permissão para esta ação com este estudante.";
 

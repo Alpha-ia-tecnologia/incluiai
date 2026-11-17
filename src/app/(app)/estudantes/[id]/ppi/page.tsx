@@ -1,15 +1,15 @@
 ﻿import Link from "next/link";
 import { ConsentNote } from "@/components/consent-note";
-import { aiAllowedFor } from "@/lib/consent";
 import { db } from "@/lib/prisma";
 import { createPlan, createObjective, markObjectiveStatus, reviewPlan, closePlan, updatePlanDocuments } from "@/actions/plan";
 import { activatePlanDraft, discardPlanDraft, generatePlanDraft } from "@/actions/plan-ai";
 import { formatDate } from "@/lib/format";
 import { SUPPORT_LEVELS, DIMENSIONS } from "@/lib/scale";
 import { CONDITION_SUGGESTIONS, CRITERION_SUGGESTIONS, buildObjectiveDescription } from "@/lib/objective";
-import { isAIEnabled } from "@/lib/agents/model";
+import { studentAI } from "@/lib/agents/capabilities";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded, parseCaseStudy } from "@/lib/case-study";
-import { PlanProposalSchema, type CaseAnalysis, type PlanProposal, type TraceStep } from "@/lib/agents/schemas";
+import { PlanProposalSchema, type CaseAnalysis, type PlanProposal } from "@/lib/agents/schemas";
+import type { TraceStep } from "@/lib/agents/types";
 import { DEADLINE_WEEKS, INITIAL_SITUATION_OPTIONS } from "@/lib/form-options";
 import { PAEE_ITEMS, PEI_ITEMS, censusDifferences, mergeProposalDefaults, missingCount, missingPlanItems, planDefaultsFromCaseStudy, type CensusDifference, type PlanDocuments, type PlanItem } from "@/lib/plan-documents";
 import { censusMetaOf } from "@/lib/census";
@@ -87,8 +87,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       );
     }
     const hasData = Boolean(student.profile || student.caseStudy);
-    const aiOn = await aiAllowedFor(id);
-    const consentMissing = isAIEnabled() && !aiOn;
+    const { text: aiOn, waitingConsent } = await studentAI(id);
+    const consentMissing = waitingConsent.text;
     const generate = generatePlanDraft.bind(null, id);
     const caseDefaults = planDefaultsFromCaseStudy(parseCaseStudy(student.caseStudy?.content), teachingContext(viewer.role) === "aee" ? viewer.name : null);
     const manualForm = (
@@ -166,7 +166,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                   { icon: UserCheck, label: "Você decide e ativa" },
                 ]}
           />
-          {!aiOn && !consentMissing ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">IA desligada nesta instalação: falta a chave ANTHROPIC_API_KEY no servidor.</p> : null}
+          {!aiOn && !consentMissing ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">IA desligada nesta instalação: falta configurar um provedor de IA no servidor.</p> : null}
           {hasData ? (
             <form action={generate} className="mt-4">
               <PendingButton className={buttonCls} pendingText={aiOn ? "Os agentes estão analisando o caso e montando o plano." : "Preparando a proposta…"} wait={aiOn ? "plano" : undefined}>

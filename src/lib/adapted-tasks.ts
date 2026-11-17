@@ -3,11 +3,9 @@ import { randomUUID } from "node:crypto";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { recordChange } from "./access-log";
-import { aiAllowedFor } from "./consent";
-import { hasApiKey } from "./env";
 import { validBnccCode } from "./bncc";
-import { createAgentModel, isAIEnabled } from "./agents/model";
-import { createAnonymizer, loadAnonymizer, nameTokens, type Anonymizer } from "./agents/anonymize";
+import { runAiJob } from "./agents/job";
+import type { RedactionScope } from "./agents/names-in-scope";
 import { profileText } from "./agents/context";
 import { adaptTaskWithAI, levelsWithAI, readTaskFile } from "./agents/task-adapter";
 import type { AgentAttachment } from "./agents/types";
@@ -27,23 +25,30 @@ async function attachmentOf(file: File): Promise<AgentAttachment | string> {
   return "Envie uma foto (JPG, PNG ou WebP) ou um PDF.";
 }
 
-async function transcribe(file: File, anonymizerFor: () => Promise<Anonymizer>): Promise<ReadResult> {
-  // Só o Claude lê imagem e PDF.
-  if (!hasApiKey("ANTHROPIC_API_KEY")) return { error: "A leitura de foto ou PDF precisa do Claude configurado nesta instalação. Cole o texto da atividade." };
-  const attachment = await attachmentOf(file);
-  if (typeof attachment === "string") return { error: attachment };
-  try {
-    const { model } = createAgentModel(await anonymizerFor());
-    const result = await readTaskFile(model, attachment);
-    return result.text.trim() ? { title: result.title.trim(), text: result.text.trim() } : { error: "Não deu para ler texto no arquivo. Tente uma foto mais nítida ou cole o texto." };
-  } catch {
-    return { error: "Não foi possível ler o arquivo agora. Tente de novo ou cole o texto da atividade." };
-  }
+const READ_UNAVAILABLE = {
+  desligada: "A leitura de foto ou PDF precisa do Claude configurado nesta instalação. Cole o texto da atividade.",
+  sem_autorizacao: "Ler foto ou PDF usa IA, e a família deste estudante ainda não autorizou. Cole o texto da atividade.",
+  falhou: "Não foi possível ler o arquivo agora. Tente de novo ou cole o texto da atividade.",
+};
+
+async function transcribe(file: File, scope: RedactionScope, student: string | null): Promise<ReadResult> {
+  const { value, reason } = await runAiJob<ReadResult>({
+    task: "leitura de foto ou PDF",
+    scope,
+    student,
+    needs: "files",
+    run: async (model) => {
+      const attachment = await attachmentOf(file);
+      if (typeof attachment === "string") return { error: attachment };
+      const result = await readTaskFile(model, attachment);
+      return result.text.trim() ? { title: result.title.trim(), text: result.text.trim() } : { error: "Não deu para ler texto no arquivo. Tente uma foto mais nítida ou cole o texto." };
+    },
+  });
+  return value ?? { error: READ_UNAVAILABLE[reason ?? "falhou"] };
 }
 
 export async function readTaskForStudent(user: SessionUser, studentId: string, file: File): Promise<ReadResult> {
-  if (!(await aiAllowedFor(studentId))) return { error: "Ler foto ou PDF usa IA, e a família deste estudante ainda não autorizou. Cole o texto da atividade." };
-  const result = await transcribe(file, () => loadAnonymizer(studentId));
+  const result = await transcribe(file, { student: studentId }, studentId);
   if (!("error" in result)) await recordChange(user, studentId, "enviou à IA", "Foto ou PDF de atividade da turma, para transcrever (Claude)");
   return result;
 }
@@ -56,22 +61,19 @@ export async function createAdaptedTask(user: SessionUser, studentId: string, in
   const objective = input.objectiveId
     ? await prisma.objective.findFirst({ where: { id: input.objectiveId, plan: { studentId, status: "ativo" } }, select: { id: true, description: true, bnccCode: true } })
     : null;
-  let content: AdaptedContent;
-  let source: "ia" | "regras" = "regras";
-  if (await aiAllowedFor(studentId)) {
-    try {
+  const { value: content, source } = await runAiJob({
+    task: "adaptação de atividade",
+    scope: { student: studentId },
+    student: studentId,
+    run: async (model) => {
       const profile = await prisma.functionalProfile.findUnique({ where: { studentId } });
-      const { model } = createAgentModel(await loadAnonymizer(studentId));
-      content = await adaptTaskWithAI(model, { ...input, options, profile: profile ? profileText(profile) : "Perfil ainda não registrado.", objective: objective?.description ?? null });
-      if (!content.items.length) throw new Error("sem questões");
-      source = "ia";
-      await recordChange(user, studentId, "enviou à IA", `Atividade da turma para adaptar: ${input.title.slice(0, 80)} (sem nome do estudante)`);
-    } catch {
-      content = adaptByRules(input, options);
-    }
-  } else {
-    content = adaptByRules(input, options);
-  }
+      const adapted = await adaptTaskWithAI(model, { ...input, options, profile: profile ? profileText(profile) : "Perfil ainda não registrado.", objective: objective?.description ?? null });
+      if (!adapted.items.length) throw new Error("sem questões");
+      return adapted;
+    },
+    rules: () => adaptByRules(input, options),
+  });
+  if (source === "ia") await recordChange(user, studentId, "enviou à IA", `Atividade da turma para adaptar: ${input.title.slice(0, 80)} (sem nome do estudante)`);
   const task = await prisma.adaptedTask.create({
     data: {
       studentId, kind: input.kind, title: content.title, sourceText: input.text.slice(0, 20000), options: JSON.stringify(options),
@@ -112,27 +114,9 @@ export async function deleteAdaptedTask(where: { id: string; studentId?: string;
   await prisma.adaptedTask.delete({ where: { id: task.id } });
 }
 
-async function planningAnonymizer(schoolId: string | null): Promise<Anonymizer> {
-  const prisma = await db();
-  const [students, users, schools] = await Promise.all([
-    prisma.student.findMany({ where: schoolId ? { schoolId } : {}, select: { name: true, guardianName: true } }),
-    prisma.user.findMany({ select: { name: true } }),
-    prisma.school.findMany({ select: { name: true } }),
-  ]);
-  const parts = (list: string[]) => list.filter(Boolean).flatMap((name) => [name, ...nameTokens(name)]);
-  return createAnonymizer({
-    student: "",
-    classmates: parts(students.map((item) => item.name)),
-    family: parts(students.map((item) => item.guardianName)),
-    professionals: parts(users.map((item) => item.name)),
-    schools: schools.map((item) => item.name),
-  });
-}
-
 export async function readTaskForPlanning(user: SessionUser, planningId: string, file: File): Promise<ReadResult> {
   const { planning } = await loadPlanningFor(user, planningId, "edit");
-  if (!isAIEnabled()) return { error: "A leitura de foto ou PDF usa IA, que está desligada nesta instalação. Cole o texto da atividade." };
-  return transcribe(file, () => planningAnonymizer(planning.schoolId));
+  return transcribe(file, { school: planning.schoolId }, null);
 }
 
 export async function createLevels(user: SessionUser, planningId: string, input: { title: string; text: string; kind: TaskKind }) {
@@ -140,18 +124,16 @@ export async function createLevels(user: SessionUser, planningId: string, input:
   const { planning } = await loadPlanningFor(user, planningId, "edit");
   const content = contentOf(await latestVersion(planningId));
   const objective = content.objective.learning.trim() || "Objetivo não informado no planejamento.";
-  const base = adaptByRules(input, []);
-  let levels: Record<LevelKey, AdaptedContent> = levelsByRules(base);
-  let source: "ia" | "regras" = "regras";
-  if (isAIEnabled()) {
-    try {
-      const { model } = createAgentModel(await planningAnonymizer(planning.schoolId));
+  const { value: levels, source } = await runAiJob({
+    task: "níveis da atividade",
+    scope: { school: planning.schoolId },
+    run: async (model) => {
       const result = await levelsWithAI(model, { title: input.title, text: input.text, objective });
-      if (result.padrao.items.length) { levels = result; source = "ia"; }
-    } catch {
-      // As regras já deram as três versões.
-    }
-  }
+      if (!result.padrao.items.length) throw new Error("sem questões");
+      return result;
+    },
+    rules: () => levelsByRules(adaptByRules(input, [])),
+  });
   const batchId = randomUUID();
   const bnccCode = content.objective.bnccCodes[0] ?? null;
   await prisma.$transaction((["mais_apoio", "padrao", "desafio"] as LevelKey[]).map((level) => prisma.adaptedTask.create({

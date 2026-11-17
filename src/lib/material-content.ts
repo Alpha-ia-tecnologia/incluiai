@@ -1,5 +1,8 @@
-export type MaterialKind = "rotina_visual" | "historia_social" | "prancha_caa" | "sequencia_tarefa" | "quadro_escolhas" | "regulacao";
-export type MaterialContext = "sala_comum" | "aee" | "casa";
+import { ACTIVITY_CONTEXTS, ACTIVITY_STEPS, HOME_MAX_MINUTES, MATERIAL_ACTIVITIES, activityMinutesLimit, checkActivity, hasClinicalTerm, isActivityContext, type ActivityContext } from "./pedagogy-rules.ts";
+import { CONTEXTS } from "./scale.ts";
+
+export const MATERIAL_KIND_KEYS = ["rotina_visual", "sequencia_tarefa", "historia_social", "prancha_caa", "quadro_escolhas", "regulacao"] as const;
+export type MaterialKind = (typeof MATERIAL_KIND_KEYS)[number];
 
 export const MATERIAL_KINDS: { kind: MaterialKind; label: string; description: string; cards: [number, number] }[] = [
   { kind: "rotina_visual", label: "Rotina visual", description: "A sequência de uma situação, com aviso antes de cada troca.", cards: [4, 8] },
@@ -12,12 +15,7 @@ export const MATERIAL_KINDS: { kind: MaterialKind; label: string; description: s
 export const MATERIAL_KIND_LABEL = Object.fromEntries(MATERIAL_KINDS.map((item) => [item.kind, item.label])) as Record<MaterialKind, string>;
 export const isMaterialKind = (value: string): value is MaterialKind => MATERIAL_KINDS.some((item) => item.kind === value);
 
-export const MATERIAL_CONTEXTS: { value: MaterialContext; label: string }[] = [
-  { value: "sala_comum", label: "Sala comum" },
-  { value: "aee", label: "AEE" },
-  { value: "casa", label: "Casa" },
-];
-export const MATERIAL_CONTEXT_LABEL: Record<MaterialContext, string> = { sala_comum: "Sala comum", aee: "AEE", casa: "Casa" };
+export const MATERIAL_CONTEXTS = ACTIVITY_CONTEXTS.map((value) => ({ value, label: CONTEXTS[value] }));
 
 export const MATERIAL_TOPICS = [
   "Chegada à escola", "Hora do lanche", "Ida ao banheiro", "Troca de sala ou de atividade", "Recreio",
@@ -27,7 +25,7 @@ export const MATERIAL_TOPICS = [
 export type MaterialCard = { label: string; caption?: string; visual: string; alt: string };
 export type MaterialActivity = {
   title: string;
-  context: MaterialContext;
+  context: ActivityContext;
   durationMinutes: number;
   goal: string;
   materials: string[];
@@ -135,12 +133,9 @@ export const ACCESSIBILITY_BY_KIND: Record<MaterialKind, string[]> = {
 };
 
 const words = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
-const normalizeText = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-const CLINICAL = /\b(diagnos\w*|laudo\w*|cid\b|cid[- ]?\d{1,2}\b|tea\b|tdah\b|autis\w*|sindrome\w*|transtorno\w*|deficiencia intelectual|medicament\w*|medicacao|patolog\w*)/;
 const TEXT_IN_IMAGE = /\b(com|contendo|mostrando|escrev\w*)\s+(o |a |um |uma )?(texto|palavras?|frase|legenda|letreiro|nome)\b|\blegenda\b|\bletreiro\b/i;
 
 type MaterialRules = { kind: MaterialKind; toleranceMinutes: number };
-export const hasClinicalLanguage = (value: unknown) => CLINICAL.test(normalizeText(JSON.stringify(value)));
 
 export function checkMaterialCards(cards: MaterialCard[], kind: MaterialKind): string[] {
   const problems: string[] = [];
@@ -153,23 +148,12 @@ export function checkMaterialCards(cards: MaterialCard[], kind: MaterialKind): s
   return problems;
 }
 
-export function checkMaterialActivity(activity: MaterialActivity, toleranceMinutes: number): string[] {
-  const problems: string[] = [];
-  const max = activity.context === "casa" ? Math.min(10, toleranceMinutes || 10) : toleranceMinutes || 25;
-  if (activity.durationMinutes > max) problems.push(`"${activity.title}" dura ${activity.durationMinutes} min; o limite é ${max} min.`);
-  if (activity.steps.length < 3 || activity.steps.length > 6) problems.push(`"${activity.title}" tem ${activity.steps.length} passos; use de 3 a 6.`);
-  if (activity.steps.some((step) => words(step) > 30)) problems.push(`"${activity.title}" tem passo longo demais: uma ação por passo.`);
-  if (!activity.successCriterion.trim()) problems.push(`"${activity.title}" precisa de um critério de sucesso observável.`);
-  if (activity.context === "sala_comum" && !activity.classParticipation?.trim()) problems.push(`"${activity.title}" é na sala comum: diga como a turma participa junto.`);
-  return problems;
-}
-
 export function checkMaterial(content: MaterialContent, rules: MaterialRules): string[] {
   const problems = checkMaterialCards(content.cards, rules.kind);
-  if (content.activities.length < 2 || content.activities.length > 3) problems.push(`Proponha de 2 a 3 atividades para aplicar o material (vieram ${content.activities.length}).`);
-  for (const activity of content.activities) problems.push(...checkMaterialActivity(activity, rules.toleranceMinutes));
+  if (content.activities.length < MATERIAL_ACTIVITIES.min || content.activities.length > MATERIAL_ACTIVITIES.max) problems.push(`Proponha de ${MATERIAL_ACTIVITIES.min} a ${MATERIAL_ACTIVITIES.max} atividades para aplicar o material (vieram ${content.activities.length}).`);
+  for (const activity of content.activities) problems.push(...checkActivity(activity, rules.toleranceMinutes));
   if (!content.adaptations.length || content.adaptations.some((item) => !item.basis.trim())) problems.push("Cada adaptação precisa dizer em que item do perfil se baseia.");
-  if (hasClinicalLanguage(content)) problems.push("Retire linguagem clínica ou menção a diagnóstico.");
+  if (hasClinicalTerm(content)) problems.push("Retire linguagem clínica ou menção a diagnóstico.");
   return problems;
 }
 
@@ -178,7 +162,6 @@ const clipList = (value: unknown, maxItems: number, maxChars: number) => (Array.
 
 export function finalizeMaterial(content: MaterialContent, rules: MaterialRules): MaterialContent {
   const range = MATERIAL_KINDS.find((item) => item.kind === rules.kind)?.cards ?? [3, 12];
-  const contexts: MaterialContext[] = ["sala_comum", "aee", "casa"];
   return {
     version: 2,
     purpose: clip(content.purpose, 400),
@@ -186,16 +169,16 @@ export function finalizeMaterial(content: MaterialContent, rules: MaterialRules)
     cards: content.cards.slice(0, range[1]).map((card) => ({ label: clip(card.label, 160), caption: clip(card.caption, 200) || undefined, visual: clip(card.visual, 300), alt: clip(card.alt, 200) || clip(card.label, 160) })),
     preparation: clipList(content.preparation, 6, 240),
     howToUse: clipList(content.howToUse, 8, 300),
-    activities: content.activities.slice(0, 3).map((activity) => {
-      const context = contexts.includes(activity.context) ? activity.context : "aee";
-      const max = context === "casa" ? Math.min(10, rules.toleranceMinutes || 10) : rules.toleranceMinutes || 25;
+    activities: content.activities.slice(0, MATERIAL_ACTIVITIES.max).map((activity) => {
+      const context = isActivityContext(activity.context) ? activity.context : "aee";
+      const max = activityMinutesLimit(context, rules.toleranceMinutes);
       return {
         title: clip(activity.title, 120),
         context,
         durationMinutes: Math.min(max, Math.max(3, Math.round(Number(activity.durationMinutes)) || 10)),
         goal: clip(activity.goal, 300),
         materials: clipList(activity.materials, 8, 120),
-        steps: clipList(activity.steps, 6, 240),
+        steps: clipList(activity.steps, ACTIVITY_STEPS.max, 240),
         responseForms: clipList(activity.responseForms, 5, 120),
         supportBelow: clip(activity.supportBelow, 240),
         supportTarget: clip(activity.supportTarget, 240),
@@ -213,7 +196,7 @@ export function finalizeMaterial(content: MaterialContent, rules: MaterialRules)
   };
 }
 
-type RulesInput = { kind: MaterialKind; topic: string; context: MaterialContext; objective: string | null; facts: ProfileFacts };
+type RulesInput = { kind: MaterialKind; topic: string; context: ActivityContext; objective: string | null; facts: ProfileFacts };
 
 const SITUATION_STEPS: Record<string, string[]> = {
   "Chegada à escola": ["Chegar e cumprimentar", "Guardar a mochila", "Pendurar o casaco", "Sentar no lugar marcado", "Olhar a rotina do dia"],
@@ -302,7 +285,7 @@ function rulesActivities(input: RulesInput, cards: MaterialCard[]): MaterialActi
   const practice: MaterialActivity = {
     title: `Conhecer ${kind === "historia_social" ? "a história" : `o material (${label})`}`,
     context: context === "casa" ? "casa" : "aee",
-    durationMinutes: context === "casa" ? Math.min(10, minutes) : minutes,
+    durationMinutes: context === "casa" ? Math.min(HOME_MAX_MINUTES, minutes) : minutes,
     goal,
     materials: [`${MATERIAL_KIND_LABEL[kind]} impressa`, ...(theme ? [`Objeto ou figura de ${theme}`] : [])],
     steps: [
@@ -321,7 +304,7 @@ function rulesActivities(input: RulesInput, cards: MaterialCard[]): MaterialActi
     ? {
         title: "Usar em casa com a família",
         context: "casa",
-        durationMinutes: Math.min(10, minutes),
+        durationMinutes: Math.min(HOME_MAX_MINUTES, minutes),
         goal,
         materials: [`${MATERIAL_KIND_LABEL[kind]} impressa`, "Fita adesiva para fixar à vista"],
         steps: ["Fixar o material num lugar à vista.", "Antes da situação, mostrar o material junto.", "Durante a situação, apontar o cartão de cada momento.", "No fim, comemorar o que deu certo."],

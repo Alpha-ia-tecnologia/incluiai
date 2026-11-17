@@ -1,4 +1,6 @@
 import type { AgentProgress, ToolStep } from "./types";
+import { ACTIVITY_PIPELINE, ILLUSTRATION, PLAN_PIPELINE, RULES_ENGINE } from "../agents/descriptors.ts";
+import { ACTIVITY_STEPS, HOME_MAX_MINUTES, OBJECTIVES_PER_PLAN } from "../pedagogy-rules.ts";
 
 export type GardenFamily = "raizes" | "trelica" | "botoes" | "folha" | "vasinho";
 export type GardenScene = "broto" | GardenFamily;
@@ -107,12 +109,8 @@ export const PEBBLE: Readonly<Record<string, Palette>> = {
   buscar_recursos: "sage", indicadores: "lime", datas_inclusivas: "rose", proximos_passos_dua: "sage",
 };
 
-export const PLAN_AGENTS = ["Analista do caso", "Planejador do PPI", "Revisor pedagógico"] as const;
-export const PLAN_WRITERS = ["Agente do PAEE", "Agente do PEI", "Planejador do PPI"] as const;
-export const ACTIVITY_AGENTS = ["Agente da sala comum", "Agente do AEE", "Agente da família"] as const;
-export const ACTIVITY_REVIEWER = "Revisor das atividades";
-export const RULES_ENGINE = "Motor de regras";
-export const ILLUSTRATION = "Ilustração";
+const PLAN_WRITERS: readonly string[] = Object.values(PLAN_PIPELINE.writers);
+const ACTIVITY_WRITERS: Trio<string> = [ACTIVITY_PIPELINE.writers.sala_comum, ACTIVITY_PIPELINE.writers.aee, ACTIVITY_PIPELINE.writers.casa];
 
 export const LEAVE_LINE = {
   popup: "Pode fechar o painel: a resposta fica salva.",
@@ -146,7 +144,7 @@ export const TIP_POOLS: Readonly<Record<TipPool, readonly string[]>> = {
   ],
   plano: [
     "Analista (IA): lê o caso e aponta prioridades.",
-    "Planejador (IA): até 3 objetivos mensuráveis.",
+    `Planejador (IA): até ${OBJECTIVES_PER_PLAN.max} objetivos mensuráveis.`,
     "Revisor (IA): confere critério com número.",
     "Revisor (IA): o apoio esperado deve diminuir.",
     "Revisor (IA): sem termos clínicos.",
@@ -155,8 +153,8 @@ export const TIP_POOLS: Readonly<Record<TipPool, readonly string[]>> = {
   atividades: [
     "Sala comum (IA): a turma participa junto.",
     "AEE (IA): escada de apoio e forma de resposta.",
-    "Casa (IA): até 10 minutos, sem compras.",
-    "Revisor (IA): confere de 3 a 6 passos.",
+    `Casa (IA): até ${HOME_MAX_MINUTES} minutos, sem compras.`,
+    `Revisor (IA): confere de ${ACTIVITY_STEPS.min} a ${ACTIVITY_STEPS.max} passos.`,
     "Revisor (IA): confere as regras de adaptação.",
     "Você decide o que vai usar.",
   ],
@@ -182,12 +180,12 @@ export function planState(step: ToolStep): { stage: LongStage; rungs: Trio<RungS
   if (step.ok === true) return { stage: "revisor", rungs: DONE_RUNGS };
   const writing: RungState = PLAN_WRITERS.some((agent) => latest(progress, agent) === "start") ? "ativo"
     : PLAN_WRITERS.every((agent) => latest(progress, agent) === "end") ? "feito" : "espera";
-  const rungs: Trio<RungState> = [rungOf(latest(progress, PLAN_AGENTS[0])), writing, rungOf(latest(progress, PLAN_AGENTS[2]))];
+  const rungs: Trio<RungState> = [rungOf(latest(progress, PLAN_PIPELINE.preparer)), writing, rungOf(latest(progress, PLAN_PIPELINE.reviewer))];
   const lastStart = progress.findLast((item) => item.phase === "start")?.agent;
-  const reviewed = progress.some((item) => item.agent === PLAN_AGENTS[2] && item.phase === "end");
-  const stage: LongStage = lastStart === PLAN_AGENTS[0] ? "analista"
-    : (PLAN_WRITERS as readonly string[]).includes(lastStart ?? "") ? (reviewed ? "ajustes" : "planejador")
-    : lastStart === PLAN_AGENTS[2] ? "revisor"
+  const reviewed = progress.some((item) => item.agent === PLAN_PIPELINE.reviewer && item.phase === "end");
+  const stage: LongStage = lastStart === PLAN_PIPELINE.preparer ? "analista"
+    : PLAN_WRITERS.includes(lastStart ?? "") ? (reviewed ? "ajustes" : "planejador")
+    : lastStart === PLAN_PIPELINE.reviewer ? "revisor"
     : "inicio";
   return { stage, rungs };
 }
@@ -196,15 +194,15 @@ export function activityState(step: ToolStep): { stage: LongStage; buds: Trio<Bu
   const progress = step.progress ?? [];
   const done = step.ok === true;
   const bud = (agent: string): BudState => (done || latest(progress, agent) === "end" ? "aberto" : "fechado");
-  const buds: Trio<BudState> = [bud(ACTIVITY_AGENTS[0]), bud(ACTIVITY_AGENTS[1]), bud(ACTIVITY_AGENTS[2])];
+  const buds: Trio<BudState> = [bud(ACTIVITY_WRITERS[0]), bud(ACTIVITY_WRITERS[1]), bud(ACTIVITY_WRITERS[2])];
   if (progress.some((item) => item.agent === RULES_ENGINE)) {
     return { stage: "regras", buds: done ? buds : ["fechado", "fechado", "fechado"], written: 0, adjusting: 0 };
   }
-  const reviewed = progress.findLastIndex((item) => item.agent === ACTIVITY_REVIEWER && item.phase === "end");
-  const adjusting = reviewed < 0 ? 0 : ACTIVITY_AGENTS.filter((agent) =>
+  const reviewed = progress.findLastIndex((item) => item.agent === ACTIVITY_PIPELINE.reviewer && item.phase === "end");
+  const adjusting = reviewed < 0 ? 0 : ACTIVITY_WRITERS.filter((agent) =>
     latest(progress, agent) === "start" && progress.slice(reviewed + 1).some((item) => item.agent === agent && item.phase === "start")).length;
   const stage: LongStage = latest(progress, ILLUSTRATION) === "start" ? "imagens"
-    : latest(progress, ACTIVITY_REVIEWER) === "start" ? "revisor"
+    : latest(progress, ACTIVITY_PIPELINE.reviewer) === "start" ? "revisor"
     : adjusting > 0 ? "ajustes"
     : progress.some((item) => item.phase !== "queued") ? "especialistas"
     : "inicio";

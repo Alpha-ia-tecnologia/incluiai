@@ -8,6 +8,7 @@ import { objectiveTrend } from "./insights";
 import { getStudentNextStep } from "./student-journey";
 import { firstName, formatDate, parseJson } from "./format";
 import { CHANNELS } from "./scale";
+import { usesAac } from "./pedagogy-rules";
 import { todayInBrazil, upcomingEvents } from "./commemorative-dates";
 import type { CharacterVariant } from "@/components/character";
 
@@ -421,7 +422,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
   const withClasses = schools.filter((school) => school._count.classes > 0).length;
   const total = students.length;
   const withPlan = students.filter((student) => student.plans.some((plan) => plan.objectives.length)).length;
-  const caa = students.filter((student) => student.profile && (student.profile.expressiveChannel.startsWith("caa") || student.profile.expressiveChannel === "olhar_acionador"));
+  const caa = students.filter((student) => student.profile && usesAac(student.profile.expressiveChannel));
   const caaReady = caa.filter((student) => student.accessibilityNotes?.trim()).length;
   const nextDate = upcomingEvents(todayInBrazil(new Date()))[0];
 

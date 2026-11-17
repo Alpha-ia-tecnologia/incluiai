@@ -5,8 +5,9 @@ import { approveMaterial, deleteMaterial } from "@/actions/materials";
 import { Badge } from "@/components/ui";
 import { dangerButtonCls, primaryButtonCls, quietButtonCls } from "@/components/form-styles";
 import { formatDate, parseJson } from "@/lib/format";
-import { MATERIAL_CONTEXT_LABEL, MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialActivity, type MaterialContext, type MaterialKind } from "@/lib/material-content";
-import type { TraceStep } from "@/lib/agents/schemas";
+import { MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialActivity, type MaterialKind } from "@/lib/material-content";
+import { CONTEXTS } from "@/lib/scale";
+import type { TraceStep } from "@/lib/agents/types";
 import { cardPictogram } from "@/lib/pictograms";
 import { MaterialImagesButton, SendActivityButton } from "./material-actions";
 import { Pictogram } from "./pictogram";
@@ -35,7 +36,7 @@ function ActivityCard({ activity, index, studentId, materialId, printMode, canEd
   return (
     <li className="min-w-0 rounded-2xl border border-line bg-paper p-4 print:break-inside-avoid sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="brand"><ContextIcon size={12} aria-hidden /> {MATERIAL_CONTEXT_LABEL[activity.context as MaterialContext] ?? activity.context}</Badge>
+        <Badge tone="brand"><ContextIcon size={12} aria-hidden /> {CONTEXTS[activity.context] ?? activity.context}</Badge>
         <Badge tone="neutral"><Clock size={12} aria-hidden /> {activity.durationMinutes} min</Badge>
       </div>
       <h3 className="mt-2 font-display text-xl font-medium text-ink">{index + 1}. {activity.title}</h3>
@@ -108,7 +109,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
             <Badge tone="brand">{kindLabel}</Badge>
             {approved ? <Badge tone="green"><CircleCheck size={12} aria-hidden /> Aprovado para uso</Badge> : <Badge tone="amber">Aguarda aprovação</Badge>}
             <Badge tone="neutral">{material.source === "ia" ? "Criado com IA" : "Criado pelas regras"}</Badge>
-            {material.context ? <Badge tone="neutral">{MATERIAL_CONTEXT_LABEL[material.context as MaterialContext] ?? material.context}</Badge> : null}
+            {material.context ? <Badge tone="neutral">{CONTEXTS[material.context] ?? material.context}</Badge> : null}
           </div>
           <h2 id={`material-${material.id}-titulo`} className="mt-2 break-words font-display text-2xl font-semibold leading-tight tracking-tight text-ink sm:text-3xl">{material.title}</h2>
           <p className="mt-1 text-xs text-ink-soft">

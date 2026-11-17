@@ -10,7 +10,8 @@ import { objectiveTrend, studentAlerts, type StudentAlert, type Trend } from "./
 import { getStudentNextStep } from "./student-journey";
 import { splitItems } from "./form-options";
 import { parseJson } from "./format";
-import { hasApiKey, isDeepSeekEnabled } from "./env";
+import { aiProviders } from "./agents/capabilities";
+import { usesAac } from "./pedagogy-rules";
 import { MATERIAL_KINDS } from "./materials";
 import { MONTH_NAMES, MONTH_SHORT, todayInBrazil } from "./commemorative-dates";
 import { BARRIERS, CHANNELS, CONTEXTS, CRITERION_MET, DIMENSIONS, PARTICIPATION, SENSORY_AREAS, SENSORY_LABELS, STAGES } from "./scale";
@@ -284,10 +285,9 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     return { source, label: SOURCE_LABELS[source], total: list.length, decided: decided.length, used, adhesion: percent(used, decided.length) };
   });
 
-  const isCaa = (channel: string) => channel.startsWith("caa") || channel === "olhar_acionador";
-  const caaStudents = students.filter((student) => student.profile && isCaa(student.profile.expressiveChannel));
+  const caaStudents = students.filter((student) => student.profile && usesAac(student.profile.expressiveChannel));
   const clusters = [
-    { label: "CAA ou acionador", test: (profile: NonNullable<ScopedStudent["profile"]>) => isCaa(profile.expressiveChannel) },
+    { label: "CAA ou acionador", test: (profile: NonNullable<ScopedStudent["profile"]>) => usesAac(profile.expressiveChannel) },
     { label: "Hipersensibilidade auditiva", test: (profile: NonNullable<ScopedStudent["profile"]>) => parseJson<{ auditiva?: string }>(profile.sensoryProfile, {}).auditiva === "hiper" },
     { label: "Apoio em leitura e escrita (modelo ou mais)", test: (profile: NonNullable<ScopedStudent["profile"]>) => profile.readingSupport >= 3 || profile.writingSupport >= 3 },
   ];
@@ -440,11 +440,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       rejectReasons: topItems(periodActivities.filter((activity) => activity.status === "rejeitada").map((activity) => activity.rejectReason?.trim() || "Sem motivo informado"), 3),
     },
     ai: {
-      providers: {
-        claude: hasApiKey("ANTHROPIC_API_KEY"),
-        deepseek: isDeepSeekEnabled(),
-        openai: hasApiKey("OPENAI_API_KEY"),
-      },
+      providers: aiProviders(),
       planProposals: { ia: proposalCount("Proposta de plano (agentes de IA)"), regras: proposalCount("Proposta de plano (regras)") },
       draftsPending: count((student) => !!student.planDraft),
       activities: sources.find((source) => source.source === "ia")!,

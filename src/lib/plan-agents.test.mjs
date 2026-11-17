@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PLAN_AGENT_NAMES, checkObjectives, checkPaee, checkPei, normalizePlanProposal, runPlanAgents } from "./agents/plan-graph.ts";
+import { checkObjectives, checkPaee, checkPei, normalizePlanProposal, runPlanAgents } from "./agents/plan-graph.ts";
+import { PLAN_PIPELINE } from "./agents/descriptors.ts";
 import { CaseAnalysisSchema, ObjectivesProposalSchema, PaeeProposalSchema, PeiProposalSchema, PlanProposalSchema, PlanReviewSchema } from "./agents/schemas.ts";
 import { NO_NEED, NO_RESOURCE, canonicalItems, mergeProposalDefaults, missingPlanItems } from "./plan-documents.ts";
 
+const PLAN_AGENT_NAMES = { analista: PLAN_PIPELINE.preparer, ...PLAN_PIPELINE.writers, revisor: PLAN_PIPELINE.reviewer };
 const CONTEXT = "Estudante de 7 anos, 2º ano. Frequenta o AEE.\n\n## Estudo de caso\nNecessidades educacionais identificadas: Comunicação alternativa e aumentativa";
 const analysis = { sintese: "Participa com apoio visual.", potencialidades: ["Memória visual"], barreiras: ["Instruções só orais"], prioridades: [{ dimension: "comunicacao", justificativa: "Pede por gestos." }], cuidados: ["Avisar as trocas"] };
 const paee = (extra = {}) => ({ accessibilityResources: ["Rotina visual"], assistiveTech: ["prancha de comunicação"], supportStaff: [NO_NEED], networkDemands: ["Formação em comunicação alternativa"], ...extra });
@@ -103,9 +105,10 @@ test("checagens por parte: profissional fora da lista, classe comum vazia, objet
   assert.deepEqual(checkPei(pei()), []);
   assert.deepEqual(checkPei(pei({ commonRoomStrategies: [], monitoring: [" "] })).map((item) => item.alvo), ["PEI: classe comum", "PEI: acompanhamento"]);
   assert.deepEqual(checkObjectives(objectives()), []);
-  const bad = checkObjectives(objectives({ objectives: [objective({ action: "identifica o nome", criterion: "quase sempre", targetSupport: 3 })] }));
+  const bad = checkObjectives(objectives({ objectives: [objective({ action: "identifica o nome", criterion: "quase sempre", targetSupport: 3 }), objective()] }));
   assert.equal(bad.length, 3);
   assert.ok(bad.every((item) => item.alvo === "objetivo 1"));
+  assert.deepEqual(checkObjectives(objectives({ objectives: [objective()] })).map((item) => item.correcao), ["Proponha de 2 a 3 objetivos."]);
 });
 
 test("nomes das listas: grafia do formulário, 'não precisa' só sozinho, tipos de AEE e profissionais só da lista", () => {

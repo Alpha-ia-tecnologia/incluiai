@@ -1,34 +1,14 @@
-import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import { z } from "zod/v4";
-import { firstAgentError, type AgentModel } from "../agents/types.ts";
-import { checkBlocks, type DuaAiContext, type RawBlock, type RawBlocks } from "./checks.ts";
-import { DUA_PRINCIPLES, PRINCIPLE_LABEL, type DuaPrinciple } from "./domain.ts";
+import type { AgentModel, TraceStep } from "../agents/types.ts";
+import { DUA_PIPELINE } from "../agents/descriptors.ts";
+import { runReviewedGraph, type ReviewedGraph } from "../agents/reviewed-graph.ts";
+import { BlockSchema, checkBlocks, principleEnum, type DuaAiContext, type RawBlock, type RawBlocks } from "./checks.ts";
+import { DUA_PRINCIPLES, MAX_AI_BLOCKS, PRINCIPLE_LABEL, type DuaPrinciple } from "./domain.ts";
+import { SAFEGUARDS } from "../pedagogy-rules.ts";
+import { ANONYMIZED_DATA } from "../agents/prompts.ts";
 
-export const DUA_ANALYST = "Analista das barreiras";
-export const DUA_REVIEWER = "Revisor das sugestões";
-export const DUA_SPECIALISTS: Record<DuaPrinciple, string> = {
-  engajamento: "Especialista em engajamento",
-  representacao: "Especialista em representação",
-  acao_expressao: "Especialista em ação e expressão",
-};
-export const MAX_DUA_RETRIES = 1;
-const MAX_BLOCKS = 5;
 const MAX_PER_PRINCIPLE = 2;
 
-const principleEnum = z.enum(DUA_PRINCIPLES as unknown as [DuaPrinciple, ...DuaPrinciple[]]);
-
-const BlockSchema = z.object({
-  objectiveConsidered: z.string().describe("O objetivo do professor, preservando o sentido. Se propuser mudança, escreva a mudança aqui."),
-  barrierId: z.string().nullable().describe("Id de uma barreira recebida, ou null."),
-  hypothesis: z.string().nullable().describe("Hipótese a verificar quando a barreira não estiver na lista, ou null."),
-  strategy: z.string().describe("Ação concreta e verificável: quais materiais, para qual finalidade, em que momento e como."),
-  principles: z.array(principleEnum),
-  justification: z.string().describe("Relação entre a estratégia, a barreira e o objetivo."),
-  resources: z.array(z.string()).describe("Materiais, organização ou apoios necessários."),
-  suggestedEvidence: z.string().describe("O que poderá ser observado durante a atividade, ligado aos critérios."),
-  pendingInformation: z.array(z.string()).describe("Dados ou decisões que dependem do professor."),
-  criterionProposal: z.string().nullable().describe("Novo critério observável, ou null."),
-});
 export const DuaBlocksSchema = z.object({ blocks: z.array(BlockSchema).describe("Um bloco para cada foco recebido, na mesma ordem.") });
 
 export const DuaAnalysisSchema = z.object({
@@ -52,13 +32,18 @@ export const DuaReviewSchema = z.object({
 });
 
 export const DUA_POLICY = `Você apoia professores brasileiros a planejar atividades com o Desenho Universal para a Aprendizagem
-(DUA, Diretrizes 3.0 do CAST): engajamento, representação e ação e expressão. Use só o contexto pedagógico recebido,
-que já vem sem dados pessoais. Refira-se a quem aprende como "o estudante" ou "a turma".
-Regras: não invente observações, falas, resultados ou características; não emita diagnóstico clínico nem cite
-deficiência; não reduza a complexidade do objetivo por causa de deficiência; preserve o objetivo informado pelo
-professor (se propuser mudança, deixe-a explícita em objectiveConsidered); não transforme frequência em evidência de
-aprendizagem. Toda resposta é sugestão para revisão profissional: quem decide é o professor, bloco a bloco.
-Alterar a forma de apresentação ou de resposta precisa manter a possibilidade de observar a habilidade definida.`;
+(DUA, Diretrizes 3.0 do CAST): engajamento, representação e ação e expressão. Use só o contexto pedagógico recebido.
+Refira-se a quem aprende como "o estudante" ou "a turma".
+
+Princípios que valem para tudo o que você escrever:
+${SAFEGUARDS}
+- ${ANONYMIZED_DATA}
+
+Regras do DUA: não invente falas ou características; não cite deficiência nem reduza a complexidade do objetivo por causa
+dela; preserve o objetivo informado pelo professor (se propuser mudança, deixe-a explícita em objectiveConsidered); não
+transforme frequência em evidência de aprendizagem. Toda resposta é sugestão para revisão profissional: quem decide é o
+professor, bloco a bloco. Alterar a forma de apresentação ou de resposta precisa manter a possibilidade de observar a
+habilidade definida.`;
 
 export const DUA_ANALYST_SYSTEM = `${DUA_POLICY}
 
@@ -77,7 +62,7 @@ const PRINCIPLE_GUIDE: Record<DuaPrinciple, string> = {
 
 export const DUA_SPECIALIST_SYSTEM = Object.fromEntries(DUA_PRINCIPLES.map((principle) => [principle, `${DUA_POLICY}
 
-Seu papel: ${DUA_SPECIALISTS[principle]} (${PRINCIPLE_GUIDE[principle]}).
+Seu papel: ${DUA_PIPELINE.writers[principle]} (${PRINCIPLE_GUIDE[principle]}).
 Você recebe o planejamento, o que a análise mandou preservar e os focos que cabem ao seu princípio. Escreva um bloco para cada foco, na ordem em que vieram.
 - A estratégia é uma ação concreta que o professor consegue aplicar sem adivinhar: quais materiais, para qual finalidade, em que momento da atividade e como.
 - Use os recursos disponíveis informados. O que depender de algo que a escola pode não ter, ou de uma decisão do professor, vai em pendingInformation.
@@ -116,7 +101,7 @@ export function distributeFoci(analysis: DuaAnalysis, context: DuaAiContext): Re
     }];
   }
   for (const principle of [...DUA_PRINCIPLES].reverse()) {
-    if (DUA_PRINCIPLES.reduce((total, key) => total + byPrinciple[key].length, 0) <= MAX_BLOCKS) break;
+    if (DUA_PRINCIPLES.reduce((total, key) => total + byPrinciple[key].length, 0) <= MAX_AI_BLOCKS) break;
     if (byPrinciple[principle].length > 1) byPrinciple[principle] = byPrinciple[principle].slice(0, 1);
   }
   return byPrinciple;
@@ -128,25 +113,7 @@ export type DuaAgentsInput = {
   people: string[];
   schools: string[];
 };
-export type DuaTraceStep = { agent: string; summary: string };
 
-const DuaState = Annotation.Root({
-  prompt: Annotation<string>(),
-  context: Annotation<DuaAiContext>(),
-  people: Annotation<string[]>(),
-  schools: Annotation<string[]>(),
-  preserve: Annotation<string>({ reducer: (_current, next) => next, default: () => "" }),
-  foci: Annotation<Record<DuaPrinciple, Focus[]> | null>({ reducer: (_current, next) => next, default: () => null }),
-  blocks: Annotation<Partial<Record<DuaPrinciple, RawBlock[]>>>({ reducer: (current, next) => ({ ...current, ...next }), default: () => ({}) }),
-  feedback: Annotation<Partial<Record<DuaPrinciple, string[]>>>({ reducer: (_current, next) => next, default: () => ({}) }),
-  reviewerNotes: Annotation<Partial<Record<DuaPrinciple, string[]>>>({ reducer: (_current, next) => next, default: () => ({}) }),
-  redo: Annotation<DuaPrinciple[]>({ reducer: (_current, next) => next, default: () => [] }),
-  rounds: Annotation<number>({ reducer: (_current, next) => next, default: () => 0 }),
-  trace: Annotation<DuaTraceStep[]>({ reducer: (current, next) => current.concat(next), default: () => [] }),
-});
-type DuaStateType = typeof DuaState.State;
-
-const bullets = (items: string[]) => items.map((item) => `- ${item}`).join("\n");
 const fociText = (foci: Focus[]) => foci.map((focus, index) => `${index + 1}. ${focus.barrierId ? `Barreira ${focus.barrierId}` : focus.hypothesis ? `Hipótese a verificar: ${focus.hypothesis}` : "Sem barreira registrada"} — ${focus.direction}`).join("\n");
 
 export function checkPrincipleBlocks(principle: DuaPrinciple, blocks: RawBlock[], expected: number, input: Pick<DuaAgentsInput, "context" | "people" | "schools">): string[] {
@@ -154,110 +121,61 @@ export function checkPrincipleBlocks(principle: DuaPrinciple, blocks: RawBlock[]
   if (blocks.length !== expected) problems.push(`Traga um bloco para cada foco recebido (${expected}); vieram ${blocks.length}.`);
   if (blocks.some((block) => !block.principles.includes(principle))) problems.push(`Todo bloco deste especialista inclui o princípio "${principle}".`);
   const checked = checkBlocks({ blocks }, input.context, input.people, input.schools);
-  if (checked.blocks.length < Math.min(blocks.length, MAX_BLOCKS)) problems.push("Há bloco sem estratégia concreta.");
+  if (checked.blocks.length < Math.min(blocks.length, MAX_AI_BLOCKS)) problems.push("Há bloco sem estratégia concreta.");
   problems.push(...checked.blocks.flatMap((block) => block.flags.problems));
   return [...new Set(problems)];
 }
 
-function analyst(model: AgentModel) {
-  return async (state: DuaStateType) => {
-    const analysis = await model({ agent: DUA_ANALYST, system: DUA_ANALYST_SYSTEM, schema: DuaAnalysisSchema, effort: "medium", prompt: `${state.prompt}\n\nAnalise o planejamento e distribua os focos.` });
-    const foci = distributeFoci(analysis, state.context);
+type Prepared = { preserve: string; foci: Record<DuaPrinciple, Focus[]> };
+
+const DUA_GRAPH: ReviewedGraph<DuaAgentsInput, DuaPrinciple, Record<DuaPrinciple, RawBlock[]>, Prepared, string> = {
+  pipeline: DUA_PIPELINE,
+  parts: DUA_PRINCIPLES,
+  prepare: async (input, model) => {
+    const analysis = await model({ agent: DUA_PIPELINE.preparer, system: DUA_ANALYST_SYSTEM, schema: DuaAnalysisSchema, effort: "medium", prompt: `${input.prompt}\n\nAnalise o planejamento e distribua os focos.` });
+    const foci = distributeFoci(analysis, input.context);
     const total = DUA_PRINCIPLES.reduce((sum, principle) => sum + foci[principle].length, 0);
-    return { preserve: analysis.preservar.trim(), foci, trace: [{ agent: DUA_ANALYST, summary: `Distribuiu ${total} focos entre os três princípios do DUA.` }] };
-  };
-}
-
-function specialist(model: AgentModel, principle: DuaPrinciple) {
-  return async (state: DuaStateType) => {
-    const foci = state.foci![principle];
-    const previous = state.blocks[principle];
-    const feedback = state.feedback[principle];
-    const revision = feedback?.length && previous
-      ? `\n\nSeus blocos anteriores foram devolvidos pelo revisor. Corrija:\n${bullets(feedback)}\n\nBlocos anteriores:\n${JSON.stringify(previous)}`
-      : "";
+    return { prepared: { preserve: analysis.preservar.trim(), foci }, summary: `Distribuiu ${total} focos entre os três princípios do DUA.` };
+  },
+  write: async (principle, { input, prepared, revision }, model) => {
     const response = await model({
-      agent: DUA_SPECIALISTS[principle], system: DUA_SPECIALIST_SYSTEM[principle], schema: DuaBlocksSchema, effort: "medium",
-      prompt: `${state.prompt}\n\nO que preservar: ${state.preserve || "a habilidade descrita no objetivo."}\n\nFocos de ${PRINCIPLE_LABEL[principle].toLowerCase()}:\n${fociText(foci)}${revision}\n\nEscreva os blocos.`,
+      agent: DUA_PIPELINE.writers[principle], system: DUA_SPECIALIST_SYSTEM[principle], schema: DuaBlocksSchema, effort: "medium",
+      prompt: `${input.prompt}\n\nO que preservar: ${prepared.preserve || "a habilidade descrita no objetivo."}\n\nFocos de ${PRINCIPLE_LABEL[principle].toLowerCase()}:\n${fociText(prepared.foci[principle])}${revision}\n\nEscreva os blocos.`,
     });
-    return {
-      blocks: { [principle]: response.blocks },
-      trace: [{ agent: DUA_SPECIALISTS[principle], summary: revision ? `Refez ${response.blocks.length} bloco(s) com as correções do revisor.` : `Propôs ${response.blocks.length} bloco(s).` }],
-    };
-  };
-}
-
-function reviewer(model: AgentModel) {
-  return async (state: DuaStateType) => {
+    return { draft: response.blocks, summary: revision ? `Refez ${response.blocks.length} bloco(s) com as correções do revisor.` : `Propôs ${response.blocks.length} bloco(s).` };
+  },
+  review: async ({ input, prepared, drafts }, model) => {
     const review = await model({
-      agent: DUA_REVIEWER, system: DUA_REVIEWER_SYSTEM, schema: DuaReviewSchema, effort: "medium",
-      prompt: `${state.prompt}\n\nO que preservar: ${state.preserve || "a habilidade descrita no objetivo."}\n\nFocos e blocos a revisar:\n${JSON.stringify(DUA_PRINCIPLES.map((principle) => ({ principle, focos: state.foci![principle], blocks: state.blocks[principle] ?? [] })))}`,
+      agent: DUA_PIPELINE.reviewer, system: DUA_REVIEWER_SYSTEM, schema: DuaReviewSchema, effort: "medium",
+      prompt: `${input.prompt}\n\nO que preservar: ${prepared.preserve || "a habilidade descrita no objetivo."}\n\nFocos e blocos a revisar:\n${JSON.stringify(DUA_PRINCIPLES.map((principle) => ({ principle, focos: prepared.foci[principle], blocks: drafts[principle] ?? [] })))}`,
     });
-    const feedback: Partial<Record<DuaPrinciple, string[]>> = {};
-    const reviewerNotes: Partial<Record<DuaPrinciple, string[]>> = {};
-    for (const principle of DUA_PRINCIPLES) {
-      const fromModel = review.avaliacoes.filter((item) => item.principle === principle && !item.aprovado).flatMap((item) => item.problemas).map((item) => item.trim()).filter(Boolean);
-      const problems = [...fromModel, ...checkPrincipleBlocks(principle, state.blocks[principle] ?? [], state.foci![principle].length, state)];
-      if (fromModel.length) reviewerNotes[principle] = fromModel;
-      if (problems.length) feedback[principle] = problems;
-    }
-    const rejected = DUA_PRINCIPLES.filter((principle) => feedback[principle]?.length);
-    const canRetry = state.rounds < MAX_DUA_RETRIES;
-    const names = rejected.map((principle) => PRINCIPLE_LABEL[principle].toLowerCase()).join(", ");
-    return {
-      feedback,
-      reviewerNotes,
-      redo: canRetry ? rejected : [],
-      rounds: state.rounds + 1,
-      trace: [{
-        agent: DUA_REVIEWER,
-        summary: rejected.length === 0
-          ? "Não encontrou pontos a corrigir nos blocos dos três princípios."
-          : canRetry
-            ? `Devolveu para correção: ${names}.`
-            : `Ainda há pontos a conferir em: ${names}.`,
-      }],
-    };
-  };
-}
-
-export function buildDuaSuggestionGraph(model: AgentModel) {
-  return new StateGraph(DuaState)
-    .addNode("analista", analyst(model))
-    .addNode("engajamento", specialist(model, "engajamento"))
-    .addNode("representacao", specialist(model, "representacao"))
-    .addNode("acao_expressao", specialist(model, "acao_expressao"))
-    .addNode("revisor", reviewer(model))
-    .addEdge(START, "analista")
-    .addEdge("analista", "engajamento")
-    .addEdge("analista", "representacao")
-    .addEdge("analista", "acao_expressao")
-    .addEdge("engajamento", "revisor")
-    .addEdge("representacao", "revisor")
-    .addEdge("acao_expressao", "revisor")
-    .addConditionalEdges("revisor", (state: DuaStateType) => (state.redo.length ? state.redo : END), ["engajamento", "representacao", "acao_expressao", END])
-    .compile();
-}
+    return Object.fromEntries(DUA_PRINCIPLES.map((principle) => [principle, review.avaliacoes.filter((item) => item.principle === principle && !item.aprovado).flatMap((item) => item.problemas).map((item) => item.trim()).filter(Boolean)]));
+  },
+  check: (principle, blocks, { input, prepared }) => checkPrincipleBlocks(principle, blocks, prepared.foci[principle].length, input),
+  partLabel: (principle) => PRINCIPLE_LABEL[principle].toLowerCase(),
+  approved: "Não encontrou pontos a corrigir nos blocos dos três princípios.",
+};
 
 export type DuaAgentsResult = {
   raw: RawBlocks;
-  trace: DuaTraceStep[];
+  trace: TraceStep[];
   review: { pending: DuaPrinciple[]; rounds: number };
 };
 
 export async function runDuaSuggestionAgents(input: DuaAgentsInput, model: AgentModel): Promise<DuaAgentsResult> {
-  const result = await buildDuaSuggestionGraph(model).invoke(input).catch((error: unknown) => { throw firstAgentError(error); });
-  if (!result.foci) throw new Error("Os agentes não concluíram a análise do planejamento.");
-  const perPrinciple = DUA_PRINCIPLES.map((principle) => (result.blocks[principle] ?? []).slice(0, Math.max(1, result.foci![principle].length)).map((block): RawBlock => ({
+  const result = await runReviewedGraph(DUA_GRAPH, input, model);
+  const foci = result.prepared?.foci;
+  if (!foci) throw new Error("Os agentes não concluíram a análise do planejamento.");
+  const perPrinciple = DUA_PRINCIPLES.map((principle) => (result.drafts[principle] ?? []).slice(0, Math.max(1, foci[principle].length)).map((block): RawBlock => ({
     ...block,
     principles: block.principles.includes(principle) ? block.principles : [principle, ...block.principles],
-    reviewerNotes: result.reviewerNotes[principle] ?? [],
+    reviewerNotes: result.modelNotes[principle] ?? [],
   })));
   const blocks: RawBlock[] = [];
   for (let index = 0; index < MAX_PER_PRINCIPLE; index++) for (const list of perPrinciple) if (list[index]) blocks.push(list[index]);
   return {
-    raw: { blocks: blocks.slice(0, MAX_BLOCKS) },
+    raw: { blocks: blocks.slice(0, MAX_AI_BLOCKS) },
     trace: result.trace,
-    review: { pending: DUA_PRINCIPLES.filter((principle) => result.reviewerNotes[principle]?.length), rounds: result.rounds },
+    review: { pending: DUA_PRINCIPLES.filter((principle) => result.modelNotes[principle]?.length), rounds: result.rounds },
   };
 }

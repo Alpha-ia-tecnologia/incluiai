@@ -1,6 +1,6 @@
 ﻿"use server";
 
-import { imagesAllowedFor } from "@/lib/consent";
+import { studentAI } from "@/lib/agents/capabilities";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
@@ -29,7 +29,7 @@ export async function generateActivities(studentId: string, formData: FormData) 
   const cards = await buildActivityCards({ student, profile, objective, lessonTopic });
   const created = await saveSuggestedActivities(studentId, objectiveId, cards);
 
-  if (formData.get("gerarImagens") === "on" && (await imagesAllowedFor(studentId))) {
+  if (formData.get("gerarImagens") === "on" && (await studentAI(studentId)).images) {
     const results = await Promise.allSettled(created.map((activity) => createActivityImage(activity.id, "sequencia", user)));
     for (const result of results) {
       if (result.status === "rejected") console.error("[imagens] falha ao gerar imagem da atividade:", result.reason);

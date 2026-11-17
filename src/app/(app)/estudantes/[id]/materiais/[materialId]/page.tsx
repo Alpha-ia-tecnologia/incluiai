@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { imagesAllowedFor } from "@/lib/consent";
+import { studentAI } from "@/lib/agents/capabilities";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
@@ -23,7 +23,7 @@ export default async function MaterialPage({ params, searchParams }: { params: P
   });
   if (!material) notFound();
   const team = can.edit;
-  const imagesOn = await imagesAllowedFor(id);
+  const imagesOn = (await studentAI(id)).images;
   const objective = material.objectiveId
     ? await prisma.objective.findFirst({ where: { id: material.objectiveId, plan: { studentId: id } }, select: { description: true } })
     : null;

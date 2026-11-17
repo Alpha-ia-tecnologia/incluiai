@@ -3,6 +3,7 @@
 
 import { CASE_STUDY_FIELDS, type CaseStudyContent, type CaseStudyField } from "./case-study";
 import { splitItems, type ChoiceOption } from "./form-options";
+import { hasClinicalTerm } from "./pedagogy-rules";
 
 export const MAX_REPORT_MB = 10;
 export const MAX_REPORT_BYTES = MAX_REPORT_MB * 1024 * 1024;
@@ -167,8 +168,6 @@ export function mergeIntoCaseStudy(content: CaseStudyContent, fields: ReportAcce
   return next;
 }
 
-export const CLINICAL_TERMS = /(?<![\p{L}])(diagn[óo]stic\p{L}*|laudo|cid[- ]?\d|f\d{2}(?:\.\d)?|medica(?:ç|c)\p{L}*|rem[ée]dio|dose|patologia|transtorno|s[íi]ndrome|tea|tdah|autis\p{L}*|epileps\p{L}*|d[ée]ficit)(?![\p{L}])/iu;
-
 export function guidanceForPlan(accepted: ReportAccepted[]): string[] {
-  return [...new Set(accepted.flatMap((item) => item.guidance))].filter((text) => !CLINICAL_TERMS.test(text));
+  return [...new Set(accepted.flatMap((item) => item.guidance))].filter((text) => !hasClinicalTerm(text));
 }

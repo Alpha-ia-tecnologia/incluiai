@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, BadgeCheck, LockKeyhole, ShieldCheck } from "lucide-react";
 import type { SessionUser } from "@/lib/auth";
 import { planningContext } from "@/lib/page-context";
-import { isAIEnabled } from "@/lib/agents/model";
+import { isAIEnabled } from "@/lib/agents/capabilities";
 import { studentsInReach } from "@/lib/dua/shared";
 import { listSuggestions } from "@/lib/dua/suggestions";
 import { listSupports, planObjectives, profileReferences } from "@/lib/dua/supports";

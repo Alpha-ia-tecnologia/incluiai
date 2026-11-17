@@ -2,9 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, FilePen, FileUp, Wand2 } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
-import { aiAllowedFor } from "@/lib/consent";
-import { hasApiKey } from "@/lib/env";
-import { isAIEnabled } from "@/lib/agents/model";
+import { studentAI } from "@/lib/agents/capabilities";
 import { adaptForStudent } from "@/actions/adapted-tasks";
 import { Card, PageHeader } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
@@ -19,8 +17,8 @@ export default async function AdaptTaskPage({ params }: { params: Promise<{ id: 
   const prisma = await db();
   const { id } = await params;
   await requireStudentPage(id, "Adaptar atividade da turma", { tab: "atividades" });
-  const [aiOn, objectives] = await Promise.all([
-    aiAllowedFor(id),
+  const [ai, objectives] = await Promise.all([
+    studentAI(id),
     prisma.objective.findMany({ where: { plan: { studentId: id, status: "ativo" }, status: "ativo" }, select: { id: true, description: true }, orderBy: { createdAt: "asc" } }),
   ]);
   return (
@@ -37,8 +35,8 @@ export default async function AdaptTaskPage({ params }: { params: Promise<{ id: 
         ]}
       />
       <Card className="max-w-3xl">
-        <ConsentNote show={isAIEnabled() && !aiOn} />
-        <AdaptForm action={adaptForStudent.bind(null, id)} canRead={aiOn && hasApiKey("ANTHROPIC_API_KEY")} aiOn={aiOn} objectives={objectives} adaptLabel="Adaptar para o estudante" />
+        <ConsentNote show={ai.waitingConsent.text} />
+        <AdaptForm action={adaptForStudent.bind(null, id)} canRead={ai.files} aiOn={ai.text} objectives={objectives} adaptLabel="Adaptar para o estudante" />
       </Card>
     </>
   );

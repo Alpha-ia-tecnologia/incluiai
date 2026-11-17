@@ -1,25 +1,21 @@
 import { notifyFamily } from "./notifications";
 import type { FunctionalProfile, Student } from "@prisma/client";
-import { aiAllowedFor, imagesAllowedFor } from "./consent";
 import { db } from "./prisma";
-import type { SessionUser } from "./auth";
-import { assertStudentTeam } from "./records";
+import { assertStudentTeam, type SessionUser } from "./auth";
 import { parseJson } from "./format";
 import { CHANNELS } from "./scale";
-import { createAgentModel } from "./agents/model";
-import { loadAnonymizer } from "./agents/anonymize";
-import { recordDeepSeekUse } from "./agents/audit";
+import { isActivityContext } from "./pedagogy-rules";
+import { activityRow, type ActivityCard } from "./activity-engine";
+import { isImageGenerationEnabled, studentAI } from "./agents/capabilities";
+import { runAiJob } from "./agents/job";
 import { materialContextText } from "./agents/context";
-import { describeAgentError, reporting, type AgentReport } from "./agents/generate";
 import { runMaterialAgent } from "./agents/material-agent";
-import type { TraceStep } from "./agents/schemas";
 import { guidanceForPlan, parseAccepted } from "./health-report";
 import { applicableRules } from "./rules";
-import { isImageGenerationEnabled } from "./images/openai-images";
 import { generateMaterialImages } from "./images/material-images";
 import {
   MATERIAL_KIND_LABEL, checkMaterial, isMaterialKind, normalizeMaterialContent, rulesMaterial,
-  type MaterialContent, type MaterialContext, type ProfileFacts,
+  type MaterialContent, type ProfileFacts,
 } from "./material-content";
 
 export type MaterialRequest = { kind: string; topic: string; context: string; objectiveId?: string | null; withImages: boolean };
@@ -45,58 +41,46 @@ export function profileFacts(student: Pick<Student, "name">, profile: Functional
   };
 }
 
-const CONTEXTS: MaterialContext[] = ["sala_comum", "aee", "casa"];
-
-export async function createStudentMaterial(user: SessionUser, studentId: string, request: MaterialRequest, report?: AgentReport) {
+export async function createStudentMaterial(user: SessionUser, studentId: string, request: MaterialRequest) {
   const prisma = await db();
   await assertStudentTeam(user, studentId);
   if (!isMaterialKind(request.kind)) throw new Error("Escolha o tipo de material.");
   const kind = request.kind;
-  const context: MaterialContext = CONTEXTS.includes(request.context as MaterialContext) ? (request.context as MaterialContext) : "aee";
+  const context = isActivityContext(request.context) ? request.context : "aee";
   const topic = request.topic.replace(/\s+/g, " ").trim().slice(0, 160);
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { profile: true, caseStudy: true } });
-  if (!student.profile) throw new Error("Preencha Como aprende antes de gerar materiais.");
+  const profile = student.profile;
+  if (!profile) throw new Error("Preencha Como aprende antes de gerar materiais.");
   const objective = request.objectiveId
     ? await prisma.objective.findFirst({ where: { id: request.objectiveId, plan: { studentId } }, select: { id: true, dimension: true, action: true, condition: true, criterion: true, currentSupport: true, targetSupport: true, bnccCode: true } })
     : null;
   if (request.objectiveId && !objective) throw new Error("O objetivo escolhido não é do plano deste estudante.");
   const objectiveText = objective ? `${objective.action}, ${objective.condition}, ${objective.criterion}` : null;
-  const facts = profileFacts(student, student.profile);
+  const facts = profileFacts(student, profile);
   const rules = { kind, toleranceMinutes: facts.toleranceMinutes };
 
-  let result: { title: string; content: MaterialContent } | null = null;
-  let source: "ia" | "regras" = "regras";
-  let trace: TraceStep[] = [];
-  if (await aiAllowedFor(studentId)) {
-    const anonymizer = await loadAnonymizer(studentId);
-    const agents = createAgentModel(anonymizer);
-    try {
+  const { value: result, source, trace } = await runAiJob<{ title: string; content: MaterialContent }>({
+    task: "material de apoio",
+    madeByRules: "O material foi feito",
+    scope: { student: studentId },
+    student: studentId,
+    run: async (model) => {
       const [entries, reports] = await Promise.all([
         prisma.diaryEntry.findMany({ where: { studentId }, orderBy: { date: "asc" } }),
         prisma.healthReport.findMany({ where: { studentId, reviewedAt: { not: null } }, select: { accepted: true } }),
       ]);
       const contextText = materialContextText({
-        student, profile: student.profile, caseStudyContent: student.caseStudy?.content, objective, entries,
+        student, profile, caseStudyContent: student.caseStudy?.content, objective, entries,
         reportGuidance: guidanceForPlan(reports.map((item) => parseAccepted(item.accepted))),
       });
-      const generated = await runMaterialAgent({ kind, topic, context, contextText, rules: applicableRules(student.profile), facts }, reporting(agents.model, report));
-      result = { title: generated.title, content: generated.content };
-      source = "ia";
-      trace = [{ agent: "Anonimização", summary: anonymizer.summary() ?? "Nenhuma informação pessoal encontrada nos textos enviados à IA." }, ...generated.trace];
-    } catch (error) {
-      console.error("[materiais] geração por IA falhou:", error);
-      report?.({ agent: "Motor de regras", phase: "start" });
-      trace = [{ agent: "Agentes de IA", summary: `Indisponíveis no momento (${describeAgentError(error)}). O material foi feito pelas regras da plataforma.` }];
-    }
-    await recordDeepSeekUse(studentId, agents.deepseekAgents(), trace);
-  } else {
-    report?.({ agent: "Motor de regras", phase: "start" });
-    trace = [{ agent: "Motor de regras", summary: "A IA está desligada nesta instalação. O material foi feito pelas regras da plataforma." }];
-  }
-  if (!result) {
-    result = rulesMaterial({ kind, topic, context, objective: objectiveText, facts });
-    result.content.reviewNotes = checkMaterial(result.content, rules);
-  }
+      return runMaterialAgent({ kind, topic, context, contextText, rules: applicableRules(profile), facts }, model);
+    },
+    rules: () => {
+      const made = rulesMaterial({ kind, topic, context, objective: objectiveText, facts });
+      made.content.reviewNotes = checkMaterial(made.content, rules);
+      return made;
+    },
+  });
 
   const title = `${result.title.replace(/\s+/g, " ").trim().slice(0, 100)} · ${facts.firstName}`;
   const material = await prisma.material.create({
@@ -106,10 +90,8 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: `Material de apoio (${source === "ia" ? "agentes de IA" : "regras"}): ${MATERIAL_KIND_LABEL[kind]}` } });
 
   let images = { created: 0, errors: [] as string[], requested: false };
-  if (request.withImages && (await imagesAllowedFor(studentId))) {
-    report?.({ agent: "Ilustração", phase: "start" });
+  if (request.withImages && (await studentAI(studentId)).images) {
     images = { ...(await generateMaterialImages(material.id, user)), requested: true };
-    report?.({ agent: "Ilustração", phase: images.errors.length && !images.created ? "fail" : "end" });
   }
   return { material, content: result.content, source, images };
 }
@@ -133,7 +115,7 @@ export async function approveStudentMaterial(user: SessionUser, studentId: strin
 export async function addMaterialImages(user: SessionUser, studentId: string, materialId: string) {
   const material = await loadOwnMaterial(user, studentId, materialId);
   if (!isImageGenerationEnabled()) throw new Error("A geração de imagens não está configurada (falta OPENAI_API_KEY).");
-  if (!(await imagesAllowedFor(studentId))) throw new Error("A família ainda não autorizou o uso de IA com os dados deste estudante.");
+  if (!(await studentAI(studentId)).images) throw new Error("A família ainda não autorizou o uso de IA com os dados deste estudante.");
   return generateMaterialImages(material.id, user);
 }
 
@@ -143,28 +125,24 @@ export async function saveMaterialActivity(user: SessionUser, studentId: string,
   const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
   const activity = content.activities[index];
   if (!activity) throw new Error("Atividade não encontrada neste material.");
-  const created = await prisma.activity.create({
-    data: {
-      studentId,
-      objectiveId: material.objectiveId,
-      title: activity.title,
-      context: activity.context,
-      durationMinutes: activity.durationMinutes,
-      materials: JSON.stringify([material.title, ...activity.materials]),
-      steps: JSON.stringify(activity.steps),
-      responseForm: activity.responseForms.join("; "),
-      adaptations: JSON.stringify(content.adaptations.map((item) => ({ text: item.text, rule: item.basis }))),
-      supportBelow: activity.supportBelow,
-      supportTarget: activity.supportTarget,
-      supportAbove: activity.supportAbove,
-      successCriterion: activity.successCriterion,
-      planB: activity.planB,
-      classParticipation: activity.classParticipation ?? null,
-      reviewNotes: content.reviewNotes.length ? JSON.stringify(content.reviewNotes) : null,
-      status: "sugerida",
-      source: material.source === "ia" ? "ia" : "regras",
-    },
-  });
+  const card: ActivityCard = {
+    title: activity.title,
+    context: activity.context,
+    durationMinutes: activity.durationMinutes,
+    materials: [material.title, ...activity.materials],
+    steps: activity.steps,
+    responseForm: activity.responseForms.join("; "),
+    adaptations: content.adaptations.map((item) => ({ text: item.text, rule: item.basis })),
+    supportBelow: activity.supportBelow,
+    supportTarget: activity.supportTarget,
+    supportAbove: activity.supportAbove,
+    successCriterion: activity.successCriterion,
+    planB: activity.planB,
+    classParticipation: activity.classParticipation,
+    reviewNotes: content.reviewNotes,
+    source: material.source === "ia" ? "ia" : "regras",
+  };
+  const created = await prisma.activity.create({ data: { studentId, objectiveId: material.objectiveId, ...activityRow(card) } });
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: `Atividade a partir do material: ${activity.title}` } });
   return created.id;
 }

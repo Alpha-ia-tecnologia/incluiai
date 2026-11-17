@@ -1,39 +1,22 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "../prisma";
-import { hasApiKey } from "../env";
 import type { SessionUser } from "../auth";
-import { describeAgentError } from "../agents/generate";
+import { describeAgentError } from "../agents/model";
+import { ADAPTIVE_THINKING, CLAUDE_MODEL, SERVER_FALLBACK, claudeClient } from "../agents/claude";
+import { isAssistantEnabled } from "../agents/capabilities";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools } from "./tools";
 import { TOOL_LABELS } from "./labels";
 import { loadPseudonymizer, parsePseudonyms } from "./privacy";
+import { restorableLength } from "../agents/redactor";
 import { decidedSinceLastTurn, historyLength, MAX_HISTORY_MESSAGES, toConversationView, toMessageView } from "./store";
 import type { AssistantEvent, ToolStep } from "./types";
 
-export const ASSISTANT_MODEL = process.env.ASSISTANT_MODEL || process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+const ASSISTANT_MODEL = process.env.ASSISTANT_MODEL || CLAUDE_MODEL;
 const MAX_ITERATIONS = 8;
-const HOLD_BACK = 24;
-
-export function isAssistantEnabled(): boolean {
-  return hasApiKey("ANTHROPIC_API_KEY");
-}
 
 type History = Anthropic.Beta.Messages.BetaMessageParam[];
-let client: Anthropic | null = null;
 const busy = new Set<string>();
-
-export function safeCut(text: string): number {
-  if (text.length <= HOLD_BACK) return 0;
-  let cut = text.length - HOLD_BACK;
-  const space = text.lastIndexOf(" ", cut);
-  if (space > 0) cut = space;
-  const prefix = text.slice(0, cut);
-  const open = prefix.lastIndexOf("[");
-  if (open > prefix.lastIndexOf("]")) cut = open;
-  const bare = prefix.search(/\b(?:estudante|escola)\s*\d*$/i);
-  if (bare >= 0) cut = Math.min(cut, bare);
-  return Math.max(0, cut);
-}
 
 // Depois do limite de passos, um pedido de ferramenta pode ficar sem resposta;
 // o histórico precisa fechá-lo para o próximo turno ser válido.
@@ -112,8 +95,8 @@ export async function runAssistantTurn(input: {
     const history: History = JSON.parse(conversation.history);
     const userMessage: Anthropic.Beta.Messages.BetaMessageParam = { role: "user", content: [...notes, privacy.apply(text)].join("\n\n") };
 
-    client ??= new Anthropic();
     const tools = buildTools({ user, privacy, studentIds: privacy.studentIds, conversationId: conversation.id, emit: track });
+    const client = claudeClient();
     let runner = client.beta.messages.toolRunner({
       model: ASSISTANT_MODEL,
       max_tokens: 8000,
@@ -122,9 +105,9 @@ export async function runAssistantTurn(input: {
       // plataforma, drop_block descarta só os blocos que não batem (e avisa em
       // input_transformations) em vez de recusar o pedido com 400. Dentro da
       // mesma versão o histórico só cresce e nada é descartado.
-      betas: ["server-side-fallback-2026-07-01", "thinking-binding-controls-2026-08-01"],
-      fallbacks: "default",
-      thinking: { type: "adaptive", block_binding: { prefix_mismatch_behavior: "drop_block" } },
+      betas: [...SERVER_FALLBACK.betas, "thinking-binding-controls-2026-08-01"],
+      fallbacks: SERVER_FALLBACK.fallbacks,
+      thinking: { ...ADAPTIVE_THINKING, block_binding: { prefix_mismatch_behavior: "drop_block" } },
       output_config: { effort: "medium" },
       system: [{ type: "text", text: buildSystemPrompt(user.role), cache_control: { type: "ephemeral" } }],
       messages: [...history, userMessage],
@@ -145,7 +128,7 @@ export async function runAssistantTurn(input: {
               track({ type: "tool_start", step: { id: event.content_block.id, name: event.content_block.name, label: TOOL_LABELS[event.content_block.name] ?? event.content_block.name } });
             } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
               raw += event.delta.text;
-              const cut = safeCut(raw);
+              const cut = restorableLength(raw);
               if (cut > sent) {
                 emit({ type: "text", delta: privacy.restore(raw.slice(sent, cut)) });
                 sent = cut;

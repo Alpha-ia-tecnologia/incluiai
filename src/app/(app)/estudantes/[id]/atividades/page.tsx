@@ -1,6 +1,5 @@
 ﻿import Link from "next/link";
 import { ConsentNote } from "@/components/consent-note";
-import { aiAllowedFor, imagesAllowedFor } from "@/lib/consent";
 import Image from "next/image";
 import type { Activity } from "@prisma/client";
 import { db } from "@/lib/prisma";
@@ -11,13 +10,12 @@ import { CONTEXTS, ACTIVITY_STATUS } from "@/lib/scale";
 import { PageHeader, Card, SectionTitle, Badge, AIDisclaimer, EmptyState } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { PendingButton } from "@/components/pending-button";
-import { isAIEnabled } from "@/lib/agents/model";
+import { studentAI } from "@/lib/agents/capabilities";
 import { generateActivityImage, removeActivityImage } from "@/actions/activity-images";
 import { ActivityImageForm } from "@/components/activity-image-form";
+import { imageWidthOf } from "@/lib/images/activity-image";
 import { DataBoard, DataCard, withSegmentColors } from "@/components/data-viz";
 import { BarList, StackedBar } from "@/components/charts";
-
-const WIDE_IMAGE_KINDS = new Set(["sequencia", "cartoes"]);
 
 type ActivityWithImage = Activity & { image: { altText: string; kind: string; createdAt: Date } | null };
 import { ChoiceField } from "@/components/choice-field";
@@ -73,10 +71,10 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
           <Image
             src={`/api/atividades/${activity.id}/imagem?v=${activity.image.createdAt.getTime()}`}
             alt={activity.image.altText}
-            width={WIDE_IMAGE_KINDS.has(activity.image.kind) ? 1536 : 1024}
+            width={imageWidthOf(activity.image.kind)}
             height={1024}
             unoptimized
-            className={`h-auto w-full rounded-xl border border-line bg-white ${WIDE_IMAGE_KINDS.has(activity.image.kind) ? "max-w-2xl" : "max-w-md"}`}
+            className={`h-auto w-full rounded-xl border border-line bg-white ${imageWidthOf(activity.image.kind) > 1024 ? "max-w-2xl" : "max-w-md"}`}
           />
           <figcaption className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
             Imagem gerada por IA (OpenAI). Confira antes de usar com o estudante.
@@ -186,12 +184,12 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
   ]);
 
   const generate = generateActivities.bind(null, id);
-  const [aiOn, imagesOn, adapted] = await Promise.all([
-    aiAllowedFor(id),
-    imagesAllowedFor(id),
+  const [ai, adapted] = await Promise.all([
+    studentAI(id),
     prisma.adaptedTask.findMany({ where: { studentId: id }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, title: true, kind: true, status: true, createdAt: true } }),
   ]);
-  const consentMissing = isAIEnabled() && !aiOn;
+  const { text: aiOn, images: imagesOn } = ai;
+  const consentMissing = ai.waitingConsent.text;
   const suggested = activities.filter((a) => a.status === "sugerida");
   const others = activities.filter((a) => a.status !== "sugerida");
   const statusSplit = withSegmentColors((["sugerida", "aceita", "aplicada", "rejeitada"] as const).map((key) => ({

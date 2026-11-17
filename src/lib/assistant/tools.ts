@@ -12,8 +12,11 @@ import { buildActivityCards, createPlanDraft, saveSuggestedActivities } from "..
 import { objectiveTrend, studentAlerts } from "../insights";
 import { getStudentNextStep } from "../student-journey";
 import { MATERIAL_KINDS } from "../materials";
+import { MATERIAL_KIND_KEYS } from "../material-content";
+import { ACTIVITY_CONTEXTS } from "../pedagogy-rules";
 import { createStudentMaterial } from "../material-generate";
-import { isImageGenerationEnabled } from "../images/openai-images";
+import { isImageGenerationEnabled } from "../agents/capabilities";
+import { ILLUSTRATION } from "../agents/descriptors";
 import { createActivityImage } from "../images/save";
 import { ALERT_LABELS, TREND_LABELS, loadDashboard } from "../dashboard";
 import { CALENDAR_THEMES, dateRangeLabel, relativeLabel, todayInBrazil, upcomingEvents } from "../commemorative-dates";
@@ -21,7 +24,7 @@ import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, SHIFTS, STAGES, supportInfo } fr
 import { ageFrom, formatDate, parseJson } from "../format";
 import { isHomeActivityNote } from "../user-journey";
 import { studentFollowUp } from "../dua/applications";
-import type { Pseudonymizer } from "./privacy";
+import type { Pseudonymizer } from "../agents/redactor";
 import { toActionView } from "./store";
 import { TOOL_LABELS } from "./labels";
 import type { AgentProgress, AssistantEvent } from "./types";
@@ -289,14 +292,14 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
       const objective = await prisma.objective.findFirst({ where: { id: args.objetivoId, plan: { studentId: id } } });
       if (!objective) throw new Error("Objetivo não encontrado para este estudante. Consulte ver_estudante para os ids.");
       const withImages = Boolean(args.comImagens) && isImageGenerationEnabled();
-      if (withImages) report({ agent: "Ilustração", phase: "queued" });
+      if (withImages) report({ agent: ILLUSTRATION, phase: "queued" });
       const cards = await buildActivityCards({ student, profile, objective, lessonTopic: args.conteudoDaAula }, report);
       const created = await saveSuggestedActivities(id, objective.id, cards);
       let images = "";
       if (withImages) {
-        report({ agent: "Ilustração", phase: "start" });
+        report({ agent: ILLUSTRATION, phase: "start" });
         const results = await Promise.allSettled(created.map((activity) => createActivityImage(activity.id, "sequencia", ctx.user)));
-        report({ agent: "Ilustração", phase: "end" });
+        report({ agent: ILLUSTRATION, phase: "end" });
         const ok = results.filter((result) => result.status === "fulfilled").length;
         images = ` Imagens de apoio geradas: ${ok} de ${created.length}.`;
       }
@@ -318,9 +321,9 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
     "Cria um material de apoio a partir do perfil do estudante, com cartões, como preparar e usar, e atividades para aplicar na sala comum, no AEE e em casa: rotina visual, passo a passo de uma tarefa, história social, prancha de comunicação, quadro de escolhas ou cartões de autorregulação. Com imagens=true, desenha um pictograma por cartão (leva até 1 minuto). O material fica como sugestão em /estudantes/ID/materiais até a equipe aprovar.",
     z.object({
       estudante: studentRef,
-      tipo: z.enum(["rotina_visual", "sequencia_tarefa", "historia_social", "prancha_caa", "quadro_escolhas", "regulacao"]),
+      tipo: z.enum(MATERIAL_KIND_KEYS),
       tema: z.string().optional().describe("Situação ou conteúdo do material. Ex.: hora do lanche, troca de sala, leitura compartilhada"),
-      contexto: z.enum(["sala_comum", "aee", "casa"]).optional().describe("Onde o material será mais usado"),
+      contexto: z.enum(ACTIVITY_CONTEXTS).optional().describe("Onde o material será mais usado"),
       imagens: z.boolean().optional().describe("Gerar um pictograma para cada cartão. Use quando a pessoa pedir imagem ou figura."),
     }),
     async (args) => {

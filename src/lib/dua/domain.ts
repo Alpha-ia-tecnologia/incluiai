@@ -281,7 +281,7 @@ export type AiBlock = {
 };
 export type AiCheck = { name: string; passed: boolean; detail: string };
 export type AiPurpose = "opcoes" | "apoio_individual";
-export const AI_PURPOSE_LABEL: Record<AiPurpose, string> = { opcoes: "Opções de acesso e participação para a turma", apoio_individual: "Apoio individual para um estudante" };
+export const MAX_AI_BLOCKS = 5;
 export const AI_SUGGESTION_LABEL = "Sugestão para revisão";
 
 export function suggestionStateAfter(blocks: ReadonlyArray<Pick<AiBlock, "decision">>): AiState {

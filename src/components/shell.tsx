@@ -11,7 +11,7 @@ import { roleLabel } from "@/lib/roles";
 import { firstName } from "@/lib/format";
 import type { SessionUser } from "@/lib/auth";
 import type { MunicipalityBrand } from "@/lib/tenant";
-import { hasApiKey } from "@/lib/env";
+import { isAssistantEnabled } from "@/lib/agents/capabilities";
 import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantPopup } from "./assistant/assistant-popup";
 import { NavigationProgress } from "./navigation-progress";
@@ -82,7 +82,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
         <main id="conteudo" tabIndex={-1} className="min-w-0 outline-none">{children}</main>
       </div>
       <MobileNavigation links={links} />
-      <AssistantPopup enabled={hasApiKey("ANTHROPIC_API_KEY")} suggestions={suggestionsFor(user.role)} />
+      <AssistantPopup enabled={isAssistantEnabled()} suggestions={suggestionsFor(user.role)} />
     </div>
   );
 }

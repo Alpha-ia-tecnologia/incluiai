@@ -1,10 +1,9 @@
 ﻿import Link from "next/link";
 import { ConsentNote } from "@/components/consent-note";
-import { aiAllowedFor, imagesAllowedFor } from "@/lib/consent";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { teachingContext } from "@/lib/roles";
-import { isAIEnabled } from "@/lib/agents/model";
+import { isAIEnabled, studentAI } from "@/lib/agents/capabilities";
 import { MATERIAL_KINDS, isMaterialKind } from "@/lib/material-content";
 import { PageHeader, Card, SectionTitle, EmptyState, ButtonLink } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
@@ -28,8 +27,8 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const { user, can } = await requireStudentPage(id, "Materiais de apoio");
   const team = can.edit;
-  const [aiOn, imagesOn] = await Promise.all([aiAllowedFor(id), imagesAllowedFor(id)]);
-  const consentMissing = isAIEnabled() && !aiOn;
+  const { text: aiOn, images: imagesOn, waitingConsent } = await studentAI(id);
+  const consentMissing = waitingConsent.text;
   const [profile, materials, objectives] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id }, select: { id: true } }),
     prisma.material.findMany({

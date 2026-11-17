@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  DUA_ANALYST, DUA_REVIEWER, DUA_SPECIALISTS, DuaAnalysisSchema, DuaBlocksSchema, DuaReviewSchema, distributeFoci, runDuaSuggestionAgents,
-} from "./suggestion-agents.ts";
+import { DuaAnalysisSchema, DuaBlocksSchema, DuaReviewSchema, distributeFoci, runDuaSuggestionAgents } from "./suggestion-agents.ts";
+import { DUA_PIPELINE } from "../agents/descriptors.ts";
 import { checkBlocks } from "./checks.ts";
 import { DUA_PRINCIPLES } from "./domain.ts";
 
+const { preparer: DUA_ANALYST, reviewer: DUA_REVIEWER, writers: DUA_SPECIALISTS } = DUA_PIPELINE;
 const PEOPLE = ["Dante Moreira", "Carla Moreira"];
 const SCHOOLS = ["EMEF Maria Firmina dos Reis"];
 const OBJECTIVE = "Identificar dois personagens principais e ordenar três acontecimentos da história.";
@@ -115,7 +115,7 @@ test("princípio devolvido: só o especialista dele refaz, com os problemas do r
   assert.equal(fake.count(DUA_REVIEWER), 2);
   const redo = fake.calls.filter((call) => call.agent === DUA_SPECIALISTS.representacao)[1];
   assert.match(redo.prompt, /em que momento os cartões entram/);
-  assert.match(redo.prompt, /Blocos anteriores:/);
+  assert.match(redo.prompt, /Versão anterior:/);
   assert.deepEqual(review, { pending: [], rounds: 2 });
   assert.ok(raw.blocks.every((item) => item.reviewerNotes.length === 0));
   assert.ok(trace.some((step) => step.agent === DUA_REVIEWER && /Devolveu para correção: representação/.test(step.summary)));

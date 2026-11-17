@@ -1,5 +1,5 @@
 import { planningContext } from "@/lib/page-context";
-import { isAIEnabled } from "@/lib/agents/model";
+import { isAIEnabled } from "@/lib/agents/capabilities";
 import { listSuggestions } from "@/lib/dua/suggestions";
 import { listSupports } from "@/lib/dua/supports";
 import { DuaEditor } from "@/components/dua/editor";

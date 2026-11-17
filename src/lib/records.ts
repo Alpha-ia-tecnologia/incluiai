@@ -7,8 +7,6 @@ import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study"
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
 import { recordChange } from "./access-log";
 
-export { assertStudentTeam } from "./auth";
-
 export async function assertCaseStudyConcluded(studentId: string) {
   const prisma = await db();
   const caseStudy = await prisma.caseStudy.findUnique({ where: { studentId }, select: { status: true } });

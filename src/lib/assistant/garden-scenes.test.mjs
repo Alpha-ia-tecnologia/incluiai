@@ -1,8 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import {
-  ACTIVITY_AGENTS, ACTIVITY_REVIEWER, ILLUSTRATION, PLAN_AGENTS, PLAN_WRITERS, RULES_ENGINE, TIP_POOLS, TOOL_FAMILY, TOOL_HINTS, WAIT_LABELS,
+  TIP_POOLS, TOOL_FAMILY, TOOL_HINTS, WAIT_LABELS,
   artFor, chatCaption, deriveGarden, endingCaption, inlineCaption, longBudget, sunAngle,
 } from "./garden-scenes.ts";
 import { TOOL_LABELS } from "./labels.ts";
@@ -16,17 +15,6 @@ test("toda ferramenta do assistente tem família, rótulo e (se não for longa) 
     assert.ok(WAIT_LABELS[name], `rótulo de ${name}`);
     if (!["propor_plano", "gerar_atividades"].includes(name)) assert.ok(TOOL_HINTS[name], `dica de ${name}`);
   }
-});
-
-test("nomes dos agentes batem com os grafos e com as ferramentas", () => {
-  const plan = readFileSync(new URL("../agents/plan-graph.ts", import.meta.url), "utf8");
-  const activity = readFileSync(new URL("../agents/activity-graph.ts", import.meta.url), "utf8");
-  const generate = readFileSync(new URL("../agents/generate.ts", import.meta.url), "utf8");
-  const tools = readFileSync(new URL("./tools.ts", import.meta.url), "utf8");
-  for (const name of [...PLAN_AGENTS, ...PLAN_WRITERS]) assert.ok(plan.includes(`"${name}"`), name);
-  for (const name of [...ACTIVITY_AGENTS, ACTIVITY_REVIEWER]) assert.ok(activity.includes(`"${name}"`), name);
-  assert.ok(generate.includes(`"${RULES_ENGINE}"`));
-  assert.ok(tools.includes(`"${ILLUSTRATION}"`));
 });
 
 test("pensando: broto com tutor e dois amarrilhos", () => {

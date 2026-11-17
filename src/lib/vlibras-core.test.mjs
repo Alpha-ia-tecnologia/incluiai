@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { requestKind, tidyForLibras, translationBody, translationText, VLIBRAS_ROOT } from "./vlibras-core.ts";
-import { createAnonymizer, naturalizePlaceholders } from "./agents/anonymize-core.ts";
+import { createRedactor } from "./agents/redactor.ts";
 
 test("cada pedido: tradução, bloqueado, estatística ou outro (fechado por padrão)", () => {
   const here = "https://incluiedu.municipio.gov.br";
@@ -28,13 +28,13 @@ test("corpo do pedido: só o formato conferido passa", () => {
 });
 
 test("o que vai para o tradutor do governo: sem nomes, documentos, datas e contatos", () => {
-  const anonymizer = createAnonymizer({ student: "", students: ["Dante Oliveira", "Ravi Almeida"], family: ["Carla Oliveira"], professionals: ["Prof.ª Beatriz (AEE)"], schools: ["EMEF Maria Firmina dos Reis"] });
+  const redactor = createRedactor({ students: ["Dante Oliveira", "Ravi Almeida"], family: ["Carla Oliveira"], professionals: ["Prof.ª Beatriz (AEE)"], schools: ["EMEF Maria Firmina dos Reis"] });
   const text = "Dante Oliveira e a mãe, Carla, falaram com Beatriz na EMEF Maria Firmina dos Reis. CPF 111.222.333-44, nascido em 12/03/2019, telefone (98) 99876-5432. Ravi também foi.";
-  const sent = tidyForLibras(naturalizePlaceholders(anonymizer.applyNatural(text)));
+  const sent = tidyForLibras(redactor.redactInWords(text));
   for (const secret of ["Dante", "Oliveira", "Carla", "Beatriz", "Maria Firmina", "111.222", "12/03/2019", "99876", "Ravi"]) assert.ok(!sent.includes(secret), `${secret} saiu: ${sent}`);
   assert.match(sent, /^o estudante e a mãe, um familiar, falaram com um profissional na escola\./);
   assert.match(sent, /\(informação omitida\)/);
   assert.ok(!sent.includes("["), "sem colchetes para o avatar soletrar");
   assert.equal(tidyForLibras("Ele da uma olhada da a escola."), "Ele da uma olhada da escola.");
-  assert.equal(naturalizePlaceholders(createAnonymizer({ student: "" }).applyNatural("Dante, 12/03/2019")), "Dante, (informação omitida)");
+  assert.equal(createRedactor({}).redactInWords("Dante, 12/03/2019"), "Dante, (informação omitida)");
 });

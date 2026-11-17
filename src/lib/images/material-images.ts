@@ -1,8 +1,8 @@
 import { db } from "../prisma";
-import { loadAnonymizer } from "../agents/anonymize";
+import { redactorFor } from "../agents/names-in-scope";
 import { parseJson } from "../format";
 import { normalizeMaterialContent, type MaterialCard, type MaterialKind } from "../material-content";
-import { STYLE } from "./activity-image";
+import { STYLE, visualPreferences } from "./activity-image";
 import { ImageGenerationError, generateImage } from "./openai-images";
 
 // Fica fora dos arquivos "use server" para não virar uma ação pública.
@@ -16,13 +16,12 @@ const KIND_STYLE: Partial<Record<MaterialKind, string>> = {
   historia_social: "Cena simples de escola, acolhedora, com a criança em destaque.",
 };
 
-export function buildMaterialCardPrompt(card: MaterialCard, kind: MaterialKind, theme: string[], calmVisuals: boolean, clean: (text: string) => string) {
+export function buildMaterialCardPrompt(card: MaterialCard, kind: MaterialKind, preferences: string[]) {
   return [
-    `Crie um pictograma quadrado para um cartão de apoio: ${clean(card.visual || card.label)}`,
-    `O cartão significa: "${clean(card.label)}".`,
+    `Crie um pictograma quadrado para um cartão de apoio: ${card.visual || card.label}`,
+    `O cartão significa: "${card.label}".`,
     KIND_STYLE[kind] ?? "",
-    theme.length ? `Quando couber, use como tema visual: ${theme.join(" e ")}.` : "",
-    calmVisuals ? "O estudante é sensível a estímulos visuais: pouquíssimos elementos, cores neutras e um único foco." : "",
+    ...preferences,
     STYLE,
   ].filter(Boolean).join("\n");
 }
@@ -44,13 +43,12 @@ export async function generateMaterialImages(materialId: string, user: { name: s
     .filter(({ index }) => index < MAX_MATERIAL_IMAGES && (only ? only.includes(index) : !existing.has(index)));
   if (!wanted.length) return { created: 0, errors: [] as string[] };
 
-  const anonymizer = await loadAnonymizer(material.studentId);
-  const theme = parseJson<string[]>(material.student.profile?.interests ?? null, []).slice(0, 2);
-  const calmVisuals = parseJson<Record<string, string>>(material.student.profile?.sensoryProfile ?? null, {}).visual === "hiper";
+  const redactor = await redactorFor({ student: material.studentId });
+  const preferences = visualPreferences(material.student.profile);
   const errors = new Set<string>();
   let created = 0;
   await inBatches(wanted, CONCURRENCY, async ({ card, index }) => {
-    const prompt = buildMaterialCardPrompt(card, material.kind as MaterialKind, theme, calmVisuals, anonymizer.applyNatural);
+    const prompt = redactor.redactInWords(buildMaterialCardPrompt(card, material.kind as MaterialKind, preferences));
     try {
       const image = await generateImage(prompt, "1024x1024");
       const data = { prompt, altText: card.alt || card.label, mimeType: image.mimeType, data: image.data, model: image.model, createdAt: new Date() };

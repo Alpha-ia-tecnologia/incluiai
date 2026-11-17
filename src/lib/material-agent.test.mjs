@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  MATERIAL_ACTIVITY_AGENTS, MATERIAL_AGENT, MATERIAL_REVIEWER, MaterialActivitySchema, MaterialDesignSchema, MaterialReviewSchema, runMaterialAgent,
-} from "./agents/material-agent.ts";
+import { MaterialActivitySchema, MaterialDesignSchema, MaterialReviewSchema, runMaterialAgent } from "./agents/material-agent.ts";
+import { MATERIAL_PIPELINE } from "./agents/descriptors.ts";
 import { checkMaterial } from "./material-content.ts";
+
+const { material: MATERIAL_AGENT, ...MATERIAL_ACTIVITY_AGENTS } = MATERIAL_PIPELINE.writers;
+const MATERIAL_REVIEWER = MATERIAL_PIPELINE.reviewer;
 
 const facts = {
   firstName: "Dante", expressiveChannel: "caa_prancha", expressiveLabel: "Prancha de comunicação", receptiveLabel: "Fala com apoio visual",
@@ -119,7 +121,7 @@ test("atividade devolvida: só ela é refeita, com os problemas do revisor", asy
   assert.equal(fake.count(MATERIAL_REVIEWER), 2);
   const redo = fake.calls.filter((call) => call.agent === MATERIAL_ACTIVITY_AGENTS.casa)[1];
   assert.match(redo.prompt, /massinha comprada/);
-  assert.match(redo.prompt, /Atividade anterior:/);
+  assert.match(redo.prompt, /Versão anterior:/);
   assert.deepEqual(content.reviewNotes, []);
   assert.ok(trace.some((step) => step.agent === MATERIAL_REVIEWER && /Devolveu para correção: Agente da família/.test(step.summary)));
 });

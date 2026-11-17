@@ -1,7 +1,5 @@
 // Geração de imagens pela API da OpenAI (https://developers.openai.com/api/docs/guides/image-generation).
 
-import { hasApiKey } from "../env";
-
 export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2.5-flare";
 const BASE_URL = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
 const TIMEOUT_MS = 180_000;
@@ -12,10 +10,6 @@ export class ImageGenerationError extends Error {
   constructor(message: string, readonly status?: number) {
     super(message);
   }
-}
-
-export function isImageGenerationEnabled(): boolean {
-  return hasApiKey("OPENAI_API_KEY");
 }
 
 type ImagesResponse = {

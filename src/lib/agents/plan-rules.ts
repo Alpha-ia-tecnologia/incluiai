@@ -1,6 +1,7 @@
 import type { CaseStudy, FunctionalProfile } from "@prisma/client";
 import { ACTION_SUGGESTIONS } from "../objective";
 import { applicableRules } from "../rules";
+import { studentAdaptations } from "../pedagogy-rules";
 import { parseCaseStudy } from "../case-study";
 import { splitItems } from "../form-options";
 import { parseJson } from "../format";
@@ -51,7 +52,7 @@ export function proposePlanWithRules(profile: FunctionalProfile | null, caseStud
     initialSituation: initialSituation.length ? initialSituation : ["A equipe deve registrar o que o estudante já consegue fazer"],
     commonRoomStrategies: [
       "Atividade da turma adaptada ao interesse",
-      ...rules.filter((rule) => rule.id !== "R00-ANTISSEGREGACAO").map((rule) => rule.then),
+      ...studentAdaptations(rules).map((rule) => rule.then),
     ],
     aeeStrategies: splitItems(study.necessidades).length ? splitItems(study.necessidades) : ["Atividades com o interesse âncora", "Ensino estruturado"],
     accessibilityResources: splitItems(study.recursos),

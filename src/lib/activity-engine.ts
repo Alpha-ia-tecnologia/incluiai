@@ -2,10 +2,11 @@ import type { FunctionalProfile, Objective, Student } from "@prisma/client";
 import { applicableRules, type AdaptationRule } from "./rules";
 import { parseJson } from "./format";
 import { supportInfo } from "./scale";
+import { HOME_MAX_MINUTES, studentAdaptations, type ActivityContext } from "./pedagogy-rules";
 
 export interface ActivityCard {
   title: string;
-  context: "sala_comum" | "aee" | "casa";
+  context: ActivityContext;
   durationMinutes: number;
   materials: string[];
   steps: string[];
@@ -44,7 +45,28 @@ function durationFor(profile: FunctionalProfile): number {
 }
 
 function adaptationsFrom(rules: AdaptationRule[]): { text: string; rule: string }[] {
-  return rules.filter((r) => r.id !== "R00-ANTISSEGREGACAO").map((r) => ({ text: r.then, rule: r.id }));
+  return studentAdaptations(rules).map((r) => ({ text: r.then, rule: r.id }));
+}
+
+export function activityRow(card: ActivityCard) {
+  return {
+    title: card.title,
+    context: card.context,
+    durationMinutes: card.durationMinutes,
+    materials: JSON.stringify(card.materials),
+    steps: JSON.stringify(card.steps),
+    responseForm: card.responseForm,
+    adaptations: JSON.stringify(card.adaptations),
+    supportBelow: card.supportBelow,
+    supportTarget: card.supportTarget,
+    supportAbove: card.supportAbove,
+    successCriterion: card.successCriterion,
+    planB: card.planB,
+    classParticipation: card.classParticipation ?? null,
+    reviewNotes: card.reviewNotes?.length ? JSON.stringify(card.reviewNotes) : null,
+    status: "sugerida",
+    source: card.source,
+  };
 }
 
 function supportLadder(objective: Objective, interest: string) {
@@ -127,7 +149,7 @@ export function generateActivityCards(input: EngineInput): ActivityCard[] {
   const home: ActivityCard = {
     title: `Em casa: ${goal} na rotina da família`,
     context: "casa",
-    durationMinutes: Math.min(duration, 10),
+    durationMinutes: Math.min(duration, HOME_MAX_MINUTES),
     materials: [
       "Objetos da própria casa (sem material comprado)",
       `Itens que remetam a "${interest}"`,

@@ -233,6 +233,8 @@ export function sectionProgress(section: CaseStudySection, content: CaseStudyCon
 }
 
 export const CLINICAL_CASE_FIELDS: ReadonlySet<string> = new Set(["diagnostico", "saude", "acompanhamentos", "moraCom"]);
+// Para a IA vai só a parte pedagógica: os campos clínicos e quem foi entrevistado ficam na plataforma.
+export const caseFieldLeavesPlatform = (key: string) => !CLINICAL_CASE_FIELDS.has(key) && key !== "entrevistados";
 
 export function missingToConclude(content: CaseStudyContent): CaseStudyField[] {
   return CASE_STUDY_FIELDS.filter((field) => field.requiredToConclude && !content[field.key]?.trim());

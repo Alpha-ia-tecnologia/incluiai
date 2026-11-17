@@ -4,7 +4,7 @@ import { Assurances, Steps } from "@/components/explain";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { studentConsent } from "@/lib/consent";
-import { hasApiKey } from "@/lib/env";
+import { canReadFiles } from "@/lib/agents/capabilities";
 import { reportStatus } from "@/lib/health-report";
 import { formatDate } from "@/lib/format";
 import { uploadHealthReport } from "@/actions/health-reports";
@@ -38,7 +38,7 @@ export default async function HealthReportsPage({
   ]);
   const firstName = student.name.split(" ")[0];
   const upload = uploadHealthReport.bind(null, id);
-  const consentMissing = hasApiKey("ANTHROPIC_API_KEY") && !consent.aiUse;
+  const consentMissing = canReadFiles() && !consent.aiUse;
 
   return (
     <>

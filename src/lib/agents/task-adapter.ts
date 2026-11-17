@@ -1,6 +1,8 @@
 import { z } from "zod/v4";
 import type { AgentAttachment, AgentModel } from "./types";
 import { ANSWER_FORMATS, ADAPT_OPTIONS, normalizeAdapted, type AdaptedContent, type LevelKey, type TaskKind } from "../task-adaptation";
+import { SAFEGUARDS } from "../pedagogy-rules";
+import { ANONYMIZED_DATA } from "./prompts";
 
 const itemSchema = z.object({
   prompt: z.string().describe("Enunciado da questão adaptada. Quebras de linha separam as ordens."),
@@ -32,8 +34,15 @@ export async function readTaskFile(model: AgentModel, file: AgentAttachment): Pr
   });
 }
 
+const PRINCIPLES = `Princípios que valem para tudo o que você escrever:
+${SAFEGUARDS}
+- ${ANONYMIZED_DATA}`;
+
 const ADAPT_SYSTEM = `Você adapta atividades e provas escolares para um estudante público da educação especial, com base no perfil de como ele aprende.
-Regras:
+
+${PRINCIPLES}
+
+Regras da adaptação:
 - Adapte a forma, não o conteúdo avaliado: mesma quantidade de questões, mesmas habilidades, mesmo assunto da turma.
 - Não dê a resposta nem simplifique a ponto de a questão deixar de avaliar o que avaliava.
 - Use frases curtas e diretas, uma ordem por linha, quando pedido.
@@ -65,7 +74,9 @@ const LEVELS_SYSTEM = `Você prepara a mesma atividade da turma em três níveis
 - "mais_apoio": enunciados curtos, uma ordem por linha, apoios explícitos (exemplos, fichas, escolha entre alternativas).
 - "padrao": a atividade como a turma faria, organizada.
 - "desafio": a mesma atividade com uma exigência a mais (explicar, justificar, criar).
-- Nada na folha diz o nível ao estudante. Escreva em português do Brasil, sem nomes de pessoas.`;
+- Nada na folha diz o nível ao estudante. Escreva em português do Brasil, sem nomes de pessoas.
+
+${PRINCIPLES}`;
 
 export async function levelsWithAI(model: AgentModel, input: { title: string; text: string; objective: string }): Promise<Record<LevelKey, AdaptedContent>> {
   const raw = await model({

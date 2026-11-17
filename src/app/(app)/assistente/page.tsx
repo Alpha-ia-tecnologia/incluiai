@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { EyeOff, UserCheck } from "lucide-react";
 import { Assurances } from "@/components/explain";
 import { getCurrentUser } from "@/lib/auth";
-import { hasApiKey } from "@/lib/env";
+import { isAssistantEnabled } from "@/lib/agents/capabilities";
 import { getConversation, listConversations } from "@/lib/assistant/store";
 import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
@@ -32,7 +32,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
           ]}
         />
       </PageHero>
-      <AssistantChat layout="page" enabled={hasApiKey("ANTHROPIC_API_KEY")} suggestions={suggestionsFor(user.role)} initial={selected} conversations={conversations} />
+      <AssistantChat layout="page" enabled={isAssistantEnabled()} suggestions={suggestionsFor(user.role)} initial={selected} conversations={conversations} />
     </div>
   );
 }

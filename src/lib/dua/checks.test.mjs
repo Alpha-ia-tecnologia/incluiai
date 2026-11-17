@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkBlocks, prepareContext, remainingIdentifiers, rulesBlocks } from "./checks.ts";
-import { createAnonymizer } from "../agents/anonymize-core.ts";
+import { checkBlocks, prepareContext, rulesBlocks } from "./checks.ts";
+import { createRedactor, remainingIdentifiers } from "../agents/redactor.ts";
 import { BARRIER_CATEGORIES, DUA_PRINCIPLES } from "./domain.ts";
 
 const PEOPLE = ["Dante Moreira", "Carla Moreira", "Prof.ª Beatriz (AEE)"];
@@ -58,13 +58,13 @@ test("identificadores: texto pedagógico comum passa", () => {
 
 test("preparação: bloqueia quando sobra identificador e passa depois da troca", () => {
   const withNames = context({ organization: "Dante senta perto da professora; Carla Moreira traz o livro de casa." });
-  const partial = createAnonymizer({ student: "Dante Moreira", schools: SCHOOLS });
+  const partial = createRedactor({ focus: "Dante Moreira", schools: SCHOOLS });
   const blocked = prepareContext(withNames, partial, PEOPLE, SCHOOLS);
   assert.equal(blocked.ok, false);
   assert.deepEqual(blocked.reasons, ["nome"]);
 
-  const anonymizer = createAnonymizer({ student: "Dante Moreira", family: ["Carla Moreira"], professionals: ["Prof.ª Beatriz (AEE)"], schools: SCHOOLS });
-  const prepared = prepareContext(withNames, anonymizer, PEOPLE, SCHOOLS);
+  const redactor = createRedactor({ focus: "Dante Moreira", family: ["Carla Moreira"], professionals: ["Prof.ª Beatriz (AEE)"], schools: SCHOOLS });
+  const prepared = prepareContext(withNames, redactor, PEOPLE, SCHOOLS);
   assert.equal(prepared.ok, true);
   assert.ok(!/Dante|Carla|Moreira/.test(prepared.prompt), prepared.prompt);
   assert.match(prepared.prompt, /\[ESTUDANTE\] senta perto da professora; \[FAMILIAR\] traz o livro/);
@@ -73,13 +73,13 @@ test("preparação: bloqueia quando sobra identificador e passa depois da troca"
 });
 
 test("preparação: contexto sem dados pessoais passa sem trocas", () => {
-  const prepared = prepareContext(context(), createAnonymizer({ student: "Dante Moreira" }), PEOPLE, SCHOOLS);
+  const prepared = prepareContext(context(), createRedactor({ focus: "Dante Moreira" }), PEOPLE, SCHOOLS);
   assert.deepEqual([prepared.ok, prepared.removed, prepared.summary], [true, 0, null]);
   assert.deepEqual(JSON.parse(prepared.prompt), context());
 });
 
 test("preparação: intervalo de ano letivo não é telefone", () => {
-  const prepared = prepareContext(context({ organization: "Ano letivo 2025-2026, segundo bimestre." }), createAnonymizer({ student: "Dante Moreira" }), PEOPLE, SCHOOLS);
+  const prepared = prepareContext(context({ organization: "Ano letivo 2025-2026, segundo bimestre." }), createRedactor({ focus: "Dante Moreira" }), PEOPLE, SCHOOLS);
   assert.equal(prepared.ok, true);
 });
 

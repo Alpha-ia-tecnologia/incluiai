@@ -2,8 +2,7 @@ import Link from "next/link";
 import { CircleCheck, EyeOff, FileDown, Printer, Target } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { planningContext } from "@/lib/page-context";
-import { hasApiKey } from "@/lib/env";
-import { isAIEnabled } from "@/lib/agents/model";
+import { canReadFiles, isAIEnabled } from "@/lib/agents/capabilities";
 import { taskContent } from "@/lib/adapted-tasks";
 import { LEVEL_LABEL, type LevelKey } from "@/lib/task-adaptation";
 import { formatDate } from "@/lib/format";
@@ -44,7 +43,7 @@ export default async function LevelsPage({ params, searchParams }: { params: Pro
       {access.edit ? (
         <Card className="min-w-0">
           <SectionTitle>Gerar os níveis de uma atividade</SectionTitle>
-          <AdaptForm action={makeLevels.bind(null, id)} canRead={isAIEnabled() && hasApiKey("ANTHROPIC_API_KEY")} aiOn={isAIEnabled()} showOptions={false} adaptLabel="Gerar os três níveis" />
+          <AdaptForm action={makeLevels.bind(null, id)} canRead={canReadFiles()} aiOn={isAIEnabled()} showOptions={false} adaptLabel="Gerar os três níveis" />
         </Card>
       ) : null}
 

@@ -14,6 +14,9 @@ export type AgentRequest<T> = {
 export type AgentModel = <T>(request: AgentRequest<T>) => Promise<T>;
 
 export type AgentProgress = { agent: string; phase: "queued" | "start" | "end" | "fail" };
+export type AgentReport = (progress: AgentProgress) => void;
+
+export type TraceStep = { agent: string; summary: string };
 
 export class AgentOutputError extends Error {}
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod/v4";
-import { hasApiKey } from "../env";
 import { claudeAgentModel } from "../agents/claude";
+import { canReadFiles } from "../agents/capabilities";
 import { logoPixels, logoPng, type Logo } from "./logo";
 import { DERIVE_MENU, acceptAiAnswer, chooseByRules, isSaturated, pixelsToSwatches, type BrandSuggestion, type Swatch } from "./colors-core";
 
@@ -27,7 +27,7 @@ export async function suggestBrandColors(logo: Logo, municipalityName: string): 
   const swatches = await extractSwatches(logo);
   const rules = chooseByRules(swatches);
   const byRules = (note: string): BrandSuggestion => ({ colors: rules.colors, swatches, source: "regras", note });
-  if (!swatches.some((swatch) => isSaturated(swatch.hex)) || !hasApiKey("ANTHROPIC_API_KEY")) return byRules(rules.note);
+  if (!swatches.some((swatch) => isSaturated(swatch.hex)) || !canReadFiles()) return byRules(rules.note);
   const hexes = swatches.map((swatch) => swatch.hex) as [string, ...string[]];
   try {
     const answer = await claudeAgentModel({

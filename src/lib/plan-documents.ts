@@ -125,6 +125,8 @@ const EXCLUSIVE = [NO_NEED, NO_DEMAND, NO_RESOURCE];
 const fold = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const dropExclusive = (items: string[]) => (items.length > 1 ? items.filter((item) => !EXCLUSIVE.includes(item)) : items);
 
+export const outsideOptions = (items: readonly string[], options: readonly string[]) => items.filter((item) => item.trim() && !options.some((option) => fold(option) === fold(item)));
+
 export function canonicalItems(items: readonly string[], options: readonly string[], config: { strict?: boolean; limit?: number } = {}): string[] {
   const byFold = new Map(options.map((option) => [fold(option), option]));
   const out: string[] = [];

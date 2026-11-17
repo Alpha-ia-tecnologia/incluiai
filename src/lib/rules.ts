@@ -1,5 +1,6 @@
 import type { FunctionalProfile } from "@prisma/client";
 import { parseJson } from "./format";
+import { PERMANENT_RULE_ID, usesAac } from "./pedagogy-rules";
 
 export const RULES_VERSION = "1.0.0";
 
@@ -20,9 +21,7 @@ interface SensoryProfile {
 export function applicableRules(profile: FunctionalProfile): AdaptationRule[] {
   const rules: AdaptationRule[] = [];
   const sensory = parseJson<SensoryProfile>(profile.sensoryProfile, {});
-  const isCAA = profile.expressiveChannel.startsWith("caa") || profile.expressiveChannel === "olhar_acionador";
-
-  if (isCAA) {
+  if (usesAac(profile.expressiveChannel)) {
     rules.push({
       id: "R01-CAA",
       when: "CAA ou acionador como canal expressivo",
@@ -94,7 +93,7 @@ export function applicableRules(profile: FunctionalProfile): AdaptationRule[] {
   }
 
   rules.push({
-    id: "R00-ANTISSEGREGACAO",
+    id: PERMANENT_RULE_ID,
     when: "Regra permanente (item 17.7)",
     then: "Nenhuma atividade de sala comum pode isolar o estudante; indicar como participa junto da turma",
   });

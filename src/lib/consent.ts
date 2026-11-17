@@ -1,9 +1,8 @@
 import "server-only";
 import { db } from "./prisma";
-import { isAIEnabled } from "./agents/model";
-import { isImageGenerationEnabled } from "./images/openai-images";
 import { recordChange } from "./access-log";
 import type { SessionUser } from "./auth";
+import { isFamilyOf } from "./policy";
 import { newCardToken } from "./student-card-core";
 
 export type ConsentField = "aiUse" | "therapistLink" | "card";
@@ -18,19 +17,15 @@ export async function studentConsent(studentId: string): Promise<StudentConsent>
   return { aiUse: consent?.aiUse ?? false, therapistLink: consent?.therapistLink ?? false, card: consent?.card ?? false, updatedAt: consent?.updatedAt ?? null, updatedBy: consent?.updatedBy ?? null };
 }
 
-export async function aiAllowedFor(studentId: string): Promise<boolean> {
-  if (!isAIEnabled()) return false;
-  return (await studentConsent(studentId)).aiUse;
-}
-
-export async function imagesAllowedFor(studentId: string): Promise<boolean> {
-  if (!isImageGenerationEnabled()) return false;
-  return (await studentConsent(studentId)).aiUse;
+export async function aiConsentAmong(studentIds: string[]): Promise<Set<string>> {
+  const prisma = await db();
+  const rows = await prisma.consent.findMany({ where: { studentId: { in: studentIds }, aiUse: true }, select: { studentId: true } });
+  return new Set(rows.map((row) => row.studentId));
 }
 
 export async function setStudentConsent(user: SessionUser, studentId: string, field: ConsentField, value: boolean): Promise<void> {
   const prisma = await db();
-  if (user.role !== "familia" || !user.studentIds.includes(studentId)) throw new Error("Só a família do estudante decide as autorizações.");
+  if (!isFamilyOf(user, studentId)) throw new Error("Só a família do estudante decide as autorizações.");
   await prisma.consent.upsert({
     where: { studentId },
     create: { studentId, [field]: value, updatedBy: user.name },

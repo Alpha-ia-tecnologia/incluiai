@@ -33,6 +33,7 @@ import { RingTile } from "@/components/viz/ring-tile";
 import { SupportTrack } from "@/components/viz/support-track";
 import { Timeline } from "@/components/viz/timeline";
 import { labelCls as familyLabelCls, inputCls as familyInputCls, quietButtonCls } from "@/components/form-styles";
+import { imageWidthOf } from "@/lib/images/activity-image";
 
 
 export const dynamic = "force-dynamic";
@@ -154,7 +155,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                         <Image
                           src={`/api/atividades/${a.id}/imagem?v=${a.image.createdAt.getTime()}`}
                           alt={a.image.altText}
-                          width={a.image.kind === "sequencia" || a.image.kind === "cartoes" ? 1536 : 1024}
+                          width={imageWidthOf(a.image.kind)}
                           height={1024}
                           unoptimized
                           className="mt-3 h-auto w-full rounded-lg border border-line bg-white"

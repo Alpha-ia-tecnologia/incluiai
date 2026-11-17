@@ -1,13 +1,11 @@
 import type { DiaryEntry, FunctionalProfile, Objective, Student } from "@prisma/client";
 import { db } from "../prisma";
 import { parseJson, ageFrom } from "../format";
-import { BARRIERS, CHANNELS, DIMENSIONS, SENSORY_LABELS, SENSORY_VALUES, STAGES, supportInfo } from "../scale";
-import { CASE_STUDY_FIELDS, parseCaseStudy } from "../case-study";
+import { BARRIERS, CHANNELS, DIMENSIONS, SENSORY_LABELS, SENSORY_VALUES, STAGES, SUPPORT_LEVELS, supportInfo } from "../scale";
+import { CASE_STUDY_FIELDS, caseFieldLeavesPlatform, parseCaseStudy } from "../case-study";
 import { splitItems } from "../form-options";
 import { strategiesThatWorked } from "../insights";
 import { guidanceForPlan, parseAccepted } from "../health-report";
-
-const EXCLUDED_CASE_FIELDS = new Set(["diagnostico", "saude", "acompanhamentos", "moraCom", "entrevistados"]);
 
 const SUPPORT_FIELDS: [keyof FunctionalProfile, string][] = [
   ["readingSupport", "Leitura"], ["writingSupport", "Escrita"], ["mathSupport", "Matemática"],
@@ -33,7 +31,7 @@ export function profileText(profile: FunctionalProfile) {
   const list = (value: string) => parseJson<string[]>(value, []).join(", ") || "não informado";
   return [
     `Comunicação: expressa-se por ${CHANNELS[profile.expressiveChannel] ?? profile.expressiveChannel}; compreende melhor por ${CHANNELS[profile.receptiveChannel] ?? profile.receptiveChannel}; compreende comandos de ${profile.commandSteps} etapa(s).`,
-    `Níveis de apoio (0 independente a 5 apoio físico total): ${SUPPORT_FIELDS.map(([field, label]) => `${label}: ${supportText(profile[field] as number)}`).join("; ")}.`,
+    `Níveis de apoio (0 ${SUPPORT_LEVELS[0].label.toLowerCase()} a 5 ${SUPPORT_LEVELS[5].label.toLowerCase()}): ${SUPPORT_FIELDS.map(([field, label]) => `${label}: ${supportText(profile[field] as number)}`).join("; ")}.`,
     `Atenção: cerca de ${profile.attentionMinutes} min. Permanece na tarefa por cerca de ${profile.taskToleranceMinutes} min. Melhor turno: ${profile.bestShift === "tarde" ? "tarde" : "manhã"}.`,
     sensoryNotes.length ? `Sensorial: ${sensoryNotes.join("; ")}.` : "Sensorial: sem particularidades registradas.",
     profile.usesWheelchairOrOrthosis ? "Usa cadeira de rodas ou órtese." : "",
@@ -49,7 +47,7 @@ const withoutCategory = (key: string, value: string) => (key === "publicoAlvo" ?
 export function caseStudyText(content: string | null | undefined) {
   const study = parseCaseStudy(content);
   return CASE_STUDY_FIELDS
-    .filter((field) => !EXCLUDED_CASE_FIELDS.has(field.key) && study[field.key])
+    .filter((field) => caseFieldLeavesPlatform(field.key) && study[field.key])
     .map((field) => `${field.label}: ${field.type === "multi" ? splitItems(study[field.key]).join(", ") : withoutCategory(field.key, study[field.key])}`)
     .join("\n");
 }

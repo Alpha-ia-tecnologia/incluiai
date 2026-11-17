@@ -1,44 +1,22 @@
 import "server-only";
-import { aiAllowedFor } from "../consent";
 import { randomUUID } from "node:crypto";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { parseJson } from "../format";
-import { AGENT_MODEL, DEEPSEEK_MODEL, createAgentModel, isAIEnabled } from "../agents/model";
-import { createAnonymizer, nameTokens, type Anonymizer } from "../agents/anonymize";
+import { runAiJob } from "../agents/job";
+import { namesInScope } from "../agents/names-in-scope";
+import { createRedactor, peopleIn, redactionNames } from "../agents/redactor";
 import { checkBlocks, prepareContext, rulesBlocks, type DuaAiContext, type RawBlocks } from "./checks";
 import { runDuaSuggestionAgents, type DuaAgentsResult } from "./suggestion-agents";
-import { describeAgentError } from "../agents/generate";
 import {
   DUA_PRINCIPLES, PRINCIPLE_LABEL, suggestionStateAfter,
   type AiBlock, type AiCheck, type AiPurpose, type AiState, type DuaContent, type DuaPrinciple, type DuaSupportData,
 } from "./domain";
 import { planningAccess } from "./access";
-import { DuaError, audit, basisHashOf, canWorkWithStudent, clip, contentOf, latestVersion, loadPlanningFor, studentLog } from "./shared";
+import { DuaError, audit, basisHashOf, clip, contentOf, latestVersion, loadPlanningFor, studentLog } from "./shared";
+import { canWorkWithStudent } from "../policy";
 
 export const DUA_PROMPT_VERSION = "dua-sugestoes-2026-11-v2";
-
-async function knownNames(schoolId: string | null) {
-  const prisma = await db();
-  const [students, users, schools] = await Promise.all([
-    prisma.student.findMany({ where: schoolId ? { schoolId } : {}, select: { name: true, guardianName: true } }),
-    prisma.user.findMany({ select: { name: true } }),
-    prisma.school.findMany({ select: { name: true } }),
-  ]);
-  const people = [...students.map((item) => item.name), ...students.map((item) => item.guardianName), ...users.map((item) => item.name)].filter(Boolean);
-  return { students: students.map((item) => item.name), guardians: students.map((item) => item.guardianName).filter(Boolean), professionals: users.map((item) => item.name), schools: schools.map((item) => item.name), people };
-}
-
-function duaAnonymizer(names: Awaited<ReturnType<typeof knownNames>>, studentName: string): Anonymizer {
-  const parts = (list: string[]) => list.flatMap((name) => [name, ...nameTokens(name)]);
-  return createAnonymizer({
-    student: studentName,
-    classmates: parts(names.students.filter((name) => name !== studentName)),
-    family: parts(names.guardians),
-    professionals: parts(names.professionals),
-    schools: names.schools,
-  });
-}
 
 export async function requestSuggestion(user: SessionUser, planningId: string, input: { purpose: AiPurpose; supportId?: string; profileFields?: string[]; requestId: string }) {
   const prisma = await db();
@@ -76,8 +54,9 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
     individual: support ? { barrier: support.data.barrier.description, support: support.data.support, purpose: support.data.purpose, profile: profile.map(({ label, value }) => ({ label, value })) } : null,
   };
 
-  const names = await knownNames(support?.student.schoolId ?? planning.schoolId ?? user.schoolId);
-  const anonymizer = duaAnonymizer(names, support?.student.name ?? "");
+  const names = await namesInScope({ school: support?.student.schoolId ?? planning.schoolId ?? user.schoolId, focus: support?.student.id });
+  const people = peopleIn(names);
+  const schools = names.schools.map((school) => school.name);
   const basisHash = basisHashOf(content);
   const base = {
     planningId, requestId, purpose: input.purpose, supportId: support?.id ?? null, studentId: support?.studentId ?? null,
@@ -85,45 +64,42 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
     promptVersion: DUA_PROMPT_VERSION, requestedById: user.id, requestedByName: user.name,
   };
 
-  const useAI = support ? await aiAllowedFor(support.studentId) : isAIEnabled();
-  let state: AiState = "aguardando_revisao";
-  let provider = useAI ? "ia" : "regras";
-  let model: string | null = useAI ? null : "regras-dua-v1";
-  let raw: RawBlocks | null = null;
-  let review: DuaAgentsResult["review"] | null = null;
-  let error: string | null = null;
   let removed = 0;
-
-  if (useAI) {
-    const prepared = prepareContext(context, anonymizer, names.people, names.schools);
-    if (!prepared.ok) {
-      state = "bloqueado";
-      error = `O contexto ainda tinha dados que identificam pessoas (${prepared.reasons.join(", ")}). Nada foi enviado. Revise os textos do planejamento.`;
-    } else {
+  const outcome = await runAiJob<{ blocked: string[] } | DuaAgentsResult>({
+    task: "sugestão do DUA",
+    scope: { names },
+    student: support?.studentId,
+    deepseekPurpose: "sugestão de apoio na atividade com DUA",
+    run: async (model) => {
+      const prepared = prepareContext(context, createRedactor(redactionNames(names)), people, schools);
+      if (!prepared.ok) return { blocked: prepared.reasons };
       removed = prepared.removed;
-      const agents = createAgentModel(anonymizer);
-      try {
-        ({ raw, review } = await runDuaSuggestionAgents({
-          prompt: `Contexto pedagógico sem dados pessoais (${input.purpose === "apoio_individual" ? "apoio individual" : "opções para a turma"}):\n${prepared.prompt}`,
-          context, people: names.people, schools: names.schools,
-        }, agents.model));
-        const viaDeepSeek = agents.deepseekAgents().length > 0;
-        model = viaDeepSeek ? DEEPSEEK_MODEL : AGENT_MODEL;
-        if (viaDeepSeek && support) await studentLog({ ...user, name: "Agentes de IA", role: "sistema" }, support.studentId, "enviou", "Informações pedagógicas, sem dados pessoais, enviadas ao DeepSeek (sugestão de apoio na atividade com DUA)");
-      } catch (failure) {
-        state = "falhou";
-        error = `A IA não respondeu (${describeAgentError(failure)}). O preenchimento manual continua disponível.`;
-      }
-    }
-  } else {
-    provider = "regras";
-    raw = rulesBlocks(context);
+      return runDuaSuggestionAgents({
+        prompt: `Contexto pedagógico sem dados pessoais (${input.purpose === "apoio_individual" ? "apoio individual" : "opções para a turma"}):\n${prepared.prompt}`,
+        context, people, schools,
+      }, model);
+    },
+  });
+  const answer = outcome.value && !("blocked" in outcome.value) ? outcome.value : null;
+  const viaRules = outcome.reason === "desligada" || outcome.reason === "sem_autorizacao";
+  const provider = viaRules ? "regras" : "ia";
+  const model = viaRules ? "regras-dua-v1" : answer ? outcome.model : null;
+  const raw: RawBlocks | null = viaRules ? rulesBlocks(context) : answer?.raw ?? null;
+  const review = answer?.review ?? null;
+  let state: AiState = "aguardando_revisao";
+  let error: string | null = null;
+  if (outcome.value && "blocked" in outcome.value) {
+    state = "bloqueado";
+    error = `O contexto ainda tinha dados que identificam pessoas (${outcome.value.blocked.join(", ")}). Nada foi enviado. Revise os textos do planejamento.`;
+  } else if (outcome.reason === "falhou") {
+    state = "falhou";
+    error = `A IA não respondeu (${outcome.error}). O preenchimento manual continua disponível.`;
   }
 
   let blocks: AiBlock[] = [];
   let checks: AiCheck[] = [];
   if (raw) {
-    ({ blocks, checks } = checkBlocks(raw, context, names.people, names.schools));
+    ({ blocks, checks } = checkBlocks(raw, context, people, schools));
     if (!blocks.length) { state = "falhou"; error = "A resposta não trouxe nenhuma sugestão aproveitável."; }
     if (review) {
       checks.push({

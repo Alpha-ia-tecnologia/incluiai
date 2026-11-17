@@ -38,8 +38,6 @@ export async function latestVersion(planningId: string) {
 
 export const contentOf = (version: { content: string }): DuaContent => normalizeContent(parseJson<Partial<DuaContent> | null>(version.content, null));
 
-export { canWorkWithStudent } from "../policy";
-
 export async function audit(user: SessionUser, planningId: string, action: string, objectType: string, extra: { objectId?: string; versionNumber?: number; detail?: string } = {}) {
   const prisma = await db();
   await prisma.duaAuditEvent.create({

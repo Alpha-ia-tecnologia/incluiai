@@ -1,8 +1,10 @@
 import { z } from "zod/v4";
+import { ACTIVITY_CONTEXTS, OBJECTIVES_PER_PLAN } from "../pedagogy-rules.ts";
+import { SUPPORT_LEVELS } from "../scale.ts";
 
 export const DIMENSION_KEYS = ["comunicacao", "leitura", "escrita", "matematica", "interacao", "autonomia", "regulacao"] as const;
-export const CONTEXT_KEYS = ["sala_comum", "aee", "casa"] as const;
-export type ActivityContext = (typeof CONTEXT_KEYS)[number];
+const objectiveCount = `De ${OBJECTIVES_PER_PLAN.min} a ${OBJECTIVES_PER_PLAN.max}`;
+const supportEnds = `de 0 (${SUPPORT_LEVELS[0].label.toLowerCase()}) a 5 (${SUPPORT_LEVELS[5].label.toLowerCase()})`;
 
 export const CaseAnalysisSchema = z.object({
   sintese: z.string().describe("Duas a quatro frases sobre como o estudante participa e aprende hoje."),
@@ -11,7 +13,7 @@ export const CaseAnalysisSchema = z.object({
   prioridades: z.array(z.object({
     dimension: z.enum(DIMENSION_KEYS),
     justificativa: z.string(),
-  })).describe("De 2 a 3 áreas para começar, da mais urgente para a menos urgente."),
+  })).describe(`${objectiveCount} áreas para começar, da mais urgente para a menos urgente.`),
   cuidados: z.array(z.string()).describe("Cuidados de regulação, sensoriais ou de comunicação que toda proposta deve respeitar."),
 });
 export type CaseAnalysis = z.infer<typeof CaseAnalysisSchema>;
@@ -22,12 +24,11 @@ export const ProposedObjectiveSchema = z.object({
   condition: z.string().describe("Apoio ou condição. Ex.: com pista visual"),
   criterion: z.string().describe("Critério mensurável, sem a palavra 'em'. Ex.: 4 de 5 tentativas"),
   deadlineWeeks: z.number().int(),
-  currentSupport: z.number().int().describe("Nível de apoio hoje, de 0 (independente) a 5 (apoio físico total)."),
+  currentSupport: z.number().int().describe(`Nível de apoio hoje, ${supportEnds}.`),
   targetSupport: z.number().int().describe("Nível de apoio esperado ao fim do prazo; menor que o atual."),
   bnccCode: z.string().nullable(),
   rationale: z.string().describe("Por que este objetivo, em uma frase, ligado ao que o caso mostrou."),
 });
-export type ProposedObjective = z.infer<typeof ProposedObjectiveSchema>;
 
 // O plano reúne o PAEE e o PEI (Portaria MEC nº 421/2026, arts. 10 e 11) e os
 // objetivos.
@@ -52,7 +53,7 @@ export type PeiProposal = z.infer<typeof PeiProposalSchema>;
 export const ObjectivesProposalSchema = z.object({
   initialSituation: z.array(z.string()).describe("O que o estudante já consegue fazer, item a item."),
   reviewWeeks: z.number().int().describe("Em quantas semanas a equipe deve revisar o plano."),
-  objectives: z.array(ProposedObjectiveSchema).describe("De 2 a 3 objetivos observáveis."),
+  objectives: z.array(ProposedObjectiveSchema).describe(`${objectiveCount} objetivos observáveis.`),
 });
 export type ObjectivesProposal = z.infer<typeof ObjectivesProposalSchema>;
 
@@ -74,15 +75,12 @@ export const PlanProposalSchema = z.object({
 });
 export type PlanProposal = z.infer<typeof PlanProposalSchema>;
 
-export const ReviewSchema = z.object({
-  aprovado: z.boolean(),
-  problemas: z.array(z.object({
-    alvo: z.string().describe("Onde está o problema. Ex.: objetivo 2, estratégias da sala comum, atividade aee"),
-    problema: z.string(),
-    correcao: z.string().describe("O que mudar, de forma concreta."),
-  })),
+const PlanProblemSchema = z.object({
+  alvo: z.string().describe("Onde está o problema. Ex.: objetivo 2, estratégias da sala comum, atividade aee"),
+  problema: z.string(),
+  correcao: z.string().describe("O que mudar, de forma concreta."),
 });
-export type Review = z.infer<typeof ReviewSchema>;
+export type PlanProblem = z.infer<typeof PlanProblemSchema>;
 
 export const PLAN_PARTS = ["paee", "pei", "objetivos"] as const;
 export type PlanPart = (typeof PLAN_PARTS)[number];
@@ -90,7 +88,7 @@ export const PlanReviewSchema = z.object({
   avaliacoes: z.array(z.object({
     parte: z.enum(PLAN_PARTS),
     aprovado: z.boolean(),
-    problemas: ReviewSchema.shape.problemas,
+    problemas: z.array(PlanProblemSchema),
   })).describe("Uma avaliação para cada parte: paee, pei e objetivos."),
 });
 
@@ -111,11 +109,9 @@ export type AgentCard = z.infer<typeof AgentCardSchema>;
 
 export const ActivityReviewSchema = z.object({
   avaliacoes: z.array(z.object({
-    context: z.enum(CONTEXT_KEYS),
+    context: z.enum(ACTIVITY_CONTEXTS),
     aprovado: z.boolean(),
     problemas: z.array(z.string()).describe("Cada problema com a correção esperada."),
   })),
 });
-export type ActivityReview = z.infer<typeof ActivityReviewSchema>;
 
-export type TraceStep = { agent: string; summary: string };

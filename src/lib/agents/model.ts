@@ -1,25 +1,17 @@
-import { claudeAgentModel } from "./claude";
-import { deepseekAgentModel } from "./deepseek";
-import type { AgentModel } from "./types";
-import { hasApiKey, isDeepSeekEnabled } from "../env";
-import { withAnonymization, type Anonymizer } from "./anonymize";
-
-export { AGENT_MODEL, claudeAgentModel } from "./claude";
-export { DEEPSEEK_MODEL, deepseekAgentModel } from "./deepseek";
-export { AgentOutputError, type AgentModel, type AgentRequest } from "./types";
-
-export function isAIEnabled(): boolean {
-  return hasApiKey("ANTHROPIC_API_KEY") || isDeepSeekEnabled();
-}
-
-export { isDeepSeekEnabled };
+import Anthropic from "@anthropic-ai/sdk";
+import { CLAUDE_MODEL, claudeAgentModel } from "./claude";
+import { DEEPSEEK_MODEL, DeepSeekAPIError, deepseekAgentModel } from "./deepseek";
+import { aiProviders, type AiNeed } from "./capabilities";
+import { AgentOutputError, type AgentModel } from "./types";
+import { withRedaction, type Redactor } from "./redactor";
 
 type Provider = { name: "Claude" | "DeepSeek"; call: AgentModel };
 
-export function createAgentModel(anonymizer: Anonymizer) {
+export function createAgentModel(redactor: Redactor, need: AiNeed) {
+  const available = aiProviders();
   const providers: Provider[] = [];
-  if (hasApiKey("ANTHROPIC_API_KEY")) providers.push({ name: "Claude", call: claudeAgentModel });
-  if (isDeepSeekEnabled()) providers.push({ name: "DeepSeek", call: deepseekAgentModel });
+  if (available.claude) providers.push({ name: "Claude", call: claudeAgentModel });
+  if (available.deepseek && need === "text") providers.push({ name: "DeepSeek", call: deepseekAgentModel });
 
   const usedBy = new Map<string, Provider["name"]>();
   const model: AgentModel = async (request) => {
@@ -41,8 +33,20 @@ export function createAgentModel(anonymizer: Anonymizer) {
     throw lastError;
   };
 
+  const deepseekAgents = () => [...usedBy].filter(([, name]) => name === "DeepSeek").map(([agent]) => agent);
   return {
-    model: withAnonymization(model, anonymizer),
-    deepseekAgents: () => [...usedBy].filter(([, name]) => name === "DeepSeek").map(([agent]) => agent),
+    model: withRedaction(model, redactor),
+    deepseekAgents,
+    modelId: () => (deepseekAgents().length ? DEEPSEEK_MODEL : CLAUDE_MODEL),
   };
+}
+
+export function describeAgentError(error: unknown) {
+  if (error instanceof AgentOutputError) return error.message;
+  if (error instanceof DeepSeekAPIError) return error.message;
+  if (error instanceof Anthropic.RateLimitError) return "limite de uso da API atingido";
+  if (error instanceof Anthropic.AuthenticationError) return "chave da API inválida";
+  if (error instanceof Anthropic.APIConnectionError) return "sem conexão com a API";
+  if (error instanceof Anthropic.APIError) return `erro ${error.status} da API`;
+  return "erro inesperado";
 }

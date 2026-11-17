@@ -4,11 +4,9 @@ import { extractText, getDocumentProxy } from "unpdf";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { recordChange } from "../access-log";
-import { studentConsent } from "../consent";
-import { hasApiKey } from "../env";
-import { claudeAgentModel } from "./claude";
-import { describeAgentError } from "./generate";
-import { loadAnonymizer, naturalizePlaceholders, type Anonymizer } from "./anonymize";
+import { runAiJob } from "./job";
+import { DOCUMENT_MARKER_LIST, DOCUMENT_PATTERNS, replacePatterns } from "./redactor";
+import { SAFEGUARDS } from "../pedagogy-rules";
 import { REPORT_FIELDS, REPORT_FIELD_KEYS, fieldOptions, normalizeReading, type RawReading } from "../health-report";
 
 // Fica fora dos arquivos "use server" para não virar uma ação pública.
@@ -34,19 +32,6 @@ export async function extractReportText(bytes: Uint8Array): Promise<Extracted> {
   }
 }
 
-const REPORT_PATTERNS: { label: string; regex: RegExp; replacement: string }[] = [
-  {
-    label: "linhas de identificação",
-    regex: /(?<![\p{L}])(Paciente|Nome(?: completo| do paciente| da criança| do estudante| do aluno)?|M[ãa]e|Pai|Respons[áa]vel(?: legal)?|Filia[çc][ãa]o|Acompanhante|Data de nascimento|Nascimento|D\.?N\.?|Endere[çc]o|Prontu[áa]rio|Matr[íi]cula)\s*:[^\n]*/giu,
-    replacement: "$1: [OMITIDO]",
-  },
-  { label: "nomes de profissionais", regex: /(?<![\p{L}])(?:Dr\.ª|Dra?\.?|Doutora?)\s+\p{Lu}[\p{L}'’-]+(?:\s+(?:d[aeo]s?\s+)?\p{Lu}[\p{L}'’-]+){0,4}/gu, replacement: "[PROFISSIONAL]" },
-  { label: "registros profissionais", regex: /\b(?:CRM|CRP|CRFa|CREFITO|COREN|CRN|CRO|RQE)\b[\s:/-]*(?:[A-Z]{2}[\s:/-]*)?\d[\d./-]*/g, replacement: "[REGISTRO PROFISSIONAL]" },
-  { label: "documentos", regex: /\b\d{3}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, replacement: "[DOCUMENTO]" },
-  { label: "documentos", regex: /\b\d{1,2}\.\d{3}\.\d{3}-[\dXx]\b/g, replacement: "[DOCUMENTO]" },
-  { label: "endereços", regex: /(?<![\p{L}])(?:Rua|Avenida|Av\.|Travessa|Alameda|Rodovia|Estrada|Praça)\s+[^\n,;]{2,80}(?:,\s*(?:n[º°o.]\s*)?\d+[A-Za-z]?)?/gu, replacement: "[ENDEREÇO]" },
-];
-
 const SINGULAR: Record<string, string> = {
   "linhas de identificação": "linha de identificação",
   "nomes de profissionais": "nome de profissional",
@@ -55,23 +40,13 @@ const SINGULAR: Record<string, string> = {
   endereços: "endereço",
 };
 
-export function anonymizeReportText(text: string, anonymizer: Anonymizer): { text: string; note: string } {
-  const counts: Record<string, number> = {};
-  let result = text;
-  for (const pattern of REPORT_PATTERNS) {
-    result = result.replace(pattern.regex, (...args) => {
-      counts[pattern.label] = (counts[pattern.label] ?? 0) + 1;
-      return pattern.replacement.replace("$1", String(args[1] ?? ""));
-    });
-  }
-  result = anonymizer.apply(result);
-  const extra = Object.entries(counts).map(([label, total]) => `${total} ${total === 1 ? SINGULAR[label] ?? label : label}`);
-  const known = anonymizer.summary();
+function privacyNote(known: string | null, documentCounts: Record<string, number>): string {
+  const extra = Object.entries(documentCounts).map(([label, total]) => `${total} ${total === 1 ? SINGULAR[label] ?? label : label}`);
   const note = [
     known,
     extra.length ? `${known ? "Também saíram do texto" : "Antes do envio à IA, saíram do texto"}: ${extra.join(", ")}.` : null,
   ].filter(Boolean).join(" ");
-  return { text: result, note: note || "Nenhuma informação pessoal foi reconhecida no texto enviado à IA." };
+  return note || "Nenhuma informação pessoal foi reconhecida no texto enviado à IA.";
 }
 
 const ReadingSchema = z.object({
@@ -95,7 +70,10 @@ const SYSTEM = `Você apoia a equipe do Atendimento Educacional Especializado (A
 
 O AEE é pedagógico e não depende de laudo. Seu papel é traduzir o documento em barreiras e apoios para o ambiente escolar, não repetir nem avaliar o diagnóstico.
 
-Regras:
+Princípios que valem para tudo o que você escrever:
+${SAFEGUARDS}
+
+Regras da leitura:
 - Use só o que está escrito no documento. Se algo não aparece, não sugira. Não complete lacunas com o que costuma valer para um diagnóstico.
 - O resumo e as orientações falam de participação, comunicação, aprendizagem, rotina, ambiente e apoios. Não citam nome de diagnóstico, CID, medicamento, dose nem exame.
 - O diagnóstico, quando o documento traz, só aparece como sugestão para o campo "diagnostico", escolhendo entre as opções da lista.
@@ -103,21 +81,13 @@ Regras:
 - "publicoAlvo" só quando o documento deixa claro deficiência, transtorno do espectro autista ou altas habilidades.
 - "Medicação no horário escolar" só se o documento indicar dose durante o período da escola.
 - Cada sugestão e cada orientação traz um trecho curto do documento que a sustenta, copiado sem alterar.
-- Os marcadores entre colchetes ([ESTUDANTE], [PROFISSIONAL], [DATA], [OMITIDO] e outros) substituem dados pessoais. Mantenha-os como estão e não tente adivinhar o que escondem.
+- Os marcadores entre colchetes (${DOCUMENT_MARKER_LIST}) substituem dados pessoais. Mantenha-os como estão e não tente adivinhar o que escondem.
 - Escreva em português do Brasil, com frases curtas e sem jargão clínico.
 - Se o documento não for um laudo ou relatório de saúde, use tipoDocumento "outro" e deixe orientações e sugestões vazias.`;
 
 function buildPrompt(text: string) {
   const fields = REPORT_FIELDS.map((field) => `- ${field.key} (${field.label}; ${field.type === "multi" ? "várias respostas" : "uma resposta"}): ${fieldOptions(field).map((option) => `"${option}"`).join("; ")}`);
   return `## Campos do estudo de caso que você pode sugerir\n${fields.join("\n")}\n\n## Documento (texto extraído do PDF, já anonimizado)\n"""\n${text}\n"""`;
-}
-
-const LEFTOVER_MARKERS = /\[(OMITIDO|REGISTRO PROFISSIONAL|ENDEREÇO)\]/g;
-function withoutMarkers<T>(value: T): T {
-  if (typeof value === "string") return value.replace(LEFTOVER_MARKERS, "(informação omitida)") as T;
-  if (Array.isArray(value)) return value.map((item) => withoutMarkers(item)) as T;
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, withoutMarkers(item)])) as T;
-  return value;
 }
 
 export async function processHealthReport(reportId: string, user: SessionUser) {
@@ -133,17 +103,21 @@ export async function processHealthReport(reportId: string, user: SessionUser) {
     if (extracted.error === "ilegivel") return save({ status: "falhou", failure: "Não foi possível abrir este PDF. Ele pode estar danificado." });
     return save({ status: "sem_texto" });
   }
-  if (!hasApiKey("ANTHROPIC_API_KEY")) return save({ status: "ia_desligada" });
-  if (!(await studentConsent(report.studentId)).aiUse) return save({ status: "sem_autorizacao" });
-
-  const { text, note } = anonymizeReportText(extracted.text, await loadAnonymizer(report.studentId));
+  const documentCounts: Record<string, number> = {};
+  const text = replacePatterns(extracted.text, DOCUMENT_PATTERNS, documentCounts);
+  const outcome = await runAiJob<RawReading>({
+    task: "leitura do laudo",
+    scope: { student: report.studentId },
+    student: report.studentId,
+    needs: "files",
+    run: (model) => model({ agent: "Leitura do laudo", system: SYSTEM, prompt: buildPrompt(text), schema: ReadingSchema, effort: "medium" }),
+  });
+  if (outcome.reason === "desligada") return save({ status: "ia_desligada" });
+  if (outcome.reason === "sem_autorizacao") return save({ status: "sem_autorizacao" });
+  const note = privacyNote(outcome.privacy.summary, documentCounts);
   try {
-    const raw = await claudeAgentModel<RawReading>({ agent: "Leitura do laudo", system: SYSTEM, prompt: buildPrompt(text), schema: ReadingSchema, effort: "medium" });
-    const reading = normalizeReading(withoutMarkers(naturalizePlaceholders(raw)));
-    await save({ status: "lido", reading: JSON.stringify(reading), privacyNote: note });
-  } catch (error) {
-    console.error("[laudo] leitura pela IA falhou:", error);
-    await save({ status: "falhou", privacyNote: note, failure: `A leitura pela IA não terminou (${describeAgentError(error)}). O arquivo continua guardado.` });
+    if (outcome.value) await save({ status: "lido", reading: JSON.stringify(normalizeReading(outcome.value)), privacyNote: note });
+    else await save({ status: "falhou", privacyNote: note, failure: `A leitura pela IA não terminou (${outcome.error}). O arquivo continua guardado.` });
   } finally {
     await recordChange(user, report.studentId, "enviou à IA", "Texto do laudo, sem nomes nem contatos, para leitura (Claude)");
   }

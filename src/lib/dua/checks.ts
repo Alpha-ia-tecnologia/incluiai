@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { PATTERNS, escape, isYearRange, nameTokens, type Anonymizer } from "../agents/anonymize-core.ts";
+import { z } from "zod/v4";
+import { remainingIdentifiers, type Redactor } from "../agents/redactor.ts";
+import { hasClinicalTerm } from "../pedagogy-rules.ts";
 import {
-  BARRIER_CATEGORY_LABEL, DUA_PRINCIPLES,
+  BARRIER_CATEGORY_LABEL, DUA_PRINCIPLES, MAX_AI_BLOCKS,
   type AiBlock, type AiCheck, type AiPurpose, type BarrierCategory, type BarrierStatus, type DuaPrinciple,
 } from "./domain.ts";
 
@@ -18,46 +20,30 @@ export type DuaAiContext = {
   individual: null | { barrier: string; support: string; purpose: string; profile: Array<{ label: string; value: string }> };
 };
 
-export type RawBlock = {
-  objectiveConsidered: string;
-  barrierId: string | null;
-  hypothesis: string | null;
-  strategy: string;
-  principles: DuaPrinciple[];
-  justification: string;
-  resources: string[];
-  suggestedEvidence: string;
-  pendingInformation: string[];
-  criterionProposal: string | null;
-  reviewerNotes?: string[];
-};
-export type RawBlocks = { blocks: RawBlock[] };
+export const principleEnum = z.enum(DUA_PRINCIPLES as unknown as [DuaPrinciple, ...DuaPrinciple[]]);
 
-export function remainingIdentifiers(text: string, people: string[], schools: string[]): string[] {
-  const found = new Set<string>();
-  for (const pattern of PATTERNS) {
-    const matches = text.match(new RegExp(pattern.regex.source, pattern.regex.flags)) ?? [];
-    if (matches.some((match) => pattern.replacement !== "[TELEFONE]" || (match.replace(/\D/g, "").length >= 8 && !isYearRange(match)))) found.add(pattern.label);
-  }
-  for (const name of [...people, ...schools]) {
-    const full = name.trim();
-    if (full.length >= 5 && new RegExp(`(?<![\\p{L}])${escape(full)}(?![\\p{L}])`, "iu").test(text)) found.add("nome");
-  }
-  for (const token of new Set(people.flatMap(nameTokens))) {
-    if (new RegExp(`(?<![\\p{L}\\p{N}])${escape(token)}(?![\\p{L}\\p{N}])`, "u").test(text)) found.add("nome");
-  }
-  return [...found];
-}
+export const BlockSchema = z.object({
+  objectiveConsidered: z.string().describe("O objetivo do professor, preservando o sentido. Se propuser mudança, escreva a mudança aqui."),
+  barrierId: z.string().nullable().describe("Id de uma barreira recebida, ou null."),
+  hypothesis: z.string().nullable().describe("Hipótese a verificar quando a barreira não estiver na lista, ou null."),
+  strategy: z.string().describe("Ação concreta e verificável: quais materiais, para qual finalidade, em que momento e como."),
+  principles: z.array(principleEnum),
+  justification: z.string().describe("Relação entre a estratégia, a barreira e o objetivo."),
+  resources: z.array(z.string()).describe("Materiais, organização ou apoios necessários."),
+  suggestedEvidence: z.string().describe("O que poderá ser observado durante a atividade, ligado aos critérios."),
+  pendingInformation: z.array(z.string()).describe("Dados ou decisões que dependem do professor."),
+  criterionProposal: z.string().nullable().describe("Novo critério observável, ou null."),
+});
+export type RawBlock = z.infer<typeof BlockSchema> & { reviewerNotes?: string[] };
+export type RawBlocks = { blocks: RawBlock[] };
 
 export type PreparedContext = { ok: true; prompt: string; removed: number; summary: string | null } | { ok: false; reasons: string[] };
 
-export function prepareContext(context: DuaAiContext, anonymizer: Anonymizer, people: string[], schools: string[]): PreparedContext {
-  const prompt = anonymizer.apply(JSON.stringify(context));
+export function prepareContext(context: DuaAiContext, redactor: Redactor, people: string[], schools: string[]): PreparedContext {
+  const prompt = redactor.redact(JSON.stringify(context));
   const reasons = remainingIdentifiers(prompt, people, schools);
   if (reasons.length) return { ok: false, reasons };
-  const summary = anonymizer.summary();
-  const removed = summary ? Number((summary.match(/\d+/g) ?? []).reduce((total, value) => total + Number(value), 0)) : 0;
-  return { ok: true, prompt, removed, summary };
+  return { ok: true, prompt, removed: redactor.removed(), summary: redactor.summary() };
 }
 
 const RULES: Record<BarrierCategory, { strategy: string; principles: DuaPrinciple[]; resources: string[]; evidence: string }> = {
@@ -73,7 +59,7 @@ const RULES: Record<BarrierCategory, { strategy: string; principles: DuaPrincipl
 export function rulesBlocks(context: DuaAiContext): RawBlocks {
   const barriers = context.barriers.length ? context.barriers : [{ id: "", description: "", category: "outra" as BarrierCategory, status: "hipotese" as BarrierStatus }];
   const seen = new Set<BarrierCategory>();
-  const blocks = barriers.filter((barrier) => (seen.has(barrier.category) ? false : (seen.add(barrier.category), true))).slice(0, 5).map((barrier) => {
+  const blocks = barriers.filter((barrier) => (seen.has(barrier.category) ? false : (seen.add(barrier.category), true))).slice(0, MAX_AI_BLOCKS).map((barrier) => {
     const rule = RULES[barrier.category];
     return {
       objectiveConsidered: context.objective.learning,
@@ -92,7 +78,6 @@ export function rulesBlocks(context: DuaAiContext): RawBlocks {
 }
 
 const normalize = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-const DIAGNOSIS = /\b(diagnos\w*|laudo\w*|cid\b|cid[- ]?\d{1,2}\b|cid[- ]?[a-z]\d|tea\b|tdah\b|autis\w*|sindrome\w*|transtorno\w*|deficiencia intelectual|medicament\w*|medicacao|medicad[oa]s?\b|terapia\w*)/;
 const REDUCTION = /\b(simplifi\w*|reduzi\w*|diminui\w*|facilit\w*)\b[^.]{0,60}\b(por causa|devido|em razao|por ser|por ter)\b[^.]{0,40}\b(deficien\w*|condic\w*|diagnost\w*|transtorno)/;
 const INVENTED = /\b(o estudante|a estudante|o aluno|a aluna|a turma)\s+(demonstrou|apresentou|conseguiu|realizou|respondeu|disse|falou|mostrou)\b|\bobservou-se\b|\bfoi observad\w*|\bna ultima aula\b|\bno ultimo atendimento\b/;
 const ATTENDANCE_AS_EVIDENCE = /\b(frequencia|presenca|assiduidade)\b[^.]{0,60}\b(comprova|demonstra|evidencia|indica)\b[^.]{0,40}\b(aprend\w*|evolu\w*|progress\w*)/;
@@ -103,7 +88,7 @@ export function checkBlocks(raw: RawBlocks, context: DuaAiContext, people: strin
   const barrierIds = new Set(context.barriers.map((item) => item.id));
   const objective = normalize(context.objective.learning);
   const counts = { structure: 0, references: 0, identifiers: 0, forbidden: 0, invented: 0, objective: 0, criterion: 0 };
-  const candidates = raw.blocks.slice(0, 5).filter((item) => {
+  const candidates = raw.blocks.slice(0, MAX_AI_BLOCKS).filter((item) => {
     const ok = typeof item.strategy === "string" && item.strategy.trim().length >= 5;
     if (!ok) counts.structure += 1;
     return ok;
@@ -126,7 +111,7 @@ export function checkBlocks(raw: RawBlocks, context: DuaAiContext, people: strin
       blocked = true;
       problems.push("Continha identificador de pessoa, escola ou contato: o bloco não pode ser aceito.");
     }
-    if (DIAGNOSIS.test(text) || REDUCTION.test(text)) {
+    if (hasClinicalTerm(text) || REDUCTION.test(text)) {
       counts.forbidden += 1;
       blocked = true;
       problems.push("Mencionava diagnóstico, condição clínica ou redução de complexidade por deficiência.");
