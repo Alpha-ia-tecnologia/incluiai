@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "./prisma";
 import { activeGrant, getCurrentUser, type SessionUser } from "./auth";
 import { recordView } from "./access-log";
-import { canAccessStudent, studentPathFor } from "./policy";
+import { canAccessStudent, isFamilyOf, studentPathFor } from "./policy";
 import { can } from "./roles";
 import { isTabVisible } from "./student-tab-list";
 import { DuaError } from "./dua/shared";
@@ -77,6 +77,6 @@ const familyPortalContext = cache(async (studentId: string) => {
 
 export async function requireFamilyPortal(studentId: string, section: string) {
   const context = await familyPortalContext(studentId);
-  await recordView(context.user, studentId, section);
+  if (!isFamilyOf(context.user, studentId)) await recordView(context.user, studentId, section);
   return context;
 }
