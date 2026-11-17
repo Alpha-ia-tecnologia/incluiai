@@ -14,6 +14,7 @@ import { createFamilyNote, markHomeActivityDone } from "@/actions/diary";
 import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { PendingButton } from "@/components/pending-button";
+import { ActionForm } from "@/components/action-form";
 import { parseJson, formatDate } from "@/lib/format";
 import { roleLabel } from "@/lib/roles";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
@@ -164,11 +165,11 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                       ) : null}
                       {doneAt ? <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-green"><CircleCheck size={14} aria-hidden /> Vocês fizeram esta atividade em {formatDate(doneAt)}. A escola foi avisada.</p> : null}
                       {isFamily ? (
-                        <form action={markHomeActivityDone.bind(null, a.id)} className="mt-3">
+                        <ActionForm action={markHomeActivityDone.bind(null, a.id)} className="mt-3">
                           <PendingButton className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-green/50 bg-green-soft px-4 text-sm font-medium text-green hover:bg-green-soft/70" pendingText="Avisando a escola...">
                             <CircleCheck size={16} aria-hidden /> {doneAt ? "Fizemos de novo" : "Fizemos esta atividade"}
                           </PendingButton>
-                        </form>
+                        </ActionForm>
                       ) : null}
                     </li>
                   );
@@ -228,10 +229,10 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
               {decidesCard ? (
                 <div className="mt-5 border-t border-line pt-5">
                   <CardPreferencesForm action={saveCardPreferences.bind(null, id)} firstName={firstName} settings={cardView.settings} guardian={cardView.guardian} hasProfile={cardView.settings.hasProfile} />
-                  <form action={rotateStudentCard.bind(null, id)} className="mt-4 border-t border-line pt-4">
+                  <ActionForm action={rotateStudentCard.bind(null, id)} className="mt-4 border-t border-line pt-4">
                     <p className="mb-2 text-sm text-ink-soft">Perderam a carteirinha? Troquem o código: a antiga deixa de abrir.</p>
                     <PendingButton className={BUTTON_CLS.quiet} pendingText="Trocando o código…">Trocar o código</PendingButton>
-                  </form>
+                  </ActionForm>
                 </div>
               ) : null}
             </Card>
@@ -262,13 +263,15 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
         <div className="space-y-5">
           <Card className="scroll-mt-24 border-green/40" id="conquista">
             <SectionTitle>Registrar uma conquista de casa</SectionTitle>
-            <form action={addNote} className="space-y-4">
-              <MultiChoiceField name="note" label="O que aconteceu? *" options={FAMILY_ACHIEVEMENT_OPTIONS} required otherPlaceholder={`Ex.: ${firstName} pediu água durante o jantar`} />
-              <ChoiceField name="author" label="Quem observou" options={FAMILY_MEMBER_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: madrinha" />
-              <button type="submit" className="min-h-11 rounded-full bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-strong">
-                Enviar
-              </button>
-            </form>
+            <ActionForm action={addNote}>
+              <div className="space-y-4">
+                <MultiChoiceField name="note" label="O que aconteceu? *" options={FAMILY_ACHIEVEMENT_OPTIONS} required otherPlaceholder={`Ex.: ${firstName} pediu água durante o jantar`} />
+                <ChoiceField name="author" label="Quem observou" options={FAMILY_MEMBER_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: madrinha" />
+                <button type="submit" className="min-h-11 rounded-full bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-strong">
+                  Enviar
+                </button>
+              </div>
+            </ActionForm>
           </Card>
 
           {student.familyNotes.length ? (

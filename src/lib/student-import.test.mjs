@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { IMPORT_TEMPLATE, dateOf, mapHeader, parseCsv, readStudentSheet, shiftOf, stageOf, studentKey } from "./student-import.ts";
+import { IMPORT_TEMPLATE, mapHeader, parseCsv, readStudentSheet, studentKey } from "./student-import.ts";
+import { dateOf, readStudentRecord, shiftOf, stageOf } from "./student-record.ts";
 
 const today = new Date("2026-10-19T12:00:00Z");
 
@@ -43,7 +44,6 @@ test("o modelo para baixar: formato certo, mas os exemplos não viram estudantes
   assert.equal(problem, null);
   assert.equal(rows.length, 2);
   assert.deepEqual(rows.map((row) => row.errors), [[], []]);
-  assert.equal(rows[0].values.hasAEE, true);
   assert.equal(rows[0].values.shift, "manha");
   assert.equal(rows[1].values.stage, "anos_finais");
   assert.equal(rows[1].values.guardianPhone, null);
@@ -65,7 +65,6 @@ test("cada linha diz o que falta, e repetidos são apontados", () => {
   assert.ok(rows[1].errors.some((error) => error.startsWith("informe a etapa")));
   assert.ok(!rows[1].errors.some((error) => error.startsWith("AEE")));
   assert.equal(rows[2].errors.length, 0);
-  assert.equal(rows[2].values.hasAEE, true);
   assert.deepEqual(rows[3].errors, ["repetido na planilha (linha 4)"]);
 });
 
@@ -76,4 +75,15 @@ test("limites e planilhas sem dados", () => {
   const many = ["nome;nascimento;ano;turma;turno;responsavel", ...Array.from({ length: 501 }, (_, i) => `Pessoa ${i};01/01/2015;2º ano;A;manhã;R`)].join("\n");
   assert.match(readStudentSheet(many, today).problem, /no máximo 500/);
   assert.equal(studentKey("Ána  Lima", "2015-01-01"), studentKey("ana lima", "2015-01-01"));
+});
+
+test("o formulário de cadastro segue as mesmas regras da planilha", () => {
+  const fields = { name: "  Ana   Lima ", birthDate: "2017-03-05", stage: "anos_iniciais", gradeYear: "2º ano", className: "Turma A", shift: "manha", guardianName: "Rosa  Lima", guardianPhone: "", aeeFrequency: "2x por semana", accessibilityNotes: "", supportProfessional: true };
+  const { record, problems } = readStudentRecord(fields, today);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(record, { name: "Ana Lima", birthDate: "2017-03-05", stage: "anos_iniciais", gradeYear: "2º ano", className: "Turma A", shift: "manha", guardianName: "Rosa Lima", guardianPhone: null, aeeFrequency: "2x por semana", accessibilityNotes: null, supportProfessional: true });
+  const wrong = readStudentRecord({ ...fields, name: "Al", birthDate: "2030-01-01", stage: "fundamental_3", className: " " }, today);
+  assert.equal(wrong.record, null);
+  assert.deepEqual(wrong.problems.map((item) => item.field), ["name", "birthDate", "stage", "className"]);
+  assert.ok(wrong.problems.some((item) => item.message === 'etapa não reconhecida ("fundamental_3")'));
 });

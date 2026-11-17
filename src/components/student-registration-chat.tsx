@@ -14,7 +14,7 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import { createStudent } from "@/actions/students";
+import { createStudentAction } from "@/actions/students";
 import { Character } from "@/components/character";
 import { BUTTON_CLS } from "@/components/form-styles";
 import {
@@ -330,7 +330,8 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
     startTransition(async () => {
       try {
         setError("");
-        await createStudent(formData);
+        const result = await createStudentAction(formData);
+        if (!result.ok) setError([result.message, ...(result.problems ?? []).map((problem) => problem.message)].join(" · "));
       } catch (error) {
         // O redirecionamento para a ficha do estudante chega aqui como erro
         // interno do Next: ele segue adiante, não é falha ao salvar.

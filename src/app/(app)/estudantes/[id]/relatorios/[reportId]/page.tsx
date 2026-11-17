@@ -9,6 +9,7 @@ import { Card } from "@/components/ui";
 import { ReportView } from "@/components/reports/report-view";
 import { OpinionEditor } from "@/components/reports/report-forms";
 import { BUTTON_CLS, linkCls } from "@/components/form-styles";
+import { ActionForm } from "@/components/action-form";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +30,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         <Link href={`/estudantes/${id}/relatorios`} className={`inline-flex min-h-11 items-center gap-2 text-sm ${linkCls}`}><ArrowLeft size={16} aria-hidden /> Relatórios do período</Link>
         <div className="flex flex-wrap gap-2">
           {editing ? (
-            <form action={refreshReportData.bind(null, id, report.id)}>
+            <ActionForm action={refreshReportData.bind(null, id, report.id)}>
               <button type="submit" className={BUTTON_CLS.quiet}><RefreshCw size={16} aria-hidden /> Atualizar com os registros</button>
-            </form>
+            </ActionForm>
           ) : null}
           <Link href={`/estudantes/${id}/relatorios/${report.id}/imprimir`} className={BUTTON_CLS.quiet}><Printer size={16} aria-hidden /> Imprimir ou salvar em PDF</Link>
         </div>
@@ -45,9 +46,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           <details className="mt-6 rounded-2xl bg-surface-muted p-4">
             <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir este rascunho</summary>
             <p className="my-3 text-sm text-ink-soft">O rascunho e o parecer escrito saem. Os registros do período continuam na ficha.</p>
-            <form action={removeReportDraft.bind(null, id, report.id)}>
+            <ActionForm action={removeReportDraft.bind(null, id, report.id)}>
               <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir o rascunho</button>
-            </form>
+            </ActionForm>
           </details>
         </Card>
       ) : null}

@@ -2,13 +2,14 @@
 
 import { useActionState } from "react";
 import { ClipboardCheck } from "lucide-react";
-import type { AssessmentState } from "@/actions/assessments";
+import type { ActionResult } from "@/lib/action-result";
+import { Field, FormResult } from "@/components/form-kit";
 import { AREAS, ITEMS, type Answers } from "@/lib/assessment";
 import { SUPPORT_LEVELS } from "@/lib/scale";
-import { hintCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
+import { inputCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 
-export function AssessmentForm({ action, previous }: { action: (state: AssessmentState, formData: FormData) => Promise<AssessmentState>; previous: Answers | null }) {
-  const [state, submit, pending] = useActionState(action, {});
+export function AssessmentForm({ action, previous }: { action: (previous: ActionResult | null, formData: FormData) => Promise<ActionResult>; previous: Answers | null }) {
+  const [result, submit, pending] = useActionState(action, null);
   return (
     <form action={submit} className="grid min-w-0 gap-6">
       {previous ? <p className="rounded-xl bg-sky-soft/60 px-4 py-3 text-sm leading-relaxed text-ink">Os campos começam com as respostas da última sondagem. Mude o que mudou e deixe como não observado o que você não viu nesta aplicação.</p> : null}
@@ -26,12 +27,10 @@ export function AssessmentForm({ action, previous }: { action: (state: Assessmen
           ))}
         </fieldset>
       ))}
-      <div>
-        <label htmlFor="sondagem-notas" className={labelCls}>Observações (opcional)</label>
-        <p id="sondagem-notas-dica" className={hintCls}>Onde e como a observação foi feita, quem participou.</p>
-        <textarea id="sondagem-notas" name="notes" rows={3} maxLength={2000} aria-describedby="sondagem-notas-dica" className={textareaCls} />
-      </div>
-      {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
+      <Field id="sondagem-notas" label="Observações (opcional)" hint="Onde e como a observação foi feita, quem participou.">
+        {(control) => <textarea {...control} name="notes" rows={3} maxLength={2000} className={textareaCls} />}
+      </Field>
+      <FormResult result={result} />
       <div>
         <button type="submit" disabled={pending} className={BUTTON_CLS.primary}><ClipboardCheck size={16} aria-hidden /> {pending ? "Salvando…" : "Salvar a sondagem"}</button>
       </div>

@@ -1,23 +1,23 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { runFormAction } from "@/lib/server-action";
 import { saveIntersectorReport } from "@/lib/records";
 
-export async function createIntersectorReport(studentId: string, formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Faça login para enviar o relatório.");
-  const text = (field: string) => String(formData.get(field) ?? "").trim();
-  await saveIntersectorReport(user, studentId, {
-    communication: text("communication"),
-    accessResources: text("accessResources"),
-    positioning: text("positioning") || null,
-    facilitators: text("facilitators"),
-    schoolGuidance: text("schoolGuidance"),
-    strategiesToTry: text("strategiesToTry"),
-    sharedGoals: text("sharedGoals"),
-  });
+const reportForm = z.object({
+  communication: formField.text(),
+  accessResources: formField.text(),
+  positioning: formField.optionalText(),
+  facilitators: formField.text(),
+  schoolGuidance: formField.text(),
+  strategiesToTry: formField.text(),
+  sharedGoals: formField.text(),
+});
 
-  revalidatePath("/terapeuta");
-  revalidatePath(`/estudantes/${studentId}`);
+export async function createIntersectorReport(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, reportForm, async (user, report) => {
+    await saveIntersectorReport(user, studentId, report);
+  });
 }

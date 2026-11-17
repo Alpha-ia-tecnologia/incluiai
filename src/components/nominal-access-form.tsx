@@ -2,9 +2,10 @@
 
 import { useActionState } from "react";
 import { KeyRound } from "lucide-react";
-import type { NominalAccessState } from "@/actions/access";
+import type { ActionResult } from "@/lib/action-result";
 import { ChoiceField } from "@/components/choice-field";
-import { hintCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, textareaCls } from "@/components/form-styles";
 
 const REASONS = [
   "Demanda da família ou da escola",
@@ -13,17 +14,15 @@ const REASONS = [
   "Requisição de órgão de proteção (Conselho Tutelar, Ministério Público)",
 ];
 
-export function NominalAccessForm({ action }: { action: (previous: NominalAccessState, formData: FormData) => Promise<NominalAccessState> }) {
-  const [state, submit, pending] = useActionState(action, {});
+export function NominalAccessForm({ action }: { action: (previous: ActionResult | null, formData: FormData) => Promise<ActionResult> }) {
+  const [result, submit, pending] = useActionState(action, null);
   return (
     <form action={submit} className="grid gap-5">
       <ChoiceField name="reason" label="Motivo do acesso (obrigatório)" options={REASONS} required otherPlaceholder="Descreva o motivo" />
-      <div>
-        <label htmlFor="access-detail" className={labelCls}>O que você precisa ver e por quê (obrigatório)</label>
-        <p id="access-detail-hint" className={hintCls}>A família vê este texto no histórico de quem acessou os dados do estudante.</p>
-        <textarea id="access-detail" name="detail" required minLength={10} maxLength={240} rows={3} aria-describedby="access-detail-hint" className={textareaCls} />
-      </div>
-      {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
+      <Field id="access-detail" label="O que você precisa ver e por quê (obrigatório)" hint="A família vê este texto no histórico de quem acessou os dados do estudante.">
+        {(control) => <textarea {...control} name="detail" required minLength={10} maxLength={240} rows={3} className={textareaCls} />}
+      </Field>
+      <FormResult result={result} />
       <div>
         <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           <KeyRound size={16} aria-hidden /> {pending ? "Registrando o acesso…" : "Registrar o motivo e abrir a ficha"}

@@ -1,70 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { AUDIT_ACTION, recordChange } from "@/lib/audit";
-import { requireStudentTeam } from "@/lib/auth";
-import { can } from "@/lib/roles";
-import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, RETIRED_CASE_FIELDS, conductedByAee, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
+import type { ActionResult } from "@/lib/action-result";
+import { runAction } from "@/lib/server-action";
+import { saveCaseStudy } from "@/lib/case-studies";
 
-const MAX_LENGTH = 3000;
-
-export async function saveCaseStudy(studentId: string, formData: FormData) {
-  const prisma = await db();
-  const user = await requireStudentTeam(studentId);
-  const clinical = can(user.role, "seeClinical");
-  const previous = parseCaseStudy((await prisma.caseStudy.findUnique({ where: { studentId }, select: { content: true } }))?.content);
-  const stored = clinical ? null : previous;
-  const content: CaseStudyContent = {};
-  for (const key of RETIRED_CASE_FIELDS) if (previous[key]) content[key] = previous[key];
-  for (const field of CASE_STUDY_FIELDS) {
-    if (!clinical && CLINICAL_CASE_FIELDS.has(field.key)) {
-      if (stored?.[field.key]) content[field.key] = stored[field.key];
-      continue;
-    }
-    const value = String(formData.get(field.key) ?? "").trim().slice(0, MAX_LENGTH);
-    if (value) content[field.key] = value;
-  }
-
-  const conclude = formData.get("intent") === "concluir";
-  if (conclude && missingToConclude(content).length > 0) {
-    throw new Error("Preencha os campos essenciais antes de concluir o estudo de caso.");
-  }
-
-  // Conduzido pelo professor do AEE (INEP).
-  const missingAee = conclude && !conductedByAee(content);
-  const concluding = conclude && !missingAee;
-
-  const existing = await prisma.caseStudy.findUnique({ where: { studentId }, select: { status: true } });
-  const status = concluding ? "concluido" : existing?.status === "concluido" ? "concluido" : "rascunho";
-  const data = {
-    content: JSON.stringify(content),
-    status,
-    updatedBy: user.name,
-    ...(concluding && existing?.status !== "concluido" ? { concludedAt: new Date() } : {}),
-  };
-  await prisma.caseStudy.upsert({
-    where: { studentId },
-    create: { studentId, ...data },
-    update: data,
+export async function saveCaseStudyAction(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runAction(async (user) => {
+    const conclude = formData.get("intent") === "concluir";
+    const { status, missingAee } = await saveCaseStudy(user, studentId, { answers: (key) => formData.get(key), conclude });
+    const page = `/estudantes/${studentId}/estudo-de-caso`;
+    if (missingAee) redirect(`${page}?${status === "concluido" ? "editar=1&" : ""}faltaAee=1#secao-essencial`);
+    redirect(`${page}${conclude || status === "concluido" ? "?concluido=1" : "?salvo=1"}`);
   });
-
-  await recordChange(user, studentId, existing ? AUDIT_ACTION.edited : AUDIT_ACTION.created, "Estudo de caso");
-  if (concluding && existing?.status !== "concluido") {
-    await prisma.timelineEvent.create({
-      data: {
-        studentId,
-        type: "avaliacao",
-        title: "Estudo de caso concluído",
-        description: content.sintese ?? null,
-      },
-    });
-  }
-
-  revalidatePath("/estudantes/[id]", "layout");
-  revalidatePath("/estudantes");
-  revalidatePath("/");
-  if (missingAee) redirect(`/estudantes/${studentId}/estudo-de-caso?${status === "concluido" ? "editar=1&" : ""}faltaAee=1#secao-essencial`);
-  redirect(`/estudantes/${studentId}/estudo-de-caso${conclude || status === "concluido" ? "?concluido=1" : "?salvo=1"}`);
 }

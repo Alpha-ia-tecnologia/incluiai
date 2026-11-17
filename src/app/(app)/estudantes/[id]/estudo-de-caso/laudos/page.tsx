@@ -7,7 +7,7 @@ import { studentConsent } from "@/lib/consent";
 import { canReadFiles } from "@/lib/agents/capabilities";
 import { reportStatus } from "@/lib/health-report";
 import { formatDate } from "@/lib/format";
-import { uploadHealthReport } from "@/actions/health-reports";
+import { uploadHealthReportAction } from "@/actions/health-reports";
 import { HealthReportUpload } from "@/components/health-report-upload";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
@@ -37,7 +37,7 @@ export default async function HealthReportsPage({
     studentConsent(id),
   ]);
   const firstName = student.name.split(" ")[0];
-  const upload = uploadHealthReport.bind(null, id);
+  const upload = uploadHealthReportAction.bind(null, id);
   const consentMissing = canReadFiles() && !consent.aiUse;
 
   return (

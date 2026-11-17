@@ -1,116 +1,57 @@
 ﻿"use server";
 
-import { revalidatePath } from "next/cache";
-import { db } from "@/lib/prisma";
-import { AUDIT_ACTION, recordChange } from "@/lib/audit";
-import { buildObjectiveDescription } from "@/lib/objective";
-import { validBnccCode } from "@/lib/bncc";
-import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
-import { assertCaseStudyConcluded, assertNoActivePlan, closeStudentPlan, reviewStudentPlan, setObjectiveStatus } from "@/lib/records";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { runAction, runFormAction } from "@/lib/server-action";
+import { addPlanObjective, closeStudentPlan, createStudentPlan, reviewStudentPlan, savePlanDocuments, setObjectiveStatus } from "@/lib/records";
 import { planDocumentsFromForm } from "@/lib/plan-documents";
 
-export async function createPlan(studentId: string, formData: FormData) {
-  const prisma = await db();
-  const user = await requireStudentTeam(studentId);
-  await assertCaseStudyConcluded(studentId);
-  await assertNoActivePlan(studentId);
-  const reviewDate = new Date(`${String(formData.get("reviewDate") ?? "")}T12:00:00`);
-  if (Number.isNaN(reviewDate.getTime())) throw new Error("Informe quando a equipe vai revisar o plano.");
-  await prisma.plan.create({
-    data: {
-      studentId,
-      status: "ativo",
-      initialSituation: String(formData.get("initialSituation") ?? "").trim(),
-      ...planDocumentsFromForm((name) => formData.get(name)),
-      reviewDate,
-    },
-  });
-  await prisma.timelineEvent.create({
-    data: { studentId, type: "plano", title: "PAEE e PEI elaborados", description: "Plano de ensino criado a partir do estudo de caso." },
-  });
-  await recordChange(user, studentId, AUDIT_ACTION.created, "Plano individual (preenchido pela equipe)");
-  revalidatePath("/estudantes/[id]", "layout");
-  revalidatePath("/estudantes");
-  revalidatePath("/");
+const newPlanForm = z.object({ initialSituation: formField.text(), reviewDate: formField.text(10) });
+
+export async function createPlan(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, newPlanForm, (user, data) =>
+    createStudentPlan(user, studentId, { ...data, documents: planDocumentsFromForm((name) => formData.get(name)) }));
 }
 
-export async function createObjective(studentId: string, planId: string, formData: FormData) {
-  const prisma = await db();
-  await requireStudentTeam(studentId);
-  const plan = await prisma.plan.findFirst({ where: { id: planId, studentId }, select: { id: true } });
-  if (!plan) throw new Error("Plano não encontrado para este estudante.");
-  const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
-  const action = String(formData.get("action") ?? "").trim();
-  const condition = String(formData.get("condition") ?? "").trim();
-  const criterion = String(formData.get("criterion") ?? "").trim();
-  const deadlineWeeks = Number(formData.get("deadlineWeeks") ?? 6);
-  const currentSupport = Number(formData.get("currentSupport") ?? 2);
+const objectiveForm = z.object({
+  action: formField.text(),
+  condition: formField.text(),
+  criterion: formField.text(),
+  deadlineWeeks: z.coerce.number().int().min(1).max(52).default(6),
+  currentSupport: z.coerce.number().int().min(0).max(5).default(2),
+  targetSupport: z.coerce.number().int().min(0).max(5).optional(),
+  dimension: formField.text(40),
+  bnccCode: formField.text(20),
+});
 
-  if (!action || !condition || !criterion) {
-    throw new Error("Ação, condição e critério são obrigatórios para um objetivo observável.");
-  }
-  const bnccInput = String(formData.get("bnccCode") ?? "").trim();
-  const bnccCode = validBnccCode(bnccInput);
-  if (bnccInput && !bnccCode) throw new Error("Código da BNCC não encontrado. Escolha a habilidade pela busca.");
+export async function createObjective(studentId: string, planId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, objectiveForm, (user, data) =>
+    addPlanObjective(user, studentId, planId, {
+      ...data,
+      dimension: data.dimension || "comunicacao",
+      targetSupport: data.targetSupport ?? Math.max(0, data.currentSupport - 1),
+    }));
+}
 
-  const description = buildObjectiveDescription({
-    studentName: student.name,
-    action, condition, criterion, deadlineWeeks, currentSupport,
+export async function markObjectiveStatus(studentId: string, objectiveId: string, status: string): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await setObjectiveStatus(user, studentId, objectiveId, status);
   });
-
-  await prisma.objective.create({
-    data: {
-      planId,
-      action, condition, criterion, deadlineWeeks, description,
-      bnccCode,
-      dimension: String(formData.get("dimension") ?? "comunicacao"),
-      currentSupport,
-      targetSupport: Number(formData.get("targetSupport") ?? Math.max(0, currentSupport - 1)),
-    },
-  });
-
-  revalidatePath("/estudantes/[id]", "layout");
-  revalidatePath("/estudantes");
-  revalidatePath("/");
 }
 
-export async function markObjectiveStatus(studentId: string, objectiveId: string, status: string) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Faça login para alterar o objetivo.");
-  if (status !== "ativo" && status !== "alcancado" && status !== "em_revisao") throw new Error("Situação inválida.");
-  await setObjectiveStatus(user, studentId, objectiveId, status);
-  revalidatePath("/estudantes/[id]", "layout");
-  revalidatePath("/estudantes");
-  revalidatePath("/");
+const reviewForm = z.object({ summary: formField.text(), nextReviewDate: formField.text(10) });
+
+export async function reviewPlan(studentId: string, planId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, reviewForm, (user, data) => reviewStudentPlan(user, studentId, planId, data));
 }
 
-export async function reviewPlan(studentId: string, planId: string, formData: FormData) {
-  const user = await requireStudentTeam(studentId);
-  await reviewStudentPlan(user, studentId, planId, {
-    summary: String(formData.get("summary") ?? ""),
-    nextReviewDate: new Date(`${String(formData.get("nextReviewDate") ?? "")}T12:00:00`),
-  });
-  revalidatePath("/estudantes/[id]", "layout");
-  revalidatePath("/estudantes");
-  revalidatePath("/");
+export async function updatePlanDocuments(studentId: string, planId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runAction((user) => savePlanDocuments(user, studentId, planId, planDocumentsFromForm((name) => formData.get(name))));
 }
 
-// Planos anteriores à orientação do INEP não tinham autoria nem todo o conteúdo mínimo.
-export async function updatePlanDocuments(studentId: string, planId: string, formData: FormData) {
-  const prisma = await db();
-  const user = await requireStudentTeam(studentId);
-  const plan = await prisma.plan.findFirst({ where: { id: planId, studentId, status: "ativo" }, select: { id: true } });
-  if (!plan) throw new Error("Plano ativo não encontrado para este estudante.");
-  await prisma.plan.update({ where: { id: plan.id }, data: planDocumentsFromForm((name) => formData.get(name)) });
-  await recordChange(user, studentId, AUDIT_ACTION.edited, "PAEE e PEI do plano de ensino");
-  revalidatePath("/estudantes/[id]", "layout");
-  revalidatePath("/dossie");
-}
+const closeForm = z.object({ reason: formField.text() });
 
-export async function closePlan(studentId: string, planId: string, formData: FormData) {
-  const user = await requireStudentTeam(studentId);
-  await closeStudentPlan(user, studentId, planId, String(formData.get("reason") ?? ""));
-  revalidatePath("/estudantes/[id]", "layout");
-  revalidatePath("/estudantes");
-  revalidatePath("/");
+export async function closePlan(studentId: string, planId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, closeForm, (user, data) => closeStudentPlan(user, studentId, planId, data.reason));
 }

@@ -1,102 +1,42 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { AUDIT_ACTION, auditEntry } from "@/lib/audit";
-import { getCurrentUser, type SessionUser } from "@/lib/auth";
-import { isAccountManager } from "@/lib/roles";
-import { IMPORT_MAX_BYTES, normalize, readStudentSheet, studentKey, type StudentImport } from "@/lib/student-import";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { runFormAction } from "@/lib/server-action";
+import { readUploadedText, requiredUpload } from "@/lib/uploads";
+import { SHEET_UPLOAD } from "@/lib/student-import";
+import { checkStudentSheet, importStudentSheet, type SheetCheck } from "@/lib/students";
 
 type Line = { line: number; name: string };
-export type ImportState = {
-  problem?: string;
-  csv?: string;
-  schoolId?: string;
-  schoolName?: string;
-  ready?: (Line & { detail: string; similar: boolean })[];
-  existing?: Line[];
-  invalid?: (Line & { errors: string[] })[];
+export type SheetView = {
+  csv: string;
+  schoolId: string;
+  schoolName: string;
+  ready: (Line & { detail: string; similar: boolean })[];
+  existing: Line[];
+  invalid: (Line & { errors: string[] })[];
   imported?: number;
 };
 
-async function requireImporter(): Promise<SessionUser> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (!isAccountManager(user.role)) redirect("/estudantes");
-  return user;
-}
-
-// Excel em português às vezes salva o CSV em Windows-1252: sem UTF-8 válido, relê assim.
-async function readFile(file: File): Promise<string> {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  } catch {
-    return new TextDecoder("windows-1252").decode(bytes);
-  }
-}
-
-async function analyze(text: string, schoolId: string) {
-  const prisma = await db();
-  const { rows, problem } = readStudentSheet(text);
-  if (problem) return { problem } as const;
-  const current = await prisma.student.findMany({ where: { schoolId }, select: { name: true, birthDate: true } });
-  const known = new Set(current.map((student) => studentKey(student.name, student.birthDate.toISOString().slice(0, 10))));
-  const names = new Set(current.map((student) => normalize(student.name)));
-  const ready: { line: number; values: StudentImport }[] = [];
-  const existing: Line[] = [];
-  const invalid: (Line & { errors: string[] })[] = [];
-  for (const row of rows) {
-    if (!row.values) invalid.push({ line: row.line, name: row.name, errors: row.errors });
-    else if (known.has(studentKey(row.values.name, row.values.birthDate))) existing.push({ line: row.line, name: row.values.name });
-    else ready.push({ line: row.line, values: row.values });
-  }
-  return { ready: ready.map((row) => ({ ...row, similar: names.has(normalize(row.values.name)) })), existing, invalid } as const;
-}
+const sheetForm = z.object({ intent: formField.text(20), schoolId: formField.text(64), csv: z.string().default("") });
 
 const birth = (iso: string) => iso.split("-").reverse().join("/");
 
-export async function importStudents(_previous: ImportState, formData: FormData): Promise<ImportState> {
-  const prisma = await db();
-  const user = await requireImporter();
-  const schoolId = user.schoolId ?? String(formData.get("schoolId") ?? "");
-  const school = schoolId ? await prisma.school.findUnique({ where: { id: schoolId }, select: { id: true, name: true } }) : null;
-  if (!school) return { problem: "Escolha a escola dos estudantes." };
+const viewOf = (sheet: SheetCheck, csv: string): SheetView => ({
+  csv, schoolId: sheet.school.id, schoolName: sheet.school.name,
+  ready: sheet.ready.map(({ line, record, similar }) => ({ line, name: record.name, similar, detail: `${birth(record.birthDate)} · ${record.gradeYear} · ${record.className}` })),
+  existing: sheet.existing, invalid: sheet.invalid,
+});
 
-  const confirming = formData.get("intent") === "importar";
-  let text = "";
-  if (confirming) text = String(formData.get("csv") ?? "");
-  else {
-    const file = formData.get("file");
-    if (!(file instanceof File) || !file.size) return { problem: "Escolha o arquivo da planilha (.csv)." };
-    if (file.size > IMPORT_MAX_BYTES) return { problem: "Arquivo grande demais. Divida a planilha em partes de até 500 estudantes." };
-    text = await readFile(file);
-  }
-
-  const result = await analyze(text, school.id);
-  if ("problem" in result) return { problem: result.problem };
-  const { invalid } = result;
-
-  if (!confirming) {
-    return {
-      csv: text, schoolId: school.id, schoolName: school.name,
-      ready: result.ready.map(({ line, values, similar }) => ({ line, name: values.name, similar, detail: `${birth(values.birthDate)} · ${values.gradeYear} · ${values.className}` })),
-      existing: result.existing, invalid,
-    };
-  }
-
-  await prisma.$transaction(result.ready.map(({ values }) => prisma.student.create({
-    data: {
-      name: values.name, birthDate: new Date(`${values.birthDate}T12:00:00`), stage: values.stage, gradeYear: values.gradeYear,
-      className: values.className, shift: values.shift, schoolId: school.id, hasAEE: values.hasAEE, aeeFrequency: values.aeeFrequency,
-      supportProfessional: values.supportProfessional, guardianName: values.guardianName, guardianPhone: values.guardianPhone,
-      avatarHue: Math.floor(Math.random() * 360),
-      timeline: { create: { type: "avaliacao", title: "Cadastro no prontuário municipal", description: "Estudante incluído pela importação de planilha." } },
-      accessLogs: { create: auditEntry(user, AUDIT_ACTION.created, "Cadastro pela importação de planilha") },
-    },
-  })));
-  revalidatePath("/estudantes");
-  revalidatePath("/");
-  return { imported: result.ready.length, schoolName: school.name, existing: result.existing, invalid };
+export async function importStudents(_previous: unknown, formData: FormData): Promise<ActionResult<SheetView>> {
+  return runFormAction(formData, sheetForm, async (user, form) => {
+    const schoolId = user.schoolId ?? form.schoolId;
+    if (form.intent === "importar") {
+      const sheet = await importStudentSheet(user, schoolId, form.csv);
+      return { ...viewOf(sheet, form.csv), imported: sheet.ready.length };
+    }
+    const text = await readUploadedText(requiredUpload(formData.get("file"), SHEET_UPLOAD));
+    return viewOf(await checkStudentSheet(user, schoolId, text), text);
+  });
 }

@@ -1,14 +1,16 @@
 import { Bot, CheckCircle2, CircleSlash, Eye, HeartHandshake, IdCard, Languages, QrCode, RefreshCw, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Undo2, UserCheck, type LucideIcon } from "lucide-react";
 import { setFamilyConsent } from "@/actions/consent";
+import type { ConsentField, StudentConsent } from "@/lib/consent";
 import { formatDate } from "@/lib/format";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Badge, Card, SectionTitle } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
+import { ActionForm } from "@/components/action-form";
 import { Assurances } from "@/components/explain";
 
 type Line = { icon: LucideIcon; text: string; guarantee?: boolean };
 type Item = {
-  field: "aiUse" | "therapistLink" | "card";
+  field: ConsentField;
   icon: LucideIcon;
   title: string;
   lines: Line[];
@@ -57,7 +59,7 @@ const ITEMS: Item[] = [
 export function ConsentCard({ studentId, firstName, consent, canDecide }: {
   studentId: string;
   firstName: string;
-  consent: { aiUse: boolean; therapistLink: boolean; card: boolean; updatedAt: Date | null; updatedBy: string | null };
+  consent: StudentConsent;
   canDecide: boolean;
 }) {
   return (
@@ -92,11 +94,11 @@ export function ConsentCard({ studentId, firstName, consent, canDecide }: {
                 </li>
               </ul>
               {canDecide ? (
-                <form action={toggle} className="mt-3">
+                <ActionForm action={toggle} className="mt-3">
                   <PendingButton className={granted ? BUTTON_CLS.quiet : BUTTON_CLS.primary} pendingText="Salvando a decisão…">
                     {granted ? "Retirar a autorização" : "Autorizar"}<span className="sr-only">: {title}</span>
                   </PendingButton>
-                </form>
+                </ActionForm>
               ) : null}
             </li>
           );

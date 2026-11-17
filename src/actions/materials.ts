@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod/v4";
 import type { ActionResult } from "@/lib/action-result";
 import { formField } from "@/lib/form-data";
-import { invalidateStudent } from "@/lib/invalidate";
 import { runAction, runFormAction } from "@/lib/server-action";
 import { addMaterialImages, approveStudentMaterial, createStudentMaterial, deleteStudentMaterial, saveMaterialActivity } from "@/lib/material-generate";
 
@@ -15,7 +14,6 @@ const materialRequest = z.object({ kind: formField.text(), topic: formField.text
 export async function generateMaterial(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
   return runFormAction(formData, materialRequest, async (user, data) => {
     const { material, source, images } = await createStudentMaterial(user, studentId, { ...data, withImages: data.gerarImagens });
-    invalidateStudent(studentId);
     const query = new URLSearchParams({ criado: source });
     if (images.requested) {
       query.set("imagens", String(images.created));
@@ -28,29 +26,24 @@ export async function generateMaterial(studentId: string, _previous: unknown, fo
 export async function approveMaterial(studentId: string, materialId: string): Promise<ActionResult> {
   return runAction(async (user) => {
     await approveStudentMaterial(user, studentId, materialId);
-    invalidateStudent(studentId);
   });
 }
 
 export async function generateMaterialImagesAction(studentId: string, materialId: string): Promise<ActionResult<{ created: number; errors: string[] }>> {
   return runAction(async (user) => {
-    const result = await addMaterialImages(user, studentId, materialId);
-    invalidateStudent(studentId);
-    return result;
+    return addMaterialImages(user, studentId, materialId);
   });
 }
 
 export async function sendMaterialActivity(studentId: string, materialId: string, index: number): Promise<ActionResult> {
   return runAction(async (user) => {
     await saveMaterialActivity(user, studentId, materialId, index);
-    invalidateStudent(studentId);
   });
 }
 
 export async function deleteMaterial(studentId: string, materialId: string): Promise<ActionResult> {
   return runAction(async (user) => {
     await deleteStudentMaterial(user, studentId, materialId);
-    invalidateStudent(studentId);
     redirect(galleryPath(studentId));
   });
 }

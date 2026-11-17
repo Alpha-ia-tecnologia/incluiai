@@ -1,15 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
-import { CONSENT_FIELDS, setStudentConsent, type ConsentField } from "@/lib/consent";
+import type { ActionResult } from "@/lib/action-result";
+import { runAction } from "@/lib/server-action";
+import { setStudentConsent } from "@/lib/consent";
 
-export async function setFamilyConsent(studentId: string, field: ConsentField, value: boolean) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Faça login para decidir as autorizações.");
-  if (!CONSENT_FIELDS.includes(field)) throw new Error("Autorização desconhecida.");
-  await setStudentConsent(user, studentId, field, value);
-  revalidatePath(`/familia/${studentId}`);
-  revalidatePath("/terapeuta");
-  revalidatePath("/estudantes/[id]", "layout");
+export async function setFamilyConsent(studentId: string, field: string, value: boolean): Promise<ActionResult> {
+  return runAction((user) => setStudentConsent(user, studentId, field, value));
 }

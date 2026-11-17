@@ -1,90 +1,39 @@
 "use server";
 
-import { validBnccCode } from "@/lib/bncc";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { AUDIT_ACTION, recordChange } from "@/lib/audit";
-import { requireStudentTeam } from "@/lib/auth";
-import { buildObjectiveDescription } from "@/lib/objective";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { assertStudentTeam } from "@/lib/auth";
+import { formField } from "@/lib/form-data";
+import { invalidateStudent } from "@/lib/invalidate";
+import { runAction, runFormAction } from "@/lib/server-action";
 import { createPlanDraft } from "@/lib/agents/generate";
-import { assertCaseStudyConcluded, assertNoActivePlan } from "@/lib/records";
-import { PlanProposalSchema } from "@/lib/agents/schemas";
+import { createStudentPlan, discardPlanProposal } from "@/lib/records";
 import { planDocumentsFromForm } from "@/lib/plan-documents";
 
-const requireTeam = requireStudentTeam;
-
-export async function generatePlanDraft(studentId: string) {
-  const user = await requireTeam(studentId);
-  await createPlanDraft(studentId, user);
-  revalidatePath(`/estudantes/${studentId}/ppi`);
-  redirect(`/estudantes/${studentId}/ppi#proposta`);
+export async function generatePlanDraft(studentId: string): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await assertStudentTeam(user, studentId);
+    await createPlanDraft(studentId, user);
+    invalidateStudent(studentId);
+    redirect(`/estudantes/${studentId}/ppi#proposta`);
+  });
 }
 
-export async function activatePlanDraft(studentId: string, formData: FormData) {
-  const prisma = await db();
-  const user = await requireTeam(studentId);
-  await assertCaseStudyConcluded(studentId);
-  await assertNoActivePlan(studentId);
-  const draft = await prisma.planDraft.findUnique({ where: { studentId } });
-  if (!draft) throw new Error("A proposta não foi encontrada. Gere uma nova proposta.");
-  const proposal = PlanProposalSchema.parse(JSON.parse(draft.content));
-  const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, select: { name: true } });
+const activateForm = z.object({ initialSituation: formField.text(), reviewDate: formField.text(10), objetivo: formField.list(4) });
 
-  const text = (field: string) => String(formData.get(field) ?? "").trim();
-  const initialSituation = text("initialSituation");
-  const reviewDate = new Date(`${text("reviewDate")}T12:00:00`);
-  if (!initialSituation || Number.isNaN(reviewDate.getTime())) {
-    throw new Error("Informe o que o estudante já consegue fazer e a data de revisão.");
-  }
-  const chosen = formData.getAll("objetivo").map(Number).filter((index) => proposal.objectives[index]);
-
-  await prisma.plan.create({
-    data: {
-      studentId,
-      status: "ativo",
-      initialSituation,
-      ...planDocumentsFromForm((name) => formData.get(name)),
-      reviewDate,
-      objectives: {
-        create: chosen.map((index) => {
-          const objective = proposal.objectives[index];
-          return {
-            action: objective.action,
-            condition: objective.condition,
-            criterion: objective.criterion,
-            deadlineWeeks: objective.deadlineWeeks,
-            description: buildObjectiveDescription({ studentName: student.name, ...objective }),
-            bnccCode: validBnccCode(objective.bnccCode),
-            dimension: objective.dimension,
-            currentSupport: objective.currentSupport,
-            targetSupport: objective.targetSupport,
-          };
-        }),
-      },
-    },
+export async function activatePlanDraft(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, activateForm, async (user, data) => {
+    await createStudentPlan(user, studentId, {
+      initialSituation: data.initialSituation,
+      reviewDate: data.reviewDate,
+      documents: planDocumentsFromForm((name) => formData.get(name)),
+      proposalObjectives: data.objetivo.map(Number),
+    });
+    redirect(`/estudantes/${studentId}/ppi`);
   });
-  await prisma.planDraft.delete({ where: { studentId } });
-  await prisma.timelineEvent.create({
-    data: {
-      studentId,
-      type: "plano",
-      title: "PAEE e PEI elaborados",
-      description: `Plano criado a partir de proposta ${draft.source === "ia" ? "dos agentes de IA" : "do motor de regras"}, revisada pela equipe, com ${chosen.length} objetivo(s).`,
-    },
-  });
-  await recordChange(user, studentId, AUDIT_ACTION.created, "Plano individual (a partir de proposta)");
-
-  revalidatePath("/estudantes/[id]", "layout");
-  revalidatePath("/estudantes");
-  revalidatePath("/");
-  redirect(`/estudantes/${studentId}/ppi`);
 }
 
-export async function discardPlanDraft(studentId: string) {
-  const prisma = await db();
-  const user = await requireTeam(studentId);
-  await prisma.planDraft.deleteMany({ where: { studentId } });
-  await recordChange(user, studentId, AUDIT_ACTION.edited, "Proposta de plano descartada");
-  revalidatePath(`/estudantes/${studentId}/ppi`);
+export async function discardPlanDraft(studentId: string): Promise<ActionResult> {
+  return runAction((user) => discardPlanProposal(user, studentId));
 }

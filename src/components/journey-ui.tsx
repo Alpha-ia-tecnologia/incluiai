@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Check, Route } from "lucide-react";
 import { Character } from "@/components/character";
 import { PendingButton } from "@/components/pending-button";
+import { ActionForm } from "@/components/action-form";
 import { dismissWelcome, startJourney } from "@/actions/journey";
 import type { ChapterTone, Journey } from "@/lib/user-journey";
 import { percentOf } from "@/lib/series";
@@ -48,13 +49,13 @@ export function JourneyWelcome({ journey, character = true }: { journey: Journey
           ) : null}
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {start ? (
-              <form action={startJourney.bind(null, start.action.href)}>
+              <ActionForm action={startJourney.bind(null, start.action.href)}>
                 <PendingButton className={`task-action ${navy ? "task-action-on-navy" : ""}`} pendingText="Abrindo o capítulo...">Começar: {start.action.label} <ArrowRight size={16} aria-hidden /></PendingButton>
-              </form>
+              </ActionForm>
             ) : null}
-            <form action={dismissWelcome}>
+            <ActionForm action={dismissWelcome}>
               <button type="submit" className={`min-h-12 rounded-xl px-4 text-sm underline-offset-4 hover:underline ${navy ? "text-on-navy-soft hover:text-on-navy" : "text-ink-soft hover:text-ink"}`}>Agora não</button>
-            </form>
+            </ActionForm>
           </div>
         </div>
         {character ? <Character variant={journey.character} className="hidden w-36 sm:block xl:w-44" /> : null}

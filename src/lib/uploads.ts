@@ -28,3 +28,13 @@ export function requiredUpload(value: FormDataEntryValue | null, rules: UploadRu
   if (!file) throw new UserError(rules.missing);
   return file;
 }
+
+// Excel em português e sistemas de gestão às vezes gravam em Windows-1252: sem UTF-8 válido, relê assim.
+export async function readUploadedText(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}

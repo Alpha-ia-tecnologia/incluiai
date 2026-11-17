@@ -166,10 +166,3 @@ export async function assertStudentTeam(user: SessionUser, studentId: string) {
   if (!student || !canWorkWithStudent(user, student)) throw studentForbidden();
   return student;
 }
-
-export async function requireStudentTeam(studentId: string): Promise<SessionUser> {
-  const user = await getCurrentUser();
-  if (!user) throw studentForbidden();
-  await assertStudentTeam(user, studentId);
-  return user;
-}

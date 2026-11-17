@@ -1,10 +1,12 @@
 import "server-only";
+import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { db } from "./prisma";
 import { assertStudentTeam, type SessionUser } from "./auth";
 import { AUDIT_ACTION, recordChange } from "./audit";
 import { validBnccCode } from "./bncc";
 import { UserError } from "./user-error";
+import { invalidateStudent } from "./invalidate";
 import { runAiJob } from "./agents/job";
 import type { RedactionScope } from "./agents/names-in-scope";
 import { profileText } from "./agents/context";
@@ -95,7 +97,13 @@ export async function createAdaptedTask(user: SessionUser, studentId: string, re
       createdById: user.id, createdByName: user.name,
     },
   });
+  refreshTasks({ studentId });
   return task;
+}
+
+function refreshTasks(scope: TaskScope) {
+  if ("studentId" in scope) invalidateStudent(scope.studentId);
+  else revalidatePath(`/planejamento/${scope.planningId}/niveis`);
 }
 
 export const taskContent = (stored: string, title: string): AdaptedContent => normalizeAdapted(JSON.parse(stored) as Partial<AdaptedContent>, title);
@@ -118,6 +126,7 @@ export async function saveAdaptedTask(user: SessionUser, scope: TaskScope, taskI
     data: { content: JSON.stringify(clean), title: clean.title, ...(approve ? { status: "aprovada", approvedBy: user.name, approvedAt: new Date() } : {}) },
   });
   if (approve && task.studentId) await recordChange(user, task.studentId, AUDIT_ACTION.approved, `Atividade adaptada: ${clean.title.slice(0, 80)}`);
+  refreshTasks(scope);
 }
 
 export async function deleteAdaptedTask(user: SessionUser, scope: TaskScope, taskId: string) {
@@ -125,6 +134,7 @@ export async function deleteAdaptedTask(user: SessionUser, scope: TaskScope, tas
   const task = await draftTask(user, scope, taskId);
   await prisma.adaptedTask.delete({ where: { id: task.id } });
   if (task.studentId) await recordChange(user, task.studentId, AUDIT_ACTION.deleted, `Atividade adaptada: ${task.title.slice(0, 80)}`);
+  refreshTasks(scope);
 }
 
 export async function createLevels(user: SessionUser, planningId: string, request: TaskText & { kind: TaskKind }) {
@@ -151,5 +161,6 @@ export async function createLevels(user: SessionUser, planningId: string, reques
       content: JSON.stringify(levels[level]), source, bnccCode, createdById: user.id, createdByName: user.name,
     },
   })));
+  refreshTasks({ planningId });
   return batchId;
 }

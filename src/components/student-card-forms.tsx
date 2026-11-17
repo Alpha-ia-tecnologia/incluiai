@@ -1,14 +1,15 @@
 "use client";
 
 import { startTransition, useActionState, useState, type FormEvent } from "react";
-import { ImageUp, LoaderCircle, Sprout } from "lucide-react";
+import { ImageUp, LoaderCircle } from "lucide-react";
 import { PendingButton } from "@/components/pending-button";
-import { choiceCls, hintCls, inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
-import { MAX_CARD_PHOTO_BYTES, MAX_CARD_PHOTO_MB } from "@/lib/student-card-core";
+import { Field, FormResult } from "@/components/form-kit";
+import { choiceCls, inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
+import type { ActionResult } from "@/lib/action-result";
+import { CARD_PHOTO_UPLOAD } from "@/lib/student-card-core";
 import { FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
-import type { CardFormState } from "@/actions/student-card";
 
-type CardAction = (state: CardFormState, formData: FormData) => Promise<CardFormState>;
+type CardAction = (previous: ActionResult | null, formData: FormData) => Promise<ActionResult>;
 
 const MAX_SIDE = 800;
 
@@ -27,18 +28,18 @@ async function shrinkPhoto(file: File): Promise<File> {
 }
 
 export function CardPhotoForm({ action, hasPhoto }: { action: CardAction; hasPhoto: boolean }) {
-  const [state, formAction] = useActionState(action, {});
+  const [result, formAction] = useActionState(action, null);
   const [preparing, setPreparing] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const error = localError ?? state.error;
+  const shown: ActionResult | null = localError ? { ok: false, message: localError } : result;
 
   async function onChange(event: React.ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
     const file = input.files?.[0];
     setLocalError(null);
     if (!file) return;
-    if (file.size > MAX_CARD_PHOTO_BYTES) {
-      setLocalError(`A foto tem mais de ${MAX_CARD_PHOTO_MB} MB. Envie uma menor.`);
+    if (file.size > CARD_PHOTO_UPLOAD.maxBytes) {
+      setLocalError(CARD_PHOTO_UPLOAD.tooLarge);
       return;
     }
     setPreparing(true);
@@ -56,17 +57,16 @@ export function CardPhotoForm({ action, hasPhoto }: { action: CardAction; hasPho
 
   return (
     <form action={formAction} className="space-y-3">
-      <div>
-        <label htmlFor="carteirinha-foto" className={labelCls}>{hasPhoto ? "Trocar a foto" : "Foto do estudante"}</label>
-        <p id="carteirinha-foto-dica" className={hintCls}>JPG ou PNG, de frente. A localização do celular sai da foto.</p>
-        <input
-          id="carteirinha-foto" name="foto" type="file" required accept="image/jpeg,image/png" capture="user"
-          aria-describedby="carteirinha-foto-dica" aria-invalid={error ? true : undefined} onChange={onChange}
-          className={`${inputCls} py-2 file:mr-3 file:min-h-8 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:text-sm file:font-medium file:text-brand-strong`}
-        />
-      </div>
-      {error ? <p role="alert" className="text-sm font-medium text-coral">{error}</p> : null}
-      {state.saved && !error ? <p role="status" className="flex items-center gap-2 text-sm font-medium text-green"><Sprout size={16} aria-hidden className="sprout-mark" /> Foto salva na carteirinha.</p> : null}
+      <Field id="carteirinha-foto" label={hasPhoto ? "Trocar a foto" : "Foto do estudante"} hint="JPG ou PNG, de frente. A localização do celular sai da foto.">
+        {(control) => (
+          <input
+            {...control} name="foto" type="file" required accept="image/jpeg,image/png" capture="user"
+            aria-invalid={shown && !shown.ok ? true : undefined} onChange={onChange}
+            className={`${inputCls} py-2 file:mr-3 file:min-h-8 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:text-sm file:font-medium file:text-brand-strong`}
+          />
+        )}
+      </Field>
+      <FormResult result={shown} success="Foto salva na carteirinha." />
       <PendingButton className={BUTTON_CLS.primary} pendingText="Enviando a foto…" disabled={preparing}>
         <ImageUp size={16} aria-hidden /> {preparing ? "Preparando a foto…" : "Enviar a foto"}
       </PendingButton>
@@ -81,7 +81,7 @@ export function CardPreferencesForm({ action, firstName, settings, guardian, has
   guardian: { name: string; phone: string };
   hasProfile: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(action, {});
+  const [result, formAction, pending] = useActionState(action, null);
   // Com action={...}, o React limparia o formulário depois de salvar.
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,10 +123,7 @@ export function CardPreferencesForm({ action, firstName, settings, guardian, has
           </div>
         </div>
       </fieldset>
-      {state.error && !pending ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
-      <p role="status" aria-live="polite" className={state.saved && !state.error && !pending ? "flex items-center gap-2 text-sm font-medium text-green" : "sr-only"}>
-        {pending ? "Salvando a carteirinha…" : state.saved && !state.error ? <><Sprout size={16} aria-hidden className="sprout-mark" /> Carteirinha atualizada.</> : ""}
-      </p>
+      <FormResult result={pending ? null : result} success="Carteirinha atualizada." />
       <button type="submit" disabled={pending} className={`${BUTTON_CLS.primary} disabled:cursor-wait`}>
         {pending ? <LoaderCircle size={16} className="animate-spin motion-reduce:animate-none" aria-hidden /> : null}
         {pending ? "Salvando…" : "Salvar a carteirinha"}

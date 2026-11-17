@@ -1,14 +1,16 @@
 import "server-only";
 import { notifyFamily } from "./notifications";
 import { db } from "./prisma";
-import type { SessionUser } from "./auth";
+import { assertStudentTeam, type SessionUser } from "./auth";
 import { can } from "./roles";
 import { AUDIT_ACTION, recordChange } from "./audit";
+import { invalidateStudent } from "./invalidate";
+import { UserError } from "./user-error";
 import { bnccSkill } from "./bncc";
 import { parseCaseStudy } from "./case-study";
 import { splitItems } from "./form-options";
 import { DIMENSIONS } from "./scale";
-import { brDate, draftOpinion, opinionProblem, supportAt, topItems, type ReportData } from "./period-report";
+import { brDate, draftOpinion, opinionProblem, periodProblem, supportAt, topItems, type ReportData } from "./period-report";
 import { compareAreas } from "./assessment";
 import { answersOf } from "./assessments";
 
@@ -79,43 +81,52 @@ export const periodLabel = (data: Pick<ReportData, "period">) => `${brDate(data.
 
 export async function createReport(user: SessionUser, studentId: string, start: string, end: string) {
   const prisma = await db();
+  await assertStudentTeam(user, studentId);
+  const problem = periodProblem(start, end);
+  if (problem) throw new UserError(problem);
   const data = await collectReportData(studentId, start, end);
-  return prisma.studentReport.create({
+  const report = await prisma.studentReport.create({
     data: {
       studentId, periodStart: dayStart(start), periodEnd: dayEnd(end), data: JSON.stringify(data), opinion: draftOpinion(data),
       createdById: user.id, createdByName: user.name, updatedByName: user.name,
     },
+    select: { id: true },
   });
+  invalidateStudent(studentId);
+  return report;
 }
 
-async function draftFor(studentId: string, reportId: string) {
+async function draftFor(user: SessionUser, studentId: string, reportId: string) {
   const prisma = await db();
+  await assertStudentTeam(user, studentId);
   const report = await prisma.studentReport.findFirst({ where: { id: reportId, studentId } });
-  if (!report) throw new Error("Relatório não encontrado.");
-  if (report.status === "validado") throw new Error("Relatório validado não muda mais.");
+  if (!report) throw new UserError("Relatório não encontrado.", "not_found");
+  if (report.status === "validado") throw new UserError("Relatório validado não muda mais.", "conflict");
   return report;
 }
 
 export async function saveOpinion(user: SessionUser, studentId: string, reportId: string, opinion: string) {
   const prisma = await db();
-  await draftFor(studentId, reportId);
+  await draftFor(user, studentId, reportId);
   await prisma.studentReport.update({ where: { id: reportId }, data: { opinion: opinion.slice(0, 8000), updatedByName: user.name } });
+  invalidateStudent(studentId);
 }
 
 export async function refreshReport(user: SessionUser, studentId: string, reportId: string) {
   const prisma = await db();
-  const report = await draftFor(studentId, reportId);
+  const report = await draftFor(user, studentId, reportId);
   const current = reportData(report.data);
   const data = await collectReportData(studentId, current.period.start, current.period.end);
   await prisma.studentReport.update({ where: { id: reportId }, data: { data: JSON.stringify(data), updatedByName: user.name } });
+  invalidateStudent(studentId);
 }
 
-export async function validateReport(user: SessionUser, studentId: string, reportId: string): Promise<string | null> {
+export async function validateReport(user: SessionUser, studentId: string, reportId: string) {
   const prisma = await db();
-  if (!can(user.role, "validateReports")) return "Quem valida o relatório é o professor do AEE ou a coordenação.";
-  const report = await draftFor(studentId, reportId);
+  if (!can(user.role, "validateReports")) throw new UserError("Quem valida o relatório é o professor do AEE ou a coordenação.", "forbidden");
+  const report = await draftFor(user, studentId, reportId);
   const problem = opinionProblem(report.opinion);
-  if (problem) return problem;
+  if (problem) throw new UserError(problem);
   const data = reportData(report.data);
   await prisma.$transaction([
     prisma.studentReport.update({ where: { id: reportId }, data: { status: "validado", validatedById: user.id, validatedByName: user.name, validatedAt: new Date() } }),
@@ -123,11 +134,12 @@ export async function validateReport(user: SessionUser, studentId: string, repor
   ]);
   await recordChange(user, studentId, AUDIT_ACTION.validated, `Relatório do período (${periodLabel(data)})`);
   await notifyFamily(studentId, "relatorio_validado", `/familia/${studentId}/relatorios/${reportId}`);
-  return null;
+  invalidateStudent(studentId);
 }
 
-export async function deleteDraft(studentId: string, reportId: string) {
+export async function deleteDraft(user: SessionUser, studentId: string, reportId: string) {
   const prisma = await db();
-  await draftFor(studentId, reportId);
+  await draftFor(user, studentId, reportId);
   await prisma.studentReport.delete({ where: { id: reportId } });
+  invalidateStudent(studentId);
 }

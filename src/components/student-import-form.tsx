@@ -3,8 +3,9 @@
 import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { Check, FileSpreadsheet, Upload } from "lucide-react";
-import { importStudents, type ImportState } from "@/actions/student-import";
-import { hintCls, inputCls, labelCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
+import { importStudents } from "@/actions/student-import";
+import { Field, FormResult } from "@/components/form-kit";
+import { inputCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
 
 const SHOWN = 50;
 
@@ -14,10 +15,11 @@ export function StudentImportForm({ schools, fixedSchool }: { schools: { id: str
 }
 
 function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: string; name: string }[]; fixedSchool: boolean; onRestart: () => void }) {
-  const [state, submit, pending] = useActionState(importStudents, {} as ImportState);
+  const [result, submit, pending] = useActionState(importStudents, null);
   const id = useId();
+  const state = result?.ok ? result.value : null;
 
-  if (state.imported !== undefined) {
+  if (state?.imported !== undefined) {
     return (
       <div role="status" className="grid gap-4">
         <p className="flex items-start gap-2 text-sm font-medium text-ink"><Check size={18} aria-hidden className="mt-0.5 shrink-0 text-green" /> {state.imported === 1 ? "1 estudante importado" : `${state.imported} estudantes importados`} para {state.schoolName}.</p>
@@ -34,8 +36,8 @@ function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: strin
     );
   }
 
-  if (state.csv !== undefined) {
-    const ready = state.ready ?? [];
+  if (state) {
+    const ready = state.ready;
     return (
       <div className="grid gap-5">
         <p className="text-sm leading-relaxed text-ink" role="status">
@@ -94,23 +96,24 @@ function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: strin
     <form action={submit} className="grid max-w-xl gap-5">
       <input type="hidden" name="intent" value="conferir" />
       {fixedSchool ? null : (
-        <div>
-          <label htmlFor={`${id}-school`} className={labelCls}>Escola dos estudantes</label>
-          <select id={`${id}-school`} name="schoolId" required defaultValue="" className={inputCls}>
-            <option value="">Escolha a escola</option>
-            {schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
-          </select>
-        </div>
+        <Field id={`${id}-school`} label="Escola dos estudantes">
+          {(control) => (
+            <select {...control} name="schoolId" required defaultValue="" className={inputCls}>
+              <option value="">Escolha a escola</option>
+              {schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
+            </select>
+          )}
+        </Field>
       )}
-      <div>
-        <label htmlFor={`${id}-file`} className={labelCls}>Arquivo da planilha (.csv)</label>
-        <p id={`${id}-hint`} className={hintCls}>No Excel ou no LibreOffice: Arquivo › Salvar como › CSV. Até 500 estudantes por vez.</p>
-        <input
-          id={`${id}-file`} name="file" type="file" required accept=".csv,text/csv" aria-describedby={`${id}-hint`}
-          className={`${inputCls} py-2 file:mr-3 file:min-h-8 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:text-sm file:font-medium file:text-brand-strong`}
-        />
-      </div>
-      {state.problem ? <p role="alert" className="text-sm font-medium text-coral">{state.problem}</p> : null}
+      <Field id={`${id}-file`} label="Arquivo da planilha (.csv)" hint="No Excel ou no LibreOffice: Arquivo › Salvar como › CSV. Até 500 estudantes por vez.">
+        {(control) => (
+          <input
+            {...control} name="file" type="file" required accept=".csv,text/csv"
+            className={`${inputCls} py-2 file:mr-3 file:min-h-8 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:text-sm file:font-medium file:text-brand-strong`}
+          />
+        )}
+      </Field>
+      <FormResult result={result} />
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           <FileSpreadsheet size={16} aria-hidden /> {pending ? "Conferindo…" : "Conferir a planilha"}

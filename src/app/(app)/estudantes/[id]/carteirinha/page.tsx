@@ -7,6 +7,7 @@ import { removeCardPhoto, rotateStudentCard, uploadCardPhoto } from "@/actions/s
 import { Card, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { PendingButton } from "@/components/pending-button";
+import { ActionForm } from "@/components/action-form";
 import { StudentCardView } from "@/components/student-card-view";
 import { CardPhotoForm } from "@/components/student-card-forms";
 import { BUTTON_CLS } from "@/components/form-styles";
@@ -49,17 +50,17 @@ export default async function StudentCardPage({ params }: { params: Promise<{ id
           <Card>
             <CardPhotoForm action={uploadCardPhoto.bind(null, id)} hasPhoto={view.settings.hasPhoto} />
             {view.settings.hasPhoto ? (
-              <form action={removeCardPhoto.bind(null, id)} className="mt-3">
+              <ActionForm action={removeCardPhoto.bind(null, id)} className="mt-3">
                 <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Remover a foto</button>
-              </form>
+              </ActionForm>
             ) : null}
           </Card>
           <Card>
             <h3 className="text-sm font-medium text-ink">Código da carteirinha</h3>
             <p className="mt-1 text-sm text-ink-soft">Emitido em {formatDate(view.issuedAt)}. Perdeu a carteirinha? O código novo desativa a anterior.</p>
-            <form action={rotateStudentCard.bind(null, id)} className="mt-3">
+            <ActionForm action={rotateStudentCard.bind(null, id)} className="mt-3">
               <PendingButton className={BUTTON_CLS.quiet} pendingText="Gerando o código…"><RefreshCw size={16} aria-hidden /> Gerar código novo</PendingButton>
-            </form>
+            </ActionForm>
           </Card>
           <Assurances
             label="Como a carteirinha protege o estudante"

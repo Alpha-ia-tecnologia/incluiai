@@ -9,7 +9,7 @@ import { CHANNELS, BARRIERS } from "@/lib/scale";
 import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
-import { guidanceForPlan, parseAccepted } from "@/lib/health-report";
+import { guidanceForPlan, parseAccepted, reportStatus } from "@/lib/health-report";
 import { censusReference, specialEducationAnswer } from "@/lib/federal-guidance";
 import type { FunctionalProfile } from "@prisma/client";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
@@ -55,7 +55,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   const intersector = student.intersectorReports[0];
   const caseSynthesis = parseCaseStudy(student.caseStudy?.content).sintese;
   const reportGuidance = guidanceForPlan(student.healthReports.filter((report) => report.reviewedAt).map((report) => parseAccepted(report.accepted)));
-  const reportsToReview = can.clinical ? student.healthReports.filter((report) => report.status === "lido" && !report.reviewedAt).length : 0;
+  const reportsToReview = can.clinical ? student.healthReports.filter((report) => reportStatus(report.status, report.reviewedAt).needsReview).length : 0;
 
 
   const activePlan = student.plans.find((p) => p.status === "ativo");

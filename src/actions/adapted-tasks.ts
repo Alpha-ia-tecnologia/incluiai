@@ -1,20 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod/v4";
 import type { ActionResult } from "@/lib/action-result";
 import { formField } from "@/lib/form-data";
-import { invalidateStudent } from "@/lib/invalidate";
 import { runAction, runFormAction } from "@/lib/server-action";
 import { UPLOAD_LIMIT_BYTES, megabytes, optionalUpload } from "@/lib/uploads";
 import { createAdaptedTask, createLevels, deleteAdaptedTask, saveAdaptedTask, transcribeTask, type TaskScope, type TaskText } from "@/lib/adapted-tasks";
 import type { AdaptedContent, AnswerFormat } from "@/lib/task-adaptation";
-
-const refresh = (scope: TaskScope) => {
-  if ("studentId" in scope) invalidateStudent(scope.studentId);
-  else revalidatePath(`/planejamento/${scope.planningId}/niveis`);
-};
 
 const taskForm = z.object({
   intent: formField.text(),
@@ -37,11 +30,9 @@ export async function adaptTask(scope: TaskScope, formData: FormData): Promise<A
     }
     if ("studentId" in scope) {
       const task = await createAdaptedTask(user, scope.studentId, data);
-      refresh(scope);
       redirect(`/estudantes/${scope.studentId}/atividades/adaptadas/${task.id}`);
     }
     const batchId = await createLevels(user, scope.planningId, data);
-    refresh(scope);
     redirect(`/planejamento/${scope.planningId}/niveis?lote=${batchId}`);
   });
 }
@@ -68,14 +59,12 @@ function contentFrom(formData: FormData): Partial<AdaptedContent> {
 export async function saveTask(scope: TaskScope, taskId: string, formData: FormData): Promise<ActionResult> {
   return runAction(async (user) => {
     await saveAdaptedTask(user, scope, taskId, contentFrom(formData), formData.get("intent") === "aprovar");
-    refresh(scope);
   });
 }
 
 export async function removeStudentTask(studentId: string, taskId: string): Promise<ActionResult> {
   return runAction(async (user) => {
     await deleteAdaptedTask(user, { studentId }, taskId);
-    invalidateStudent(studentId);
     redirect(`/estudantes/${studentId}/atividades`);
   });
 }

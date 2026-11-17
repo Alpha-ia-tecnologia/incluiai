@@ -9,6 +9,7 @@ import { RECOMMENDATION_OPTIONS, WHAT_WORKED_OPTIONS } from "@/lib/form-options"
 import { VoiceNote } from "@/components/voice-note";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { inputCls, labelCls, choiceCls } from "@/components/form-styles";
+import type { ActionResult } from "@/lib/action-result";
 
 
 const participationChoices = [
@@ -26,7 +27,7 @@ const roleOptions = rolesWith("pedagogical").map((value) => ({ value, label: rol
 export function DiaryForm({
   saveAction, studentId, objectives, activities, initialActivityId, initialObjectiveId,
 }: {
-  saveAction: (formData: FormData) => Promise<void>;
+  saveAction: (formData: FormData) => Promise<ActionResult>;
   studentId: string;
   objectives: { id: string; action: string; criterion: string }[];
   activities: { id: string; title: string }[];
@@ -37,7 +38,9 @@ export function DiaryForm({
   const statusRef = useRef<HTMLParagraphElement>(null);
   const submitting = useRef(false);
   const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<"saved" | "error" | null>(null);
+  const [result, setResult] = useState<ActionResult | "sem_resposta" | null>(null);
+  const saved = result !== "sem_resposta" && result?.ok;
+  const failure = result === "sem_resposta" ? "Não foi possível confirmar o salvamento. Suas respostas foram mantidas. Confira o histórico antes de tentar novamente." : result && !result.ok ? result.message : null;
   const [savedCount, setSavedCount] = useState(0);
   const [objectiveId, setObjectiveId] = useState(initialObjectiveId);
   const [activityId, setActivityId] = useState(initialActivityId);
@@ -51,14 +54,16 @@ export function DiaryForm({
     setResult(null);
     startTransition(async () => {
       try {
-        await saveAction(formData);
-        formRef.current?.reset();
-        setObjectiveId("");
-        setActivityId("");
-        setSavedCount((count) => count + 1);
-        setResult("saved");
+        const outcome = await saveAction(formData);
+        if (outcome.ok) {
+          formRef.current?.reset();
+          setObjectiveId("");
+          setActivityId("");
+          setSavedCount((count) => count + 1);
+        }
+        setResult(outcome);
       } catch {
-        setResult("error");
+        setResult("sem_resposta");
       } finally {
         submitting.current = false;
         requestAnimationFrame(() => statusRef.current?.focus());
@@ -159,16 +164,16 @@ export function DiaryForm({
       </fieldset>
 
       <div className="flex flex-col items-start gap-3 border-t border-line pt-5">
-        <p ref={statusRef} tabIndex={-1} role={result === "error" ? "alert" : "status"} aria-live="polite" className={`text-sm leading-relaxed ${result === "error" ? "text-coral" : "text-brand-strong"}`}>
-          {pending ? "Salvando seu registro…" : result === "saved" ? (
+        <p ref={statusRef} tabIndex={-1} role={failure ? "alert" : "status"} aria-live="polite" className={`text-sm leading-relaxed ${failure ? "text-coral" : "text-brand-strong"}`}>
+          {pending ? "Salvando seu registro…" : saved ? (
             <span className="flex items-start gap-2"><Sprout size={16} aria-hidden className="sprout-mark mt-1 shrink-0 text-green" />Registro salvo. Ele já aparece no histórico abaixo.</span>
-          ) : result === "error" ? "Não foi possível confirmar o salvamento. Suas respostas foram mantidas. Confira o histórico antes de tentar novamente." : ""}
+          ) : failure ?? ""}
         </p>
         <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-strong disabled:cursor-wait disabled:opacity-60 sm:w-auto">
           {pending ? <LoaderCircle size={18} className="animate-spin" aria-hidden /> : null}
           {pending ? "Salvando…" : "Salvar registro"}
         </button>
-        {result === "saved" ? <a href="#historico-registros" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline underline-offset-4">Ver registro no histórico</a> : null}
+        {saved ? <a href="#historico-registros" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline underline-offset-4">Ver registro no histórico</a> : null}
       </div>
     </form>
   );

@@ -5,6 +5,7 @@ import { AUDIT_ACTION, recordChange } from "./audit";
 import { canAccessSchool } from "./policy";
 import { can } from "./roles";
 import { UserError } from "./user-error";
+import { invalidateStudent } from "./invalidate";
 import { studentAI } from "./agents/capabilities";
 import { ILLUSTRATION } from "./agents/descriptors";
 import { buildActivityCards, saveSuggestedActivities } from "./agents/generate";
@@ -26,6 +27,7 @@ export async function generateActivities(user: SessionUser, studentId: string, r
   if (withImages) report?.({ agent: ILLUSTRATION, phase: "queued" });
   const cards = await buildActivityCards({ student, profile, objective, lessonTopic: request.lessonTopic }, report);
   const created = await saveSuggestedActivities(studentId, objective.id, cards);
+  invalidateStudent(studentId);
   if (!withImages) return { cards, created, images: null };
 
   report?.({ agent: ILLUSTRATION, phase: "start" });
@@ -54,6 +56,7 @@ export async function generateClassActivities(user: SessionUser, schoolId: strin
     const objective = student.plans[0]?.objectives[0];
     if (!profile || !objective) continue;
     await saveSuggestedActivities(student.id, objective.id, await buildActivityCards({ student, profile, objective, lessonTopic }));
+    invalidateStudent(student.id);
     done.push(student.id);
   }
   return done;
@@ -70,6 +73,7 @@ export async function illustrateActivity(user: SessionUser, studentId: string, a
   await assertOwnActivity(user, studentId, activityId);
   await assertImagesAllowed(studentId);
   await createActivityImage(activityId, kind.trim().slice(0, 500) || "sequencia", user);
+  invalidateStudent(studentId);
 }
 
 export async function removeActivityImage(user: SessionUser, studentId: string, activityId: string) {
@@ -77,4 +81,5 @@ export async function removeActivityImage(user: SessionUser, studentId: string, 
   await assertOwnActivity(user, studentId, activityId);
   const removed = await prisma.activityImage.deleteMany({ where: { activityId } });
   if (removed.count) await recordChange(user, studentId, AUDIT_ACTION.deleted, "Imagem de apoio da atividade");
+  invalidateStudent(studentId);
 }

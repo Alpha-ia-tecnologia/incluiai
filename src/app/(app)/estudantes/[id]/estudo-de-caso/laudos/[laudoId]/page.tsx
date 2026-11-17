@@ -4,11 +4,12 @@ import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, Sprout, Trash2 } from "
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
-import { REPORT_FIELDS, RETRY_STATUSES, isReadingStalled, parseAccepted, parseReading, reviewRows, type ReviewRow } from "@/lib/health-report";
+import { REPORT_FIELDS, canRetryReading, isReadingStalled, parseAccepted, parseReading, reviewRows, type ReviewRow } from "@/lib/health-report";
 import { formatDate } from "@/lib/format";
-import { deleteHealthReport, retryHealthReport, reviewHealthReport } from "@/actions/health-reports";
+import { deleteHealthReportAction, retryHealthReportAction, reviewHealthReportAction } from "@/actions/health-reports";
 import { AIDisclaimer, ButtonLink, Card, PageHeader } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
+import { ActionForm } from "@/components/action-form";
 import { choiceCls, BUTTON_CLS, linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
@@ -77,7 +78,7 @@ export default async function HealthReportPage({
   const confirmed = rows.filter((row) => row.fresh.length === 0 && row.known.length > 0);
   const nothingNew = Boolean(reading) && freshRows.length === 0 && (reading?.guidance.length ?? 0) === 0;
   const stale = isReadingStalled(report.status, report.createdAt);
-  const canRetry = !report.reviewedAt && RETRY_STATUSES.has(report.status) && (report.status !== "lendo" || stale) && (report.status !== "falhou" || Boolean(report.privacyNote));
+  const canRetry = canRetryReading(report);
   const joinedFields = REPORT_FIELDS.filter((field) => accepted.fields[field.key]?.length);
 
   return (
@@ -151,52 +152,54 @@ export default async function HealthReportPage({
               {report.privacyNote ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">{report.privacyNote}</p> : null}
             </Card>
 
-            <form action={reviewHealthReport.bind(null, report.id)} className="space-y-6">
-              {reading.guidance.length ? (
-                <fieldset className="min-w-0 space-y-3">
-                  <legend className={`${h3} mb-1`}>Orientações para a escola</legend>
-                  <p className="text-sm leading-relaxed text-ink-soft">As marcadas aparecem no resumo de {firstName} e ajudam a IA a propor o plano individual.</p>
-                  <div className="grid gap-2">
-                    {reading.guidance.map((item, index) => (
-                      <label key={item.text} className={choiceCls}>
-                        <input type="checkbox" name="orientacao" value={index} defaultChecked className={checkboxCls} />
-                        <span className="min-w-0">
-                          {item.text}
-                          {item.excerpt ? <span className="mt-1 block text-xs leading-relaxed text-ink-soft">No laudo: {quote(item.excerpt)}</span> : null}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              ) : null}
-
-              {freshRows.length ? (
-                <div className="space-y-3">
-                  <h3 className={h3}>Para o estudo de caso</h3>
-                  <p className="text-sm leading-relaxed text-ink-soft">O que você marcar se junta ao que já está registrado no estudo de caso. Confira cada item com o trecho do laudo.</p>
-                  {freshRows.map((row) => <SuggestionRow key={row.field.key} row={row} />)}
-                </div>
-              ) : null}
-
-              {confirmed.length ? (
-                <p className="text-sm leading-relaxed text-ink-soft">
-                  O laudo confirma o que já está no estudo de caso: {confirmed.map((row) => `${row.field.label.replace(/ \(opcional\)$/, "")} (${row.known.join(", ")})`).join("; ")}.
-                </p>
-              ) : null}
-
-              {nothingNew ? <p className="text-base text-ink">O laudo não trouxe nada novo para o estudo de caso de {firstName}.</p> : null}
-
-              <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
-                <PendingButton className={BUTTON_CLS.primary} pendingText="Salvando a revisão…">
-                  {nothingNew ? "Marcar como revisado" : "Juntar ao estudo de caso"} <ArrowRight size={16} aria-hidden />
-                </PendingButton>
-                {!nothingNew ? (
-                  <button type="submit" name="intent" value="descartar" className={BUTTON_CLS.quiet}>
-                    Descartar as sugestões
-                  </button>
+            <ActionForm action={reviewHealthReportAction.bind(null, report.id)}>
+              <div className="space-y-6">
+                {reading.guidance.length ? (
+                  <fieldset className="min-w-0 space-y-3">
+                    <legend className={`${h3} mb-1`}>Orientações para a escola</legend>
+                    <p className="text-sm leading-relaxed text-ink-soft">As marcadas aparecem no resumo de {firstName} e ajudam a IA a propor o plano individual.</p>
+                    <div className="grid gap-2">
+                      {reading.guidance.map((item, index) => (
+                        <label key={item.text} className={choiceCls}>
+                          <input type="checkbox" name="orientacao" value={index} defaultChecked className={checkboxCls} />
+                          <span className="min-w-0">
+                            {item.text}
+                            {item.excerpt ? <span className="mt-1 block text-xs leading-relaxed text-ink-soft">No laudo: {quote(item.excerpt)}</span> : null}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                 ) : null}
+
+                {freshRows.length ? (
+                  <div className="space-y-3">
+                    <h3 className={h3}>Para o estudo de caso</h3>
+                    <p className="text-sm leading-relaxed text-ink-soft">O que você marcar se junta ao que já está registrado no estudo de caso. Confira cada item com o trecho do laudo.</p>
+                    {freshRows.map((row) => <SuggestionRow key={row.field.key} row={row} />)}
+                  </div>
+                ) : null}
+
+                {confirmed.length ? (
+                  <p className="text-sm leading-relaxed text-ink-soft">
+                    O laudo confirma o que já está no estudo de caso: {confirmed.map((row) => `${row.field.label.replace(/ \(opcional\)$/, "")} (${row.known.join(", ")})`).join("; ")}.
+                  </p>
+                ) : null}
+
+                {nothingNew ? <p className="text-base text-ink">O laudo não trouxe nada novo para o estudo de caso de {firstName}.</p> : null}
+
+                <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
+                  <PendingButton className={BUTTON_CLS.primary} pendingText="Salvando a revisão…">
+                    {nothingNew ? "Marcar como revisado" : "Juntar ao estudo de caso"} <ArrowRight size={16} aria-hidden />
+                  </PendingButton>
+                  {!nothingNew ? (
+                    <button type="submit" name="intent" value="descartar" className={BUTTON_CLS.quiet}>
+                      Descartar as sugestões
+                    </button>
+                  ) : null}
+                </div>
               </div>
-            </form>
+            </ActionForm>
           </>
         ) : (
           <Card>
@@ -233,11 +236,11 @@ export default async function HealthReportPage({
             )}
             <div className="mt-5 flex flex-wrap items-center gap-3">
               {canRetry ? (
-                <form action={retryHealthReport.bind(null, report.id)}>
+                <ActionForm action={retryHealthReportAction.bind(null, report.id)}>
                   <PendingButton className={BUTTON_CLS.primary} pendingText="Lendo o laudo. Pode levar até um minuto.">
                     <RotateCcw size={16} aria-hidden /> {report.status === "sem_autorizacao" ? "Pedir a leitura" : "Tentar ler de novo"}
                   </PendingButton>
-                </form>
+                </ActionForm>
               ) : null}
               <ButtonLink href={base} variant={canRetry ? "quiet" : "primary"}>
                 Ir para o estudo de caso {canRetry ? null : <ArrowRight size={16} aria-hidden />}
@@ -249,9 +252,9 @@ export default async function HealthReportPage({
         <details className="rounded-2xl bg-surface-muted p-4 print:hidden">
           <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir este laudo</summary>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">O arquivo e a leitura da IA saem da plataforma. O que já foi juntado ao estudo de caso continua lá.</p>
-          <form action={deleteHealthReport.bind(null, report.id)} className="mt-3">
+          <ActionForm action={deleteHealthReportAction.bind(null, report.id)} className="mt-3">
             <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir o laudo</button>
-          </form>
+          </ActionForm>
         </details>
       </div>
     </>

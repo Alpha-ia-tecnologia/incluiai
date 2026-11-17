@@ -6,6 +6,7 @@ import { choiceCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/compon
 import { SUPPORT_LEVELS } from "@/lib/scale";
 import { suggestedRecord, type GameResult } from "@/lib/games/games-core";
 import { recordGameSession } from "@/actions/games";
+import { FormResult } from "@/components/form-kit";
 
 export function GameRecordForm({ student, result, note, actions }: {
   student: { id: string; firstName: string };
@@ -14,7 +15,7 @@ export function GameRecordForm({ student, result, note, actions }: {
   actions: ReactNode;
 }) {
   const record = useMemo(() => recordGameSession.bind(null, student.id), [student.id]);
-  const [state, formAction, pending] = useActionState(record, {});
+  const [outcome, formAction, pending] = useActionState(record, null);
   const suggestion = suggestedRecord(result);
   // Envio pelo onSubmit: com action={...}, o React limparia o formulário depois de salvar.
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -23,7 +24,7 @@ export function GameRecordForm({ student, result, note, actions }: {
     startTransition(() => formAction(formData));
   }
 
-  if (state.saved) {
+  if (outcome?.ok) {
     return (
       <section className="grid justify-items-center gap-4 rounded-2xl bg-green-soft p-5 text-center">
         <p role="status" className="flex items-center gap-2 text-base font-medium text-green"><Sprout size={18} aria-hidden className="sprout-mark" /> Aula registrada. Aparece em Registrar aula e na Evolução de {student.firstName}.</p>
@@ -60,7 +61,7 @@ export function GameRecordForm({ student, result, note, actions }: {
         <label htmlFor="jogo-nota" className={labelCls}>O que aconteceu</label>
         <textarea id="jogo-nota" name="nota" rows={3} maxLength={500} defaultValue={note} className={textareaCls} />
       </div>
-      {state.error && !pending ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
+      <FormResult result={pending ? null : outcome} />
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
         <button type="submit" disabled={pending} className={`${BUTTON_CLS.primary} disabled:cursor-wait`}>
           {pending ? <LoaderCircle size={16} className="animate-spin motion-reduce:animate-none" aria-hidden /> : null}

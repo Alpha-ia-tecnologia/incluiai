@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowRight, CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
-import { saveCaseStudy } from "@/actions/case-study";
+import { saveCaseStudyAction } from "@/actions/case-study";
 import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, ESSENTIAL_GROUPS, parseCaseStudy, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
 import { splitItems } from "@/lib/form-options";
 import { formatDate } from "@/lib/format";
@@ -14,6 +14,7 @@ import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { PrintButton } from "@/components/print-button";
 import { CreatedNotice } from "@/components/materials/created-notice";
 import { HealthReportsNote } from "@/components/health-report-note";
+import { ActionForm } from "@/components/action-form";
 import { hintCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
@@ -176,7 +177,7 @@ export default async function CaseStudyPage({
   }
 
   if (!canEdit) redirect(`/estudantes/${id}`);
-  const save = saveCaseStudy.bind(null, id);
+  const save = saveCaseStudyAction.bind(null, id);
   const fieldValue = (field: CaseStudyField) => content[field.key] ?? (field.key === "participantes" ? AEE_TEACHER : "");
   const answered = (fields: CaseStudyField[]) => fields.filter((field) => content[field.key]?.trim()).length;
   const everyField = sections.flatMap((section) => section.fields);
@@ -209,97 +210,99 @@ export default async function CaseStudyPage({
       {reportsNote}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
-        <form action={save} className="min-w-0 space-y-5 xl:col-start-1">
-          {clinicalNote}
-          {!caseStudy ? (
-            <Card className="bg-surface-muted">
-              <h3 className="mb-2 flex items-center gap-2 text-base font-medium"><ClipboardList size={18} className="text-brand-strong" aria-hidden /> Como fazer o estudo de caso</h3>
-              <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-soft">
-                <li>Converse com a família e com o professor da sala comum.</li>
-                <li>Escute o estudante e observe-o em diferentes espaços da escola.</li>
-                <li>Registre o que ele já sabe e como aprende melhor.</li>
-                <li>Para concluir, basta a parte Essencial. Não é preciso laudo médico.</li>
-              </ul>
-            </Card>
-          ) : (
-            <p className="text-sm text-ink-soft">
-              {concluded ? "Editando o estudo de caso concluído." : "Rascunho"} · última atualização por {caseStudy.updatedBy} em {formatDate(caseStudy.updatedAt)}.
-            </p>
-          )}
-
-          <section id="secao-essencial" aria-labelledby="titulo-essencial" className="ui-card scroll-mt-6">
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 id="titulo-essencial" className="text-base font-semibold text-ink">Essencial</h3>
-                <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">É o que basta para concluir, na ordem do que o INEP descreve para o estudo de caso. Concluído, ele respalda a declaração do estudante no Censo Escolar e abre o plano de ensino.</p>
-              </div>
-              <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium tabular-nums text-sky-ink">{essentialFilled} de {essentialFields.length}</span>
-            </div>
-            <div className="space-y-6">
-              {essentialGroups.map((group, index) => (
-                <fieldset key={group.title} className="min-w-0 rounded-2xl border border-line p-4 sm:p-5">
-                  <legend className="px-1 text-sm font-semibold text-ink">{index + 1}. {group.title}</legend>
-                  <p className="mb-4 text-sm leading-relaxed text-ink-soft">{group.hint}</p>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {/* O professor do AEE conduz o estudo (INEP). */}
-                    {group.fields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
-                  </div>
-                </fieldset>
-              ))}
-            </div>
-          </section>
-
-          <details id="aprofundar" open={deeperFilled > 0} className="group min-w-0 scroll-mt-6 rounded-2xl border border-line bg-paper-raised">
-            <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
-              <span className="min-w-0">
-                <span className="block text-base font-semibold text-ink">Aprofundar o estudo <span className="font-normal text-ink-soft">· opcional</span></span>
-                <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Motivo do encaminhamento, entrevista com a família, escuta do estudante, observação e avaliação pedagógica. Preencha quando tiver as informações.</span>
-              </span>
-              <span className="flex shrink-0 items-center gap-2 text-xs text-ink-soft">
-                <span className="tabular-nums">{deeperFilled} de {deeperFields.length} respondidas</span>
-                <ChevronDown size={18} aria-hidden className="transition-transform group-open:rotate-180" />
-              </span>
-            </summary>
-            <div className="space-y-5 border-t border-line p-4 sm:p-5">
-              {deeperSections.map((section) => (
-                <section key={section.id} id={`secao-${section.id}`} aria-labelledby={`titulo-${section.id}`} className="scroll-mt-6 rounded-2xl border border-line p-4 sm:p-5">
-                  <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h4 id={`titulo-${section.id}`} className="text-base font-semibold text-ink">{section.title}</h4>
-                      <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">{section.description}</p>
-                    </div>
-                    <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium text-sky-ink">{section.source}</span>
-                  </div>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {section.fields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
-                  </div>
-                  <p className="mt-5 text-xs text-ink-soft"><span className="tabular-nums">{answered(section.fields)} de {section.fields.length}</span> perguntas com resposta salva</p>
-                </section>
-              ))}
-            </div>
-          </details>
-
-          <div className="sticky bottom-[calc(96px_+_env(safe-area-inset-bottom,0px))] z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-paper-raised p-3 shadow-e2 lg:bottom-4">
-            {concluded ? (
-              <>
-                <button type="submit" name="intent" value="concluir" className={BUTTON_CLS.primary}>
-                  <Save size={16} aria-hidden /> Salvar alterações
-                </button>
-                <Link href={`/estudantes/${id}/estudo-de-caso`} className={BUTTON_CLS.quiet}>Cancelar</Link>
-              </>
+        <ActionForm action={save} className="min-w-0 xl:col-start-1">
+          <div className="space-y-5">
+            {clinicalNote}
+            {!caseStudy ? (
+              <Card className="bg-surface-muted">
+                <h3 className="mb-2 flex items-center gap-2 text-base font-medium"><ClipboardList size={18} className="text-brand-strong" aria-hidden /> Como fazer o estudo de caso</h3>
+                <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-soft">
+                  <li>Converse com a família e com o professor da sala comum.</li>
+                  <li>Escute o estudante e observe-o em diferentes espaços da escola.</li>
+                  <li>Registre o que ele já sabe e como aprende melhor.</li>
+                  <li>Para concluir, basta a parte Essencial. Não é preciso laudo médico.</li>
+                </ul>
+              </Card>
             ) : (
-              <>
-                <button type="submit" name="intent" value="rascunho" formNoValidate className={BUTTON_CLS.secondary}>
-                  <Save size={16} aria-hidden /> Salvar rascunho
-                </button>
-                <button type="submit" name="intent" value="concluir" className={BUTTON_CLS.primary}>
-                  <CheckCircle2 size={16} aria-hidden /> Concluir estudo de caso
-                </button>
-              </>
+              <p className="text-sm text-ink-soft">
+                {concluded ? "Editando o estudo de caso concluído." : "Rascunho"} · última atualização por {caseStudy.updatedBy} em {formatDate(caseStudy.updatedAt)}.
+              </p>
             )}
-            <p className="text-xs text-ink-soft">Para concluir, basta a parte Essencial.</p>
+
+            <section id="secao-essencial" aria-labelledby="titulo-essencial" className="ui-card scroll-mt-6">
+              <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 id="titulo-essencial" className="text-base font-semibold text-ink">Essencial</h3>
+                  <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">É o que basta para concluir, na ordem do que o INEP descreve para o estudo de caso. Concluído, ele respalda a declaração do estudante no Censo Escolar e abre o plano de ensino.</p>
+                </div>
+                <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium tabular-nums text-sky-ink">{essentialFilled} de {essentialFields.length}</span>
+              </div>
+              <div className="space-y-6">
+                {essentialGroups.map((group, index) => (
+                  <fieldset key={group.title} className="min-w-0 rounded-2xl border border-line p-4 sm:p-5">
+                    <legend className="px-1 text-sm font-semibold text-ink">{index + 1}. {group.title}</legend>
+                    <p className="mb-4 text-sm leading-relaxed text-ink-soft">{group.hint}</p>
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {/* O professor do AEE conduz o estudo (INEP). */}
+                      {group.fields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
+                    </div>
+                  </fieldset>
+                ))}
+              </div>
+            </section>
+
+            <details id="aprofundar" open={deeperFilled > 0} className="group min-w-0 scroll-mt-6 rounded-2xl border border-line bg-paper-raised">
+              <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0">
+                  <span className="block text-base font-semibold text-ink">Aprofundar o estudo <span className="font-normal text-ink-soft">· opcional</span></span>
+                  <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Motivo do encaminhamento, entrevista com a família, escuta do estudante, observação e avaliação pedagógica. Preencha quando tiver as informações.</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-xs text-ink-soft">
+                  <span className="tabular-nums">{deeperFilled} de {deeperFields.length} respondidas</span>
+                  <ChevronDown size={18} aria-hidden className="transition-transform group-open:rotate-180" />
+                </span>
+              </summary>
+              <div className="space-y-5 border-t border-line p-4 sm:p-5">
+                {deeperSections.map((section) => (
+                  <section key={section.id} id={`secao-${section.id}`} aria-labelledby={`titulo-${section.id}`} className="scroll-mt-6 rounded-2xl border border-line p-4 sm:p-5">
+                    <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 id={`titulo-${section.id}`} className="text-base font-semibold text-ink">{section.title}</h4>
+                        <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">{section.description}</p>
+                      </div>
+                      <span className="rounded-full bg-sky-soft px-2.5 py-1 text-xs font-medium text-sky-ink">{section.source}</span>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {section.fields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
+                    </div>
+                    <p className="mt-5 text-xs text-ink-soft"><span className="tabular-nums">{answered(section.fields)} de {section.fields.length}</span> perguntas com resposta salva</p>
+                  </section>
+                ))}
+              </div>
+            </details>
+
+            <div className="sticky bottom-[calc(96px_+_env(safe-area-inset-bottom,0px))] z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-paper-raised p-3 shadow-e2 lg:bottom-4">
+              {concluded ? (
+                <>
+                  <button type="submit" name="intent" value="concluir" className={BUTTON_CLS.primary}>
+                    <Save size={16} aria-hidden /> Salvar alterações
+                  </button>
+                  <Link href={`/estudantes/${id}/estudo-de-caso`} className={BUTTON_CLS.quiet}>Cancelar</Link>
+                </>
+              ) : (
+                <>
+                  <button type="submit" name="intent" value="rascunho" formNoValidate className={BUTTON_CLS.secondary}>
+                    <Save size={16} aria-hidden /> Salvar rascunho
+                  </button>
+                  <button type="submit" name="intent" value="concluir" className={BUTTON_CLS.primary}>
+                    <CheckCircle2 size={16} aria-hidden /> Concluir estudo de caso
+                  </button>
+                </>
+              )}
+              <p className="text-xs text-ink-soft">Para concluir, basta a parte Essencial.</p>
+            </div>
           </div>
-        </form>
+        </ActionForm>
 
         <nav aria-label="Partes do estudo de caso" className="hidden self-start xl:sticky xl:top-[calc(var(--sticky-offset,0px)_+_16px)] xl:col-start-2 xl:row-start-1 xl:block">
           <p className="mb-3 text-sm font-medium">Partes do estudo</p>

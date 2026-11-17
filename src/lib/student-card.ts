@@ -4,10 +4,15 @@ import QRCode from "qrcode";
 import { db, platformDomain } from "./prisma";
 import { requestHost } from "./tenancy-core";
 import type { SessionUser } from "./auth";
+import { AUDIT_ACTION, recordChange } from "./audit";
+import { invalidateStudent } from "./invalidate";
+import { requiredUpload } from "./uploads";
+import { UserError } from "./user-error";
 import { canWorkWithStudent, isFamilyOf } from "./policy";
 import { CHANNELS, SHIFTS } from "./scale";
 import { parseJson } from "./format";
-import { cardHelp, formatPhone, hasHelp, newCardToken, type CardHelp } from "./student-card-core";
+import { FAMILY_MEMBER_OPTIONS } from "./form-options";
+import { CARD_PHOTO_UPLOAD, cardHelp, formatPhone, hasHelp, newCardToken, normalizePhone, sniffCardPhoto, stripPhotoMetadata, type CardHelp } from "./student-card-core";
 
 export const PENDING_CARD_COOKIE = "carteirinha_pendente";
 export const cardPath = (token: string) => `/c/${token}`;
@@ -94,7 +99,65 @@ export async function loadCardView(studentId: string): Promise<CardView | null> 
   };
 }
 
-export async function rotateCardToken(studentId: string): Promise<void> {
+async function cardStudent(studentId: string) {
   const prisma = await db();
+  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true, consent: { select: { card: true } }, card: { select: { id: true } } } });
+  if (!student) throw new UserError("Estudante não encontrado.", "not_found");
+  if (!student.consent?.card || !student.card) throw new UserError("A família ainda não autorizou a carteirinha.", "conflict");
+  return student;
+}
+
+async function assertCardManager(user: SessionUser, studentId: string) {
+  const student = await cardStudent(studentId);
+  if (!canWorkWithStudent(user, student)) throw new UserError("Você não tem permissão para fazer a carteirinha deste estudante.", "forbidden");
+}
+
+export async function saveCardPhoto(user: SessionUser, studentId: string, upload: FormDataEntryValue | null): Promise<void> {
+  const prisma = await db();
+  await assertCardManager(user, studentId);
+  const bytes = new Uint8Array(await requiredUpload(upload, CARD_PHOTO_UPLOAD).arrayBuffer());
+  const type = sniffCardPhoto(bytes);
+  if (!type) throw new UserError("Envie a foto em JPG ou PNG.");
+  // Sem metadados: a foto de um celular pode trazer a localização de onde foi tirada.
+  const clean = stripPhotoMetadata(bytes, type);
+  if (!clean) throw new UserError("Não foi possível ler esta foto. Tente outra.");
+  await prisma.studentCard.update({ where: { studentId }, data: { photo: new Uint8Array(clean), photoMime: type, photoUpdatedAt: new Date() } });
+  await recordChange(user, studentId, AUDIT_ACTION.sent, "Foto da carteirinha");
+  invalidateStudent(studentId);
+}
+
+export async function deleteCardPhoto(user: SessionUser, studentId: string): Promise<void> {
+  const prisma = await db();
+  await assertCardManager(user, studentId);
+  await prisma.studentCard.update({ where: { studentId }, data: { photo: null, photoMime: null, photoUpdatedAt: null } });
+  await recordChange(user, studentId, AUDIT_ACTION.deleted, "Foto da carteirinha");
+  invalidateStudent(studentId);
+}
+
+export async function rotateCard(user: SessionUser, studentId: string): Promise<void> {
+  const prisma = await db();
+  const student = await cardStudent(studentId);
+  if (!canViewCard(user, student)) throw new UserError("Você não tem permissão para trocar o código desta carteirinha.", "forbidden");
   await prisma.studentCard.update({ where: { studentId }, data: { token: newCardToken(), issuedAt: new Date() } });
+  await recordChange(user, studentId, AUDIT_ACTION.replaced, "Código da carteirinha (o anterior deixou de valer)");
+  invalidateStudent(studentId);
+}
+
+type CardPreferences = { showHelp: boolean; showEmergency: boolean; name: string; relation: string; phone: string };
+
+export async function setCardPreferences(user: SessionUser, studentId: string, input: CardPreferences): Promise<void> {
+  const prisma = await db();
+  await cardStudent(studentId);
+  if (!isFamilyOf(user, studentId)) throw new UserError("Só a família escolhe o que aparece na carteirinha.", "forbidden");
+  const name = input.name.replace(/\s+/g, " ").slice(0, 60);
+  const relation = FAMILY_MEMBER_OPTIONS.includes(input.relation) ? input.relation : "";
+  const phone = input.phone ? normalizePhone(input.phone) : null;
+  if (input.phone && !phone) throw new UserError("Confira o telefone: use o DDD e o número, como (11) 98765-4321.");
+  if (input.showEmergency && (!name || !phone)) throw new UserError("Para mostrar o contato na carteirinha, preencha o nome e o telefone.");
+  await prisma.studentCard.update({
+    where: { studentId },
+    data: { showHelp: input.showHelp, showEmergency: input.showEmergency, emergencyName: name || null, emergencyRelation: relation || null, emergencyPhone: phone },
+  });
+  await recordChange(user, studentId, AUDIT_ACTION.changed, "Carteirinha: verso e contato de emergência");
+  invalidateStudent(studentId);
 }

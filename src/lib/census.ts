@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "./prisma";
+import { newStudentData } from "./students";
 import { AUDIT_ACTION, auditEntry, recordChange } from "./audit";
 import type { SessionUser } from "./auth";
 import { can, roleScope } from "./roles";
@@ -9,6 +10,7 @@ import { buildSyncPlan, censusCounts, cleanMonitorConfig, regularOnlyIds, school
 import { aeeEstimate, isoDay, networkSnapshots, runVerification, saveFndeCount, saveMonitorConfig, schoolCoverage, schoolStudents } from "./census-core";
 import { censusReference, specialEducationAnswer, type CensusReferenceRecord } from "./federal-guidance";
 import { UserError } from "./user-error";
+import { invalidateStudent } from "./invalidate";
 
 export type CensusAccess = { network: boolean; schoolId: string | null; canImport: boolean; canConfigure: boolean };
 
@@ -34,14 +36,6 @@ function requireCensusAccess(user: SessionUser): CensusAccess {
 export type ImportStats = ParseStats & { persons: number; special: number; edition: number };
 
 // Sistemas de gestão costumam gravar o arquivo em Windows-1252: sem UTF-8 válido, relê assim.
-export function decodeCensusFile(bytes: Uint8Array): string {
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  } catch {
-    return new TextDecoder("windows-1252").decode(bytes);
-  }
-}
-
 export async function analyzeCensusFile(user: SessionUser, schoolId: string, content: string): Promise<string> {
   const prisma = await db();
   if (!canOpenSchool(user, schoolId)) throw new UserError("Você importa o arquivo só da sua escola.", "forbidden");
@@ -141,14 +135,12 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
       if (!person) continue;
       if (item.action === "create" && item.create) {
         const data = item.create;
-        const student = await tx.student.create({
-          data: {
-            name: data.name, birthDate: new Date(`${data.birthDate}T12:00:00`), stage: data.stage, gradeYear: "A informar", className: data.className, shift: "A informar",
-            schoolId: censusImport.schoolId, hasAEE: true, guardianName: "A informar", inepId: data.inepId, cpf: data.cpf, census: meta(person), avatarHue: Math.floor(Math.random() * 360),
-            timeline: { create: { type: "avaliacao", title: "Cadastro pelo arquivo do Censo Escolar", description: "A etapa foi estimada pela idade. Confira ano, turma, turno e responsável." } },
-          },
+        await tx.student.create({
+          data: newStudentData(user, {
+            name: data.name, birthDate: data.birthDate, stage: data.stage, gradeYear: "A informar", className: data.className, shift: "A informar",
+            schoolId: censusImport.schoolId, guardianName: "A informar", inepId: data.inepId, cpf: data.cpf, census: meta(person),
+          }, "censo"),
         });
-        await tx.accessLog.create({ data: { studentId: student.id, ...auditEntry(user, AUDIT_ACTION.created, "Cadastro pelo arquivo do Censo Escolar") } });
         created += 1;
       } else if (item.studentId) {
         const data: { census: string; name?: string; birthDate?: Date; inepId?: string; cpf?: string; hasAEE?: boolean } = { census: meta(person) };
@@ -185,6 +177,7 @@ export async function setStudentInep(user: SessionUser, studentId: string, inepI
   if (digits.length !== 12) throw new UserError("O ID INEP tem 12 números.");
   await prisma.student.update({ where: { id: studentId }, data: { inepId: digits } });
   await recordChange(user, studentId, AUDIT_ACTION.updated, "ID INEP do Censo Escolar");
+  invalidateStudent(studentId);
 }
 
 export async function setSchoolInep(user: SessionUser, schoolId: string, inepCode: string): Promise<void> {

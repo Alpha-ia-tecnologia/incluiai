@@ -4,9 +4,13 @@
 import { CASE_STUDY_FIELDS, type CaseStudyContent, type CaseStudyField } from "./case-study";
 import { splitItems, type ChoiceOption } from "./form-options";
 import { hasClinicalTerm } from "./pedagogy-rules";
+import { UPLOAD_LIMIT_BYTES, megabytes } from "./uploads";
 
-export const MAX_REPORT_MB = 10;
-export const MAX_REPORT_BYTES = MAX_REPORT_MB * 1024 * 1024;
+export const REPORT_UPLOAD = {
+  maxBytes: UPLOAD_LIMIT_BYTES.healthReport,
+  missing: "Escolha o arquivo do laudo.",
+  tooLarge: `O arquivo tem mais de ${megabytes(UPLOAD_LIMIT_BYTES.healthReport)} MB. Envie uma versão menor.`,
+};
 
 export type ReportMimeType = "application/pdf" | "image/jpeg" | "image/png";
 
@@ -52,7 +56,7 @@ export const STATUS_TEXT: Record<ReportStatus, string> = {
   sem_autorizacao: "Guardado, sem autorização para IA",
 };
 
-export const RETRY_STATUSES: ReadonlySet<string> = new Set(["falhou", "ia_desligada", "sem_autorizacao", "lendo"]);
+const RETRY_STATUSES: ReadonlySet<string> = new Set(["falhou", "ia_desligada", "sem_autorizacao", "lendo"]);
 
 export function reportStatus(status: string, reviewedAt: Date | null): { label: string; needsReview: boolean } {
   if (reviewedAt) return { label: "Revisado", needsReview: false };
@@ -62,6 +66,12 @@ export function reportStatus(status: string, reviewedAt: Date | null): { label: 
 
 export function isReadingStalled(status: string, createdAt: Date): boolean {
   return status === "lendo" && Date.now() - createdAt.getTime() > 3 * 60_000;
+}
+
+export function canRetryReading(report: { status: string; reviewedAt: Date | null; privacyNote: string | null; createdAt: Date }): boolean {
+  if (report.reviewedAt || !RETRY_STATUSES.has(report.status)) return false;
+  if (report.status === "lendo") return isReadingStalled(report.status, report.createdAt);
+  return report.status !== "falhou" || Boolean(report.privacyNote);
 }
 
 export type ReportGuidance = { text: string; excerpt: string };
@@ -124,6 +134,21 @@ function parse<T>(value: string | null | undefined, fallback: T): T {
 }
 
 export const parseReading = (value: string | null | undefined) => parse<ReportReading | null>(value, null);
+
+export type ReviewChoice = { guidance: string[]; fields: Partial<Record<ReportFieldKey, string[]>> };
+
+export function acceptedSuggestions(reading: ReportReading, choice: ReviewChoice | null): ReportAccepted {
+  const accepted: ReportAccepted = { guidance: [], fields: {} };
+  if (!choice) return accepted;
+  const chosen = new Set(choice.guidance);
+  accepted.guidance = reading.guidance.filter((_, index) => chosen.has(String(index))).map((item) => item.text);
+  for (const suggestion of reading.suggestions) {
+    const picked = new Set(choice.fields[suggestion.field] ?? []);
+    const values = suggestion.values.filter((value) => picked.has(value));
+    if (values.length) accepted.fields[suggestion.field] = values;
+  }
+  return accepted;
+}
 export const parseAccepted = (value: string | null | undefined) => parse<ReportAccepted>(value, { guidance: [], fields: {} });
 
 const PLACEHOLDERS = new Set(["Nenhuma", "Nenhum", "Sem diagnóstico", "Em investigação"]);

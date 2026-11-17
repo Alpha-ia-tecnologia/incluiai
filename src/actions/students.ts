@@ -1,93 +1,30 @@
 ﻿"use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { AUDIT_ACTION, recordChange } from "@/lib/audit";
-import { getCurrentUser } from "@/lib/auth";
-import { can } from "@/lib/roles";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { runFormAction } from "@/lib/server-action";
+import { createStudent } from "@/lib/students";
 
-const validStages = new Set([
-  "educacao_infantil",
-  "anos_iniciais",
-  "anos_finais",
-  "ensino_medio",
-  "eja",
-]);
-const isValidShift = (shift: string) => shift.length > 0 && shift.length <= 40;
+const studentForm = z.object({
+  schoolId: formField.text(64),
+  name: formField.text(),
+  birthDate: formField.text(10),
+  stage: formField.text(60),
+  gradeYear: formField.text(),
+  className: formField.text(),
+  shift: formField.text(),
+  guardianName: formField.text(),
+  guardianPhone: formField.text(),
+  aeeFrequency: formField.text(),
+  accessibilityNotes: formField.text(),
+  supportProfessional: formField.checkbox(),
+});
 
-export async function createStudent(formData: FormData) {
-  const prisma = await db();
-  const user = await getCurrentUser();
-  if (!user || !can(user.role, "pedagogical")) {
-    throw new Error("Você não tem permissão para cadastrar estudantes.");
-  }
-
-  const name = String(formData.get("name") ?? "").trim();
-  const birthDate = String(formData.get("birthDate") ?? "");
-  const schoolId = String(formData.get("schoolId") ?? "");
-  const stage = String(formData.get("stage") ?? "");
-  const gradeYear = String(formData.get("gradeYear") ?? "").trim();
-  const className = String(formData.get("className") ?? "").trim();
-  const shift = String(formData.get("shift") ?? "").trim();
-  const guardianName = String(formData.get("guardianName") ?? "").trim();
-  const aeeFrequency = String(formData.get("aeeFrequency") ?? "").trim();
-  const parsedBirthDate = new Date(`${birthDate}T12:00:00`);
-
-  const school = await prisma.school.findUnique({
-    where: { id: schoolId },
-    select: { id: true },
+export async function createStudentAction(formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, studentForm, async (user, { schoolId, ...fields }) => {
+    const student = await createStudent(user, schoolId, fields);
+    redirect(`/estudantes/${student.id}`);
   });
-  if (user.schoolId && schoolId !== user.schoolId) {
-    throw new Error("Você cadastra estudantes só na sua escola.");
-  }
-
-  if (
-    !name ||
-    !birthDate ||
-    !school ||
-    !validStages.has(stage) ||
-    !gradeYear ||
-    !className ||
-    !isValidShift(shift) ||
-    !guardianName ||
-    Number.isNaN(parsedBirthDate.getTime()) ||
-    parsedBirthDate > new Date()
-  ) {
-    throw new Error("Revise os dados obrigatórios antes de salvar.");
-  }
-
-  const student = await prisma.student.create({
-    data: {
-      name,
-      birthDate: parsedBirthDate,
-      stage,
-      gradeYear,
-      className,
-      shift,
-      schoolId,
-      hasAEE: true,
-      aeeFrequency: aeeFrequency || null,
-      supportProfessional: formData.get("supportProfessional") === "on",
-      guardianName,
-      guardianPhone:
-        String(formData.get("guardianPhone") ?? "").trim() || null,
-      accessibilityNotes:
-        String(formData.get("accessibilityNotes") ?? "").trim() || null,
-      avatarHue: Math.floor(Math.random() * 360),
-      timeline: {
-        create: {
-          type: "avaliacao",
-          title: "Cadastro no prontuário municipal",
-          description: "Estudante incluído na plataforma.",
-        },
-      },
-    },
-  });
-
-  await recordChange(user, student.id, AUDIT_ACTION.created, "Cadastro do estudante");
-
-  revalidatePath("/estudantes");
-  revalidatePath("/");
-  redirect(`/estudantes/${student.id}`);
 }

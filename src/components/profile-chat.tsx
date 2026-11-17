@@ -36,6 +36,7 @@ import {
   TRIGGER_OPTIONS,
   splitItems,
 } from "@/lib/form-options";
+import type { ActionResult } from "@/lib/action-result";
 
 type Answer = string | string[];
 export type ProfileAnswers = Record<string, Answer>;
@@ -410,7 +411,7 @@ export function ProfileChat({
   hasSavedProfile = false,
   savedAt = null,
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (previous: ActionResult | null, formData: FormData) => Promise<ActionResult>;
   firstName: string;
   initialAnswers?: ProfileAnswers;
   hasSavedProfile?: boolean;
@@ -561,7 +562,8 @@ export function ProfileChat({
     startTransition(async () => {
       try {
         setError("");
-        await action(formData);
+        const result = await action(null, formData);
+        if (!result.ok) setError(result.message);
       } catch (error) {
         // Depois de salvar, a ação redireciona, e o redirecionamento chega aqui
         // como erro interno do Next: ele segue adiante, não é falha ao salvar.

@@ -16,6 +16,7 @@ import { applicableRules } from "./rules";
 import { generateMaterialImages } from "./images/material-images";
 import { assertImagesAllowed } from "./images/save";
 import { UserError } from "./user-error";
+import { invalidateStudent } from "./invalidate";
 import {
   MATERIAL_KIND_LABEL, checkMaterial, isMaterialKind, normalizeMaterialContent, rulesMaterial,
   type MaterialContent, type ProfileFacts,
@@ -96,6 +97,7 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
   if (request.withImages && (await studentAI(studentId)).images) {
     images = { ...(await generateMaterialImages(material.id, user)), requested: true };
   }
+  invalidateStudent(studentId);
   return { material, content: result.content, source, images };
 }
 
@@ -113,6 +115,7 @@ export async function approveStudentMaterial(user: SessionUser, studentId: strin
   await prisma.material.update({ where: { id: material.id }, data: { status: "aprovado", approvedBy: user.name, approvedAt: new Date() } });
   await recordChange(user, studentId, AUDIT_ACTION.edited, `Material de apoio aprovado para uso: ${material.title}`);
   await notifyFamily(studentId, "material_aprovado", `/familia/${studentId}#materiais`);
+  invalidateStudent(studentId);
 }
 
 export async function addMaterialImages(user: SessionUser, studentId: string, materialId: string) {
@@ -120,6 +123,7 @@ export async function addMaterialImages(user: SessionUser, studentId: string, ma
   await assertImagesAllowed(studentId);
   const result = await generateMaterialImages(material.id, user);
   if (!result.created && result.errors.length) throw new UserError(result.errors[0]);
+  invalidateStudent(studentId);
   return result;
 }
 
@@ -128,6 +132,7 @@ export async function deleteStudentMaterial(user: SessionUser, studentId: string
   const material = await loadOwnMaterial(user, studentId, materialId);
   await prisma.material.delete({ where: { id: material.id } });
   await recordChange(user, studentId, AUDIT_ACTION.deleted, `Material de apoio: ${material.title}`);
+  invalidateStudent(studentId);
 }
 
 export async function saveMaterialActivity(user: SessionUser, studentId: string, materialId: string, index: number) {
@@ -155,5 +160,6 @@ export async function saveMaterialActivity(user: SessionUser, studentId: string,
   };
   const created = await prisma.activity.create({ data: { studentId, objectiveId: material.objectiveId, ...activityRow(card) } });
   await recordChange(user, studentId, AUDIT_ACTION.created, `Atividade a partir do material: ${activity.title}`);
+  invalidateStudent(studentId);
   return created.id;
 }

@@ -1,50 +1,39 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireStudentTeam } from "@/lib/auth";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { runAction, runFormAction } from "@/lib/server-action";
 import { createReport, deleteDraft, refreshReport, saveOpinion, validateReport } from "@/lib/reports";
-import { periodProblem } from "@/lib/period-report";
-
-export type ReportState = { error?: string; saved?: boolean };
 
 const base = (studentId: string) => `/estudantes/${studentId}/relatorios`;
 
-export async function newReport(studentId: string, _previous: ReportState, formData: FormData): Promise<ReportState> {
-  const user = await requireStudentTeam(studentId);
-  const start = String(formData.get("start") ?? "");
-  const end = String(formData.get("end") ?? "");
-  const problem = periodProblem(start, end);
-  if (problem) return { error: problem };
-  const report = await createReport(user, studentId, start, end);
-  revalidatePath(base(studentId));
-  redirect(`${base(studentId)}/${report.id}`);
+const periodForm = z.object({ start: formField.text(10), end: formField.text(10) });
+
+export async function newReport(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, periodForm, async (user, period) => {
+    const report = await createReport(user, studentId, period.start, period.end);
+    redirect(`${base(studentId)}/${report.id}`);
+  });
 }
 
-export async function saveReport(studentId: string, reportId: string, _previous: ReportState, formData: FormData): Promise<ReportState> {
-  const user = await requireStudentTeam(studentId);
-  await saveOpinion(user, studentId, reportId, String(formData.get("opinion") ?? ""));
-  if (formData.get("intent") === "validar") {
-    const problem = await validateReport(user, studentId, reportId);
-    if (problem) return { error: problem };
-    revalidatePath(base(studentId));
-    revalidatePath(`/familia/${studentId}`);
-    revalidatePath(`${base(studentId)}/${reportId}`);
-    return {};
-  }
-  revalidatePath(`${base(studentId)}/${reportId}`);
-  return { saved: true };
+const opinionForm = z.object({ opinion: z.string().default(""), intent: formField.text(20) });
+
+export async function saveReport(studentId: string, reportId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, opinionForm, async (user, data) => {
+    await saveOpinion(user, studentId, reportId, data.opinion);
+    if (data.intent === "validar") await validateReport(user, studentId, reportId);
+  });
 }
 
-export async function refreshReportData(studentId: string, reportId: string): Promise<void> {
-  const user = await requireStudentTeam(studentId);
-  await refreshReport(user, studentId, reportId);
-  revalidatePath(`${base(studentId)}/${reportId}`);
+export async function refreshReportData(studentId: string, reportId: string): Promise<ActionResult> {
+  return runAction((user) => refreshReport(user, studentId, reportId));
 }
 
-export async function removeReportDraft(studentId: string, reportId: string): Promise<void> {
-  await requireStudentTeam(studentId);
-  await deleteDraft(studentId, reportId);
-  revalidatePath(base(studentId));
-  redirect(base(studentId));
+export async function removeReportDraft(studentId: string, reportId: string): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await deleteDraft(user, studentId, reportId);
+    redirect(base(studentId));
+  });
 }

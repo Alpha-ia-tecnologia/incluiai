@@ -12,6 +12,7 @@ import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS } from "@/lib/scale";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { MultiChoiceField } from "@/components/choice-field";
+import { ActionForm } from "@/components/action-form";
 import {
   ACCESSIBILITY_RESOURCE_OPTIONS, COMMUNICATION_OPTIONS, FACILITATOR_OPTIONS, POSITIONING_OPTIONS,
   SCHOOL_GUIDANCE_OPTIONS, SHARED_GOAL_OPTIONS, STRATEGIES_TO_TRY_OPTIONS,
@@ -105,7 +106,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
       <Card className="mb-8 max-w-3xl scroll-mt-24" id="novo-relatorio">
         <SectionTitle>Novo relatório de articulação</SectionTitle>
         <p className="mb-5 text-sm leading-relaxed text-ink-soft">Os itens com * são obrigatórios.</p>
-        <form action={create} className="grid gap-6">
+        <ActionForm action={create} className="grid gap-6">
           <MultiChoiceField name="communication" label="Formas de comunicação mais eficazes *" options={COMMUNICATION_OPTIONS} required />
           <MultiChoiceField name="accessResources" label="Recursos de acessibilidade utilizados *" options={ACCESSIBILITY_RESOURCE_OPTIONS} required />
           <MultiChoiceField name="positioning" label="Necessidades de posicionamento / mobilidade" options={POSITIONING_OPTIONS} />
@@ -118,7 +119,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
               Enviar para a equipe escolar
             </button>
           </div>
-        </form>
+        </ActionForm>
       </Card>
 
       <div id="relatorios" className="scroll-mt-24"><SectionTitle>Relatórios enviados</SectionTitle></div>

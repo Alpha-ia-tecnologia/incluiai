@@ -1,3 +1,5 @@
+import { UPLOAD_LIMIT_BYTES, megabytes } from "./uploads.ts";
+
 export const CARD_TOKEN_PATTERN = /^[A-Za-z0-9_-]{24}$/;
 
 export function newCardToken(): string {
@@ -5,8 +7,11 @@ export function newCardToken(): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-export const MAX_CARD_PHOTO_MB = 5;
-export const MAX_CARD_PHOTO_BYTES = MAX_CARD_PHOTO_MB * 1024 * 1024;
+export const CARD_PHOTO_UPLOAD = {
+  maxBytes: UPLOAD_LIMIT_BYTES.cardPhoto,
+  missing: "Escolha a foto.",
+  tooLarge: `A foto tem mais de ${megabytes(UPLOAD_LIMIT_BYTES.cardPhoto)} MB. Envie uma menor.`,
+};
 
 export type CardPhotoType = "image/jpeg" | "image/png";
 

@@ -5,9 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod/v4";
 import type { ActionResult } from "@/lib/action-result";
 import { formField } from "@/lib/form-data";
-import { invalidateStudent } from "@/lib/invalidate";
 import { runAction, runFormAction } from "@/lib/server-action";
-import { UPLOAD_LIMIT_BYTES, megabytes, requiredUpload } from "@/lib/uploads";
+import { UPLOAD_LIMIT_BYTES, megabytes, readUploadedText, requiredUpload } from "@/lib/uploads";
 import { UserError } from "@/lib/user-error";
 import * as census from "@/lib/census";
 import type { ReviewDecision } from "@/lib/census-rules";
@@ -19,7 +18,7 @@ export async function uploadCensusFile(schoolId: string, _previous: unknown, for
       missing: "Escolha o arquivo de migração exportado do Educacenso ou do sistema de gestão.",
       tooLarge: `O arquivo tem mais de ${megabytes(UPLOAD_LIMIT_BYTES.censusFile)} MB. Exporte só a escola.`,
     });
-    const importId = await census.analyzeCensusFile(user, schoolId, census.decodeCensusFile(new Uint8Array(await file.arrayBuffer())));
+    const importId = await census.analyzeCensusFile(user, schoolId, await readUploadedText(file));
     redirect(`/censo/importacoes/${importId}`);
   });
 }
@@ -95,7 +94,6 @@ export async function saveSchoolInep(schoolId: string, _previous: unknown, formD
 export async function saveStudentInep(studentId: string, schoolId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
   return runFormAction(formData, z.object({ inepId: formField.text() }), async (user, data) => {
     await census.setStudentInep(user, studentId, data.inepId);
-    invalidateStudent(studentId);
     revalidatePath(`/censo/escolas/${schoolId}`);
   });
 }

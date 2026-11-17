@@ -1,15 +1,18 @@
 import "server-only";
 import { db } from "./prisma";
-import type { SessionUser } from "./auth";
+import { assertStudentTeam, type SessionUser } from "./auth";
 import { AUDIT_ACTION, recordChange } from "./audit";
+import { invalidateStudent } from "./invalidate";
+import { UserError } from "./user-error";
 import { INSTRUMENT_VERSION, cleanAnswers, observed, type Answers } from "./assessment";
 
 export const answersOf = (stored: string): Answers => cleanAnswers(JSON.parse(stored) as Record<string, unknown>);
 
-export async function saveAssessment(user: SessionUser, studentId: string, raw: Record<string, unknown>, notes: string): Promise<string | { error: string }> {
+export async function saveAssessment(user: SessionUser, studentId: string, raw: Record<string, unknown>, notes: string): Promise<string> {
   const prisma = await db();
+  await assertStudentTeam(user, studentId);
   const answers = cleanAnswers(raw);
-  if (observed(answers).length < 5) return { error: "Observe pelo menos 5 itens antes de salvar (os outros podem ficar como não observados)." };
+  if (observed(answers).length < 5) throw new UserError("Observe pelo menos 5 itens antes de salvar (os outros podem ficar como não observados).");
   const previous = await prisma.assessment.count({ where: { studentId } });
   const kind = previous ? "reavaliacao" : "linha_de_base";
   const assessment = await prisma.assessment.create({
@@ -17,6 +20,7 @@ export async function saveAssessment(user: SessionUser, studentId: string, raw: 
   });
   await prisma.timelineEvent.create({ data: { studentId, type: "avaliacao", title: kind === "linha_de_base" ? "Sondagem: linha de base" : "Sondagem: reavaliação", description: `${observed(answers).length} itens observados, por ${user.name}.` } });
   await recordChange(user, studentId, AUDIT_ACTION.recorded, kind === "linha_de_base" ? "Sondagem (linha de base)" : "Sondagem (reavaliação)");
+  invalidateStudent(studentId);
   return assessment.id;
 }
 

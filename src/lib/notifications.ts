@@ -7,6 +7,7 @@ import { rolesWith } from "./roles";
 import { emailConfigured, sendEmail } from "./email";
 import { cleanCheckIn, noticeEmail, noticeTitle, weekStart, type NoticeKind } from "./family-contact";
 import { UserError } from "./user-error";
+import { invalidateStudent } from "./invalidate";
 
 const appUrl = async () => {
   const tenant = await currentTenant();
@@ -66,11 +67,13 @@ export async function saveCheckIn(user: SessionUser, studentId: string, answers:
   const fields = { userId: user.id, authorName: user.name, answers: JSON.stringify(clean.answers), note: clean.note };
   if (await prisma.familyCheckIn.findUnique({ where: key, select: { id: true } })) {
     await prisma.familyCheckIn.update({ where: key, data: fields });
+    invalidateStudent(studentId);
     return;
   }
   await prisma.familyCheckIn.create({ data: { studentId, weekStart: week, ...fields } });
   await prisma.timelineEvent.create({ data: { studentId, type: "familia", title: "A família contou como foi a semana", description: [clean.answers.join(", "), clean.note].filter(Boolean).join(". ").slice(0, 400) } });
   await notifyTeam(studentId, "checkin_respondido", `/estudantes/${studentId}/diario`);
+  invalidateStudent(studentId);
 }
 
 export const recentCheckIn = async (studentId: string) => {
