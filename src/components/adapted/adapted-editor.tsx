@@ -6,8 +6,6 @@ import type { AdaptState } from "@/actions/adapted-tasks";
 import { ANSWER_FORMATS, ANSWER_FORMAT_LABEL, type AdaptedContent } from "@/lib/task-adaptation";
 import { hintCls, inputCls, labelCls, primaryButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
 
-// Ajustes do professor na versão adaptada antes de aprovar: título, orientações
-// e cada questão (enunciado, forma de responder, alternativas e apoio).
 export function AdaptedEditor({ action, content, approveLabel = "Aprovar para usar" }: { action: (previous: AdaptState, formData: FormData) => Promise<AdaptState>; content: AdaptedContent; approveLabel?: string }) {
   const [state, submit, pending] = useActionState(action, {});
   const id = useId();

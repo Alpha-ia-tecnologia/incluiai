@@ -7,10 +7,6 @@ import { splitItems } from "../form-options";
 import { strategiesThatWorked } from "../insights";
 import { guidanceForPlan, parseAccepted } from "../health-report";
 
-// Monta o contexto enviado aos agentes. Minimização de dados (LGPD): não
-// enviamos nome, data de nascimento, responsável nem escola; do estudo de
-// caso ficam de fora as informações clínicas e a composição familiar.
-
 const EXCLUDED_CASE_FIELDS = new Set(["diagnostico", "saude", "acompanhamentos", "moraCom", "entrevistados"]);
 
 const SUPPORT_FIELDS: [keyof FunctionalProfile, string][] = [
@@ -48,9 +44,6 @@ export function profileText(profile: FunctionalProfile) {
   ].filter(Boolean).join("\n");
 }
 
-// "Público da educação especial" segue só como sim, em avaliação ou não: a
-// categoria (deficiência, transtorno do espectro autista, altas habilidades) é
-// informação de diagnóstico e fica na plataforma.
 const withoutCategory = (key: string, value: string) => (key === "publicoAlvo" ? value.replace(/^Sim:.*$/, "Sim") : value);
 
 export function caseStudyText(content: string | null | undefined) {
@@ -76,7 +69,6 @@ function diaryText(entries: DiaryEntry[]) {
   ].filter(Boolean).join("\n");
 }
 
-// Contexto para o plano: estudo de caso + como aprende + registros + objetivos anteriores.
 export async function loadPlanContext(studentId: string) {
   const prisma = await db();
   const student = await prisma.student.findUniqueOrThrow({
@@ -89,7 +81,6 @@ export async function loadPlanContext(studentId: string) {
       healthReports: { where: { reviewedAt: { not: null } }, select: { accepted: true } },
     },
   });
-  // Orientações de laudos que a equipe revisou e aceitou, sem termos clínicos.
   const reportGuidance = guidanceForPlan(student.healthReports.map((report) => parseAccepted(report.accepted)));
   const previousObjectives = student.plans.flatMap((plan) => plan.objectives).slice(0, 6);
   const sections = [
@@ -109,7 +100,6 @@ export async function loadPlanContext(studentId: string) {
   };
 }
 
-// Contexto para atividades: objetivo + como aprende + o que já funcionou.
 export function activityContextText(input: {
   student: Student;
   profile: FunctionalProfile;
@@ -129,10 +119,6 @@ export function activityContextText(input: {
   ].filter(Boolean).join("\n");
 }
 
-// Contexto para materiais de apoio: quem é o estudante (idade e etapa, sem nome),
-// o objetivo do plano que o material apoia (quando há), como aprende, a parte
-// pedagógica do estudo de caso, as orientações aceitas de laudos e o que os
-// registros de aula mostram que funcionou.
 export function materialContextText(input: {
   student: Student;
   profile: FunctionalProfile;

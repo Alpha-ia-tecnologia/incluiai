@@ -1,12 +1,5 @@
 import { Check } from "lucide-react";
 
-// Linha do tempo de versões em etapas, da mais antiga à mais recente: na
-// horizontal a partir de sm e na vertical no celular (sem rolagem lateral a
-// 320 px). Estado e datas vêm sempre escritos; o marcador só reforça o texto:
-// validada = cheia e listrada com ✓, em revisão = contorno amarelo com o
-// número, rascunho = contorno tracejado com o número. Cada etapa leva ao
-// cartão da versão (alvo de 44 px).
-
 export type VersionStep = {
   version: number;
   href: string;

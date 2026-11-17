@@ -11,8 +11,6 @@ import { Badge } from "@/components/ui";
 import { PlanningTabs } from "@/components/dua/planning-tabs";
 import { ReviewBadge } from "@/components/dua/dua-ui";
 
-// Cabeçalho comum do planejamento. A permissão é conferida a cada página (e em
-// cada ação): quem está fora do recorte recebe "não encontrado".
 export default async function PlanningLayout({ children, params }: { children: ReactNode; params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser();

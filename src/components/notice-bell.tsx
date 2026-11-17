@@ -5,8 +5,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 
-// O layout não renderiza de novo a cada navegação: abrir Avisos zera o número
-// aqui mesmo, até chegar um aviso mais novo (outro `latest`).
+// O layout não renderiza de novo a cada navegação.
 export function NoticeBell({ unread, latest }: { unread: number; latest: string | null }) {
   const pathname = usePathname();
   const [seen, setSeen] = useState<string | null>(null);

@@ -1,27 +1,3 @@
-// Vídeos tutoriais do IncluiEdu, gravados na própria plataforma.
-//
-// Cada roteiro (scripts/tutoriais/roteiros/*.mjs) abre a plataforma num Chrome
-// automatizado e faz a tarefa como uma pessoa faria. O gravador desenha cursor,
-// destaque e legenda por cima da tela, narra cada passo com uma voz neural que
-// roda no computador (Kokoro) e salva um MP4 com o quadro de capa.
-//
-//   node scripts/tutoriais/gravar.mjs                 todos os roteiros
-//   node scripts/tutoriais/gravar.mjs 03 registrar    só os que combinam
-//   node scripts/tutoriais/gravar.mjs --ensaio 03     confere o roteiro, rápido e sem gravar
-//   node scripts/tutoriais/gravar.mjs --listar
-//   node scripts/tutoriais/gravar.mjs --falas > falas.jsonl   as falas, para revisar.py
-//
-// Variáveis:
-//   BASE          plataforma já rodando (padrão http://localhost:3217), de preferência um build
-//   TUTORIAL_DB   DATABASE_URL do banco de demonstração que esse servidor usa. Com ela, o
-//                 gravador roda o seed antes de cada vídeo (o seed APAGA tudo), e os vídeos
-//                 começam sempre dos mesmos dados.
-//   FFMPEG        ffmpeg com libx264 e AAC (padrão: ffmpeg)
-//   VOZ_PYTHON    Python com o pacote kokoro (padrão: python3)
-//   VOZ           voz da Kokoro (padrão pf_dora); VOZ_VELOCIDADE: 1 = normal, 1.1 = mais rápida
-//   SEM_VOZ=1     grava só com legendas
-//   TRILHA, TRILHA_VOLUME: trilha sonora de fundo (ver mixar.mjs)
-//   OUT           pasta dos vídeos (padrão public/tutoriais); WORK: cache (padrão no tmp)
 import puppeteer from "puppeteer-core";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -59,7 +35,6 @@ const SILENT = env.SEM_VOZ === "1";
 const filters = args.filter((arg) => !arg.startsWith("--"));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// ---------- Roteiros ----------
 const scriptsDir = join(HERE, "roteiros");
 const scenarios = [];
 for (const file of readdirSync(scriptsDir).filter((name) => name.endsWith(".mjs")).sort()) {
@@ -76,11 +51,8 @@ if (!selected.length) {
   process.exit(1);
 }
 
-// ---------- Narração (Kokoro) ----------
-
 function wavInfo(file) {
   const buffer = readFileSync(file);
-  // O tts.py grava PCM 16 bits mono: procura o bloco "data".
   let offset = 12;
   let rate = 22050;
   while (offset < buffer.length) {
@@ -133,7 +105,6 @@ class Voice {
   }
 }
 
-// ---------- Gravação da tela (CDP screencast → ffmpeg) ----------
 class Recorder {
   constructor(page, file) {
     this.page = page;
@@ -161,7 +132,6 @@ class Recorder {
     if (!this.ffmpeg.stdin.write(frame)) await new Promise((resolve) => this.ffmpeg.stdin.once("drain", resolve));
     this.written++;
   }
-  // Repete o quadro anterior até o instante do novo: vídeo com taxa constante.
   async push(frame, at) {
     if (!this.t0) {
       this.t0 = at;
@@ -173,7 +143,6 @@ class Recorder {
     while (this.written < target) await this.write(this.last);
     this.last = frame;
   }
-  // Instante do vídeo (em segundos) para um horário do relógio.
   offset(epochMs) {
     return Math.max(0, epochMs / 1000 - this.t0);
   }
@@ -219,7 +188,6 @@ function mixNarration(cues, seconds, file) {
   writeFileSync(file, Buffer.concat([header, Buffer.from(mix.buffer)]));
 }
 
-// ---------- O que cada roteiro usa ----------
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 class Tutorial {
@@ -236,7 +204,6 @@ class Tutorial {
     page.on("dialog", (dialog) => dialog.accept().catch(() => {}));
   }
 
-  // --- camada ---
   async overlay() {
     for (let attempt = 0; attempt < 20; attempt++) {
       try {
@@ -259,9 +226,6 @@ class Tutorial {
     await this.call("card", card);
   }
 
-  // --- narração ---
-  // Fala e mostra a legenda; `action` roda enquanto a voz fala. O passo termina
-  // quando os dois acabam.
   async say(text, action) {
     const clip = await this.voice.clip(text);
     await this.caption(text);
@@ -292,12 +256,8 @@ class Tutorial {
     await this.pause(1400);
   }
 
-  // --- elementos ---
-  // `target`: texto visível (botão, link, aba, rótulo…), "#seletor", { css }, { field: "rótulo do campo" },
-  // { text, in, exact, nth, tag, closest }, { shadow, css } ou um ElementHandle.
   async find(target, { timeout = 10000 } = {}) {
     if (target && typeof target === "object" && typeof target.asElement === "function") return target;
-    // Texto que começa com #, . ou [ é seletor CSS.
     const spec = typeof target === "string" ? (/^[#.[]/.test(target) ? { css: target } : { text: target }) : target;
     if (spec.field) return this.field(spec.field, spec);
     const started = Date.now();
@@ -310,7 +270,6 @@ class Tutorial {
         };
         const scope = spec.shadow ? document.querySelector(spec.shadow)?.shadowRoot : spec.in ? document.querySelector(spec.in) : document;
         if (!scope) return null;
-        // `closest`: sobe do elemento achado até o contêiner (para destacar o cartão inteiro).
         const up = (el) => (el && spec.closest ? el.closest(spec.closest) ?? el : el);
         if (spec.css) {
           const all = [...scope.querySelectorAll(spec.css)].filter(visible);
@@ -344,7 +303,6 @@ class Tutorial {
       const rect = el.getBoundingClientRect();
       const margin = 90;
       const out = rect.top < margin || rect.bottom > innerHeight - 120;
-      // Escondido de lado (abas que rolam na horizontal) ou coberto por outro elemento.
       const x = Math.min(Math.max(rect.left + Math.min(rect.width / 2, 40), 0), innerWidth - 1);
       const y = Math.min(Math.max(rect.top + rect.height / 2, 0), innerHeight - 1);
       const hit = document.elementFromPoint(x, y);
@@ -363,8 +321,7 @@ class Tutorial {
     await this.page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     await this.settleScroll();
   }
-  // Espera a rolagem parar: a da página e, com `element`, a de qualquer contêiner dele.
-  // A rolagem suave pode demorar a começar: espera um pouco e pede três leituras iguais.
+  // A rolagem suave pode demorar a começar.
   async settleScroll(element) {
     let last = "";
     let stable = 0;
@@ -396,14 +353,12 @@ class Tutorial {
     await this.avoid(box);
     return box;
   }
-  // A legenda sobe quando o alvo fica no pé da tela, e volta depois.
   async avoid(box) {
     const top = box.y + box.height > CONFIG.height - 130;
     if (top === Boolean(this.state.captionTop)) return;
     this.state.captionTop = top;
     await this.call("captionTop", top);
   }
-  // Leva o cursor ao elemento e o destaca, sem clicar.
   async point(target, { hold = 900, ring = true } = {}) {
     const element = await this.scrollTo(target);
     const box = await this.box(element);
@@ -444,12 +399,11 @@ class Tutorial {
     await this.pause(300);
     return element;
   }
-  // <select>: o menu nativo não aparece na gravação; o cursor vai até o campo e a escolha aparece nele.
+  // O menu nativo do <select> não aparece na gravação.
   async choose(target, option) {
     const element = await this.click(target, { wait: false });
     await this.page.keyboard.press("Escape").catch(() => {});
     const value = await element.evaluate((select, option) => {
-      // Valor exato, depois texto exato, começo do texto e, por fim, parte do texto.
       const wanted = String(option).toLocaleLowerCase("pt-BR");
       const options = [...select.options];
       const text = (o) => o.textContent.trim().toLocaleLowerCase("pt-BR");
@@ -461,7 +415,6 @@ class Tutorial {
     await this.pause(400);
     return element;
   }
-  // Campo pelo rótulo: <label>, aria-label, placeholder ou legenda do grupo.
   async field(label, { nth = 0 } = {}) {
     const handle = await this.page.evaluateHandle((label, nth) => {
       const norm = (value) => (value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
@@ -504,7 +457,6 @@ class Tutorial {
   async text() {
     return this.page.evaluate(() => document.body.innerText);
   }
-  // Entra sem mostrar (antes da gravação).
   async quietLogin(email) {
     await this.page.goto(`${this.base}/login`, { waitUntil: "networkidle2" });
     await this.page.type("#email", email);
@@ -512,7 +464,6 @@ class Tutorial {
     await Promise.all([this.page.waitForNavigation({ waitUntil: "networkidle2" }).catch(() => {}), this.page.click("button[type=submit]")]);
     await this.settle();
   }
-  // Primeira visita mostra as boas-vindas; os vídeos que não falam delas fecham antes.
   async dismissWelcome() {
     const dismiss = await this.find({ text: "Agora não", exact: true }, { timeout: 1500 }).catch(() => null);
     if (dismiss) {
@@ -526,7 +477,6 @@ class Tutorial {
     if (!href) throw new Error(`Estudante não encontrado: ${name}`);
     return href.split("/").pop();
   }
-  // Capa: o instante em que a tela mostra o assunto do vídeo.
   async poster() {
     if (REHEARSAL || !this.posterFile) return;
     const state = { ...this.state };
@@ -537,11 +487,6 @@ class Tutorial {
   }
 }
 
-// ---------- Falas (para a revisão da narração) ----------
-// --falas roda os roteiros com um "t" de mentira, que só anota o que seria narrado, e
-// imprime uma linha JSON por fala com o arquivo do cache que a gravação vai usar.
-// scripts/tutoriais/revisar.py gera cada fala, ouve com o Whisper e deixa no cache a
-// versão mais clara; a gravação aproveita o que já está no cache.
 async function listLines() {
   const voice = new Voice();
   const stub = () =>
@@ -572,7 +517,6 @@ async function listLines() {
   }
 }
 
-// ---------- Execução ----------
 function reseed() {
   if (!env.TUTORIAL_DB) return;
   execFileSync(process.execPath, ["prisma/seed.mjs"], { cwd: ROOT, env: { ...env, DATABASE_URL: env.TUTORIAL_DB }, stdio: ["ignore", "ignore", "inherit"] });
@@ -619,7 +563,6 @@ const run = async () => {
         } else {
           const seconds = await t.recorder.stop();
           const final = join(CONFIG.out, `${scenario.id}.mp4`);
-          // A narração fica guardada em WORK: mixar.mjs refaz o som sem regravar a tela.
           const wav = t.cues.length ? join(CONFIG.work, `${scenario.id}.wav`) : null;
           if (wav) mixNarration(t.cues, seconds, wav);
           mux({ ffmpeg: CONFIG.ffmpeg, video: raw, narration: wav, seconds, out: final });

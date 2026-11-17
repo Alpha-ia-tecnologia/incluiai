@@ -1,4 +1,3 @@
-// Testes do pictograma de reserva dos cartões: node --test src/lib/pictograms.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PICTOGRAM_KEYS, PICTOGRAM_RULES, cardPictogram, pictogramFor, pictogramWords } from "./pictograms.ts";
@@ -69,7 +68,6 @@ test("prioridade: o assunto mais concreto ganha", () => {
 });
 
 test("só palavras inteiras contam", () => {
-  // "jogar" não vira brincadeira: o lixo tem o pictograma dele.
   assert.equal(pictogramFor("Jogar o lixo fora"), "lixo");
   assert.equal(pictogramFor("Às vezes"), "estrela");
   assert.equal(pictogramFor("Como estou agora"), "estrela");

@@ -1,4 +1,3 @@
-// Secretaria: a rede em números, a ficha com nome só com motivo e o Censo Escolar.
 async function card(t, title) {
   const heading = await t.find({ text: title, tag: "h2, h3, p", in: "main" });
   return (await heading.evaluateHandle((el) => el.closest(".ui-card, section") ?? el.parentElement)).asElement();
@@ -12,7 +11,6 @@ async function menu(t, label) {
   return t.click(item);
 }
 
-// Destaque com rolagem antes: rola, espera parar e só então destaca.
 async function show(t, target, hold) {
   const element = await t.find(target);
   await element.evaluate((el) => {

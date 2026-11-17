@@ -9,15 +9,11 @@ import { DIMENSIONS } from "@/lib/scale";
 const dimensionOptions = Object.entries(DIMENSIONS).map(([value, label]) => ({ value, label }));
 const allActions = [...new Set(Object.values(ACTION_SUGGESTIONS).flat())];
 
-// Área de desenvolvimento + ação observável: as ações sugeridas acompanham a
-// área escolhida; em "Outro", mostramos todas as sugestões. A habilidade da
-// BNCC vem da base oficial, com as do ano do estudante primeiro.
 export function ObjectiveFields({ inputClassName, labelClassName, studentId }: { inputClassName: string; labelClassName: string; studentId: string }) {
   const [dimension, setDimension] = useState("comunicacao");
   const box = useRef<HTMLDivElement>(null);
   const actions = ACTION_SUGGESTIONS[dimension] ?? allActions;
   const style = { inputClassName, labelClassName };
-  // A sugestão sai do que já foi escrito no objetivo (ação, condição e critério).
   const objectiveText = () => {
     const form = box.current?.closest("form");
     if (!form) return "";

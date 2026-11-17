@@ -8,9 +8,6 @@ import { Field, ResultMessage, buttonCls, inputCls, labelCls } from "../dua-ui";
 
 type PlanningOption = { id: string; label: string };
 
-// "Planejar participação em atividade" (RF01, entrada pelo estudante). Escolher
-// uma atividade existente ou começar uma nova leva ao MESMO planejamento, na aba
-// de apoios individuais, com o estudante já escolhido: não há plano paralelo.
 export function ParticipationStart({ studentId, plannings }: { studentId: string; plannings: PlanningOption[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();

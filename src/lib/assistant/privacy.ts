@@ -2,14 +2,6 @@ import { db } from "../prisma";
 import { canAccessStudent, type SessionUser } from "../auth";
 import { PATTERNS, escape, isYearRange, nameTokens, naturalizePlaceholders } from "../agents/anonymize";
 
-// Privacidade do assistente (LGPD). O modelo nunca recebe nomes: cada
-// estudante vira um pseudônimo estável dentro da conversa ([ESTUDANTE 1],
-// [ESTUDANTE 2]...), cada escola vira [ESCOLA 1]..., e familiares,
-// profissionais, contatos e documentos viram os marcadores de sempre. Na
-// tela, os pseudônimos voltam a ser os nomes reais, só para quem já tem
-// acesso a esses estudantes. O mapa fica guardado na conversa e só cresce,
-// para o histórico enviado ao modelo continuar coerente.
-
 export type PseudonymMap = { students: Record<string, number>; schools: Record<string, number> };
 
 export type Pseudonymizer = {
@@ -17,9 +9,7 @@ export type Pseudonymizer = {
   changed: boolean;
   studentLabel: (studentId: string) => string;
   schoolLabel: (schoolId: string) => string;
-  // Nomes e contatos → pseudônimos e marcadores (tudo o que vai ao modelo).
   apply: (text: string) => string;
-  // Pseudônimos → nomes (tudo o que vai à tela).
   restore: (text: string) => string;
 };
 
@@ -34,9 +24,6 @@ export function parsePseudonyms(value: string | null | undefined): PseudonymMap 
 
 type Rule = { regex: RegExp; replacement: string };
 
-// Um mesmo termo que aponta para duas pessoas (dois estudantes chamados Ana,
-// ou uma estudante e uma professora Beatriz) vira [PESSOA]: melhor um papel
-// desconhecido do que o papel errado. O nome completo continua exato.
 function nameRules(entries: [string, string, boolean][]): Rule[] {
   const byTerm = new Map<string, [string, string, boolean]>();
   for (const entry of entries) {
@@ -78,13 +65,9 @@ export function createPseudonymizer(input: {
   const studentLabel = (id: string) => `[ESTUDANTE ${map.students[id] ?? "?"}]`;
   const schoolLabel = (id: string) => `[ESCOLA ${map.schools[id] ?? "?"}]`;
 
-  // Nome completo em qualquer grafia e cada parte do nome (inicial maiúscula
-  // ou tudo em maiúsculas). Um primeiro nome compartilhado por dois
-  // estudantes fica com o primeiro da lista: limite conhecido.
   const entries: [string, string, boolean][] = [];
   for (const student of input.students) {
     const tokens = nameTokens(student.name);
-    // Nome completo e cada começo dele ("Ana Clara" de "Ana Clara Souza"), em qualquer grafia; partes soltas só com inicial maiúscula.
     for (let length = tokens.length; length >= 2; length--) entries.push([tokens.slice(0, length).join(" "), studentLabel(student.id), false]);
     for (const token of tokens) entries.push([token, studentLabel(student.id), true]);
   }
@@ -109,8 +92,6 @@ export function createPseudonymizer(input: {
     return result;
   };
 
-  // Na tela: primeiro nome, ou nome completo quando outro estudante
-  // acessível tem o mesmo primeiro nome.
   const firstNames = new Map<string, number>();
   for (const student of input.students) {
     const first = nameTokens(student.name)[0] ?? student.name;
@@ -132,8 +113,6 @@ export function createPseudonymizer(input: {
   return { map, changed, studentLabel, schoolLabel, apply, restore };
 }
 
-// Monta o pseudonimizador com o que a pessoa pode ver: os estudantes do seu
-// escopo (escola, ou o estudante vinculado), as escolas e os nomes cadastrados.
 export async function loadPseudonymizer(user: SessionUser, map: PseudonymMap): Promise<Pseudonymizer & { studentIds: string[] }> {
   const prisma = await db();
   const [candidates, schools, users] = await Promise.all([
@@ -162,9 +141,6 @@ export async function loadPseudonymizer(user: SessionUser, map: PseudonymMap): P
       ...students.flatMap((student) => student.intersectorReports.map((report) => report.authorName)),
     ],
   });
-  // A Secretaria não consulta estudantes pelo assistente, e ninguém consulta um
-  // estudante cuja família não autorizou o uso de IA (os nomes continuam
-  // mascarados no que a pessoa digitar).
   const consented = new Set((await prisma.consent.findMany({ where: { studentId: { in: students.map((student) => student.id) }, aiUse: true }, select: { studentId: true } })).map((item) => item.studentId));
   return { ...pseudonymizer, studentIds: user.role === "secretaria" ? [] : students.filter((student) => consented.has(student.id)).map((student) => student.id) };
 }

@@ -10,7 +10,6 @@ import { FEDERAL_SOURCE_LINE } from "@/lib/federal-guidance";
 
 export const dynamic = "force-dynamic";
 
-// Versão para imprimir ou "Salvar como PDF": a abertura fica no histórico de acessos.
 export default async function PrintDossierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireStudentPage(id, "Impressão do dossiê de evidências");

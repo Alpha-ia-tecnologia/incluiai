@@ -1,11 +1,10 @@
-// Testes do contato com a família: node --test src/lib/family-contact.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { cleanCheckIn, noticeEmail, noticeTitle, weekStart } from "./family-contact.ts";
 
 test("semana pela segunda-feira, no horário de Brasília", () => {
   assert.equal(weekStart(new Date("2026-10-22T15:00:00Z")), "2026-10-19");
-  assert.equal(weekStart(new Date("2026-10-19T02:00:00Z")), "2026-10-12"); // domingo 23h em Brasília
+  assert.equal(weekStart(new Date("2026-10-19T02:00:00Z")), "2026-10-12");
   assert.equal(weekStart(new Date("2026-10-25T23:00:00Z")), "2026-10-19");
 });
 

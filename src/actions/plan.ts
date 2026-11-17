@@ -8,7 +8,6 @@ import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
 import { assertCaseStudyConcluded, assertNoActivePlan, closeStudentPlan, reviewStudentPlan, setObjectiveStatus } from "@/lib/records";
 import { planDocumentsFromForm } from "@/lib/plan-documents";
 
-// Plano de ensino: equipe com acesso ao estudante e estudo de caso concluído (CA02).
 export async function createPlan(studentId: string, formData: FormData) {
   const prisma = await db();
   const user = await requireStudentTeam(studentId);
@@ -21,7 +20,6 @@ export async function createPlan(studentId: string, formData: FormData) {
       studentId,
       status: "ativo",
       initialSituation: String(formData.get("initialSituation") ?? "").trim(),
-      // PAEE e PEI: estratégias, recursos, autoria e o conteúdo mínimo da Portaria.
       ...planDocumentsFromForm((name) => formData.get(name)),
       reviewDate,
     },
@@ -38,7 +36,6 @@ export async function createPlan(studentId: string, formData: FormData) {
 export async function createObjective(studentId: string, planId: string, formData: FormData) {
   const prisma = await db();
   await requireStudentTeam(studentId);
-  // O objetivo entra no plano DESTE estudante: nada de vínculo entre pessoas diferentes.
   const plan = await prisma.plan.findFirst({ where: { id: planId, studentId }, select: { id: true } });
   if (!plan) throw new Error("Plano não encontrado para este estudante.");
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId } });
@@ -51,7 +48,6 @@ export async function createObjective(studentId: string, planId: string, formDat
   if (!action || !condition || !criterion) {
     throw new Error("Ação, condição e critério são obrigatórios para um objetivo observável.");
   }
-  // Habilidade da BNCC só da base oficial: código inexistente não é gravado.
   const bnccInput = String(formData.get("bnccCode") ?? "").trim();
   const bnccCode = validBnccCode(bnccInput);
   if (bnccInput && !bnccCode) throw new Error("Código da BNCC não encontrado. Escolha a habilidade pela busca.");
@@ -87,7 +83,6 @@ export async function markObjectiveStatus(studentId: string, objectiveId: string
   revalidatePath("/");
 }
 
-// Revisão do plano com a equipe: decisão, se saiu no prazo e a próxima data.
 export async function reviewPlan(studentId: string, planId: string, formData: FormData) {
   const user = await requireStudentTeam(studentId);
   await reviewStudentPlan(user, studentId, planId, {
@@ -99,8 +94,7 @@ export async function reviewPlan(studentId: string, planId: string, formData: Fo
   revalidatePath("/");
 }
 
-// Completar ou atualizar o PAEE e o PEI do plano ativo (planos anteriores à
-// orientação do INEP não tinham autoria nem todo o conteúdo mínimo).
+// Planos anteriores à orientação do INEP não tinham autoria nem todo o conteúdo mínimo.
 export async function updatePlanDocuments(studentId: string, planId: string, formData: FormData) {
   const prisma = await db();
   const user = await requireStudentTeam(studentId);
@@ -112,10 +106,8 @@ export async function updatePlanDocuments(studentId: string, planId: string, for
   revalidatePath("/dossie");
 }
 
-// Encerrar o plano (com motivo). Depois disso, a equipe pode elaborar um novo.
 export async function closePlan(studentId: string, planId: string, formData: FormData) {
   const user = await requireStudentTeam(studentId);
-  // O campo de escolha envia o texto final (opção da lista ou o que foi escrito em "Outro").
   await closeStudentPlan(user, studentId, planId, String(formData.get("reason") ?? ""));
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");

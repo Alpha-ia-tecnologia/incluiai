@@ -13,17 +13,12 @@ type CodeAction = (previous: CodeState, formData: FormData) => Promise<CodeState
 
 type FormText = { label: string; hint?: string; button: string; pendingLabel: string; kind?: "app" | "recovery"; variant?: ButtonVariant };
 
-// Campo de código (aplicativo ou recuperação) com o envio e o erro. Quando a
-// ação devolve códigos de recuperação, eles aparecem no lugar do formulário.
 export function CodeForm({ action, finish = "refresh", ...text }: FormText & { action: CodeAction; finish?: "refresh" | "enter" }) {
   const [state, submit, pending] = useActionState(action, {});
   if (state.codes) return <RecoveryCodes codes={state.codes} finish={finish} />;
   return <CodeFields state={state} submit={submit} pending={pending} {...text} />;
 }
 
-// Ligar as duas etapas: passos, QR code (desenhado no servidor) e o segredo para
-// digitar. Confirmado o primeiro código, tudo isso sai da tela e ficam só os
-// códigos de recuperação (o segredo não vai junto se a pessoa imprimir).
 export function SetupFlow({ svg, secret, account, finish }: { svg: string; secret: string; account: string; finish: "refresh" | "enter" }) {
   const [state, submit, pending] = useActionState(confirmTwoFactorSetup, {});
   if (state.codes) return <RecoveryCodes codes={state.codes} finish={finish} />;
@@ -88,7 +83,6 @@ function CodeFields({ state, submit, pending, label, hint, button, pendingLabel,
   );
 }
 
-// Códigos de recuperação, mostrados uma vez: cada um vale uma entrada sem o celular.
 function RecoveryCodes({ codes, finish }: { codes: string[]; finish: "refresh" | "enter" }) {
   const router = useRouter();
   return (

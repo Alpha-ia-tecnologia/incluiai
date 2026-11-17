@@ -9,12 +9,6 @@ import { CHANNELS } from "./scale";
 import { todayInBrazil, upcomingEvents } from "./commemorative-dates";
 import type { CharacterVariant } from "@/components/character";
 
-// Jornada de cada perfil: a história de Maria e Dante
-// (docs/jornada-do-usuario.md) contada com os dados reais de quem está usando.
-// Cada capítulo se marca sozinho a partir do que já foi salvo, mostra a
-// evidência e leva à ação seguinte. Os capítulos orientam, não bloqueiam:
-// todas as telas continuam acessíveis a qualquer momento.
-
 export type JourneyMarkKey = "boas_vindas" | "painel" | "recursos" | "calendario" | "cadastros" | "familia_inicio" | "terapeuta_inicio";
 
 export type ChapterStatus = "concluido" | "agora" | "pendente" | "em_seguida" | "aguardando";
@@ -26,7 +20,6 @@ export type Chapter = {
   story: string;
   why: string;
   done: boolean;
-  // Depende de outra pessoa (ex.: a escola enviar a atividade de casa).
   waiting: boolean;
   status: ChapterStatus;
   evidence: string | null;
@@ -37,7 +30,6 @@ export type Chapter = {
 };
 
 export type Milestone = { key: string; title: string; description: string; achieved: boolean; date: Date | null };
-// Gráfico que acompanha o número (desenhado com src/components/data-viz.tsx).
 export type ImpactViz =
   | { kind: "weekly"; points: SeriesPoint[] }
   | { kind: "ring"; pct: number | null; tone: VizTone }
@@ -80,20 +72,15 @@ export function homeActivityNote(title: string): string {
   return `${HOME_DONE_PREFIX} a atividade “${title}”.`;
 }
 
-// Marca um momento da jornada (boas-vindas, página visitada). Repetir não muda nada.
 export async function recordJourneyMark(userId: string, key: JourneyMarkKey): Promise<void> {
   const prisma = await db();
   try {
     await prisma.journeyMark.upsert({ where: { userId_key: { userId, key } }, update: {}, create: { userId, key } });
   } catch (error) {
-    // Duas abas abrindo a mesma página ao mesmo tempo: o marco já existe.
     if ((error as { code?: string }).code !== "P2002") throw error;
   }
 }
 
-// "Agora" é o capítulo indicado (o próximo passo do estudante, quando há) ou o
-// primeiro ainda aberto que dependa da própria pessoa. Os abertos antes dele
-// ficam pendentes; os depois, em seguida; os que dependem de outra pessoa, aguardando.
 function withStatus(chapters: ChapterInput[], preferred?: string): Chapter[] {
   const open = (chapter: ChapterInput) => !chapter.done && !chapter.waiting;
   const current = chapters.find((chapter) => chapter.key === preferred && open(chapter)) ?? chapters.find(open);
@@ -126,10 +113,6 @@ export async function loadJourney(user: SessionUser, options: { studentId?: unkn
 
 type Marks = Map<string, Date>;
 
-// ---------------------------------------------------------------------------
-// Professor da sala comum, do AEE e profissional de apoio: a história de um
-// estudante, como a de Maria e Dante.
-// ---------------------------------------------------------------------------
 async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: string): Promise<Journey> {
   const prisma = await db();
   const aee = user.role === "professor_aee";
@@ -154,7 +137,6 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     });
   }
 
-  // Foco: o estudante pedido, ou o último que a pessoa abriu, ou o primeiro da lista.
   const ids = students.map((student) => student.id);
   const lastOpened = requestedId && ids.includes(requestedId) ? null : await prisma.accessLog.findFirst({
     where: { actor: user.name, role: user.role, studentId: { in: ids } },
@@ -267,7 +249,6 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     },
   ], preferred);
 
-  // O que a história já mostra: só números que vêm dos registros de aula.
   const withEntries = allObjectives.filter((objective) => objective.status !== "em_revisao" && entries.some((entry) => entry.objectiveId === objective.id));
   const impact: ImpactItem[] = [];
   if (entries.length) {
@@ -300,7 +281,6 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
   });
 }
 
-// Conquistas da equipe com os estudantes acompanhados, com a data da primeira vez.
 async function teamMilestones(ids: string[]): Promise<Milestone[]> {
   const prisma = await db();
   const scope = { studentId: { in: ids } };
@@ -325,9 +305,6 @@ async function teamMilestones(ids: string[]): Promise<Milestone[]> {
   ];
 }
 
-// ---------------------------------------------------------------------------
-// Coordenação e gestão escolar: a história da escola.
-// ---------------------------------------------------------------------------
 async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> {
   const prisma = await db();
   const now = new Date();
@@ -426,9 +403,6 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
   });
 }
 
-// ---------------------------------------------------------------------------
-// Secretaria de Educação: a história da rede.
-// ---------------------------------------------------------------------------
 async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey> {
   const prisma = await db();
   const [schools, students, resources] = await Promise.all([
@@ -521,9 +495,6 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
   });
 }
 
-// ---------------------------------------------------------------------------
-// Família: acompanhar, fazer em casa e contar conquistas.
-// ---------------------------------------------------------------------------
 async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> {
   const prisma = await db();
   const welcomed = marks.has("boas_vindas");
@@ -607,9 +578,6 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
   });
 }
 
-// ---------------------------------------------------------------------------
-// Terapeuta: orientações funcionais que chegam à escola.
-// ---------------------------------------------------------------------------
 async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journey> {
   const prisma = await db();
   const welcomed = marks.has("boas_vindas");
@@ -631,8 +599,6 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
   const name = firstName(s.name);
   const reports = s.intersectorReports;
   const last = reports.at(-1);
-  // A escola recebeu: alguém da equipe abriu o resumo do estudante, onde as
-  // orientações aparecem, depois do último relatório.
   const seen = last ? await prisma.accessLog.findFirst({
     where: { studentId: s.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: { gt: last.createdAt } },
     orderBy: { createdAt: "asc" },

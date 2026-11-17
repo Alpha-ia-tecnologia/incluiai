@@ -28,7 +28,6 @@ const SUPPORT_OPTIONS = [
   { label: "Ampliar a participação", description: "Convide a explicar, revisar ou criar outra possibilidade, mantendo os apoios de acesso que o estudante utiliza." },
 ];
 
-// As capas são compartilhadas; a descrição corresponde à fotografia, não ao título do recurso.
 const IMAGE_ALTS: Record<string, string> = {
   communication: "Prancha com fotografias de um copo de água, uma mão aberta e uma poltrona, ao lado de um copo e um envelope.",
   routine: "Mochila, caderno e estojo sobre uma mesa, com cartões de mochila, lavagem das mãos e caderno.",

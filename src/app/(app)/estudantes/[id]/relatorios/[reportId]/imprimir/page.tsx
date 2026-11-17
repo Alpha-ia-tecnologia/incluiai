@@ -9,7 +9,6 @@ import { ReportView } from "@/components/reports/report-view";
 
 export const dynamic = "force-dynamic";
 
-// Versão para imprimir ou "Salvar como PDF" no navegador.
 export default async function PrintReportPage({ params }: { params: Promise<{ id: string; reportId: string }> }) {
   const prisma = await db();
   const { id, reportId } = await params;

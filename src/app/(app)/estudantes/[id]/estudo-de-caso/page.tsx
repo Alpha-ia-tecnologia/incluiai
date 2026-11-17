@@ -44,8 +44,6 @@ function FieldInput({ field, value }: { field: CaseStudyField; value: string }) 
   );
 }
 
-// Resposta ao lado da pergunta: os selos de uma escolha múltipla ficam juntos
-// da pergunta que os originou, em vez de formar um bloco único.
 function Answer({ field, value }: { field: CaseStudyField; value: string }) {
   if (field.type === "multi") {
     return <dd className="flex min-w-0 flex-wrap gap-1.5">{splitItems(value).map((item) => <Badge key={item}>{item}</Badge>)}</dd>;
@@ -66,10 +64,8 @@ export default async function CaseStudyPage({
   const { editar, salvo, faltaAee, concluido } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  // Reúne dados da família e da escola: só a equipe pedagógica acessa.
   if (!canSeePedagogicalDetail(user.role)) redirect(`/estudantes/${id}`);
 
-  // Sem permissão para dado clínico, esses campos e os laudos nem chegam à página.
   const clinical = canSeeClinicalDetail(user.role);
   const [student, caseStudy, activePlan, healthReports] = await Promise.all([
     prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true } }),
@@ -90,9 +86,6 @@ export default async function CaseStudyPage({
   const reportsNote = clinical && canEdit ? <HealthReportsNote studentId={id} reports={healthReports} /> : null;
 
   if (concluded && (editar !== "1" || !canEdit)) {
-    // Leitura do estudo concluído: a síntese no topo, o que fazer em seguida, o
-    // essencial e, só se houver, o que a equipe aprofundou. Parte sem resposta
-    // não aparece: o que é opcional não deve parecer pendência.
     const filled = (field: CaseStudyField) => Boolean(content[field.key]?.trim());
     const allFields = sections.flatMap((section) => section.fields);
     const essential = ESSENTIAL_GROUPS.flatMap((group) => group.keys)
@@ -101,7 +94,6 @@ export default async function CaseStudyPage({
     const deeper = sections
       .map((section) => ({ section, fields: section.fields.filter((field) => !field.requiredToConclude && filled(field)) }))
       .filter((part) => part.fields.length);
-    // Duas colunas pela largura do cartão, não da tela.
     const answers = (fields: CaseStudyField[]) => (
       <dl className="@container divide-y divide-line/70 border-t border-line px-5 pb-2 sm:px-6">
         {fields.map((field) => (
@@ -120,7 +112,6 @@ export default async function CaseStudyPage({
           lede={`Concluído em ${formatDate(caseStudy.concludedAt ?? caseStudy.updatedAt)} · última atualização por ${caseStudy.updatedBy} em ${formatDate(caseStudy.updatedAt)}.`}
           actions={
             <div className="flex flex-wrap items-center gap-2 print:hidden">
-              {/* O botão de imprimir é compartilhado: aqui ganha o alvo de 44 px e a pílula. */}
               <PillLink slug="estudo-de-caso" />
               <PrintButton label="Imprimir relatório" />
               {canEdit ? (
@@ -142,7 +133,6 @@ export default async function CaseStudyPage({
           <Character variant="planning" className="hidden w-20 sm:block" />
         </Card>
 
-        {/* O que fazer depois de concluir: a trilha segue para o plano de ensino. */}
         {canEdit ? (
           <section aria-label="Próximo passo" className="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-2xl border border-line bg-paper-raised px-5 py-4 print:hidden sm:px-6">
             <div className="min-w-0">
@@ -193,9 +183,6 @@ export default async function CaseStudyPage({
 
   if (!canEdit) redirect(`/estudantes/${id}`);
   const save = saveCaseStudy.bind(null, id);
-  // Dois níveis: o essencial (o que é exigido para concluir, e o estudo concluído
-  // respalda a declaração no Censo Escolar) numa parte só; o restante fica em
-  // "Aprofundar", recolhido até a pessoa abrir ou já ter respostas ali.
   const fieldValue = (field: CaseStudyField) => content[field.key] ?? (field.key === "participantes" ? AEE_TEACHER : "");
   const answered = (fields: CaseStudyField[]) => fields.filter((field) => content[field.key]?.trim()).length;
   const everyField = sections.flatMap((section) => section.fields);
@@ -227,8 +214,6 @@ export default async function CaseStudyPage({
       ) : null}
       {reportsNote}
 
-      {/* Dois filhos só: o aviso dos campos clínicos fica dentro do formulário, senão ocupa a coluna larga e empurra o formulário para a de 260 px.
-          As colunas também vão fixas em cada filho, para um bloco novo neste grid não repetir o problema. */}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
         <form action={save} className="min-w-0 space-y-5 xl:col-start-1">
           {clinicalNote}
@@ -262,7 +247,7 @@ export default async function CaseStudyPage({
                   <legend className="px-1 text-sm font-semibold text-ink">{index + 1}. {group.title}</legend>
                   <p className="mb-4 text-sm leading-relaxed text-ink-soft">{group.hint}</p>
                   <div className="grid gap-6 md:grid-cols-2">
-                    {/* Quem participou começa com o professor do AEE, que conduz o estudo (INEP). */}
+                    {/* O professor do AEE conduz o estudo (INEP). */}
                     {group.fields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
                   </div>
                 </fieldset>
@@ -270,7 +255,6 @@ export default async function CaseStudyPage({
             </div>
           </section>
 
-          {/* Fechado, o conteúdo continua no formulário e é salvo junto; nenhum campo daqui é obrigatório. */}
           <details id="aprofundar" open={deeperFilled > 0} className="group min-w-0 scroll-mt-6 rounded-2xl border border-line bg-paper-raised">
             <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
               <span className="min-w-0">

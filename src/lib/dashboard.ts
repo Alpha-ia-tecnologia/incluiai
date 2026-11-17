@@ -13,15 +13,6 @@ import { MATERIAL_KINDS } from "./materials";
 import { MONTH_NAMES, MONTH_SHORT, todayInBrazil } from "./commemorative-dates";
 import { BARRIERS, CHANNELS, CONTEXTS, CRITERION_MET, DIMENSIONS, PARTICIPATION, SENSORY_AREAS, SENSORY_LABELS, STAGES } from "./scale";
 
-// Painel de indicadores: reúne os dados da plataforma em um só lugar
-// (estudantes, jornada, objetivos, aulas, atividades, IA, famílias, recursos
-// e acessos). Tudo é contagem e comparação simples sobre o que a equipe
-// registrou, sem inferência sobre o estudante.
-//
-// Escopo: a gestão da rede vê a rede inteira ou uma escola; a equipe escolar
-// vê a própria escola. Listas com nome trazem só estudantes que a pessoa já
-// pode acessar; o restante são contagens.
-
 const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
 const REVIEW_HORIZON_DAYS = 30;
@@ -59,7 +50,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   professor: "Criadas pelo professor",
 };
 
-// Meia-noite no fuso da rede (America/Sao_Paulo, UTC−3, sem horário de verão).
+// America/Sao_Paulo, UTC−3, sem horário de verão.
 const brazilMidnight = (year: number, month: number, day = 1) => new Date(Date.UTC(year, month - 1, day, 3));
 
 export function periodStart(period: DashboardPeriod, now: Date): Date | null {
@@ -69,8 +60,6 @@ export function periodStart(period: DashboardPeriod, now: Date): Date | null {
   return null;
 }
 
-// Período anterior de mesma duração, para comparar (o ano é comparado com o
-// mesmo trecho do ano passado). O histórico completo não tem comparação.
 export function previousRange(period: DashboardPeriod, start: Date | null, now: Date): { from: Date; to: Date } | null {
   if (!start) return null;
   if (period === "ano") {
@@ -91,9 +80,6 @@ export function parseGauge(value: unknown): DashboardGauge {
   return typeof value === "string" && Object.hasOwn(GAUGES, value) ? (value as DashboardGauge) : "jornada";
 }
 
-// As cinco etapas da jornada, na ordem do próximo passo sugerido
-// (student-journey.ts): o passo 2 reúne plano e objetivo, e o perfil (Como
-// aprende) vem depois dele, antes de preparar atividades.
 export const JOURNEY_STEPS = [
   { key: "estudo", label: "Estudo de caso", step: 1 },
   { key: "plano", label: "Plano e objetivo", step: 2 },
@@ -106,8 +92,6 @@ export type MonthState = "registro" | "sem_registro" | "aberto" | "recesso" | "a
 
 export type Bucket = { label: string; title: string; start: Date; end: Date };
 
-// Intervalos do gráfico de registros: semanas nos períodos curtos; meses no
-// ano e no histórico (anos, se o histórico passar de dois anos).
 export function timeBuckets(period: DashboardPeriod, start: Date | null, now: Date, earliest: Date | null): Bucket[] {
   const end = new Date(now.getTime() + 1);
   if (start && (period === "30d" || period === "90d")) {
@@ -149,7 +133,6 @@ function countBy<T>(items: T[], key: (item: T) => string | null | undefined): Ma
   return counts;
 }
 
-// Linhas na ordem do vocabulário da plataforma; valores fora dele vão ao fim.
 function labeledRows(counts: Map<string, number>, labels: Record<string, string>) {
   const known = Object.entries(labels).map(([key, label]) => ({ key, label, value: counts.get(key) ?? 0 }));
   const extra = [...counts].filter(([key]) => !(key in labels)).map(([key, value]) => ({ key, label: key, value }));
@@ -224,10 +207,8 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const objectives = students.flatMap((student) => student.plans.flatMap((plan) => plan.objectives.map((objective) => ({ objective, plan, student }))));
   const profiles = students.flatMap((student) => (student.profile ? [student.profile] : []));
 
-  // ---------- Visão geral ----------
   const withActivePlan = count((student) => !!activePlanOf(student));
   const activeObjectives = objectives.filter(({ objective, plan }) => plan.status === "ativo" && objective.status === "ativo");
-  // Avanço = redução do nível de apoio na mesma tarefa (escala única 0 a 5).
   const measurable = objectives.filter(({ objective }) => objective.status !== "em_revisao");
   const reduced = measurable.filter(({ objective, student }) => {
     if (objective.status === "alcancado") return true;
@@ -237,11 +218,9 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const studentsWithRecord = count((student) => student.diaryEntries.some((entry) => inPeriod(entry.date)));
   const participation = countBy(periodEntries, (entry) => entry.participation);
 
-  // ---------- Precisa de atenção ----------
   const alertsByStudent = students.map((student) => ({ student, alerts: studentAlerts({ plans: student.plans, entries: student.diaryEntries, now }) }));
   const reviewLimit = new Date(now.getTime() + REVIEW_HORIZON_DAYS * DAY_MS);
 
-  // ---------- Jornada ----------
   const nextSteps = students.map((student) => {
     const plan = activePlanOf(student);
     return getStudentNextStep({
@@ -264,14 +243,12 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   };
   const doneSteps = students.map((student) => JOURNEY_STEPS.filter((step) => stepDone[step.key](student)).length);
 
-  // ---------- Medidor: valor atual e período anterior ----------
   const range = previousRange(period, start, now);
   const previousEntries = range ? entries.filter((entry) => entry.date >= range.from && entry.date < range.to) : [];
   const share = (list: typeof entries, test: (entry: (typeof entries)[number]) => boolean) => percent(list.filter(test).length, list.length);
   const fullParticipation = (entry: (typeof entries)[number]) => entry.participation === "total";
   const criterionMet = (entry: (typeof entries)[number]) => entry.criterionMet === "sim";
 
-  // ---------- Meses com registro (histórico, até 5 anos) ----------
   const monthIndex = (date: Date) => { const day = todayInBrazil(date); return day.year * 12 + day.month - 1; };
   const monthCounts = countBy(entries, (entry) => String(monthIndex(entry.date)));
   const todayIndex = monthIndex(now);
@@ -285,7 +262,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       months: Array.from({ length: 12 }, (_, month) => {
         const index = year * 12 + month;
         const records = monthCounts.get(String(index)) ?? 0;
-        // Janeiro é recesso escolar: mês sem registro não conta como lacuna.
         const state: MonthState = index > todayIndex ? "futuro"
           : records > 0 ? "registro"
             : firstIndex === null || index < firstIndex ? "antes"
@@ -297,11 +273,9 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   });
   const calendarMonths = calendarYears.flatMap((year) => year.months);
 
-  // ---------- Objetivos ----------
   const withRecords = measurable.filter(({ objective, student }) => !!lastEntryOf(student, objective.id));
   const trends = countBy(activeObjectives, ({ objective, student }) => objectiveTrend(objective, student.diaryEntries).trend);
 
-  // ---------- Atividades ----------
   const sources = Object.keys(SOURCE_LABELS).map((source) => {
     const list = periodActivities.filter((activity) => activity.source === source);
     const decided = list.filter((activity) => activity.status !== "sugerida");
@@ -309,11 +283,8 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     return { source, label: SOURCE_LABELS[source], total: list.length, decided: decided.length, used, adhesion: percent(used, decided.length) };
   });
 
-  // ---------- Perfil (agregado) ----------
   const isCaa = (channel: string) => channel.startsWith("caa") || channel === "olhar_acionador";
   const caaStudents = students.filter((student) => student.profile && isCaa(student.profile.expressiveChannel));
-  // Banco de práticas: estratégias que funcionaram em registros com boa
-  // resposta (critério atingido ou parcial), por perfil agregado.
   const clusters = [
     { label: "CAA ou acionador", test: (profile: NonNullable<ScopedStudent["profile"]>) => isCaa(profile.expressiveChannel) },
     { label: "Hipersensibilidade auditiva", test: (profile: NonNullable<ScopedStudent["profile"]>) => parseJson<{ auditiva?: string }>(profile.sensoryProfile, {}).auditiva === "hiper" },
@@ -327,7 +298,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     return { label: cluster.label, records: good.length, top: topItems(good.flatMap((entry) => splitItems(entry.whatWorked)), 4) };
   }).filter((cluster) => cluster.records > 0);
 
-  // ---------- Equipe e acessos ----------
   const scopeIds = new Set(students.map((student) => student.id));
   const scopedUsers = schoolId ? users.filter((item) => item.schoolId === schoolId || item.studentIds.some((id) => scopeIds.has(id))) : users;
   const accessCount = (action: string) => accessByAction.find((row) => row.action === action)?._count._all ?? 0;
@@ -347,7 +317,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     },
     overview: {
       students: total,
-      // Todo estudante cadastrado é atendido.
       withAEE: total,
       withSupportProfessional: count((student) => student.supportProfessional),
       schools: schoolId ? 1 : schools.length,
@@ -361,7 +330,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       measurableObjectives: measurable.length,
       reducedSupportPct: percent(reduced, measurable.length),
       records: periodEntries.length,
-      // Registros do período anterior de mesmo tamanho (null em "todo o histórico").
       previousRecords: range ? previousEntries.length : null,
       studentsWithRecord,
       fullParticipation: participation.get("total") ?? 0,
@@ -379,7 +347,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
         return !!plan && plan.reviewDate >= now && plan.reviewDate <= reviewLimit;
       }),
       reviewHorizonDays: REVIEW_HORIZON_DAYS,
-      // Tabela nominal: só estudantes que a pessoa já pode acessar.
       students: students
         .map((student, index) => ({ student, alerts: alertsByStudent[index].alerts, next: nextSteps[index] }))
         .filter(({ student }) => visible(student))
@@ -433,7 +400,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
         return { key, label, value: list.length, achieved: list.filter(({ objective }) => objective.status === "alcancado").length };
       })),
       criterion: labeledRows(countBy(periodEntries, (entry) => entry.criterionMet), CRITERION_MET),
-      // Sondagem: em dia (até 12 semanas) e, por área, quantos precisam de menos apoio que na linha de base.
       assessment: (() => {
         const withTwo = students.filter((student) => student.assessments.length >= 2);
         const changes = withTwo.map((student) => compareAreas(answersOf(student.assessments[0].answers), answersOf(student.assessments.at(-1)!.answers)));
@@ -444,12 +410,10 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
           improved: AREAS.map((area) => ({ label: area.label, value: changes.filter((rows) => (rows.find((row) => row.area === area.key)?.change ?? 0) > 0).length })),
         };
       })(),
-      // Estudantes com relatório do período validado nos últimos 6 meses (devolutiva à família).
       reports: {
         covered: count((student) => student.reports.some((report) => report.validatedAt && now.getTime() - report.validatedAt.getTime() <= 183 * 24 * 60 * 60 * 1000)),
         total,
       },
-      // Objetivos ligados à BNCC, por componente curricular (campo de experiência no infantil).
       bncc: {
         linked: objectives.filter(({ objective }) => objective.bnccCode).length,
         total: objectives.length,

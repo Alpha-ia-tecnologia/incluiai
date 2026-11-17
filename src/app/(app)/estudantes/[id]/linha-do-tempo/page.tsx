@@ -27,7 +27,6 @@ const TYPE_META: Record<string, { icon: LucideIcon; tone: "brand" | "amber" | "c
   conquista: { icon: Trophy, tone: "green" },
   recurso: { icon: Package, tone: "amber" },
   familia: { icon: House, tone: "neutral" },
-  // Lidos dos registros do DUA e da frequência do AEE, sem criar evento novo.
   dua: { icon: Layers, tone: "brand" },
   aee_realizado: { icon: CalendarCheck, tone: "green" },
   aee_falta: { icon: CalendarX, tone: "amber" },
@@ -43,8 +42,6 @@ const EXTRA_TYPES: Record<string, string> = {
 
 type Entry = { key: string; date: Date; type: string; title: string; description: string | null; context?: string; link?: { href: string; label: string } };
 
-// Mês no mesmo fuso de formatDate (o do servidor), para que o cabeçalho do mês,
-// a coluna do gráfico e a data de cada evento sempre concordem.
 const MONTH_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 const monthName = (date: Date) => {
@@ -53,7 +50,6 @@ const monthName = (date: Date) => {
 };
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
-// Eventos em cada um dos últimos `months` meses (o atual por último).
 function monthlyEvents(entries: ReadonlyArray<Entry>, months: number, now: Date) {
   const counts = new Map<string, number>();
   for (const entry of entries) counts.set(monthKey(entry.date), (counts.get(monthKey(entry.date)) ?? 0) + 1);
@@ -63,7 +59,6 @@ function monthlyEvents(entries: ReadonlyArray<Entry>, months: number, now: Date)
   });
 }
 
-// Agrupa a lista (já do mais recente ao mais antigo) por mês.
 function groupByMonth(entries: ReadonlyArray<Entry>) {
   const groups: { key: string; label: string; entries: Entry[] }[] = [];
   for (const entry of entries) {
@@ -75,7 +70,6 @@ function groupByMonth(entries: ReadonlyArray<Entry>) {
   return groups;
 }
 
-// Fora do recorte do estudante, a página segue só com os eventos de sempre.
 async function withinReach<T>(work: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await work();
@@ -90,8 +84,6 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   await requireStudentPage(id, "Evolução");
   const user = await getCurrentUser();
-  // Atividades com DUA e frequência do AEE são da equipe pedagógica: família e
-  // terapeuta continuam vendo a linha do tempo como antes.
   const pedagogical = user && canSeePedagogicalDetail(user.role) ? user : null;
   const [events, evidences, sessions] = await Promise.all([
     prisma.timelineEvent.findMany({
@@ -122,7 +114,6 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  // O gráfico e os grupos usam só o que a lista mostra para este perfil.
   const months = monthlyEvents(entries, 12, new Date());
   const lastYear = months.reduce((sum, month) => sum + month.value, 0);
   const groups = groupByMonth(entries);

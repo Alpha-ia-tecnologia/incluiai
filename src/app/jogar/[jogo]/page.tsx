@@ -15,10 +15,6 @@ export const metadata: Metadata = { title: "Jogo · IncluiEdu" };
 
 type Query = { estudante?: string; nivel?: string; tema?: string; rotina?: string; modo?: string; partida?: string };
 
-// Modo de jogo em tela cheia, fora do menu da plataforma: só o jogo e os
-// controles do professor. As cartas e rodadas são sorteadas aqui, no servidor;
-// "Jogar de novo" pede um sorteio novo. O estudante é opcional: sem ele, o
-// jogo funciona igual, só não há registro da aula no fim.
 export default async function PlayPage({ params, searchParams }: { params: Promise<{ jogo: string }>; searchParams: Promise<Query> }) {
   const prisma = await db();
   const [{ jogo }, query] = await Promise.all([params, searchParams]);
@@ -45,7 +41,6 @@ export default async function PlayPage({ params, searchParams }: { params: Promi
     const routine = isRoutineKey(query.rotina) ? query.rotina : "maos";
     const steps = routineSteps(routine, level);
     const indexes = steps.map((_, index) => index);
-    // Nunca começa já na ordem certa.
     let order = shuffle(indexes);
     while (order.every((value, index) => value === index)) order = shuffle(indexes);
     data = { game: "sequencia", routine: ROUTINES[routine].label, steps, order };
@@ -60,8 +55,6 @@ export default async function PlayPage({ params, searchParams }: { params: Promi
   }
 
   if (student) await recordView(user, student.id, `Jogos educativos: ${GAMES[jogo].title}`);
-  // A partida vem do endereço: a atualização que o registro da aula provoca não
-  // reinicia o jogo; "Jogar de novo" abre o mesmo jogo com uma partida nova.
   const replay = new URLSearchParams(Object.entries(query).filter(([key, value]) => key !== "partida" && typeof value === "string") as [string, string][]);
   replay.set("partida", crypto.randomUUID().slice(0, 8));
   return (

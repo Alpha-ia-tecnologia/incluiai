@@ -10,7 +10,6 @@ import { AdaptedView } from "@/components/adapted/adapted-view";
 
 export const dynamic = "force-dynamic";
 
-// Folha de um nível, para o estudante: sem o nome do nível e sem o apoio do professor.
 export default async function PrintLevelPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const prisma = await db();
   const { id, taskId } = await params;

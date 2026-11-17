@@ -19,7 +19,6 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
   const assistant: NavigationItem = { href: "/assistente", label: "Assistente", shortLabel: "Assistente", icon: "assistant", section: "routine" };
   if (role === "familia") {
     return [
-      // Mais de um filho vinculado: a lista do portal da família, para escolher.
       studentIds.length === 1
         ? { href: `/familia/${studentIds[0]}`, label: "Acompanhar meu filho", shortLabel: "Meu filho", icon: "family", section: "routine" }
         : { href: "/familia", label: "Acompanhar meus filhos", shortLabel: "Meus filhos", icon: "family", section: "routine" },
@@ -42,22 +41,18 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
     { href: "/", label: "Início", shortLabel: "Início", icon: "home", exact: true, section: "routine" },
     { href: "/estudantes", label: "Estudantes", shortLabel: "Estudantes", icon: "students", section: "routine" },
     journey,
-    // Planejamento com DUA: equipe que planeja atividades (a secretaria acompanha pelos indicadores).
     ...(PLANNER_ROLES.has(role) ? [{ href: "/planejamento", label: "Planejamento com DUA", shortLabel: "Planejamento", icon: "planning", section: "routine" } satisfies NavigationItem] : []),
     assistant,
     { href: "/recursos", label: "Atividades e recursos", shortLabel: "Recursos", icon: "resources", section: "routine" },
-    // Jogos educativos: para jogar com o estudante durante a aula e registrar como foi.
     ...(PLANNER_ROLES.has(role) ? [{ href: "/jogos", label: "Jogos educativos", shortLabel: "Jogos", icon: "games", section: "routine" } satisfies NavigationItem] : []),
     calendar,
   ];
   const dashboard: NavigationItem = { href: "/painel", label: "Painel de indicadores", shortLabel: "Painel", icon: "network" };
-  // Dossiê de evidências (item 8): a coordenação e a rede conferem; o AEE prepara.
   const dossier: NavigationItem = { href: "/dossie", label: "Dossiê de evidências", shortLabel: "Dossiê", icon: "evidence" };
   if (["secretaria", "gestao", "coordenacao"].includes(role)) {
     links.push(
       { ...dashboard, section: "management" },
       { ...dossier, section: "management" },
-      // Censo Escolar (Educacenso): importação, conciliação e dupla matrícula do AEE.
       { href: "/censo", label: "Censo Escolar", shortLabel: "Censo", icon: "census", section: "management" },
       { href: "/cadastros", label: "Escolas e turmas", shortLabel: "Cadastros", icon: "schools", section: "management" },
       { href: "/usuarios", label: "Pessoas e acessos", shortLabel: "Acessos", icon: "accounts", section: "management" },

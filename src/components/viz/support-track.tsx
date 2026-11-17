@@ -1,11 +1,6 @@
 import { SIGNAL } from "@/components/charts";
 import { supportInfo } from "@/lib/scale";
 
-// Trilha do apoio de um objetivo, de "mais apoio" (5) a "independente" (0).
-// O círculo escuro marca o apoio atual (o registrado no plano) e o losango, a
-// meta; as casas entre os dois são o caminho que falta. Os dois níveis vêm
-// escritos com o nome, então o desenho só reforça o texto. Menos apoio é avanço.
-
 const LEVELS = [5, 4, 3, 2, 1, 0];
 const center = (level: number) => `${((5 - level + 0.5) / 6) * 100}%`;
 

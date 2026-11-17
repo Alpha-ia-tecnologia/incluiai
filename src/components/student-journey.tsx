@@ -7,8 +7,6 @@ import { Character } from "@/components/character";
 import { primaryButtonCls } from "@/components/form-styles";
 import { getStudentNextStep, type StudentJourneyInput } from "@/lib/student-journey";
 
-// Um só próximo passo por tela: no Resumo, o cartão com as etapas; nas outras
-// abas, o botão no cabeçalho da ficha (StudentNextStepLink).
 export function StudentJourney({ progress }: { progress: StudentJourneyInput }) {
   const pathname = usePathname();
   const base = `/estudantes/${progress.id}`;
@@ -29,7 +27,6 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
       <div className="flex items-center gap-4">
         <Character variant="care" className="hidden w-20 sm:block" />
         <div className="min-w-0 flex-1">
-          {/* O nome do passo e as etapas abaixo já explicam; a descrição longa fica no title do botão do cabeçalho. */}
           <h2 className="text-xl font-semibold text-ink">Próximo passo: {next.label}</h2>
           <Link href={next.href} className={`${primaryButtonCls} mt-3`}>
             {next.step === 5 ? "Registrar aula" : "Continuar"} <ArrowRight size={16} aria-hidden />
@@ -53,8 +50,6 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
   );
 }
 
-// Botão do próximo passo no cabeçalho da ficha. Some no Resumo (que tem o
-// cartão completo) e, na própria seção do passo, vira só um aviso.
 export function StudentNextStepLink({ progress }: { progress: StudentJourneyInput }) {
   const pathname = usePathname();
   const base = `/estudantes/${progress.id}`;

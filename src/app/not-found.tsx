@@ -3,7 +3,6 @@ import { ArrowLeft } from "lucide-react";
 import { StatusPage } from "@/components/status-page";
 import { primaryOnNavyCls } from "@/components/form-styles";
 
-// Endereço que não existe na plataforma (fora das telas com menu).
 export default function NotFound() {
   return (
     <main className="app-frame items-center justify-center px-4 py-10 sm:px-10 sm:py-16">

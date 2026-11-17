@@ -16,7 +16,6 @@ const Feedback = ({ state, saved }: { state: CensusState; saved?: string }) => (
   </>
 );
 
-// Arquivo de migração do Educacenso: vira uma prévia para revisar antes de aplicar.
 export function CensusUploadForm({ action }: { action: Action }) {
   const [state, submit, pending] = useActionState(action, {});
   return (
@@ -39,7 +38,6 @@ export function CensusUploadForm({ action }: { action: Action }) {
   );
 }
 
-// Revisão manual de uma pessoa do arquivo.
 export function CensusDecisionForm({ action, personKey, candidates, canCreate }: { action: Action; personKey: string; candidates: { id: string; name: string; birthDate: string }[]; canCreate: boolean }) {
   const [state, submit, pending] = useActionState(action, {});
   const id = (suffix: string) => `decisao-${personKey.replace(/\W/g, "")}-${suffix}`;
@@ -95,7 +93,6 @@ export function CensusVerifyForm({ action }: { action: (previous: CensusState) =
   );
 }
 
-// Janela do Censo: datas e até quatro horários (Brasília). Padrão: 8h e 16h.
 export function CensusWindowForm({ action, config }: { action: Action; config: MonitorConfig }) {
   const [state, submit, pending] = useActionState(action, {});
   const times = [...config.times, "", "", "", ""].slice(0, 4);
@@ -154,7 +151,6 @@ export function FndeForm({ action, value, year }: { action: Action; value: numbe
   );
 }
 
-// Código INEP (da escola, 8 números, ou do estudante, 12 números).
 export function InepForm({ action, id, label, name, length, value }: { action: Action; id: string; label: string; name: string; length: 8 | 12; value?: string | null }) {
   const [state, submit, pending] = useActionState(action, {});
   return (

@@ -8,7 +8,6 @@ import { printSettings } from "@/lib/task-adaptation";
 import { parseJson } from "@/lib/format";
 import { unavailableResponse } from "@/lib/tenant";
 
-// Word da atividade adaptada (estudante ou nível do DUA), só para a equipe com acesso.
 export async function GET(_request: Request, { params }: { params: Promise<{ taskId: string }> }) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;

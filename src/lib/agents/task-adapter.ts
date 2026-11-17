@@ -2,10 +2,6 @@ import { z } from "zod/v4";
 import type { AgentAttachment, AgentModel } from "./types";
 import { ANSWER_FORMATS, ADAPT_OPTIONS, normalizeAdapted, type AdaptedContent, type LevelKey, type TaskKind } from "../task-adaptation";
 
-// Agente de adaptação (item 1 do plano): lê a foto ou o PDF da atividade da
-// turma e adapta a apresentação ao perfil do estudante; no DUA, faz a mesma
-// atividade em três níveis. Sempre revisado e aprovado pelo professor.
-
 const itemSchema = z.object({
   prompt: z.string().describe("Enunciado da questão adaptada. Quebras de linha separam as ordens."),
   answerFormat: z.enum(ANSWER_FORMATS as [string, ...string[]]),

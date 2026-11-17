@@ -16,26 +16,8 @@ import {
 import { planningAccess } from "./access";
 import { DuaError, audit, basisHashOf, canWorkWithStudent, clip, contentOf, latestVersion, loadPlanningFor, studentLog } from "./shared";
 
-// Sugestões para revisão (RF05, seção 6). O contexto leva só campos pedagógicos
-// do planejamento e, no apoio individual, os itens do perfil que o profissional
-// escolheu. Antes de qualquer envio externo os nomes conhecidos viram papéis e o
-// texto é conferido de novo: se sobrar identificador, a consulta não acontece.
-// Com IA, os agentes de suggestion-agents.ts trabalham em grafo: um analista
-// distribui os focos, um especialista por princípio do DUA escreve os blocos e um
-// revisor devolve o que não adere ao planejamento. A resposta tem campos
-// previsíveis (6.2) e passa por verificações (6.3) que apoiam — não substituem —
-// a revisão humana. Nada aqui grava no planejamento:
-// só a decisão do profissional, bloco a bloco, incorpora a sugestão ao rascunho.
-//
-// Sem chave de IA, as mesmas regras de revisão valem para sugestões montadas
-// pelas regras da plataforma (barreira → opções conhecidas).
-
 export const DUA_PROMPT_VERSION = "dua-sugestoes-2026-11-v2";
 
-// ------------------------------------------------------------- 6.1 preparação do contexto
-
-// Nomes que podem aparecer em texto livre: estudantes e responsáveis do recorte,
-// profissionais e escolas. Cada parte do nome entra (não só o primeiro nome).
 async function knownNames(schoolId: string | null) {
   const prisma = await db();
   const [students, users, schools] = await Promise.all([
@@ -58,13 +40,10 @@ function duaAnonymizer(names: Awaited<ReturnType<typeof knownNames>>, studentNam
   });
 }
 
-// ------------------------------------------------------------- pedido
-
 export async function requestSuggestion(user: SessionUser, planningId: string, input: { purpose: AiPurpose; supportId?: string; profileFields?: string[]; requestId: string }) {
   const prisma = await db();
   const requestId = clip(input.requestId, 80);
   if (!requestId) throw new DuaError("Pedido sem identificador. Atualize a página e tente de novo.");
-  // Tentativa repetida (duplo clique, recarregar) devolve o mesmo pedido, sem nova consulta.
   const existing = await prisma.duaSuggestion.findUnique({ where: { requestId } });
   if (existing) {
     if (existing.planningId !== planningId || existing.requestedById !== user.id) throw new DuaError("Pedido inválido.", "conflito");
@@ -85,7 +64,6 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
   }
   if (!content.objective.learning.trim()) throw new DuaError("Escreva o objetivo de aprendizagem antes de pedir sugestões: elas partem dele.");
 
-  // Itens do perfil: só os que o profissional escolheu, entre os já ligados ao apoio.
   const profile = support ? support.data.profileRefs.filter((ref) => (input.profileFields ?? []).includes(ref.field)) : [];
   const context: DuaAiContext = {
     purpose: input.purpose,
@@ -107,8 +85,6 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
     promptVersion: DUA_PROMPT_VERSION, requestedById: user.id, requestedByName: user.name,
   };
 
-  // Apoio individual leva dados do estudante: só com a autorização da família.
-  // O planejamento da turma (sem estudante) segue a configuração da IA.
   const useAI = support ? await aiAllowedFor(support.studentId) : isAIEnabled();
   let state: AiState = "aguardando_revisao";
   let provider = useAI ? "ia" : "regras";
@@ -121,7 +97,6 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
   if (useAI) {
     const prepared = prepareContext(context, anonymizer, names.people, names.schools);
     if (!prepared.ok) {
-      // 6.1: sem preparar o contexto, não há consulta externa; o preenchimento manual continua.
       state = "bloqueado";
       error = `O contexto ainda tinha dados que identificam pessoas (${prepared.reasons.join(", ")}). Nada foi enviado. Revise os textos do planejamento.`;
     } else {
@@ -150,7 +125,6 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
   if (raw) {
     ({ blocks, checks } = checkBlocks(raw, context, names.people, names.schools));
     if (!blocks.length) { state = "falhou"; error = "A resposta não trouxe nenhuma sugestão aproveitável."; }
-    // O revisor dos agentes apoia a revisão do professor: o que ele ainda apontou vai junto dos blocos.
     if (review) {
       checks.push({
         name: "Revisão pelos agentes",
@@ -168,8 +142,6 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
   if (support) await studentLog(user, support.studentId, "criou", `Sugestão para revisão pedida para o apoio na atividade com DUA "${planning.title}"`);
   return suggestion.id;
 }
-
-// ------------------------------------------------------------- leitura
 
 export type SuggestionView = {
   id: string;
@@ -190,8 +162,6 @@ export type SuggestionView = {
   stale: boolean;
 };
 
-// Sugestões do planejamento, relidas com o recorte atual: as de apoio individual
-// só saem para quem ainda acompanha o estudante (vale depois de revogar).
 export async function listSuggestions(user: SessionUser, planningId: string): Promise<SuggestionView[]> {
   const prisma = await db();
   await loadPlanningFor(user, planningId, "read");
@@ -216,12 +186,9 @@ export async function listSuggestions(user: SessionUser, planningId: string): Pr
     error: row.error,
     requestedByName: row.requestedByName,
     createdAt: row.createdAt,
-    // Objetivo, critérios ou barreiras mudaram depois do pedido: volta para conferência.
     stale: row.state === "aguardando_revisao" && row.basisHash !== currentHash,
   }));
 }
-
-// ------------------------------------------------------------- decisão por bloco
 
 export type BlockDecisionInput = {
   decision: "aceito" | "editado" | "recusado";
@@ -232,9 +199,6 @@ export type BlockDecisionInput = {
   confirmStale?: boolean;
 };
 
-// Aceitar incorpora ao rascunho (com origem "sugestão revisada"); a validação para
-// aplicação continua sendo outra decisão (CA06). Mudança de objetivo nunca entra
-// sozinha; critério novo só com a escolha explícita do profissional (CA04).
 export async function decideBlock(user: SessionUser, suggestionId: string, blockId: string, input: BlockDecisionInput) {
   const prisma = await db();
   const row = await prisma.duaSuggestion.findUnique({ where: { id: suggestionId }, include: { planning: true, student: { select: { id: true, schoolId: true } } } });
@@ -264,7 +228,6 @@ export async function decideBlock(user: SessionUser, suggestionId: string, block
     const origin = { kind: "ia" as const, suggestionId: row.id, blockId: block.id };
     let barrierIds = block.barrierConsidered.barrierId ? [block.barrierConsidered.barrierId] : [];
     if (!barrierIds.length && block.barrierConsidered.hypothesis) {
-      // Barreira trazida pela sugestão entra como hipótese a verificar, nunca como observação.
       const id = randomUUID();
       content.barriers.push({ id, description: block.barrierConsidered.hypothesis, category: "outra", status: "hipotese", origin });
       barrierIds = [id];

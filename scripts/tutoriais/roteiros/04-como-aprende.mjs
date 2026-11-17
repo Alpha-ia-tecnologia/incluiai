@@ -1,4 +1,3 @@
-// Como aprende: o perfil guiado, atualizar uma resposta e salvar.
 export default {
   id: "04-como-aprende",
   title: "Como aprende",

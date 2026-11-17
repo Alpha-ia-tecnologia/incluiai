@@ -8,7 +8,6 @@ import { TutorialCard } from "@/components/tutorial-card";
 
 export const dynamic = "force-dynamic";
 
-// Todos os vídeos tutoriais do perfil de quem entrou.
 export default async function TutorialsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

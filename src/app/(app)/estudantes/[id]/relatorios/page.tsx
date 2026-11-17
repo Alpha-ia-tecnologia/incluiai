@@ -12,8 +12,6 @@ import { Assurances, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
-// Relatórios do período (devolutiva à família): a plataforma junta os registros,
-// a equipe escreve o parecer e valida. Quem só lê (Secretaria com motivo) vê os validados.
 export default async function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

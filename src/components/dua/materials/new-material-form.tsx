@@ -11,8 +11,6 @@ import { Field, ResultMessage, buttonCls, hintCls, inputCls, labelCls, linkCls, 
 type Option = { id: string; label: string };
 type Feedback = { ok: false; message: string; problems?: { field: string; message: string }[] } | null;
 
-// Preparar material a partir de uma versão do planejamento (RF06). Versão não
-// validada gera material de rascunho, impresso com o aviso de RASCUNHO.
 export function NewMaterialForm({ planningId, versions, defaultVersion, canCollective, supports, library }: {
   planningId: string;
   versions: { version: number; state: ReviewState }[];

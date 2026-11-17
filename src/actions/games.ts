@@ -4,10 +4,6 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { saveDiaryEntry } from "@/lib/records";
 
-// Registro da aula ao fim de qualquer jogo da página Jogos educativos: vira um
-// registro de aula como os outros (Registrar aula e Evolução), com o professor
-// como autor. As permissões e o histórico de acessos ficam em saveDiaryEntry.
-
 export type GameRecordState = { error?: string; saved?: boolean };
 
 const PARTICIPATION = new Set(["total", "parcial", "recusou"]);

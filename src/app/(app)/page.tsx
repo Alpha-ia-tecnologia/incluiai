@@ -23,7 +23,6 @@ export default async function SchoolDashboard() {
   const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  // Leitura do QR da carteirinha antes do login: volta para o código, que decide o destino.
   const pendingCard = (await cookies()).get(PENDING_CARD_COOKIE)?.value;
   if (pendingCard && CARD_TOKEN_PATTERN.test(pendingCard)) redirect(cardPath(pendingCard));
   if (["familia", "terapeuta"].includes(user.role) && !user.studentIds.length) {
@@ -49,8 +48,6 @@ export default async function SchoolDashboard() {
   const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - 6);
-  // Só a data dos registros das últimas 8 semanas: basta para as colunas por
-  // semana e para o número dos últimos 7 dias, com o mesmo recorte de estudantes.
   const since = new Date(now);
   since.setHours(0, 0, 0, 0);
   since.setDate(since.getDate() - 8 * 7);
@@ -71,11 +68,7 @@ export default async function SchoolDashboard() {
   const today = todayInBrazil();
   const upcomingDates = upcomingEvents(today).slice(0, 3);
   const managing = ["secretaria", "gestao"].includes(user.role);
-  // A Secretaria vê a rede em números: nomes só pela busca, com motivo registrado.
   const nominal = user.role !== "secretaria";
-  // Cada tipo de tarefa tem sua cor: registro (azul), atividades e recursos
-  // (verde-água), acompanhamento (pêssego), cadastros (sálvia).
-  // Os títulos dizem a tarefa: sem frase de apoio, para a tela não pesar.
   const tasks = managing ? [
     { title: "Acompanhar a rede", href: "/painel", icon: School, color: "bg-sky-soft", accent: "text-sky-ink" },
     { title: "Consultar um estudante", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
@@ -85,7 +78,6 @@ export default async function SchoolDashboard() {
     { title: "Preparar uma atividade", href: "/estudantes?acao=preparar", icon: BookOpen, color: "bg-teal-soft", accent: "text-teal-ink" },
     { title: "Acompanhar um estudante", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
   ];
-  // Com as boas-vindas abertas, elas já cumprimentam e mostram a jornada: o resto da tela não repete.
   const welcoming = !journey.welcomed;
   const showAttention = !nominal || withAlerts.length > 0;
 
@@ -101,15 +93,12 @@ export default async function SchoolDashboard() {
           {welcoming ? null : <Character variant="learning" className="hidden w-32 shrink-0 sm:block xl:w-36" preload />}
         </section>
 
-        {/* Os números do acompanhamento ficam numa faixa no topo; a coluna lateral
-            guarda o que é de consulta (jornada, avisos, datas e ideias). */}
         <section aria-labelledby="acompanhamento-titulo" className="dash-board mb-7">
           <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-2 pt-1">
             <h2 id="acompanhamento-titulo" className="text-base font-medium">Seu acompanhamento</h2>
             <Link href="/painel" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Ver painel de indicadores <ArrowRight size={16} aria-hidden /></Link>
           </div>
           <div className="grid min-w-0 gap-2.5 sm:grid-cols-3">
-            {/* Legenda só quando acrescenta algo ao número e ao selo. */}
             <StatTile label="Estudantes" value={students.length} hint={withAlerts.length ? `${withAlerts.length} com aviso de acompanhamento.` : undefined} />
             <StatTile
               label="Registros nos últimos 7 dias"
@@ -127,7 +116,6 @@ export default async function SchoolDashboard() {
           </div>
         </section>
 
-        {/* Três colunas só quando cada título cabe numa linha; antes disso, uma lista compacta. */}
         <section aria-label="Tarefas do dia" className="@container">
           <div className="grid gap-2.5 @3xl:grid-cols-3">
           {tasks.map(({ title, href, icon: Icon, color, accent }) => (
@@ -147,7 +135,6 @@ export default async function SchoolDashboard() {
             <Link href="/estudantes" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Ver todos <ArrowRight size={16} aria-hidden /></Link>
           </div>
           {anyEntries ? (
-            // Uma legenda para todos os cartões, em vez de repetir em cada um.
             <ul className="-mt-2 mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft" aria-label="Como ler os minigráficos">
               <li className="inline-flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 bg-ink" /> Apoio (subir é precisar de menos)</li>
               <li>Participação:</li>
@@ -166,7 +153,6 @@ export default async function SchoolDashboard() {
                   hasDiary: !!student.diaryEntries.length,
                 });
                 return (
-                  // O botão já diz o próximo passo; a data do último registro vai na linha da turma.
                   <article key={student.id} className="flex flex-col rounded-2xl border border-line bg-paper-raised p-5">
                     <h3 className="text-base font-medium"><Link href={`/estudantes/${student.id}`} className="inline-flex min-h-11 items-center hover:underline">{student.name}</Link></h3>
                     <p className="text-sm text-ink-soft">{student.gradeYear} · {student.className} · {student.diaryEntries[0] ? `último registro ${formatDateShort(student.diaryEntries[0].date)}` : "sem registros de aula"}</p>
@@ -194,7 +180,6 @@ export default async function SchoolDashboard() {
       <aside className="dashboard-side" aria-label="Resumo do acompanhamento">
         {welcoming ? null : <JourneyProgress journey={journey} />}
 
-        {/* Sem aviso, a seção some: o número de Estudantes já diz que está tudo em dia. */}
         {showAttention ? (
         <section className={welcoming ? "" : "mt-6"} aria-labelledby="attention-title">
           <h2 id="attention-title" className="mb-3 text-base font-medium">Precisa de atenção</h2>
@@ -219,7 +204,6 @@ export default async function SchoolDashboard() {
           ))}</ul> : <p className="rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft">Nenhuma data comemorativa nas próximas semanas.</p>}
           <Link href="/calendario" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong"><CalendarDays size={16} aria-hidden /> Ver calendário inclusivo</Link>
         </section>
-        {/* Recursos e Ajuda ficam no menu lateral; aqui não se repetem. */}
       </aside>
     </div>
   );
@@ -227,15 +211,12 @@ export default async function SchoolDashboard() {
 
 const PARTICIPATION_LEGEND: { tone: Tone; label: string }[] = [{ tone: "good", label: "Toda a atividade" }, { tone: "mid", label: "Parte" }, { tone: "alert", label: "Recusou" }];
 
-// Apoio e participação das últimas aulas do estudante, em miniatura. Os
-// registros chegam do mais novo ao mais antigo; o gráfico lê em ordem de data.
 function RecentLessons({ name, entries }: { name: string; entries: ReadonlyArray<{ id: string; date: Date; supportLevel: number; participation: string }> }) {
   if (!entries.length) return null;
   const lessons = [...entries].reverse();
   const levels = lessons.map((entry) => entry.supportLevel);
   const { trend } = supportTrend(levels);
   const count = lessons.length === 1 ? "na última aula" : `nas últimas ${lessons.length} aulas`;
-  // A legenda acima dos cartões explica a linha e as cores; aqui fica só o recorte e a tendência.
   return (
     <div className="mt-4 grid min-w-0 gap-2.5 rounded-2xl bg-surface-muted/70 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">

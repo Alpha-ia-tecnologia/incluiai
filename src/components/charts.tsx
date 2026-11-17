@@ -2,15 +2,6 @@ import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import type { MonthState } from "@/lib/dashboard";
 
-// Gráficos do painel em HTML e SVG, sem biblioteca, na linguagem do painel:
-// texturas listradas e uma regra de cor só:
-// - azul da marca (brand): quantidade, sem juízo (contagens, usos, partes);
-// - lima (bom), amarelo (intermediário) e laranja (atenção): estado;
-// - azul-claro (cyan): estado informativo (estável, aceita, realizado).
-// Rótulo e valor ficam sempre em texto, e nenhuma informação depende só da
-// cor. Valor zero não desenha barra.
-
-// Os tokens de globals.css, por nome: nenhum valor de cor é copiado aqui.
 export const SIGNAL = {
   brand: "var(--brand)",
   lime: "var(--signal-lime)",
@@ -21,7 +12,6 @@ export const SIGNAL = {
   ink: "var(--ink-strong)",
 };
 const HATCH = "repeating-linear-gradient(120deg, rgb(0 0 0 / 0.1) 0 1.5px, transparent 1.5px 5px)";
-// Degradê do medidor e da escala de apoio: só os três sinais, misturados entre si.
 const GAUGE_STOPS: [number, string][] = [[0, SIGNAL.orange], [0.55, SIGNAL.yellow], [1, SIGNAL.lime]];
 const SCALE_GRADIENT = `linear-gradient(90deg, ${GAUGE_STOPS.map(([at, color]) => `${color} ${at * 100}%`).join(", ")})`;
 
@@ -92,7 +82,6 @@ export function Legend({ segments }: { segments: ChartSegment[] }) {
   );
 }
 
-// Distribuição 100% empilhada, listrada, com legenda em texto.
 export function StackedBar({ segments, empty = "Sem registros no período." }: { segments: ChartSegment[]; empty?: string }) {
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
   if (total === 0) return <p className="text-sm text-ink-soft">{empty}</p>;
@@ -117,10 +106,6 @@ function HatchPattern({ id, color }: { id: string; color: string }) {
   );
 }
 
-// Rosca listrada: trilho cinza e um arco por segmento, com o conteúdo no centro.
-// Cada arco se preenche a partir do próprio início (viz-ring anima só o
-// stroke-dasharray; o stroke-dashoffset que posiciona a parte fica parado). O
-// giro de -90° está no <svg>, não nos arcos.
 export function HatchedDonut({ id, segments, label, size = 152, thickness = 20, children }: {
   id: string;
   segments: ChartSegment[];
@@ -163,10 +148,6 @@ export function HatchedDonut({ id, segments, label, size = 152, thickness = 20, 
   );
 }
 
-// Medidor em meia-lua feito de listras em degradê (laranja → lima), para o
-// destaque em marinho do painel (os rótulos usam on-navy-soft). As
-// listras até o valor ficam cheias; as demais, apagadas. Os vãos marcam as
-// faixas de 50% e 80%. Fica parado: não é um arco com traço, são listras soltas.
 export function HatchedGauge({ value, label, zones = [50, 80] }: { value: number | null; label: string; zones?: number[] }) {
   const steps = 60;
   const [cx, cy, outer, inner, labelRadius] = [180, 180, 150, 114, 166];
@@ -198,9 +179,6 @@ export function HatchedGauge({ value, label, zones = [50, 80] }: { value: number
   );
 }
 
-// Escala do nível de apoio (5 → 0), em degradê listrado. O início fica
-// acima da barra, a meta abaixo e o último registro sobre ela, para os
-// marcadores não se esconderem quando os valores são próximos.
 export function SupportScale({ initial, latest, target }: { initial: number; latest: number; target: number }) {
   const position = (level: number) => `${((5 - Math.min(5, Math.max(0, level))) / 5) * 100}%`;
   return (
@@ -216,13 +194,6 @@ export function SupportScale({ initial, latest, target }: { initial: number; lat
   );
 }
 
-// Colunas listradas para série temporal, com o valor acima de cada coluna.
-// Valor e rótulo ficam posicionados sobre a coluna, fora da largura mínima do
-// gráfico (13 semanas cabem a 320 px sem rolagem lateral). Para não se
-// sobreporem, só uma coluna a cada passo mostra valor e rótulo: no máximo 6
-// no celular e 13 a partir de sm (24 meses viram 6 e 12), contando a partir da
-// mais recente. Todas as colunas têm o valor no title e no aria-label. Só a
-// coluna cresce ao abrir; valor e rótulo já aparecem no lugar.
 export function ColumnChart({ rows, caption }: { rows: { label: string; title: string; value: number }[]; caption: string }) {
   const max = Math.max(1, ...rows.map((row) => row.value));
   const narrowStep = Math.ceil(rows.length / 6);
@@ -267,8 +238,6 @@ function MonthDot({ state, records, label }: { state: MonthState; records: numbe
   return <span title={text} className="block">{dot}<span className="sr-only">{text}</span></span>;
 }
 
-// Meses × anos, como um histórico de pagamentos: lima = houve registro de
-// aula; laranja com X = mês letivo sem nenhum registro.
 export function MonthGrid({ years }: { years: { year: number; months: { month: number; records: number; state: MonthState }[] }[] }) {
   return (
     <table className="w-full table-fixed border-separate border-spacing-y-1.5 text-center">

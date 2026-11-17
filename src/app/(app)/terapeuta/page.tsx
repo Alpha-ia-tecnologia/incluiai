@@ -30,7 +30,6 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
   const [user, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!user) redirect("/login");
   if (user.role !== "terapeuta" || !user.studentIds.length) redirect("/");
-  // Terapeuta com mais de um estudante vinculado escolhe pela URL; só vale um estudante do vínculo.
   const asked = Array.isArray(query.estudante) ? query.estudante[0] : query.estudante;
   const studentId = asked && user.studentIds.includes(asked) ? asked : user.studentIds[0];
   await recordJourneyMark(user.id, "terapeuta_inicio");
@@ -39,7 +38,6 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
     user.studentIds.length > 1 ? prisma.student.findMany({ where: { id: { in: user.studentIds } }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : [],
   ]);
   const switcher = <StudentSwitcher students={linked} current={studentId} />;
-  // Seção 8 e 12: a conexão com a escola depende da autorização da família.
   if (!(await studentConsent(studentId)).therapistLink) {
     return (
       <>
@@ -60,10 +58,6 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
       intersectorReports: { orderBy: { createdAt: "desc" } },
     },
   });
-  // "Visto pela escola": alguém da equipe abriu o resumo do estudante, onde fica
-  // o relatório mais recente, enquanto este era o mais recente (mesmo critério
-  // da jornada do terapeuta). Um relatório substituído antes disso não chegou
-  // a aparecer no resumo.
   const reports = student.intersectorReports;
   const seenAt = await Promise.all(reports.map((report, index) => {
     const newer = index > 0 ? reports[index - 1].createdAt : null;
@@ -147,7 +141,6 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
               return {
                 key: r.id,
                 date: formatDate(r.createdAt),
-                // Pílula curta (não quebra linha) e o detalhe ao lado, que quebra a 320 px.
                 badge: seen ? <><StatusPill tone="good"><Check size={12} aria-hidden /> Visto pela escola</StatusPill><span className="text-xs text-ink-soft">em {formatDate(seen)}</span></>
                   : index === 0 ? <StatusPill tone="mid">Aguardando a escola abrir</StatusPill>
                     : <><StatusPill tone="neutral">Sem visualização</StatusPill><span className="text-xs text-ink-soft">um relatório mais novo o substituiu</span></>,
@@ -180,8 +173,6 @@ function ReportDetails({ report: r }: { report: Report }) {
   );
 }
 
-// Um terapeuta com mais de um estudante: pílulas com o primeiro nome; a ativa
-// fica marcada para o leitor de tela (aria-current).
 function StudentSwitcher({ students, current }: { students: { id: string; name: string }[]; current: string }) {
   if (students.length < 2) return null;
   return (

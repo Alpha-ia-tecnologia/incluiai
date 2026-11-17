@@ -14,8 +14,6 @@ import { FederalGuidance } from "@/components/federal-guidance";
 
 export const dynamic = "force-dynamic";
 
-// Dossiê da escola (item 8): a coordenação e o AEE veem, estudante a estudante,
-// o que falta. A Secretaria vê a rede em números, sem nomes (seção 10).
 const SCHOOL_ROLES = new Set(["coordenacao", "gestao", "professor_aee"]);
 const FILTERS = [{ value: "", label: "Todos os estudantes" }, { value: "pendentes", label: "Só com pendências" }];
 
@@ -35,7 +33,6 @@ function Totals({ students, network }: { students: StudentEvidence[]; network: b
   );
 }
 
-// O que as normas pedem, para quem quiser conferir a base de cada item.
 function Norms({ children }: { children?: ReactNode }) {
   return (
     <HowToRead>

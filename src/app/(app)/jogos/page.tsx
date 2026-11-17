@@ -9,10 +9,6 @@ import { GamesHub, type HubStudent } from "@/components/games/games-hub";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jogos educativos · IncluiEdu" };
 
-// Jogos educativos do AEE, todos numa só página: os de fotografias abrem aqui
-// mesmo e os de tema e rotina, em tela cheia (/jogar/<jogo>). Com um estudante
-// escolhido, o nível vem do "Como aprende" e o professor pode registrar a aula
-// no fim de qualquer jogo.
 export default async function GamesPage({ searchParams }: { searchParams: Promise<{ estudante?: string }> }) {
   const prisma = await db();
   const user = await getCurrentUser();

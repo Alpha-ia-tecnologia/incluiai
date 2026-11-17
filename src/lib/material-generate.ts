@@ -22,13 +22,6 @@ import {
   type MaterialContent, type MaterialContext, type ProfileFacts,
 } from "./material-content";
 
-// Geração do material de apoio, usada pela página Materiais de apoio e pelo
-// assistente. Com IA ligada, os agentes (criador, um especialista por contexto e
-// revisor) criam o material a partir do objetivo do plano, do perfil, das regras
-// de adaptação e dos registros de aula (sem dados pessoais); sem IA ou se ela
-// falhar, o motor de regras cria. O material
-// nasce "sugerido": um profissional aprova antes do uso. Nada aqui é ação pública.
-
 export type MaterialRequest = { kind: string; topic: string; context: string; objectiveId?: string | null; withImages: boolean };
 
 export function profileFacts(student: Pick<Student, "name">, profile: FunctionalProfile): ProfileFacts {
@@ -63,7 +56,6 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
   const topic = request.topic.replace(/\s+/g, " ").trim().slice(0, 160);
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { profile: true, caseStudy: true } });
   if (!student.profile) throw new Error("Preencha Como aprende antes de gerar materiais.");
-  // O objetivo precisa ser do plano DESTE estudante (nada de vínculo entre pessoas diferentes).
   const objective = request.objectiveId
     ? await prisma.objective.findFirst({ where: { id: request.objectiveId, plan: { studentId } }, select: { id: true, dimension: true, action: true, condition: true, criterion: true, currentSupport: true, targetSupport: true, bnccCode: true } })
     : null;
@@ -75,13 +67,10 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
   let result: { title: string; content: MaterialContent } | null = null;
   let source: "ia" | "regras" = "regras";
   let trace: TraceStep[] = [];
-  // IA só com a autorização da família; sem ela, o material sai pelas regras.
   if (await aiAllowedFor(studentId)) {
     const anonymizer = await loadAnonymizer(studentId);
     const agents = createAgentModel(anonymizer);
     try {
-      // O mesmo que os agentes das atividades recebem: registros de aula (o que
-      // funcionou) e orientações de laudos que a equipe revisou e aceitou.
       const [entries, reports] = await Promise.all([
         prisma.diaryEntry.findMany({ where: { studentId }, orderBy: { date: "asc" } }),
         prisma.healthReport.findMany({ where: { studentId, reviewedAt: { not: null } }, select: { accepted: true } }),
@@ -133,7 +122,6 @@ async function loadOwnMaterial(user: SessionUser, studentId: string, materialId:
   return material;
 }
 
-// Aprovar para uso: decisão do profissional, registrada com autoria e data.
 export async function approveStudentMaterial(user: SessionUser, studentId: string, materialId: string) {
   const prisma = await db();
   const material = await loadOwnMaterial(user, studentId, materialId);
@@ -149,8 +137,6 @@ export async function addMaterialImages(user: SessionUser, studentId: string, ma
   return generateMaterialImages(material.id, user);
 }
 
-// Leva uma atividade do material para as Atividades do estudante, como sugerida:
-// segue o fluxo de sempre (aceitar → aplicar → registrar aula).
 export async function saveMaterialActivity(user: SessionUser, studentId: string, materialId: string, index: number) {
   const prisma = await db();
   const material = await loadOwnMaterial(user, studentId, materialId);

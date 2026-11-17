@@ -2,8 +2,6 @@ import { ExternalLink, Landmark } from "lucide-react";
 import { FEDERAL_NORMS, INEP_CENSUS_GUIDANCE } from "@/lib/federal-guidance";
 import { HowToRead } from "@/components/explain";
 
-// Deixa explícito que a regra da tela vem do Governo Federal: o selo, as normas
-// e o link para a página do INEP. O que a orientação diz fica a um toque.
 export function FederalGuidance({ rules, summary = "O que diz a orientação", className = "" }: { rules?: readonly string[]; summary?: string; className?: string }) {
   return (
     <aside aria-label="Orientação do Governo Federal" className={`min-w-0 rounded-2xl border border-brand/30 bg-brand-soft/40 px-4 py-3 print:border-line print:bg-transparent ${className}`}>

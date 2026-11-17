@@ -7,8 +7,6 @@ export const AI_PARTICIPATION_LABEL: Record<string, string> = {
   conteudo_com_sugestao_revisada: "Inclui sugestões revisadas",
 };
 
-// Metadados do material, os mesmos na lista e na impressão: de onde veio, para
-// que serve, para quem é, quem preparou, se há sugestão revisada e a validação.
 export function materialMeta(material: MaterialView, options: { withActivity?: boolean; versionState?: string } = {}) {
   return [
     ...(options.withActivity ? [{ label: "Atividade", value: material.planningTitle }] : []),

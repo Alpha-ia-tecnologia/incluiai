@@ -20,11 +20,8 @@ import styles from "./games.module.css";
 type CatalogGame = (typeof GAME_CATALOG)[number];
 type Session = { game: CatalogGame; round: GameRound; level: Level; key: number };
 
-// Estudante com quem o professor joga: o nível e o tema vêm do "Como aprende".
 export type HubStudent = { id: string; name: string; firstName: string; detail: string; level: Level; theme: ThemeKey };
 
-// Todos os jogos numa só lista. Os de fotografias (src/lib/games.ts) abrem aqui
-// mesmo; os de tela cheia (/jogar), com tema e rotina, abrem em outra tela.
 type GuidedInfo = { categories: GameCategory[]; description: string };
 const GUIDED: Record<GameKey, GuidedInfo> = {
   memoria: { categories: ["Memória"], description: "Pares de fotografias no tema de que o estudante mais gosta." },
@@ -33,7 +30,6 @@ const GUIDED: Record<GameKey, GuidedInfo> = {
   emocoes: { categories: ["Comunicação"], description: "Como você se sentiria? Escolha a emoção de cada situação." },
 };
 type Entry = { kind: "foto"; game: CatalogGame } | ({ kind: "tela-cheia"; key: GameKey } & GuidedInfo);
-// Cada jogo de tela cheia entra ao lado do jogo de fotografias mais parecido.
 const NEXT_TO: Partial<Record<GameId, GameKey>> = { memoria: "memoria", rotina: "sequencia", palavras: "associacao", usos: "emocoes" };
 const LIBRARY: Entry[] = GAME_CATALOG.flatMap((game): Entry[] => {
   const guided = NEXT_TO[game.id];
@@ -101,8 +97,6 @@ function GuidedPreview({ game, theme }: { game: GameKey; theme: ThemeKey }) {
   </div>;
 }
 
-// Jogo de tela cheia: um formulário GET que abre /jogar com o estudante, o
-// nível e o tema ou a rotina escolhidos (funciona mesmo sem JavaScript).
 function GuidedCard({ entry, student, level }: { entry: Extract<Entry, { kind: "tela-cheia" }>; student: HubStudent | null; level: Level }) {
   const { key } = entry;
   const theme = student?.theme ?? "animais";
@@ -144,8 +138,6 @@ export function GamesHub({ students, initialStudentId }: { students: HubStudent[
     if (session) heading.current?.focus();
   }, [session]);
 
-  // Trocar o estudante traz o nível sugerido para ele e fica no endereço,
-  // para o "Sair" dos jogos de tela cheia voltar com a mesma escolha.
   function chooseStudent(id: string) {
     setStudentId(id);
     const next = students.find((item) => item.id === id);
@@ -246,7 +238,6 @@ export function GamesHub({ students, initialStudentId }: { students: HubStudent[
 
 function GameSession({ game, initialRound, level: levelKey, student, onLeave }: { game: CatalogGame; initialRound: GameRound; level: Level; student: HubStudent | null; onLeave: () => void }) {
   const level = photoLevel(levelKey);
-  // Dicas e tentativas a mais: entram na nota do registro, como nos jogos de tela cheia.
   const [stats, setStats] = useState({ hints: 0, retries: 0 });
   const miss = () => setStats((current) => ({ ...current, retries: current.retries + 1 }));
   const [round, setRound] = useState(initialRound);

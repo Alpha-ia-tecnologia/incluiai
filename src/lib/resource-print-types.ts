@@ -11,8 +11,6 @@ export type PrintableCard = {
 type SheetBase = { title: string; instruction: string };
 
 export type PrintableSheet = SheetBase & (
-  // choices: alternativas de uma pergunta. Ficam na folha inteira, numeradas e
-  // com borda contínua (o tracejado é só para cartões de recortar).
   | { kind: "cards"; cards: PrintableCard[]; columns?: 2 | 3 | 4; choices?: boolean }
   | { kind: "worksheet"; fields: { label: string; lines?: 1 | 2 | 3 }[] }
   | { kind: "table"; columns: string[]; rows: string[][] }

@@ -6,8 +6,6 @@ import { ArrowLeft, RotateCcw } from "lucide-react";
 import { StatusPage } from "@/components/status-page";
 import { primaryOnNavyCls, quietButtonCls } from "@/components/form-styles";
 
-// Falha inesperada ao montar uma tela: o menu continua à mão e a pessoa pode
-// tentar de novo sem perder o lugar.
 export default function AppError({ error, unstable_retry }: { error: Error & { digest?: string }; unstable_retry: () => void }) {
   useEffect(() => {
     console.error(error);

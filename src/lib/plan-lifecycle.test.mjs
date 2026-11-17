@@ -1,4 +1,3 @@
-// Testes do ciclo de vida do plano: node --test src/lib/plan-lifecycle.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { nextReviewProblem, reviewOnTime, reviewSummary, suggestedNextReview } from "./plan-lifecycle.ts";

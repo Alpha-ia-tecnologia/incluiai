@@ -18,8 +18,6 @@ export const dynamic = "force-dynamic";
 
 const shorten = (value: string, max = 80) => (value.length > max ? `${value.slice(0, max - 1)}…` : value);
 
-// Materiais vinculados à atividade (RF06): cada um com versão de origem,
-// finalidade, formato e acessibilidade, escopo, autoria, participação de IA e revisão.
 export default async function MaterialsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser();

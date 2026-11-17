@@ -11,16 +11,7 @@ import { describeAgentError } from "./generate";
 import { loadAnonymizer, naturalizePlaceholders, type Anonymizer } from "./anonymize";
 import { REPORT_FIELDS, REPORT_FIELD_KEYS, fieldOptions, normalizeReading, type RawReading } from "../health-report";
 
-// Leitura de um laudo pela IA. Fica fora dos arquivos "use server": quem chama
-// confere a permissão antes.
-//
-// Privacidade (LGPD): a IA nunca recebe o arquivo, só o texto extraído do PDF,
-// e o texto sai anonimizado. Além dos nomes conhecidos pela plataforma (o
-// estudante, a família, a equipe, as escolas) e dos contatos e documentos de
-// sempre, saem as linhas de identificação do laudo, nomes depois de "Dr." e
-// "Dra.", registros profissionais (CRM, CRP...), cartão do SUS, RG e
-// endereços. Só o Claude lê laudos: o DeepSeek, provedor de reserva dos outros
-// agentes, não recebe dados de saúde.
+// Fica fora dos arquivos "use server" para não virar uma ação pública.
 
 const MIN_LETTERS = 80;
 const MAX_TEXT_CHARS = 60_000;
@@ -121,7 +112,6 @@ function buildPrompt(text: string) {
   return `## Campos do estudo de caso que você pode sugerir\n${fields.join("\n")}\n\n## Documento (texto extraído do PDF, já anonimizado)\n"""\n${text}\n"""`;
 }
 
-// Marcadores próprios do laudo que sobrarem na resposta viram texto comum.
 const LEFTOVER_MARKERS = /\[(OMITIDO|REGISTRO PROFISSIONAL|ENDEREÇO)\]/g;
 function withoutMarkers<T>(value: T): T {
   if (typeof value === "string") return value.replace(LEFTOVER_MARKERS, "(informação omitida)") as T;
@@ -130,9 +120,6 @@ function withoutMarkers<T>(value: T): T {
   return value;
 }
 
-// Lê o laudo guardado e grava o resultado no próprio registro. O arquivo já
-// está guardado, e a tela mostra o que aconteceu: aqui nada é lançado para a ação.
-// O envio ao Claude fica no histórico de acessos em nome de quem pediu a leitura.
 export async function processHealthReport(reportId: string, user: SessionUser) {
   const prisma = await db();
   const report = await prisma.healthReport.findUniqueOrThrow({ where: { id: reportId }, select: { studentId: true, mimeType: true, data: true } });
@@ -147,7 +134,6 @@ export async function processHealthReport(reportId: string, user: SessionUser) {
     return save({ status: "sem_texto" });
   }
   if (!hasApiKey("ANTHROPIC_API_KEY")) return save({ status: "ia_desligada" });
-  // Como nos outros usos de IA, só com a autorização da família.
   if (!(await studentConsent(report.studentId)).aiUse) return save({ status: "sem_autorizacao" });
 
   const { text, note } = anonymizeReportText(extracted.text, await loadAnonymizer(report.studentId));

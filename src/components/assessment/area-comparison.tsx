@@ -1,8 +1,5 @@
 import type { AreaKey } from "@/lib/assessment";
 
-// Apoio médio por área na escala 0 (independente) a 5 (apoio físico total):
-// a linha de base (círculo vazado) e a última aplicação (círculo cheio).
-// O desenho é decorativo para o leitor de tela; os valores ficam no texto.
 const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 const position = (value: number) => `${(value / 5) * 100}%`;
 

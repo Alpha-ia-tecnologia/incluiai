@@ -1,7 +1,3 @@
-// Camada desenhada por cima da plataforma durante a gravação: cursor, clique,
-// destaque do elemento, legenda e as telas de abertura e encerramento.
-// Fica num shadow DOM, sem receber cliques (pointer-events: none), e não muda a
-// página. É instalada de novo a cada documento, com o estado que o gravador guarda.
 export function installOverlay(state) {
   if (!window.__tut) {
     const host = document.createElement("div");
@@ -53,7 +49,6 @@ export function installOverlay(state) {
           element.classList.add("on");
         } else element.classList.remove("on");
       },
-      // Legenda no alto quando o alvo está no pé da tela (barra de salvar, por exemplo).
       captionTop(top) {
         $(".caption").classList.toggle("top", Boolean(top));
       },
@@ -93,7 +88,6 @@ export function installOverlay(state) {
     api.captionTop(state.captionTop);
     api.caption(state.caption);
     if (state.card) {
-      // Sem transição ao voltar para um documento novo com a tela já aberta.
       const card = api.host.shadowRoot.querySelector(".card");
       card.style.transition = "none";
       api.card(state.card);

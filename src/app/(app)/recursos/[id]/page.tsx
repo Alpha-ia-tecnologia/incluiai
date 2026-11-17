@@ -39,12 +39,10 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   });
   if (!resource) notFound();
 
-  // Fotografia, preparação, modelo e níveis de apoio de cada recurso (src/lib/resource-bank.ts).
   const guide = resourcePresentation(resource);
   const network = await networkName();
   const resourceType = RESOURCE_TYPES[resource.resourceType] ?? resource.resourceType;
   const successRate = percentOf(resource.positiveOutcomes, resource.timesUsed);
-  // "Precisa de ajuste" em amarelo, não laranja: é sinal para adaptar, não fracasso.
   const outcomes = [
     { key: "boa_resposta", label: "Boa resposta", value: resource.positiveOutcomes, color: SIGNAL.lime },
     { key: "precisa_ajuste", label: "Precisa de ajuste", value: Math.max(0, resource.timesUsed - resource.positiveOutcomes), color: SIGNAL.yellow },

@@ -1,4 +1,3 @@
-// Buscar um estudante, abrir o acompanhamento e entender o resumo.
 export default {
   id: "02-encontrar-estudante",
   title: "Encontrar um estudante",

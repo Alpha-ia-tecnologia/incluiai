@@ -33,8 +33,6 @@ const Columns = ({ title, items }: { title: string; items: string[][] }) => (
   </div>
 );
 
-// Importar estudantes de uma planilha (cadastro da rede): para a gestão e a
-// coordenação da escola, e para a Secretaria, escolhendo a escola.
 export default async function ImportStudentsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

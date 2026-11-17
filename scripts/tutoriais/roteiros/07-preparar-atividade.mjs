@@ -1,4 +1,3 @@
-// Preparar uma atividade: três sugestões (sala comum, AEE e casa), decidir e imprimir.
 export default {
   id: "07-preparar-atividade",
   title: "Preparar uma atividade",

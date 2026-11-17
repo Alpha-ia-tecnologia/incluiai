@@ -5,12 +5,6 @@ import { BNCC, bnccSkill } from "@/lib/bncc";
 import { scopeFor, searchSkills, suggestSkills, type BnccScope, type BnccSkill } from "@/lib/bncc-core";
 import { unavailableResponse } from "@/lib/tenant";
 
-// Busca na BNCC para o campo de habilidade (objetivo do plano e planejamento com DUA):
-//   ?q=EF01LP ou ?q=palavras  → busca
-//   ?sugerir=<texto do objetivo>&dimensao=leitura → sugestão pelo texto
-//   ?codigos=EF01LP01,EF02MA03 → detalhes dos códigos já escolhidos
-//   &estudante=<id> → recorte pelo ano do estudante (com acesso conferido)
-// Só a equipe; nada sai da plataforma (sem IA).
 const view = ({ code, component, years, description }: BnccSkill) => ({ code, component, years, description });
 
 export async function GET(request: NextRequest) {

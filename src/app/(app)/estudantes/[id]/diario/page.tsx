@@ -20,7 +20,6 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
   const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const viewer = await requireStudentPage(id, "Registrar aula (histórico)");
-  // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.
   if (!canEditStudentRecord(viewer.role)) redirect(`/estudantes/${id}`);
   const [entries, objectives, acceptedActivities] = await Promise.all([
     prisma.diaryEntry.findMany({
@@ -42,15 +41,12 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
   const initialObjectiveId = objectives.some((objective) => objective.id === selectedActivity?.objectiveId) ? selectedActivity?.objectiveId ?? "" : "";
   const create = createDiaryEntry.bind(null, id);
 
-  // Resumo do histórico: tudo sai dos registros que a página já lista.
   const support = supportSeries(entries);
   const trend = supportTrend(support.map((point) => point.value));
   const weeks = weeklyCounts(entries.map((entry) => entry.date), 8);
   const recentRecords = weeks.reduce((sum, week) => sum + week.value, 0);
   const objectiveIds = new Set(entries.flatMap((entry) => (entry.objectiveId ? [entry.objectiveId] : [])));
-  // A resposta da família à pergunta da semana, para quem vai registrar a aula.
   const checkIn = await recentCheckIn(id);
-  // Com um único objetivo em todos os registros, o gráfico mostra também o início e a meta dele.
   const singleObjective = objectiveIds.size === 1 && entries.every((entry) => entry.objectiveId) ? entries[0].objective : null;
 
   return (

@@ -21,9 +21,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONE = { ativo: "green", aguardando: "brand", fora: "amber", desligado: "neutral" } as const;
 
-// Censo Escolar (Educacenso): o INEP não tem API. A escola exporta o arquivo de
-// migração; a plataforma lê, concilia com o cadastro e confere, nos horários da
-// janela do Censo, a dupla matrícula dos estudantes do AEE.
+// Censo Escolar (Educacenso): o INEP não tem API. A escola exporta o arquivo de migração.
 export default async function CensusPage() {
   const prisma = await db();
   const user = await getCurrentUser();
@@ -38,7 +36,6 @@ export default async function CensusPage() {
   const { estimate } = overview;
   const fnde = fundebComparison(estimate.considered, monitor.fndeAee);
   const stages = Object.entries(estimate.byStage).sort(([a], [b]) => a.localeCompare(b));
-  // O que os arquivos têm de AEE e a estimativa deixa de fora, com o motivo.
   const outside = [
     estimate.notVerifiable && `${count(estimate.notVerifiable)} sem classe comum presencial pública nos arquivos da rede (pode estar no estado ou em outro município)`,
     estimate.blocked && `${count(estimate.blocked)} com vínculo que o Educacenso recusa ou não importa`,

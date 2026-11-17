@@ -15,9 +15,6 @@ export const dynamic = "force-dynamic";
 type Query = { q?: string | string[]; perfil?: string | string[]; situacao?: string | string[] };
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
-// Pessoas e acessos (seções 7 e 14): as contas que a pessoa gerencia — a
-// Secretaria, a equipe das escolas; a escola, a equipe dela, as famílias e os
-// terapeutas dos estudantes dela.
 export default async function AccountsPage({ searchParams }: { searchParams: Promise<Query> }) {
   const [user, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!user) redirect("/login");

@@ -10,9 +10,6 @@ const OTHER = "__outro__";
 const normalize = (option: ChoiceOption) => (typeof option === "string" ? { value: option, label: option } : option);
 const sameText = (a: string, b: string) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }) === 0;
 
-// Escolha única: lista de opções + "Outro", que abre um campo para digitar.
-// O valor final vai em um input oculto com o `name`, então funciona em
-// formulários com Server Actions sem mudar o que o servidor recebe.
 export function ChoiceField({
   name, label, options, defaultValue = "", required = false, placeholder = "Escolha uma opção",
   otherLabel = "Outro (digitar)", otherPlaceholder = "Digite aqui", otherType = "text", otherMin, otherMax,
@@ -88,9 +85,6 @@ export function ChoiceField({
   );
 }
 
-// Múltipla escolha: chips selecionáveis + "Outro" para acrescentar itens.
-// `submit="joined"` envia um único campo com os itens unidos pelo separador;
-// `submit="multiple"` envia um campo por item (ex.: barreiras).
 export function MultiChoiceField({
   name, label, options, defaultValue = [], required = false, separator = ";", submit = "joined",
   hint, otherPlaceholder = "Digite e toque em Adicionar", legendClassName = defaultLabelCls, inputClassName = defaultInputCls,
@@ -118,7 +112,6 @@ export function MultiChoiceField({
   const draftRef = useRef<HTMLInputElement>(null);
   const validityRef = useRef<HTMLInputElement>(null);
 
-  // O texto digitado em "Outro" conta mesmo sem tocar em Adicionar.
   const values = [...items.filter((item) => selected.includes(item.value)).map((item) => item.value), ...custom, ...(draft.trim() ? [draft.trim()] : [])];
   const joined = values.join(separator === "," ? ", " : "; ");
 

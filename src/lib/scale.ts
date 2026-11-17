@@ -1,7 +1,3 @@
-// Vocabulário estruturado da plataforma (item 17.2 da proposta).
-// A escala única de nível de apoio permite medir progresso sem nota:
-// avanço = redução do nível de apoio na mesma tarefa.
-
 export const SUPPORT_LEVELS = [
   { level: 0, code: "IND", label: "Independente", description: "Realiza de forma independente" },
   { level: 1, code: "SUP", label: "Supervisão", description: "Precisa apenas de supervisão ou lembrete" },

@@ -1,5 +1,4 @@
-// Código de verificação em duas etapas (TOTP, RFC 6238), puro para teste com
-// node --test (src/lib/totp.test.mjs). Compatível com os aplicativos
+// Código de verificação em duas etapas (TOTP, RFC 6238). Compatível com os aplicativos
 // autenticadores comuns: SHA-1, 6 dígitos, janela de 30 segundos.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
@@ -39,12 +38,11 @@ export function base32Decode(text: string): Buffer {
   return Buffer.from(bytes);
 }
 
-// Segredo novo: 20 bytes aleatórios (160 bits), em base32 como os aplicativos esperam.
+// Em base32, como os aplicativos esperam.
 export function newTotpSecret(): string {
   return base32Encode(randomBytes(20));
 }
 
-// Janela de 30 segundos de um instante (o contador do RFC 6238).
 export const totpStep = (timeMs: number) => Math.floor(timeMs / 1000 / TOTP_STEP_SECONDS);
 
 // HOTP (RFC 4226) com o contador do tempo (RFC 6238).
@@ -61,9 +59,6 @@ export function totpAt(secret: string, timeMs: number, digits = TOTP_DIGITS): st
   return hotp(secret, totpStep(timeMs), digits);
 }
 
-// Janela em que o código bate (a atual, a anterior ou a seguinte: relógio do
-// celular adiantado ou atrasado), ou null. Quem chama guarda a janela usada e
-// recusa as que não forem posteriores: o mesmo código não entra duas vezes.
 export function matchTotpStep(secret: string, code: string, nowMs: number = Date.now(), window = 1): number | null {
   const clean = code.replace(/\D/g, "");
   if (clean.length !== TOTP_DIGITS) return null;
@@ -78,16 +73,13 @@ export function verifyTotp(secret: string, code: string, nowMs: number = Date.no
   return matchTotpStep(secret, code, nowMs, window) !== null;
 }
 
-// Endereço que o aplicativo autenticador lê pelo QR code.
 export function otpauthUri(secret: string, account: string, issuer = "IncluiEdu"): string {
   const label = encodeURIComponent(`${issuer}:${account}`);
   return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=${TOTP_DIGITS}&period=${TOTP_STEP_SECONDS}`;
 }
 
-// Segredo em grupos de 4 letras, para digitar no aplicativo sem o QR code.
 export const groupSecret = (secret: string) => secret.replace(/(.{4})/g, "$1 ").trim();
 
-// Códigos de recuperação: 8 códigos de uso único (XXXX-XXXX); o banco guarda só o resumo.
 export function newRecoveryCodes(count = 8): string[] {
   return Array.from({ length: count }, () => {
     const raw = base32Encode(randomBytes(5)).slice(0, 8);

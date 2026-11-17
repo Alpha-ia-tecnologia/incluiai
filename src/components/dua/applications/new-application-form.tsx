@@ -11,8 +11,6 @@ import { ParticipantPicker, type StudentOption } from "./participant-picker";
 export type ValidatedVersionOption = { version: number; label: string; resources: string; organization: string };
 type Feedback = { ok: boolean; message?: string; problems?: { field: string; message: string }[] } | null;
 
-// Nova aplicação (RF07): só de versão validada. Registra quando, onde e com quem
-// a atividade acontece — não é presença nem atendimento do AEE (CA10).
 export function NewApplicationForm({ planningId, versions, defaultClassName, defaultContext, today, students }: {
   planningId: string;
   versions: ValidatedVersionOption[];
@@ -27,8 +25,6 @@ export function NewApplicationForm({ planningId, versions, defaultClassName, def
   const [versionNumber, setVersionNumber] = useState(versions[0]?.version ?? 0);
   const [className, setClassName] = useState(defaultClassName);
   const [participants, setParticipants] = useState<string[]>([]);
-  // Trocar a chave remonta o formulário: os campos voltam ao valor inicial sem
-  // dessincronizar os controlados (versão, turma e participantes).
   const [formKey, setFormKey] = useState(0);
   const chosen = versions.find((item) => item.version === versionNumber);
 
@@ -114,7 +110,6 @@ export function NewApplicationForm({ planningId, versions, defaultClassName, def
           </button>
         </div>
       </form>
-      {/* Fora do formulário remontado, para a mensagem ser anunciada. */}
       <ResultMessage result={feedback} />
     </div>
   );

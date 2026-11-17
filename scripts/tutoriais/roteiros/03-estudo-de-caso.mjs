@@ -1,4 +1,3 @@
-// Estudo de caso: as sete partes, editar, salvar, imprimir e o laudo opcional.
 export default {
   id: "03-estudo-de-caso",
   title: "Estudo de caso",

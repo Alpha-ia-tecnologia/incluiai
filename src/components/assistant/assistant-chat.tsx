@@ -12,11 +12,7 @@ import { Character } from "@/components/character";
 import { secondaryButtonCls } from "@/components/form-styles";
 import { Markdown } from "./markdown";
 
-// Chat do assistente, usado no popup e na página. A resposta chega por
-// eventos: texto, ferramentas em andamento, cartões de confirmação e o fim.
-
 type Live = { text: string; steps: ToolStep[] };
-// Referência estável para a faixa de espera não renderizar à toa.
 const NO_STEPS: ToolStep[] = [];
 const INTERRUPTED = "A conexão caiu antes de a resposta chegar. Ela continua sendo preparada e fica salva nesta conversa.";
 
@@ -28,14 +24,12 @@ type Props = {
   conversations?: ConversationView[];
   studentId?: string | null;
   onClose?: () => void;
-  // O popup usa para marcar o botão flutuante enquanto o painel está fechado.
   onActivity?: (activity: "ocupado" | "pronto" | "aviso" | "interrompida") => void;
 };
 
 const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const formatDay = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-// Erros do navegador (rede, resposta que não é JSON) chegam em inglês: viram o
-// aviso em português. As mensagens do servidor passam como estão.
+// Erros do navegador (rede, resposta que não é JSON) chegam em inglês.
 const failure = (caught: unknown, fallback: string) =>
   caught instanceof Error && !(caught instanceof TypeError) && !(caught instanceof SyntaxError) ? caught.message : fallback;
 
@@ -86,7 +80,6 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [turnEnd, setTurnEnd] = useState<GardenOutcome | null>(null);
   const [freshId, setFreshId] = useState<string | null>(null);
-  // O broto da resposta nova cresce uma vez: reabrir o popup não o repete.
   const [settledId, setSettledId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -96,17 +89,13 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
   const pinned = useRef(true);
   const longFocus = useRef(false);
   const recheckFocus = useRef(false);
-  // Cada leitura de conversa tem um número: se a pessoa começa outra conversa
-  // ou envia uma mensagem enquanto ela chega, o resultado velho é descartado.
   const loadSeq = useRef(0);
 
-  // Só desce até o fim quem já estava no fim: quem rolou para cima continua lendo.
   useEffect(() => {
     const element = scrollRef.current;
     if (element && pinned.current) element.scrollTop = element.scrollHeight;
   }, [messages, actions, live]);
 
-  // A faixa de espera muda a altura da conversa; quem está no fim continua no fim.
   useEffect(() => {
     const element = scrollRef.current;
     if (!element || typeof ResizeObserver === "undefined") return;
@@ -115,21 +104,17 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
     return () => observer.disconnect();
   }, []);
 
-  // Para onde o foco volta quando algo some da tela: o campo de mensagem ou,
-  // se a conversa ficou longa (campo desligado), o botão de nova conversa.
   const focusTarget = useCallback((): HTMLElement | null => {
     const field = inputRef.current;
     return field && !field.disabled ? field : newConversationRef.current;
   }, []);
 
-  // A conversa ficou longa no fim do turno: quem estava no campo passa ao botão.
   useEffect(() => {
     if (!long || !longFocus.current) return;
     longFocus.current = false;
     newConversationRef.current?.focus({ preventScroll: true });
   }, [long]);
 
-  // "Ver se a resposta ficou pronta" some ao recarregar a conversa.
   useEffect(() => {
     if (!recheckFocus.current) return;
     recheckFocus.current = false;
@@ -137,7 +122,6 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
     if (!focused || focused === document.body) focusTarget()?.focus({ preventScroll: true });
   }, [messages, focusTarget]);
 
-  // Região de status fora da conversa (que fica aria-busy durante o turno).
   const announce = useCallback((text: string) => {
     if (text === announced.current) return;
     announced.current = text;
@@ -171,8 +155,6 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
       if (!response.ok || !data.conversation) throw new Error(data.error ?? "Conversa não encontrada.");
       const loaded = data.conversation;
       setConversation({ id: loaded.id, title: loaded.title, updatedAt: loaded.updatedAt });
-      // Mensagens que já estavam na tela, na mesma posição, mantêm a chave: a
-      // região polite da conversa não as anuncia de novo.
       setMessages((current) => loaded.messages.map((message, index) => {
         const shown = current[index];
         return shown && shown.role === message.role && shown.text === message.text ? { ...message, id: shown.id } : message;
@@ -234,8 +216,6 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
         onActivity?.("pronto");
         break;
       case "error":
-        // Um anúncio só: a mensagem entra na conversa (região polite), sem o
-        // alerta do compositor.
         setMessages((items) => [...items, { id: `erro-${Date.now()}`, role: "sistema", text: event.message, steps: [], createdAt: new Date().toISOString() }]);
         setTurnEnd("erro");
         setLive(null);
@@ -257,9 +237,6 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
     setLive({ text: "", steps: [] });
     pinned.current = true;
     onActivity?.("ocupado");
-    // Todo turno termina com "done" ou "error". Se a conexão cair depois que o
-    // servidor começou, o turno segue lá e fica salvo: é "interrompida", não
-    // falha, e não há reenvio (repetiria agentes pagos).
     let ended = false;
     let started = false;
     let turnConversation = conversation?.id ?? null;
@@ -349,13 +326,11 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
     if (detail === 0) inputRef.current?.focus({ preventScroll: true });
   };
 
-  // Cartões de ação logo depois da resposta em que o assistente os preparou.
   const cardsAfter = (message: MessageView, index: number) => {
     if (message.role !== "assistente") return [];
     const previous = messages.slice(0, index).reverse().find((item) => item.role === "assistente");
     return actions.filter((action) => action.createdAt <= message.createdAt && (!previous || action.createdAt > previous.createdAt));
   };
-  // Depois de um erro local, a mesma mensagem volta ao campo; a pessoa decide reenviar.
   const retry = () => {
     const lastUser = [...messages].reverse().find((item) => item.role === "usuario");
     if (!lastUser) return;
@@ -366,13 +341,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
   const cardsPending = actions.filter((action) => !lastAssistant || action.createdAt > lastAssistant.createdAt);
   const empty = messages.length === 0 && !live;
   const lastMessage = messages.at(-1);
-  // Conversa aberta com a última mensagem ainda sem resposta (turno em
-  // andamento noutra tela, ou consultado cedo demais depois de uma queda).
   const replyMissing = !live && !!conversation && lastMessage?.role === "usuario";
-  // Depois de uma queda, enquanto nenhuma resposta chegar, a última mensagem do
-  // sistema oferece consultar a resposta em vez de reenviar (ex.: "Aguarde a
-  // resposta anterior terminar."): o turno pode ter terminado no servidor, e
-  // reenviar repetiria os agentes pagos.
   const dropAt = messages.findLastIndex((message) => message.id.startsWith("interrompida-"));
   const dropOpen = dropAt >= 0 && !messages.slice(dropAt + 1).some((message) => message.role === "assistente");
   const recheck = conversation && !live ? (
@@ -396,9 +365,6 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
     </div>
   ) : null;
 
-  // Boas-vindas da conversa vazia e do assistente desligado: uma frase curta e,
-  // conforme o caso, os exemplos ou o aviso com o caminho para a Ajuda. O
-  // personagem só aparece no popup: na página, o herói acima já o mostra.
   const welcome = (
     <div className="flex min-h-full flex-col items-center justify-center gap-4 py-2 text-center">
       {layout === "popup" ? <Character variant="ideas" className="w-16" /> : null}
@@ -523,8 +489,6 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <button type="button" onClick={reset} disabled={!!live} aria-label="Nova conversa" title="Nova conversa" className="flex size-9 items-center justify-center rounded-full text-ink-soft hover:bg-surface-muted disabled:opacity-50"><MessageSquarePlus size={18} aria-hidden /></button>
-            {/* Durante o turno a página inteira mostraria a conversa sem a
-                resposta que ainda chega aqui: o link espera o fim. */}
             <Link
               href={conversation ? `/assistente?c=${conversation.id}` : "/assistente"}
               onClick={(event) => { if (live) event.preventDefault(); }}

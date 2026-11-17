@@ -16,7 +16,6 @@ import { linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-// Adaptar a atividade ou a prova da turma para o estudante (item 1 do plano).
 export default async function AdaptTaskPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

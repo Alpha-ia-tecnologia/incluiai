@@ -29,15 +29,12 @@ const OBJECT_TYPE_LABEL: Record<string, string> = {
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 const roleLabel = (role: string) => ROLES[role] ?? role;
 
-// O detalhe da mudança de situação vem com o código do estado; aqui vira texto.
 const detailText = (action: string, detail: string | null) => {
   if (!detail) return null;
   if (action === "mudou a situação da aplicação") return `Nova situação: ${EXECUTION_STATE_LABEL[detail as ExecutionState] ?? detail}`;
   return detail;
 };
 
-// Versões e histórico (seção 7): cada versão com estado, autoria e validação, e
-// os eventos do planejamento (quem, papel, ação, objeto, versão e quando).
 export default async function HistoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser();
@@ -53,7 +50,6 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
   }
   const { planning, access, history, options } = data;
 
-  // Linha do tempo: da versão mais antiga à atual (a lista abaixo vem da mais recente).
   const latestVersion = history.versions[0]?.version ?? null;
   const steps: VersionStep[] = [...history.versions].reverse().map((version) => ({
     version: version.version,

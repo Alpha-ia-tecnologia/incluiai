@@ -42,10 +42,8 @@ export default async function ProfilePage({
   const prisma = await db();
   const { id } = await params;
   const viewer = await requireStudentPage(id, "Como aprende");
-  // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.
   if (!canEditStudentRecord(viewer.role)) redirect(`/estudantes/${id}`);
   const { modo, salvo } = await searchParams;
-  // Vem do redirecionamento depois de salvar (src/actions/profile.ts).
   const savedAt = typeof salvo === "string" && /^\d+$/.test(salvo) ? salvo : null;
   const [student, profile, caseStudy] = await Promise.all([
     prisma.student.findUniqueOrThrow({ where: { id } }),
@@ -53,10 +51,7 @@ export default async function ProfilePage({
     prisma.caseStudy.findUnique({ where: { studentId: id }, select: { content: true } }),
   ]);
   const p = profile;
-  // Sem perfil salvo, o que o estudo de caso levantou entra como sugestão.
   const study = !p && caseStudy ? parseCaseStudy(caseStudy.content) : {};
-  // Como se comunica na escola (estudo de caso) sugere o canal de expressão: a
-  // primeira forma marcada que corresponde a um canal. A professora confere.
   const CHANNEL_FROM_STUDY: Record<string, string> = {
     "Fala com frases curtas": "fala", "Gestos e apontar": "gestos", "Prancha de comunicação (CAA)": "caa_prancha", "PECS": "caa_pecs",
     "Tablet com aplicativo de CAA": "caa_alta_tecnologia", "Libras": "libras", "Olhar e expressões faciais": "olhar_acionador",

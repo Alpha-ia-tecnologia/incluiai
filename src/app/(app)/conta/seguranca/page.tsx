@@ -16,7 +16,6 @@ import { Assurances, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
-// Segurança da conta (seção 14): verificação em duas etapas e sessões abertas.
 export default async function AccountSecurityPage({ searchParams }: { searchParams: Promise<{ aviso?: string | string[] }> }) {
   const prisma = await db();
   const [session, query] = await Promise.all([getCurrentUser(), searchParams]);

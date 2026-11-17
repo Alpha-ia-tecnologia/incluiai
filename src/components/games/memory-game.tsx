@@ -7,8 +7,6 @@ import type { MemoryCard } from "@/lib/games/games-core";
 import { GamePictogram } from "./game-pictogram";
 import type { GameControls } from "./types";
 
-// Memória: virar duas cartas e achar as iguais. O par certo fica aberto; o par
-// errado volta a se virar depois de um instante, sem contar ponto contra.
 export function MemoryGame({ deck, controls }: { deck: MemoryCard[]; controls: GameControls }) {
   const [open, setOpen] = useState<string[]>([]);
   const [matched, setMatched] = useState<Set<string>>(new Set());
@@ -22,7 +20,6 @@ export function MemoryGame({ deck, controls }: { deck: MemoryCard[]; controls: G
     onInstruction("Vire duas cartas e encontre as figuras iguais.");
   }, [onInstruction]);
 
-  // Dica: com uma carta aberta, mostra o par dela; sem nenhuma, mostra um par inteiro.
   useEffect(() => {
     registerHint(() => {
       const remaining = deck.filter((card) => !matched.has(card.pic.key));
@@ -85,7 +82,6 @@ export function MemoryGame({ deck, controls }: { deck: MemoryCard[]; controls: G
               data-pic={card.pic.key}
               className={`relative block aspect-square w-full rounded-2xl focus-visible:outline-offset-4 ${hint ? "ring-4 ring-amber" : ""}`}
             >
-              {/* Verso e frente se alternam com uma troca suave (sem giro 3D: o toque cai sempre no botão). */}
               <span aria-hidden className={`pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-2xl border-2 border-sky-ink/15 bg-sky-soft motion-safe:transition-opacity motion-safe:duration-200 ${faceUp ? "opacity-0" : "opacity-100"}`}>
                 <Image src="/images/games/hero.webp" alt="" fill sizes="(max-width: 639px) 45vw, 250px" className="object-cover opacity-20" /><span className="relative font-display text-4xl font-bold text-ink">{index + 1}</span>
               </span>

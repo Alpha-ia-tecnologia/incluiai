@@ -1,5 +1,4 @@
 // Geração de imagens pela API da OpenAI (https://developers.openai.com/api/docs/guides/image-generation).
-// Só é usada quando OPENAI_API_KEY está definida.
 
 import { hasApiKey } from "../env";
 

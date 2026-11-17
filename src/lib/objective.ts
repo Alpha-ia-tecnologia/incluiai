@@ -1,8 +1,5 @@
 import { supportInfo } from "./scale";
 
-// Gerador de objetivo observável (item 17.3, Etapa B):
-// [Quem] + [ação observável] + [condição/apoio] + [critério] + [prazo]
-
 export interface ObjectiveParts {
   studentName: string;
   action: string;
@@ -18,7 +15,6 @@ export function buildObjectiveDescription(p: ObjectiveParts): string {
   return `${firstName} ${p.action}, ${p.condition} (${support.code}), em ${p.criterion}, ao longo de ${p.deadlineWeeks} semanas.`;
 }
 
-// Sugestões de ação por dimensão, para preenchimento rápido no formulário.
 export const ACTION_SUGGESTIONS: Record<string, string[]> = {
   comunicacao: [
     "comunicará três necessidades da rotina escolar",

@@ -11,12 +11,6 @@ import {
 import { GardenArt } from "./garden-art";
 import styles from "./garden-wait.module.css";
 
-// Espera dos agentes ("canteiro vivo"). Faixa do chat: sempre montada entre a
-// conversa e o campo de mensagem; mostra o turno em andamento e um final
-// curto. Cartão inline: montado pelo PendingButton enquanto a ação roda.
-// Nada aqui pede foco sozinho; os anúncios vão para a região de status do
-// hospedeiro, fora da conversa (aria-busy).
-
 export type { InlineScene };
 
 type ChatProps = {
@@ -28,7 +22,6 @@ type ChatProps = {
   awaiting: number;
   layout: "popup" | "page";
   announce: (text: string) => void;
-  // Para onde o foco volta quando a faixa some (resolvido na hora).
   returnFocusTo: () => HTMLElement | null;
 };
 type InlineProps = { variant: "inline"; scene: InlineScene; withImages: boolean; announce: (text: string) => void };
@@ -45,7 +38,6 @@ function timeScale(): number {
   return value > 0 ? value : 1;
 }
 
-// Faixa de tempo (em segundos) desde que `resetKey` mudou; null desliga.
 function useBucket(resetKey: string | null, thresholds: readonly number[]): number {
   const [state, setState] = useState<{ key: string | null; bucket: number }>({ key: resetKey, bucket: 0 });
   if (state.key !== resetKey) setState({ key: resetKey, bucket: 0 });
@@ -70,7 +62,6 @@ function useBucket(resetKey: string | null, thresholds: readonly number[]): numb
   return state.key === resetKey ? state.bucket : 0;
 }
 
-// Liga data-entrada (semente e broto) por 1,4 s a cada turno novo.
 function useEntrance(turn: number): boolean {
   const [done, setDone] = useState(0);
   useEffect(() => {
@@ -81,10 +72,8 @@ function useEntrance(turn: number): boolean {
   return turn !== 0 && done !== turn;
 }
 
-// ---- pausa (vale para todas as esperas do aparelho) -------------------------
 const PAUSE_KEY = "incluiedu:jardim-pausado";
 const PAUSE_EVENT = "incluiedu:jardim";
-// Sem armazenamento (bloqueado ou cheio), a pausa vale na memória até recarregar.
 let memPaused = false;
 let storageOk = true;
 function readPaused(): boolean {
@@ -105,7 +94,6 @@ function setPaused(value: boolean) {
   window.dispatchEvent(new Event(PAUSE_EVENT));
 }
 
-// ---- rega e dicas -------------------------------------------------------------
 const tipCursor: Partial<Record<TipPool, number>> = {};
 function nextTip(pool: TipPool): string {
   const key = `incluiedu:jardim-dica-${pool}`;
@@ -120,12 +108,8 @@ function nextTip(pool: TipPool): string {
 }
 
 type Watering = { count: number; phase: "a" | "b" | null; wet: boolean; tip: string | null; tipKey: string };
-// Regar é opcional: no máximo uma vez a cada 0,9 s. A dica fica até a próxima
-// rega ou até a legenda trazer uma informação nova (tipKey muda).
 function useWatering(pool: TipPool, tipKey: string) {
   const [state, setState] = useState<Watering>({ count: 0, phase: null, wet: false, tip: null, tipKey: "" });
-  // Chave nova: a dica é descartada de vez, para não voltar (nem ser anunciada
-  // de novo) quando uma chave igual reaparecer num turno seguinte.
   if (state.tip !== null && state.tipKey !== tipKey) setState({ ...state, tip: null });
   const last = useRef(-Infinity);
   const phaseTimer = useRef(0);
@@ -145,7 +129,6 @@ function useWatering(pool: TipPool, tipKey: string) {
   return { count: state.count, phase: state.phase, wet: state.wet, tip: state.tip !== null && state.tipKey === tipKey ? state.tip : null, water };
 }
 
-// Fora da tela (página /assistente rolada): pausa a respiração sem estado React.
 function useOffscreen(ref: RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const element = ref.current;
@@ -156,7 +139,6 @@ function useOffscreen(ref: RefObject<HTMLDivElement | null>) {
   }, [ref]);
 }
 
-// ---- peças ----------------------------------------------------------------------
 function Stage({ art, waterings, onWater }: { art: ArtState; waterings: number; onWater: () => void }) {
   const clipId = useId();
   const descId = useId();
@@ -180,7 +162,6 @@ function PauseButton({ paused }: { paused: boolean }) {
   );
 }
 
-// ---- faixa do chat ----------------------------------------------------------------
 type Ending = { outcome: GardenOutcome; finale: boolean; stage: "final" | "recolhendo"; awaiting: number };
 type Memory = { active: boolean; turn: number; steps: ToolStep[]; writing: boolean; ending: Ending | null };
 
@@ -188,7 +169,6 @@ function ChatWait({ active, steps, writing, outcome, awaiting, layout, announce,
   const [mem, setMem] = useState<Memory>({ active: false, turn: 0, steps, writing, ending: null });
   const visible = mem.active || mem.ending !== null;
   const turnBucket = useBucket(visible ? `turno-${mem.turn}` : null, TURN_THRESHOLDS);
-  // Guarda o último quadro do turno para o final, comparando com o render anterior.
   if (active && (!mem.active || mem.steps !== steps || mem.writing !== writing)) {
     setMem({ active: true, turn: mem.active ? mem.turn : mem.turn + 1, steps, writing, ending: null });
   } else if (!active && mem.active) {
@@ -206,8 +186,6 @@ function ChatWait({ active, steps, writing, outcome, awaiting, layout, announce,
         setMem((current) => (current.ending ? { ...current, ending: { ...current.ending, stage: "recolhendo" } } : current));
         return;
       }
-      // Some a faixa: quem usava teclado volta ao campo de mensagem (já
-      // liberado) ou, numa conversa longa, ao botão de nova conversa.
       const focused = document.activeElement;
       if (focused instanceof HTMLElement && rootRef.current?.contains(focused) && focused.matches(":focus-visible")) {
         returnFocusTo()?.focus({ preventScroll: true });
@@ -222,13 +200,9 @@ function ChatWait({ active, steps, writing, outcome, awaiting, layout, announce,
   const entering = useEntrance(mem.turn);
   const paused = usePaused();
   const pool: TipPool = garden.long ? garden.long.kind : "pratica";
-  // A dica fica até a linha 2 que ela cobre trazer informação nova; o convite
-  // para regar (que some depois da primeira rega) não conta.
   const baseHint = chatCaption(garden, turnBucket, longBucket, layout, false).hint;
   const watering = useWatering(pool, `${mem.turn}|${ending ? "fim" : ""}|${garden.phase}|${garden.tool}|${garden.long?.stage ?? ""}|${baseHint}`);
   const caption = ending ? endingCaption(ending.outcome, ending.awaiting) : chatCaption(garden, turnBucket, longBucket, layout, watering.count === 0);
-  // Um anúncio por mudança real (600 ms de espera, final na hora). Ociosa, a
-  // faixa não mexe na região: "Resposta pronta." nunca é cortado.
   const immediate = ending !== null;
   useEffect(() => {
     if (!visible) return;
@@ -265,9 +239,6 @@ function ChatWait({ active, steps, writing, outcome, awaiting, layout, announce,
         {visible ? (
           <div className={styles.faixaBody}>
             <Stage art={art} waterings={watering.count} onWater={watering.water} />
-            {/* Legenda legível no modo de navegação; quem anuncia é a região de
-                status do chat. A dica é lida em espera-dica, por isso a linha 2
-                se esconde da leitura enquanto mostra uma. */}
             <div className={styles.caption} data-testid="espera-legenda">
               <p className={styles.l1}>{caption.label}</p>
               <p className={styles.l2} data-essencial={tip !== null || caption.keep} aria-hidden={tip !== null ? true : undefined}>{tip ?? caption.hint}</p>
@@ -281,7 +252,6 @@ function ChatWait({ active, steps, writing, outcome, awaiting, layout, announce,
   );
 }
 
-// ---- cartão dos formulários -------------------------------------------------------
 function InlineWait({ scene, withImages, announce }: Omit<InlineProps, "variant">) {
   const bucket = useBucket("formulario", inlineThresholds(scene, withImages));
   const caption = inlineCaption(scene, bucket, withImages);

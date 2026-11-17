@@ -1,13 +1,9 @@
 import { z } from "zod/v4";
 
-// Saídas estruturadas dos agentes. Os esquemas evitam restrições numéricas
-// (mínimo/máximo): os valores são ajustados depois, na etapa de finalização.
-
 export const DIMENSION_KEYS = ["comunicacao", "leitura", "escrita", "matematica", "interacao", "autonomia", "regulacao"] as const;
 export const CONTEXT_KEYS = ["sala_comum", "aee", "casa"] as const;
 export type ActivityContext = (typeof CONTEXT_KEYS)[number];
 
-// ---------- Plano individual (PPI) ----------
 export const CaseAnalysisSchema = z.object({
   sintese: z.string().describe("Duas a quatro frases sobre como o estudante participa e aprende hoje."),
   potencialidades: z.array(z.string()),
@@ -33,9 +29,8 @@ export const ProposedObjectiveSchema = z.object({
 });
 export type ProposedObjective = z.infer<typeof ProposedObjectiveSchema>;
 
-// O que cada agente escreve. O plano reúne o PAEE e o PEI (Portaria MEC nº
-// 421/2026, arts. 10 e 11) e os objetivos; as listas de opções de cada campo
-// vão no pedido (plan-graph.ts) e os nomes são conferidos depois, na finalização.
+// O plano reúne o PAEE e o PEI (Portaria MEC nº 421/2026, arts. 10 e 11) e os
+// objetivos.
 export const PaeeProposalSchema = z.object({
   accessibilityResources: z.array(z.string()).describe("Art. 10, I: materiais e recursos de acessibilidade para o estudante participar."),
   assistiveTech: z.array(z.string()).describe("Art. 10, II: tecnologia assistiva e comunicação alternativa. Lista vazia se o caso não permite avaliar."),
@@ -61,9 +56,6 @@ export const ObjectivesProposalSchema = z.object({
 });
 export type ObjectivesProposal = z.infer<typeof ObjectivesProposalSchema>;
 
-// A proposta guardada como rascunho (PlanDraft) e lida pela tela e pela ativação.
-// Os campos do PAEE e do PEI que chegaram depois têm lista vazia por padrão:
-// rascunhos gravados antes deles continuam legíveis.
 const laterList = () => z.array(z.string()).default([]);
 export const PlanProposalSchema = z.object({
   initialSituation: z.array(z.string()),
@@ -92,7 +84,6 @@ export const ReviewSchema = z.object({
 });
 export type Review = z.infer<typeof ReviewSchema>;
 
-// Revisão do plano parte a parte, para devolver só o que precisa ser refeito.
 export const PLAN_PARTS = ["paee", "pei", "objetivos"] as const;
 export type PlanPart = (typeof PLAN_PARTS)[number];
 export const PlanReviewSchema = z.object({
@@ -103,7 +94,6 @@ export const PlanReviewSchema = z.object({
   })).describe("Uma avaliação para cada parte: paee, pei e objetivos."),
 });
 
-// ---------- Atividades ----------
 export const AgentCardSchema = z.object({
   title: z.string(),
   durationMinutes: z.number().int(),
@@ -128,5 +118,4 @@ export const ActivityReviewSchema = z.object({
 });
 export type ActivityReview = z.infer<typeof ActivityReviewSchema>;
 
-// Etapa registrada para mostrar ao professor como a proposta foi feita.
 export type TraceStep = { agent: string; summary: string };

@@ -6,12 +6,6 @@ import { Sparkles, X } from "lucide-react";
 import type { ConversationDetail } from "@/lib/assistant/types";
 import { AssistantChat } from "./assistant-chat";
 
-// Botão flutuante e painel do assistente, presentes em todas as telas. O
-// painel continua montado depois da primeira abertura (escondido também na
-// página do assistente), para uma resposta em andamento não se perder;
-// fechado, usa o atributo hidden (some da tela e da leitura de tela).
-// Fechado, o botão mostra se há resposta em preparo (anel vazado), pronta
-// (ponto cheio) ou um aviso (losango), também no nome.
 type Activity = "livre" | "ocupado" | "pronto" | "aviso" | "interrompida";
 const FAB_LABELS: Record<Activity, string> = {
   livre: "Abrir o assistente",
@@ -42,14 +36,10 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
   const offPage = pathname.startsWith("/assistente") || pathname === "/login";
   const student = pathname.match(/^\/(?:estudantes|familia)\/([^/]+)/)?.[1];
   const studentId = student && student !== "novo" ? student : null;
-  // Na página do assistente o painel fecha (sem desmontar): um turno em
-  // andamento termina nele e o botão avisa na volta. O botão some sem blur do
-  // React, então o nome guardado também é liberado aqui.
+  // O botão some sem blur do React, então o nome guardado também é liberado aqui.
   if (offPage && open) setOpen(false);
   if (offPage && heldActivity !== null) setHeldActivity(null);
 
-  // Fechar devolve o foco ao botão, para quem usa teclado não se perder. O
-  // nome passa a valer o estado de agora (o foco pode já estar no botão).
   const close = useCallback(() => {
     setHeldActivity(activityRef.current);
     setOpen(false);
@@ -60,7 +50,6 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
     openRef.current = open;
     activityRef.current = activity;
   }, [open, activity]);
-  // Com o painel aberto a pessoa já vê a resposta: nada a marcar no botão.
   const onActivity = useCallback((next: Exclude<Activity, "livre">) => {
     setActivity(next !== "ocupado" && openRef.current ? "livre" : next);
   }, []);
@@ -73,7 +62,6 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
       .catch(() => setInitial(null));
   }, [open, initial]);
 
-  // Ao rolar a página, o botão encolhe para o ícone e não cobre o conteúdo do canto.
   const [compact, setCompact] = useState(false);
   useEffect(() => {
     const onScroll = () => setCompact(window.scrollY > 120);
@@ -82,7 +70,6 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Ao abrir, o foco vai para o painel (sem abrir o teclado do celular).
   useEffect(() => {
     if (open) panelRef.current?.focus();
   }, [open]);
@@ -94,9 +81,6 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
-  // Um link dentro da conversa leva a outra página: no celular o painel
-  // cobriria a página aberta, então fecha; a página inteira do assistente
-  // também fecha o painel, para ele não reabrir sozinho na volta.
   const onPanelClick = (event: MouseEvent<HTMLDivElement>) => {
     const link = (event.target as HTMLElement).closest("a");
     const href = link?.getAttribute("href") ?? "";

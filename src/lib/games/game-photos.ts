@@ -1,4 +1,3 @@
-/** Fotografias locais dos temas, rotinas e situações dos jogos. */
 export const GAME_PHOTOS: Record<string, string> = {
   "maca": "/images/games/apple.webp",
   "banana": "/images/games/banana.webp",

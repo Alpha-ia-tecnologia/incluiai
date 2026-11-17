@@ -1,8 +1,5 @@
 import styles from "./resource-print.module.css";
 
-// Cabeçalho dos documentos impressos do banco de recursos: o nome da rede vem do
-// sistema (NETWORK_NAME); escola, turma, data, estudante e professor(a) ficam em
-// branco para preencher à mão. Só existe no papel.
 export function PrintDocumentHeader({ network, kind }: { network: string | null; kind: string }) {
   return <div className={styles.docHeader} data-print-document-header>
     <div className={styles.docHeaderTop}>

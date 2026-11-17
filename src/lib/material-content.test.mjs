@@ -1,4 +1,3 @@
-// Testes das regras dos materiais de apoio: node --test src/lib/material-content.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {

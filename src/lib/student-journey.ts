@@ -15,16 +15,9 @@ export type StudentNextStep = {
   step: number;
 };
 
-// A sugestão orienta a rotina; as outras seções continuam disponíveis.
-// A ordem segue o essencial primeiro: o estudo de caso (que respalda a declaração
-// no Censo Escolar e abre o plano), o plano de ensino e só então Como aprende,
-// que serve para preparar atividades e materiais. Os números das etapas são os
-// de JOURNEY_STEPS (src/lib/dashboard.ts).
 export function getStudentNextStep(input: StudentJourneyInput): StudentNextStep {
   const base = `/estudantes/${input.id}`;
 
-  // O plano só abre com o estudo de caso concluído. Quem já tem plano (fichas
-  // anteriores ao estudo de caso) segue a rotina; o estudo continua disponível.
   if (!input.hasPlan && input.caseStudy !== "concluido") {
     return {
       href: `${base}/estudo-de-caso`,

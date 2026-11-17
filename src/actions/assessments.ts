@@ -8,7 +8,6 @@ import { ITEMS } from "@/lib/assessment";
 
 export type AssessmentState = { error?: string };
 
-// Aplicar a sondagem: cada item vem como item-<id> com o nível (ou vazio).
 export async function applyAssessment(studentId: string, _previous: AssessmentState, formData: FormData): Promise<AssessmentState> {
   const user = await requireStudentTeam(studentId);
   const raw = Object.fromEntries(ITEMS.map((item) => [item.id, formData.get(`item-${item.id}`)]));

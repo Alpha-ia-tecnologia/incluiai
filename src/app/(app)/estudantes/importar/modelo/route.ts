@@ -2,7 +2,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { IMPORT_TEMPLATE } from "@/lib/student-import";
 import { unavailableResponse } from "@/lib/tenant";
 
-// Modelo da planilha de importação (só o cabeçalho e dois exemplos fictícios).
 export async function GET() {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;

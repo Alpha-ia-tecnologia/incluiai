@@ -1,8 +1,3 @@
-// Adaptação da atividade ou da prova da turma, pura para teste com node --test
-// (src/lib/task-adaptation.test.mjs): separar as questões, achar o comando e a
-// forma de resposta, as regras que não precisam de IA e os três níveis do DUA.
-// Regra da prova: adaptar a forma, não o que é avaliado.
-
 export type AnswerFormat = "escrever" | "marcar" | "ligar" | "completar" | "desenhar" | "oral";
 export type AdaptedItem = { number: number; prompt: string; answerFormat: AnswerFormat; options: string[]; support: string };
 export type AdaptedContent = {
@@ -21,7 +16,6 @@ export const ANSWER_FORMAT_LABEL: Record<AnswerFormat, string> = {
 };
 export const LEVEL_LABEL: Record<LevelKey, string> = { mais_apoio: "Com mais apoio", padrao: "Padrão", desafio: "Com desafio" };
 
-// O que a pessoa pode pedir. aiOnly = só a IA faz bem (as regras não reescrevem texto).
 export const ADAPT_OPTIONS = [
   { key: "linguagem_simples", label: "Linguagem simples", aiOnly: true },
   { key: "ordem_por_vez", label: "Enunciado curto, uma ordem por linha", aiOnly: false },
@@ -37,7 +31,6 @@ export const isAdaptOption = (value: string): value is AdaptOption => ADAPT_OPTI
 const plain = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const clip = (value: unknown, max: number) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 
-// Verbos de comando comuns nas atividades escolares (forma de resposta de cada um).
 const COMMANDS: [RegExp, AnswerFormat][] = [
   [/\b(marque|marcar|assinale|assinalar|circule|circular|sublinhe|sublinhar|pinte o quadrinho)\b/, "marcar"],
   [/\b(ligue|ligar|relacione|relacionar|associe|associar)\b/, "ligar"],
@@ -52,19 +45,15 @@ export function answerFormatOf(prompt: string): AnswerFormat {
   return COMMANDS.find(([pattern]) => pattern.test(text))?.[1] ?? "escrever";
 }
 
-// Palavras de comando do enunciado, para destacar.
 export function commandWords(prompt: string): string[] {
   return [...new Set((prompt.match(COMMAND_WORDS) ?? []).map((word) => word.toLowerCase()))];
 }
 
-// Uma ordem por linha: separa as frases do enunciado.
 export const oneOrderPerLine = (prompt: string) => prompt.split(/(?<=[.!?;])\s+/).map((part) => part.trim()).filter(Boolean).join("\n");
 
 const ITEM_START = /^\s*(?:quest[aã]o\s*)?(\d{1,2})\s*[).:\-–]\s*/i;
 const OPTION_START = /^\s*(?:\(\s*\)\s*)?([a-h])\s*[).]\s+/i;
 
-// Separa a atividade em questões numeradas; as alternativas (a), b)…) ficam com a questão.
-// Sem numeração, cada parágrafo vira uma questão.
 export function splitTask(text: string): { prompt: string; options: string[] }[] {
   const lines = text.replace(/\r/g, "").split("\n").map((line) => line.trim());
   const numbered = lines.some((line) => ITEM_START.test(line));
@@ -100,15 +89,12 @@ const SUPPORT_BY_FORMAT: Record<AnswerFormat, string> = {
   oral: "Registre a resposta falada do estudante na folha.",
 };
 
-// Adaptação sem IA: muda a apresentação (uma ordem por linha, comando, forma de
-// resposta e apoio), não o conteúdo de cada questão.
 export function adaptByRules(input: { title: string; text: string; kind: TaskKind }, options: readonly AdaptOption[]): AdaptedContent {
   const has = (option: AdaptOption) => options.includes(option);
   const items = splitTask(input.text).map((item, index) => {
     const answerFormat = item.options.length ? "marcar" : answerFormatOf(item.prompt);
     return {
       number: index + 1,
-      // clip junta as linhas; a separação das ordens vem depois.
       prompt: has("ordem_por_vez") ? oneOrderPerLine(clip(item.prompt, 1200)) : clip(item.prompt, 1200),
       answerFormat,
       options: item.options.map((option) => clip(option, 300)),
@@ -132,7 +118,6 @@ export function adaptByRules(input: { title: string; text: string; kind: TaskKin
   };
 }
 
-// Limpa o que a IA devolveu: tamanhos, formas de resposta conhecidas e numeração em ordem.
 export function normalizeAdapted(raw: Partial<AdaptedContent> | null | undefined, fallbackTitle: string): AdaptedContent {
   const items = (Array.isArray(raw?.items) ? raw.items : []).slice(0, 40).map((item, index) => ({
     number: index + 1,
@@ -150,9 +135,6 @@ export function normalizeAdapted(raw: Partial<AdaptedContent> | null | undefined
   };
 }
 
-// Três níveis da mesma atividade (DUA), pelas regras: o padrão é a atividade como
-// está; com mais apoio, uma ordem por linha e o apoio de cada questão; com
-// desafio, uma pergunta a mais em cada questão. Mesmo tema, mesma habilidade.
 export function levelsByRules(base: AdaptedContent): Record<LevelKey, AdaptedContent> {
   const copy = (content: AdaptedContent): AdaptedContent => ({ ...content, items: content.items.map((item) => ({ ...item, options: [...item.options] })), instructions: [...content.instructions], teacherNotes: [...content.teacherNotes] });
   const standard = copy(base);
@@ -161,7 +143,6 @@ export function levelsByRules(base: AdaptedContent): Record<LevelKey, AdaptedCon
   support.instructions = ["Faça uma questão por vez.", "Use os apoios indicados em cada questão.", "Peça ajuda quando precisar."];
   support.teacherNotes = ["Uma ordem por linha e o apoio de cada questão à vista."];
   const challenge = copy(base);
-  // O desafio vai no enunciado (a folha do estudante não mostra o apoio do professor), sem dizer o nível.
   challenge.items = challenge.items.map((item) => ({ ...item, prompt: `${item.prompt}\nAgora, explique como chegou à resposta ou crie uma pergunta parecida para um colega.` }));
   challenge.instructions = ["Responda e, em cada questão, faça também o desafio."];
   challenge.teacherNotes = ["Mesma questão, com um desafio de explicar ou criar."];
@@ -169,12 +150,10 @@ export function levelsByRules(base: AdaptedContent): Record<LevelKey, AdaptedCon
   return { mais_apoio: support, padrao: standard, desafio: challenge };
 }
 
-// Impressão: letra ampliada e quantas questões por página.
 export function printSettings(options: readonly string[]): { largeText: boolean; itemsPerPage: number | null } {
   return { largeText: options.includes("letra_ampliada"), itemsPerPage: options.includes("menos_itens") ? 3 : null };
 }
 
-// Páginas da impressão: as questões em grupos (ou todas numa só).
 export function printPages<T>(items: readonly T[], perPage: number | null): T[][] {
   if (!perPage) return [items.slice()];
   const pages: T[][] = [];
@@ -182,7 +161,6 @@ export function printPages<T>(items: readonly T[], perPage: number | null): T[][
   return pages.length ? pages : [[]];
 }
 
-// Partes do enunciado com os comandos marcados, para destacar na tela e no Word.
 export function highlightParts(prompt: string): { text: string; command: boolean }[] {
   const parts: { text: string; command: boolean }[] = [];
   let last = 0;

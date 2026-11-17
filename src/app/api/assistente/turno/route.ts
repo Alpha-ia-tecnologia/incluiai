@@ -6,8 +6,6 @@ import { currentTenant, withMunicipality } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-// Um turno do assistente, transmitido por eventos (SSE). Se a pessoa fechar
-// a tela no meio, o turno continua até o fim: o histórico precisa ficar completo.
 export async function POST(request: Request) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;

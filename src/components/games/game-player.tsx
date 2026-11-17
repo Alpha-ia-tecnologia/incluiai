@@ -32,7 +32,6 @@ function totalOf(data: GameData) {
   return data.game === "memoria" ? data.deck.length / 2 : data.game === "sequencia" ? data.steps.length : data.rounds.length;
 }
 
-// Associação e emoções viram rodadas de escolha com o desenho de cada uma.
 function roundsOf(data: Extract<GameData, { game: "associacao" | "emocoes" }>): { rounds: RoundView[]; optionsClass: string } {
   if (data.game === "emocoes") {
     return {
@@ -85,7 +84,6 @@ function roundsOf(data: Extract<GameData, { game: "associacao" | "emocoes" }>): 
   };
 }
 
-// Sem estudante escolhido, o jogo funciona igual, mas não há registro no fim.
 export function GamePlayer({ data, level, detail, student, replayHref }: {
   data: GameData;
   replayHref: string;
@@ -155,7 +153,6 @@ export function GamePlayer({ data, level, detail, student, replayHref }: {
           <GameEnd game={game} level={level} detail={detail} result={result} student={student} backHref={backHref} onReplay={replay} />
         ) : (
           <>
-            {/* Nas rodadas, a pergunta já está no cartão: a instrução fica só para o "Ouvir". */}
             {data.game === "memoria" || data.game === "sequencia" ? <p className="mx-auto mb-6 max-w-2xl text-center text-xl font-medium text-ink">{instruction}</p> : null}
             {data.game === "memoria" ? <MemoryGame deck={data.deck} controls={controls} />
               : data.game === "sequencia" ? <SequenceGame routine={data.routine} steps={data.steps} order={data.order} controls={controls} />

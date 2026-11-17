@@ -8,8 +8,6 @@ import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, RETIRED_CASE_FIELDS, conducted
 
 const MAX_LENGTH = 3000;
 
-// Salva o estudo de caso como rascunho ou o conclui. A equipe pode preencher
-// em várias conversas; só a conclusão exige os campos essenciais.
 export async function saveCaseStudy(studentId: string, formData: FormData) {
   const prisma = await db();
   const user = await getCurrentUser();
@@ -26,10 +24,8 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
   const previous = parseCaseStudy((await prisma.caseStudy.findUnique({ where: { studentId }, select: { content: true } }))?.content);
   const stored = clinical ? null : previous;
   const content: CaseStudyContent = {};
-  // Respostas de campos que saíram do formulário continuam guardadas no estudo.
   for (const key of RETIRED_CASE_FIELDS) if (previous[key]) content[key] = previous[key];
   for (const field of CASE_STUDY_FIELDS) {
-    // Sem permissão para dado clínico, o campo continua como estava (o formulário nem o mostra).
     if (!clinical && CLINICAL_CASE_FIELDS.has(field.key)) {
       if (stored?.[field.key]) content[field.key] = stored[field.key];
       continue;
@@ -43,8 +39,7 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
     throw new Error("Preencha os campos essenciais antes de concluir o estudo de caso.");
   }
 
-  // Conduzido pelo professor do AEE (INEP): sem ele entre os participantes, o
-  // estudo é salvo, mas não conclui, e a página avisa. Nada do que foi preenchido se perde.
+  // Conduzido pelo professor do AEE (INEP).
   const missingAee = conclude && !conductedByAee(content);
   const concluding = conclude && !missingAee;
 
@@ -80,6 +75,5 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
   revalidatePath("/estudantes");
   revalidatePath("/");
   if (missingAee) redirect(`/estudantes/${studentId}/estudo-de-caso?${status === "concluido" ? "editar=1&" : ""}faltaAee=1#secao-essencial`);
-  // A leitura confirma que salvou e mostra o próximo passo; o rascunho volta ao formulário.
   redirect(`/estudantes/${studentId}/estudo-de-caso${conclude || status === "concluido" ? "?concluido=1" : "?salvo=1"}`);
 }

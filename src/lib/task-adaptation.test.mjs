@@ -1,4 +1,3 @@
-// Testes da adaptação de atividade e prova: node --test src/lib/task-adaptation.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { adaptByRules, answerFormatOf, commandWords, highlightParts, levelsByRules, normalizeAdapted, oneOrderPerLine, printPages, printSettings, splitTask } from "./task-adaptation.ts";

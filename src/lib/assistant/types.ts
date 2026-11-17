@@ -1,4 +1,3 @@
-// Tipos compartilhados entre o servidor e a tela do assistente.
 import type { AgentProgress } from "../agents/types";
 
 export type { AgentProgress };
@@ -26,7 +25,6 @@ export type ConversationView = { id: string; title: string; updatedAt: string };
 
 export type ConversationDetail = ConversationView & { messages: MessageView[]; actions: ActionView[]; long: boolean };
 
-// Eventos transmitidos durante um turno (SSE).
 export type AssistantEvent =
   | { type: "conversation"; conversation: ConversationView }
   | { type: "text"; delta: string }

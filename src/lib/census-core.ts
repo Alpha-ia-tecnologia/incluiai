@@ -1,7 +1,3 @@
-// Censo Escolar no servidor: verificação dos estudantes do AEE contra a
-// referência de cada escola e o monitor da janela do Censo. Sem "server-only"
-// de propósito: o agendador nasce em src/instrumentation.ts, fora das páginas.
-// A importação do arquivo fica em census.ts; as regras puras, em census-rules.ts.
 import { randomUUID } from "node:crypto";
 import { db, forEachMunicipality } from "./prisma";
 import { parseJson } from "./format";
@@ -19,15 +15,12 @@ export const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 export async function schoolStudents(schoolId: string): Promise<PlatformStudent[]> {
   const prisma = await db();
   const students = await prisma.student.findMany({ where: { schoolId, status: "ativo" }, select: { id: true, name: true, birthDate: true, inepId: true, cpf: true, hasAEE: true }, orderBy: { name: "asc" } });
-  // Todo estudante cadastrado é tratado como atendido: a conferência com o
-  // arquivo vale para todos, qualquer que seja a marcação antiga de AEE no cadastro.
   return students.map((student) => ({ ...student, hasAEE: true, birthDate: isoDay(student.birthDate) }));
 }
 
 export type NetworkSnapshot = { schoolId: string; name: string; info: SchoolInfo; persons: SnapshotPerson[]; regularOnly: string[]; importedAt: Date };
 const NO_INFO: SchoolInfo = { dependency: "", privateCategory: "", municipalPartnership: false };
 
-// As referências da rede: o último arquivo aplicado de cada escola.
 export async function networkSnapshots(): Promise<NetworkSnapshot[]> {
   const prisma = await db();
   const rows = await prisma.censusSnapshot.findMany({ select: { schoolId: true, persons: true, regularOnly: true, schoolInfo: true, importedAt: true, school: { select: { name: true } } } });
@@ -38,7 +31,7 @@ export async function networkSnapshots(): Promise<NetworkSnapshot[]> {
   }));
 }
 
-// Classe comum presencial em outra escola pública da rede: a dupla matrícula vale entre escolas.
+// A dupla matrícula vale entre escolas.
 function regularElsewhere(network: readonly NetworkSnapshot[], schoolId: string): (keys: string[]) => string | null {
   const index = new Map<string, string>();
   for (const snapshot of network) {
@@ -48,7 +41,6 @@ function regularElsewhere(network: readonly NetworkSnapshot[], schoolId: string)
   return (keys) => keys.map((key) => index.get(key)).find((name) => name !== undefined) ?? null;
 }
 
-// Cobertura de uma escola contra a referência guardada (null sem arquivo aplicado).
 export async function schoolCoverage(schoolId: string, network?: readonly NetworkSnapshot[]): Promise<{ coverage: Coverage; importedAt: Date; persons: SnapshotPerson[]; info: SchoolInfo } | null> {
   const all = network ?? await networkSnapshots();
   const snapshot = all.find((item) => item.schoolId === schoolId);
@@ -57,13 +49,9 @@ export async function schoolCoverage(schoolId: string, network?: readonly Networ
   return { coverage, importedAt: snapshot.importedAt, persons: snapshot.persons, info: snapshot.info };
 }
 
-// Estimativa do AEE que o FNDE considera para a rede municipal, pelos arquivos aplicados.
 export const aeeEstimate = (network: readonly NetworkSnapshot[], countOnly?: string) =>
   networkAeeEstimate(network.map((snapshot) => ({ id: snapshot.schoolId, name: snapshot.name, info: snapshot.info, persons: snapshot.persons })), countOnly);
 
-// Verifica todas as escolas com referência. Avisa a coordenação e a gestão da
-// escola quando o número de pendências muda (duas verificações por dia não
-// repetem o mesmo aviso).
 export async function runVerification(trigger: "agendada" | "manual", actorName: string) {
   const prisma = await db();
   const network = await networkSnapshots();
@@ -92,8 +80,6 @@ export async function runVerification(trigger: "agendada" | "manual", actorName:
   return check;
 }
 
-// --- Monitor da janela ---
-
 const configOf = (row: { enabled: boolean; periodStart: string; periodEnd: string; times: string }): MonitorConfig =>
   ({ enabled: row.enabled, periodStart: row.periodStart, periodEnd: row.periodEnd, times: parseJson<string[]>(row.times, DEFAULT_MONITOR.times) });
 
@@ -107,15 +93,12 @@ export async function getMonitor(now: Date = new Date()) {
   return { row, config: configOf(row) };
 }
 
-// Salvar a janela já reagenda a próxima verificação: a tela e o agendador concordam.
 export async function saveMonitorConfig(config: MonitorConfig, actorName: string, now: Date = new Date()) {
   const prisma = await db();
   await getMonitor(now);
   await prisma.censusMonitor.update({ where: { id: "rede" }, data: { enabled: config.enabled, periodStart: config.periodStart, periodEnd: config.periodEnd, times: JSON.stringify(config.times), nextRunAt: nextRun(config, now), updatedBy: actorName } });
 }
 
-// Uma passada do agendador. A trava (lockedUntil) impede que duas instâncias
-// verifiquem juntas; servidor parado no horário marcado verifica ao voltar.
 export async function monitorTick(now: Date = new Date()): Promise<boolean> {
   const prisma = await db();
   const { row, config } = await getMonitor(now);
@@ -148,7 +131,7 @@ export async function monitorTick(now: Date = new Date()): Promise<boolean> {
 
 const timers = globalThis as unknown as { censusMonitor?: ReturnType<typeof setInterval> };
 
-// Uma vez por processo (o recarregamento do modo dev não duplica). CENSUS_MONITOR=0 desliga.
+// O recarregamento do modo dev não duplica.
 export function startCensusMonitor() {
   if (process.env.CENSUS_MONITOR === "0" || timers.censusMonitor) return;
   const tick = () => void forEachMunicipality(() => monitorTick()).catch((error) => console.error("[censo] agendador falhou", error));

@@ -1,7 +1,3 @@
-// Opções prontas dos formulários. Todo campo com estas listas também oferece
-// "Outro", em que a pessoa digita o que não encontrou. Itens de campos gravados
-// como lista separada por vírgula (perfil funcional) não podem conter vírgula.
-
 export type ChoiceOption = string | { value: string; label: string };
 
 export const minuteOptions = (values: number[]): ChoiceOption[] =>
@@ -10,7 +6,6 @@ export const minuteOptions = (values: number[]): ChoiceOption[] =>
 export const weekOptions = (values: number[]): ChoiceOption[] =>
   values.map((value) => ({ value: String(value), label: `${value} semanas` }));
 
-// ---------- Perfil funcional ----------
 export const ATTENTION_MINUTES = minuteOptions([3, 5, 8, 10, 15, 20, 30, 45]);
 export const TASK_TOLERANCE_MINUTES = minuteOptions([5, 8, 10, 15, 20, 30, 45, 60]);
 
@@ -47,7 +42,6 @@ export const STRENGTH_OPTIONS = [
   "Facilidade com números", "Facilidade com tecnologia", "Gosta de música e ritmo",
 ];
 
-// ---------- Plano individual ----------
 export const INITIAL_SITUATION_OPTIONS = [
   "Reconhece o próprio nome com apoio de imagem", "Comunica necessidades básicas com gestos ou prancha",
   "Identifica cores e formas", "Conta objetos até 10", "Reconhece as letras do próprio nome",
@@ -78,7 +72,6 @@ export const ACCESSIBILITY_RESOURCE_OPTIONS = [
 
 export const DEADLINE_WEEKS = weekOptions([2, 4, 6, 8, 10, 12, 16]);
 
-// ---------- Diário de acompanhamento ----------
 export const WHAT_WORKED_OPTIONS = [
   "Mostrar uma imagem antes de explicar", "Instrução curta e uma por vez", "Usar o tema de interesse",
   "Material concreto", "Pausa antes de começar", "Modelo do professor", "Colega como mediador",
@@ -93,7 +86,6 @@ export const RECOMMENDATION_OPTIONS = [
   "Usar outro tema de interesse",
 ];
 
-// ---------- Articulação intersetorial (terapeuta) ----------
 export const COMMUNICATION_OPTIONS = [
   "Fala com frases curtas", "Gestos e apontar", "Prancha de comunicação (CAA)", "PECS",
   "Tablet com aplicativo de CAA", "Libras", "Olhar e expressões faciais", "Vocalizações",
@@ -131,7 +123,6 @@ export const SHARED_GOAL_OPTIONS = [
   "Reconhecer o próprio nome",
 ];
 
-// ---------- Portal da família ----------
 export const FAMILY_ACHIEVEMENT_OPTIONS = [
   "Pediu algo usando a prancha", "Comeu sem ajuda", "Vestiu-se com pouca ajuda",
   "Brincou com outra criança", "Contou como foi o dia na escola", "Esperou a vez em uma brincadeira",
@@ -143,8 +134,7 @@ export const FAMILY_MEMBER_OPTIONS = [
   "Mãe", "Pai", "Avó", "Avô", "Irmã", "Irmão", "Tia", "Tio", "Responsável legal", "Cuidador(a)",
 ];
 
-// ---------- Cadastros e matrícula ----------
-// Localização da escola como no Educacenso; as regiões já cadastradas na rede entram junto.
+// Localização da escola como no Educacenso.
 export const REGION_OPTIONS = ["Zona urbana", "Zona rural"];
 
 export const CLASS_NAME_OPTIONS = ["Turma A", "Turma B", "Turma C", "Turma D", "Turma E", "Turma F"];
@@ -156,7 +146,6 @@ export const GRADE_YEAR_OPTIONS = [
   "EJA — anos iniciais", "EJA — anos finais",
 ];
 
-// Anos/séries de cada etapa, para o cadastro mostrar só o que faz sentido.
 export const GRADES_BY_STAGE: Record<string, string[]> = {
   educacao_infantil: GRADE_YEAR_OPTIONS.slice(0, 4),
   anos_iniciais: GRADE_YEAR_OPTIONS.slice(4, 9),
@@ -177,7 +166,6 @@ export const ACCESSIBILITY_NOTE_OPTIONS = [
   "Precisa de apoio na higiene", "Tem restrição alimentar",
 ];
 
-// ---------- Atividades ----------
 export const REJECT_REASON_OPTIONS = [
   "Não temos o material necessário", "Difícil demais para o momento", "Fácil demais para o momento",
   "Não combina com o tema da aula", "Tempo de aula insuficiente", "Não respeita o perfil sensorial",
@@ -191,8 +179,6 @@ export const LESSON_TOPIC_OPTIONS = [
   "Educação física e jogos",
 ];
 
-// Separa uma resposta gravada como texto em itens. Campos de texto livre usam
-// ";" (o item digitado pode ter vírgula); o perfil funcional usa vírgula.
 export function splitItems(value: string | null | undefined, separator: "," | ";" = ";"): string[] {
   const pattern = separator === "," ? /[,;\n]/ : /[;\n]/;
   return (value ?? "").split(pattern).map((item) => item.trim()).filter(Boolean);

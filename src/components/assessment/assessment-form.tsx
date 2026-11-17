@@ -7,8 +7,6 @@ import { AREAS, ITEMS, type Answers } from "@/lib/assessment";
 import { SUPPORT_LEVELS } from "@/lib/scale";
 import { hintCls, inputCls, labelCls, primaryButtonCls, textareaCls } from "@/components/form-styles";
 
-// Aplicar a sondagem: cada item recebe o apoio de que o estudante precisa hoje
-// (ou fica como não observado). Na reavaliação, começa com as últimas respostas.
 export function AssessmentForm({ action, previous }: { action: (state: AssessmentState, formData: FormData) => Promise<AssessmentState>; previous: Answers | null }) {
   const [state, submit, pending] = useActionState(action, {});
   return (

@@ -29,11 +29,6 @@ import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
-// Linguagem visual inspirada em painéis de score: destaque em marinho com
-// medidor em degradê, cartões brancos sobre quadro cinza, pílulas de situação
-// (lima = bom, amarelo = intermediário, laranja = atenção) e quantidades no
-// azul da marca.
-
 const ROLE_LABELS: Record<string, string> = { ...ROLES, terapeuta: "Terapeuta" };
 const ACCESS_LABELS: Record<string, string> = { visualizou: "Consultas", criou: "Inclusões", editou: "Alterações", enviou: "Envios à IA de reserva (DeepSeek)" };
 const SHORT_ALERTS: Record<string, string> = { sem_registro: "Sem registro há 7+ dias", plano_vencido: "Revisão vencida", sem_plano: "Sem plano", queda_participacao: "Queda de participação" };
@@ -41,12 +36,10 @@ const SHORT_ALERTS: Record<string, string> = { sem_registro: "Sem registro há 7
 const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
-// Diferença em pontos percentuais contra o período anterior; sem um dos dois, não há comparação.
 const pointsDelta = (gauge: { value: number | null; previous: number | null }) => (gauge.value !== null && gauge.previous !== null ? gauge.value - gauge.previous : null);
 const pointsText = (delta: number) => `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)} ${Math.abs(delta) === 1 ? "ponto" : "pontos"}`;
 const shortDate = (date: Date) => date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit" });
 
-// hint: contexto curto (período, base); help: definição do indicador, recolhida em "Como ler".
 function CardHeader({ title, hint, help, href, linkLabel }: { title: string; hint?: string; help?: ReactNode; href?: string; linkLabel?: string }) {
   return (
     <div className="mb-4 flex items-start justify-between gap-3">
@@ -74,8 +67,6 @@ function Section({ id, title, description, help, note, children }: { id: string;
   );
 }
 
-// Contagens em pílula: o número em destaque e um rótulo curto ao lado.
-// labelledBy: id de um rótulo visível; sem ele, o rótulo vai só para o leitor de tela.
 function CountList({ label, labelledBy, items }: { label?: string; labelledBy?: string; items: { key: string; value: number; label: string; tone: Tone }[] }) {
   return (
     <ul aria-label={labelledBy ? undefined : label} aria-labelledby={labelledBy} className="flex min-w-0 flex-wrap gap-1.5">
@@ -89,8 +80,6 @@ function CountList({ label, labelledBy, items }: { label?: string; labelledBy?: 
   );
 }
 
-// Comparação com o período anterior, escrita por extenso ao lado da pílula
-// (a seta e a cor só reforçam o texto).
 type FactorTrend = { delta: number | null; better: "up" | "down"; caption: string };
 type Factor = { title: string; value: ReactNode; tone: Tone; status: string; text: string; href: string; trend?: FactorTrend };
 
@@ -116,7 +105,6 @@ function FactorCard({ title, value, tone, status, text, href, trend }: Factor) {
   );
 }
 
-// Número da IA em bloco compacto, dentro da lista de definições do cartão.
 function AiStat({ label, value, detail, wide = false, children }: { label: string; value: ReactNode; detail?: string; wide?: boolean; children?: ReactNode }) {
   return (
     <div className={`min-w-0 rounded-2xl bg-surface-muted/70 p-3.5 ${wide ? "col-span-2" : ""}`}>
@@ -128,10 +116,6 @@ function AiStat({ label, value, detail, wide = false, children }: { label: strin
   );
 }
 
-// Indicador de uso do DUA: sem pílula de "bom" ou "atenção", porque não é nota.
-// Sem denominador, mostra "sem base" (nunca 0%).
-// O anel é azul da marca (quantidade) e fica fora da leitura de tela: o valor,
-// ou "sem base", já está escrito ao lado. Sem base, o anel fica sem arco.
 function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denominator, value, noBaseText }: {
   ringId: string; label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null; noBaseText: string;
 }) {
@@ -164,7 +148,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const gaugeKey = parseGauge(filters.indicador);
   const data = await loadDashboard(user, { period, school: filters.escola });
   const { scope, overview: o, attention: a, journey: j, gauges: g, calendar: cal, learning: l, records: r, activities: act, ai, profile: p, family: f, resources: res, team } = data;
-  // Mesmo recorte e período do painel; null para quem não vê os indicadores do DUA.
   const dua = await duaIndicators(user, { start: scope.start, now: scope.now, schoolId: scope.schoolId, schoolName: scope.schoolName });
   const periodText = PERIODS[period].toLowerCase();
   const today = todayInBrazil(scope.now);
@@ -182,7 +165,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     return query ? `/painel?${query}` : "/painel";
   };
 
-  // ---------- Medidor do destaque ----------
   const gauge = (() => {
     if (gaugeKey === "jornada") {
       return {
@@ -211,10 +193,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   })();
   const scopePhrase = scope.schoolName ? (scope.network ? `da ${scope.schoolName}` : "da sua escola") : "da rede";
 
-  // ---------- Cartões de situação ----------
   const recordShare = o.students ? o.studentsWithRecord / o.students : 0;
-  // Só participação e critério têm o período anterior calculado (gauges); os
-  // demais fatores ficam sem comparação, em vez de uma comparação inventada.
   const factors: Factor[] = [
     {
       title: "Plano individual", value: `${o.planCoverage ?? 0}%`,
@@ -265,12 +244,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     ...(scope.network ? [["equipe", "Equipe"] as [string, string]] : []),
   ];
 
-  // ---------- Planejamento com DUA (uso e documentação) ----------
   const duaPeriod = dua ? `${PERIODS[period]}${dua.period.start ? ` (de ${formatDate(dua.period.start)} a ${formatDate(dua.period.end)})` : ` (até ${formatDate(dua.period.end)})`}` : "";
   const duaDecisions: ChartSegment[] = dua ? [
     { key: "aceito", label: AI_BLOCK_DECISION_LABEL.aceito, value: dua.decisions.aceito, color: SIGNAL.lime },
     { key: "editado", label: AI_BLOCK_DECISION_LABEL.editado, value: dua.decisions.editado, color: SIGNAL.cyan },
-    // Recusar também é decisão profissional: sem a cor de alerta.
     { key: "recusado", label: AI_BLOCK_DECISION_LABEL.recusado, value: dua.decisions.recusado, color: SIGNAL.yellow },
   ] : [];
 
@@ -280,8 +257,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const participationTotal = participation.reduce((sum, segment) => sum + segment.value, 0);
   const statusSegments = withSegmentColors(act.byStatus);
   const tableRows = a.students.slice(0, 8);
-  // Secretaria: a rede em números (seção 10). No lugar da lista com nomes, os
-  // avisos agrupados por escola.
   const nominal = user.role !== "secretaria";
   const schoolRows = nominal ? [] : [...a.students.reduce((map, student) => {
     const row = map.get(student.school) ?? { school: student.school, students: 0, withAlerts: 0, noPlan: 0, overdue: 0 };
@@ -344,7 +319,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </nav>
 
           <section id="visao-geral" aria-label="Visão geral" className="grid scroll-mt-20 grid-cols-1 gap-3.5 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]">
-            {/* Coluna da direita (vem primeiro no celular): destaque e cartões de situação */}
             <div className="contents xl:order-2 xl:flex xl:min-w-0 xl:flex-col xl:gap-3.5">
               <section aria-labelledby="destaque-titulo" className="dash-hero surface-navy relative order-1 min-w-0 px-5 pb-6 pt-8 text-center sm:px-8 xl:order-none">
                 <Character variant="resources" className="absolute right-4 top-4 hidden w-16 sm:block xl:w-20" />
@@ -377,7 +351,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
             </div>
 
-            {/* Coluna da esquerda: jornada, contadores, estudantes, apoio, participação e meses */}
             <div className="contents xl:order-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-3.5">
               <section id="jornada" aria-labelledby="jornada-titulo" className="dash-card order-3 min-w-0 scroll-mt-20 xl:order-none">
                 <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
@@ -511,7 +484,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <>
                       <p className="mt-1 text-xs text-ink-soft">Média de {plural(support.objectives, "objetivo", "objetivos")} com registro</p>
                       <SupportScale initial={support.initial} latest={support.latest} target={support.target} />
-                      {/* Legenda compacta: o marcador é o mesmo da escala, e o número e o nome vêm em texto. */}
                       <dl className="mt-4 flex min-w-0 flex-wrap gap-1.5">
                         {([["No início", support.initial, "rounded-full border-2 border-ink-strong bg-white"], ["Agora", support.latest, "rounded-full bg-ink-strong"], ["Meta", support.target, "rotate-45 rounded-[2px] border-2 border-ink-strong bg-white"]] as const).map(([label, value, marker]) => (
                           <div key={label} className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-1.5 rounded-full bg-surface-muted/70 py-1.5 pl-2.5 pr-3 text-xs">
@@ -563,7 +535,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </ul>
               </section>
             </div>
-            {/* IA numa faixa inteira, depois das duas colunas: assim nenhuma coluna fica com um vão embaixo. */}
             <section id="ia" aria-labelledby="ia-titulo" className="dash-card order-4 min-w-0 scroll-mt-20 xl:order-3 xl:col-span-2">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <h2 id="ia-titulo" className="text-base font-medium tracking-tight">Inteligência artificial</h2>
@@ -648,7 +619,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="dash-card xl:col-span-3">
                 <CardHeader title="Estratégias que mais funcionaram" hint={`Marcadas em “o que funcionou” · ${periodText}`} />
                 {r.strategies.length ? (
-                  // Duas colunas com a mesma escala, na ordem do ranking (de cima para baixo).
                   <div className="grid min-w-0 gap-x-8 gap-y-3 md:grid-cols-2">
                     <BarList rows={r.strategies.slice(0, strategyHalf)} max={strategyMax} />
                     {r.strategies.length > strategyHalf ? <BarList rows={r.strategies.slice(strategyHalf)} max={strategyMax} /> : null}
@@ -704,7 +674,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
               <div className="dash-card">
                 <CardHeader title="Por que as sugestões são rejeitadas" />
-                {/* Amarelo, não laranja: rejeitar é decisão do professor, não alarme. */}
                 <BarList rows={act.rejectReasons.map((reason) => ({ label: `“${reason.label}”`, value: reason.value }))} color={SIGNAL.yellow} empty="Nenhuma sugestão rejeitada no período." />
               </div>
             </div>
@@ -816,7 +785,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   />
                 </div>
                 {res.top.length ? (
-                  // A barra compara o uso com o recurso mais usado; o número vem escrito ao lado.
                   <ol className="divide-y divide-line">
                     {res.top.map((item) => (
                       <li key={item.id}>

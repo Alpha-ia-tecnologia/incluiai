@@ -1,6 +1,5 @@
 import { BARRIER_STATUS_LABEL, PRINCIPLE_LABEL, type DuaContent } from "@/lib/dua/domain";
 
-// Conteúdo de uma versão, só para leitura: objetivo, critérios, barreiras e opções.
 export function VersionSummary({ content }: { content: DuaContent }) {
   return (
     <dl className="grid min-w-0 gap-3 text-sm">

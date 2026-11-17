@@ -1,4 +1,3 @@
-// Testes da formação em pílulas: node --test src/lib/learning-pills.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PILLS, pillBySlug, readingMinutes } from "./learning-pills.ts";

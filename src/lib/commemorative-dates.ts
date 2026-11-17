@@ -18,13 +18,13 @@ export const CALENDAR_THEMES: Record<CalendarTheme, { label: string; chip: strin
 export type CommemorativeDate = {
   id: string;
   title: string;
-  short: string; // rótulo curto exibido na grade do mês
+  short: string;
   theme: CalendarTheme;
-  month: number; // 1-12
-  day: number | "ultimo"; // "ultimo" = último dia do mês
-  endDay?: number; // semanas comemorativas
+  month: number;
+  day: number | "ultimo";
+  endDay?: number;
   about: string;
-  idea: string; // proposta para a turma toda (DUA, sem expor estudantes)
+  idea: string;
   origin: string;
 };
 
@@ -169,7 +169,6 @@ export const COMMEMORATIVE_DATES: CommemorativeDate[] = [
   },
 ];
 
-// A cor de cada campanha acompanha o nome (azul, verde), não o tema.
 export const MONTHLY_CAMPAIGNS: { month: number; title: string; text: string; theme: CalendarTheme; chip: string }[] = [
   { month: 4, title: "Abril Azul", text: "mês de conscientização sobre o autismo.", theme: "neuro", chip: "bg-sky-soft text-sky-ink" },
   { month: 9, title: "Setembro Verde", text: "mês de luta pela inclusão da pessoa com deficiência.", theme: "direitos", chip: "bg-sage-soft text-sage-ink" },
@@ -181,7 +180,6 @@ export const MONTH_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ag
 
 export type YMD = { year: number; month: number; day: number };
 
-// Ocorrência de uma data comemorativa em um ano específico.
 export type CalendarEvent = {
   key: string;
   entry: CommemorativeDate;
@@ -189,7 +187,6 @@ export type CalendarEvent = {
   end: YMD;
 };
 
-// "Hoje" no fuso da rede municipal, independente do fuso do servidor.
 export function todayInBrazil(now = new Date()): YMD {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
   const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
@@ -200,7 +197,6 @@ export function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-// Número de dias desde a época — permite comparar e subtrair datas sem fuso.
 export function dayIndex({ year, month, day }: YMD): number {
   return Date.UTC(year, month - 1, day) / 86_400_000;
 }
@@ -218,7 +214,6 @@ export function monthEvents(year: number, month: number): CalendarEvent[] {
     .sort((a, b) => a.start.day - b.start.day);
 }
 
-// Próximas datas a partir de hoje, incluindo semanas que já estão em curso.
 export function upcomingEvents(today: YMD, horizonDays = 45): CalendarEvent[] {
   const from = dayIndex(today);
   const events: CalendarEvent[] = [];

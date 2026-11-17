@@ -30,8 +30,6 @@ const TEXT_FIELDS: Array<{ key: keyof Omit<EvidenceDefaults, "date" | "statuses"
   { key: "nextStep", label: "Próximo passo sugerido pelo profissional", max: 600 },
 ];
 
-// Registro rápido depois da atividade (RF07). Um registro por estudante e
-// aplicação: registrar de novo atualiza o mesmo, sem duplicar.
 export function EvidenceForm({ planningId, applicationId, student, criteria, strategies, defaults, existing }: {
   planningId: string;
   applicationId: string;

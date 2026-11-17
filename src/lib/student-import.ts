@@ -1,14 +1,9 @@
-// Importação de estudantes por planilha (CSV), pura para teste com node --test
-// (src/lib/student-import.test.mjs): lê o arquivo como o Excel e o LibreOffice
-// salvam (ponto e vírgula ou vírgula, aspas, acentos), reconhece as colunas
-// pelo nome e confere cada linha antes de qualquer gravação.
-
 export const IMPORT_MAX_ROWS = 500;
 export const IMPORT_MAX_BYTES = 512 * 1024;
 
 export type StudentImport = {
   name: string;
-  birthDate: string; // AAAA-MM-DD
+  birthDate: string;
   stage: string;
   gradeYear: string;
   className: string;
@@ -20,13 +15,10 @@ export type StudentImport = {
   supportProfessional: boolean;
 };
 
-// name: como está na planilha, para a pessoa achar a linha com problema.
 export type ImportRow = { line: number; name: string; values: StudentImport | null; errors: string[] };
 
-// Sem acento, minúsculo, só letras e números separados por "_".
 export const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 
-// Nomes de coluna aceitos (já normalizados).
 const COLUMNS: Record<keyof StudentImport, string[]> = {
   name: ["nome", "nome_do_estudante", "nome_completo", "estudante", "aluno", "nome_do_aluno"],
   birthDate: ["nascimento", "data_de_nascimento", "data_nascimento", "dt_nascimento"],
@@ -46,8 +38,6 @@ export const COLUMN_LABELS: Record<keyof StudentImport, string> = {
   guardianName: "responsavel", guardianPhone: "telefone", hasAEE: "aee", aeeFrequency: "frequencia_aee", supportProfessional: "profissional_de_apoio",
 };
 
-// CSV com aspas (campos com separador ou quebra de linha dentro) e o separador
-// que aparecer mais na primeira linha.
 export function parseCsv(text: string): string[][] {
   const clean = text.replace(/^﻿/, "");
   const firstLine = clean.split(/\r?\n/, 1)[0] ?? "";
@@ -81,7 +71,6 @@ const STAGES: Record<string, string> = {
   eja: "eja", educacao_de_jovens_e_adultos: "eja",
 };
 
-// Etapa pela coluna ou, sem ela, pelo ano ("3º ano" → anos iniciais).
 export function stageOf(stage: string, gradeYear: string): string | null {
   if (stage.trim()) return STAGES[normalize(stage)] ?? null;
   const grade = normalize(gradeYear);
@@ -92,7 +81,6 @@ export function stageOf(stage: string, gradeYear: string): string | null {
   return Number(year) <= 5 ? "anos_iniciais" : "anos_finais";
 }
 
-// Data como DD/MM/AAAA (ou com hífen) ou AAAA-MM-DD; precisa existir no calendário.
 export function dateOf(text: string): string | null {
   const value = text.trim();
   const br = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(value);
@@ -117,7 +105,6 @@ export function shiftOf(text: string): string {
 const YES = new Set(["sim", "s", "x", "1", "true", "yes"]);
 const NO = new Set(["", "nao", "n", "0", "false", "no"]);
 
-// Cabeçalho → índice de cada campo; colunas obrigatórias que faltam.
 export function mapHeader(header: string[]): { index: Partial<Record<keyof StudentImport, number>>; missing: string[] } {
   const names = header.map(normalize);
   const index: Partial<Record<keyof StudentImport, number>> = {};
@@ -128,7 +115,6 @@ export function mapHeader(header: string[]): { index: Partial<Record<keyof Stude
   return { index, missing: REQUIRED.filter((field) => index[field] === undefined).map((field) => COLUMN_LABELS[field]) };
 }
 
-// Confere a planilha inteira: cada linha vira um estudante pronto ou uma lista de problemas.
 export function readStudentSheet(text: string, today: Date = new Date()): { rows: ImportRow[]; problem: string | null } {
   if (text.length > IMPORT_MAX_BYTES) return { rows: [], problem: "Arquivo grande demais. Divida a planilha em partes de até 500 estudantes." };
   const [header, ...lines] = parseCsv(text);
@@ -160,8 +146,6 @@ export function readStudentSheet(text: string, today: Date = new Date()): { rows
     if (!shift) errors.push("turno em branco");
     const guardianName = cell("guardianName").replace(/\s+/g, " ");
     if (!guardianName) errors.push("responsável em branco");
-    // Todo estudante cadastrado é atendido: a coluna "aee" de planilhas antigas é
-    // aceita e ignorada, e a frequência do atendimento é opcional.
     const aeeFrequency = cell("aeeFrequency") || null;
     const support = normalize(cell("supportProfessional"));
     if (!YES.has(support) && !NO.has(support)) errors.push(`profissional de apoio: use sim ou não ("${cell("supportProfessional")}")`);
@@ -184,15 +168,13 @@ export function readStudentSheet(text: string, today: Date = new Date()): { rows
   return { rows, problem: null };
 }
 
-// Chave para achar quem já está cadastrado (mesmo nome e nascimento na escola).
 export const studentKey = (name: string, birthDate: string) => `${normalize(name)}|${birthDate}`;
 
-// Modelo para baixar: ponto e vírgula e BOM, como o Excel em português abre.
+// Ponto e vírgula e BOM, como o Excel em português abre.
 export const IMPORT_TEMPLATE = "﻿" + [
   "nome;nascimento;etapa;ano;turma;turno;responsavel;telefone;frequencia_aee;profissional_de_apoio",
   "Exemplo Estudante Um;15/03/2018;Anos iniciais;2º ano;Turma A;Manhã;Nome do Responsável;(98) 90000-0000;2x por semana;não",
   "Exemplo Estudante Dois;02/09/2014;;6º ano;Turma B;Tarde;Nome da Responsável;;;não",
 ].join("\r\n") + "\r\n";
 
-// As linhas do modelo mostram o formato; não são estudantes e não entram no cadastro.
 const TEMPLATE_EXAMPLES = new Set(["exemplo_estudante_um", "exemplo_estudante_dois"]);

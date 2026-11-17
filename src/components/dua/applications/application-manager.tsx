@@ -10,8 +10,6 @@ import { ParticipantPicker, type StudentOption } from "./participant-picker";
 
 type Feedback = { ok: boolean; message?: string; problems?: { field: string; message: string }[] } | null;
 
-// Situação de execução e participantes de uma aplicação. A situação é separada
-// da revisão pedagógica; quem está fora do seu acesso não aparece e não é retirado.
 export function ApplicationManager({ planningId, applicationId, revision, state, notes, className, participants, students }: {
   planningId: string;
   applicationId: string;
@@ -34,7 +32,6 @@ export function ApplicationManager({ planningId, applicationId, revision, state,
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     start(async () => {
-      // As observações seguem junto: a ação grava o texto inteiro de novo.
       const outcome = await updateDuaApplication({ planningId, applicationId, revision, state: nextState, notes: String(data.get("notes") ?? ""), addParticipantIds: add, removeParticipantIds: remove });
       if (!outcome.ok) {
         setFeedback(outcome);

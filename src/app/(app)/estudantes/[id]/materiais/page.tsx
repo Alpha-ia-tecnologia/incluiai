@@ -23,21 +23,15 @@ const STATUS_FILTERS: { value: Status; label: string }[] = [
 
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
-// Materiais de apoio do estudante: a IA (ou as regras) cria a partir do perfil
-// um material completo — cartões com pictogramas, como usar e atividades para
-// aplicar — que fica como sugestão até a equipe aprovar. Aqui fica a galeria;
-// cada material abre na página própria (materiais/[materialId]).
 export default async function MaterialsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
   const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   await requireStudentPage(id, "Materiais de apoio");
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  // O layout do estudante já confere o acesso; a página confere de novo, perto dos dados.
   const student = await prisma.student.findUnique({ where: { id }, select: { schoolId: true } });
   if (!student || !canAccessStudent(user, student.schoolId, id)) redirect("/");
   const team = canEditStudentRecord(user.role);
-  // IA e imagens só com a autorização da família; o aviso explica quando falta.
   const [aiOn, imagesOn] = await Promise.all([aiAllowedFor(id), imagesAllowedFor(id)]);
   const consentMissing = isAIEnabled() && !aiOn;
   const [profile, materials, objectives] = await Promise.all([
@@ -50,14 +44,12 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
     team ? prisma.objective.findMany({ where: { plan: { studentId: id, status: "ativo" }, status: "ativo" }, select: { id: true, description: true }, orderBy: { createdAt: "asc" } }) : [],
   ]);
 
-  // Só o resumo vai para a galeria: o conteúdo inteiro fica na página do material.
   const summaries: (MaterialSummary & { kind: string; status: Status })[] = materials.map((material) => ({
     ...materialSummary(material),
     kind: material.kind,
     status: material.status === "aprovado" ? "aprovado" : "sugerido",
   }));
 
-  // Filtro pela URL (?situacao=&tipo=): links simples, sem JavaScript.
   const statusFilter = STATUS_FILTERS.find((item) => item.value === one(query.situacao))?.value ?? null;
   const kindParam = one(query.tipo);
   const kindFilter = isMaterialKind(kindParam) ? kindParam : null;
@@ -154,8 +146,6 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
   );
 }
 
-// Uma linha de filtro: pílulas com a contagem em texto; a ativa fica marcada
-// para o leitor de tela (aria-current) e pela cor.
 function FilterRow({ id, label, options }: { id: string; label: string; options: { label: string; href: string; active: boolean; count: number }[] }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2">

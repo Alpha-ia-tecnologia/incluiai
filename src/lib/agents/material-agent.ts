@@ -10,22 +10,6 @@ import {
   type MaterialContent, type MaterialContext, type MaterialKind, type ProfileFacts,
 } from "../material-content.ts";
 
-// Material de apoio por agentes, orquestrado com LangGraph (como o plano e as
-// atividades):
-//
-//                         ┌→ sala_comum ┐
-//   início → criador ─────→ aee ───────→ revisor ─┬─ aprovado ou limite → fim
-//               ↑         └→ casa ──────┘         ├─ atividade reprovada → refaz só ela
-//               └──────── material reprovado ─────┘   (o material novo refaz as três)
-//
-// O criador faz o material em si (cartões, preparo, uso, adaptações). Os três
-// especialistas de contexto, os mesmos papéis das atividades do plano, criam a
-// atividade que aplica os cartões na sala comum, no AEE e em casa (item 17.3,
-// Etapa C da proposta). O revisor confere a aderência ao pedido (tipo, situação,
-// objetivo), ao perfil, às regras de adaptação e às salvaguardas, e soma as
-// verificações de src/lib/material-content.ts. O que continuar pendente depois de
-// uma correção vira ponto para o professor conferir. Nada é usado sem aprovação.
-
 export const MATERIAL_AGENT = "Criador de materiais";
 export const MATERIAL_REVIEWER = "Revisor do material";
 export const MATERIAL_ACTIVITY_AGENTS: Record<ActivityContext, string> = {
@@ -38,8 +22,6 @@ export const MAX_MATERIAL_RETRIES = 1;
 type Part = "material" | ActivityContext;
 const PARTS: Part[] = ["material", ...CONTEXT_KEYS];
 
-// Sem restrições numéricas nos esquemas (como os demais agentes): os limites são
-// aplicados depois, em finalizeMaterial.
 export const MaterialDesignSchema = z.object({
   title: z.string().describe("Título curto do material, sem nome de pessoa. Ex.: Rotina da hora do lanche"),
   purpose: z.string().describe("Para que serve o material, em uma frase ligada ao perfil, à situação e, se houver, ao objetivo do plano."),
@@ -145,7 +127,7 @@ export type MaterialAgentInput = {
   kind: MaterialKind;
   topic: string;
   context: MaterialContext;
-  contextText: string; // estudante, objetivo, perfil, estudo de caso e registros, já sem dados pessoais
+  contextText: string;
   rules: AdaptationRule[];
   facts: ProfileFacts;
 };
@@ -155,7 +137,6 @@ const MaterialState = Annotation.Root({
   kind: Annotation<MaterialKind>(),
   toleranceMinutes: Annotation<number>(),
   design: Annotation<MaterialDesign | null>({ reducer: (_current, next) => next, default: () => null }),
-  // Os especialistas escrevem em paralelo: cada um acrescenta a sua atividade.
   activities: Annotation<Partial<Record<ActivityContext, MaterialActivityProposal>>>({ reducer: (current, next) => ({ ...current, ...next }), default: () => ({}) }),
   feedback: Annotation<Partial<Record<Part, string[]>>>({ reducer: (_current, next) => next, default: () => ({}) }),
   redo: Annotation<Part[]>({ reducer: (_current, next) => next, default: () => [] }),
@@ -168,7 +149,6 @@ const bullets = (items: string[]) => items.map((item) => `- ${item}`).join("\n")
 const rulesText = (rules: AdaptationRule[]) => rules.map((rule) => `- [${rule.id}] ${rule.then}`).join("\n") || "- Nenhuma regra específica.";
 const mainContext = (context: MaterialContext) => (context === "sala_comum" ? "sala comum, com a turma" : context === "aee" ? "atendimento educacional especializado (AEE)" : "casa, com a família");
 
-// O pedido, igual para todos os agentes: o que a professora pediu, as regras e o contexto.
 function requestText(input: MaterialAgentInput) {
   const range = MATERIAL_KINDS.find((item) => item.kind === input.kind)!.cards;
   return [
@@ -184,10 +164,8 @@ function requestText(input: MaterialAgentInput) {
 
 const toActivity = (context: ActivityContext, proposal: MaterialActivityProposal) => ({ ...proposal, context, classParticipation: proposal.classParticipation ?? undefined });
 
-// Os cartões como as atividades e o revisor precisam ver: texto, sem a descrição do pictograma.
 const cardsText = (design: MaterialDesign) => design.cards.map((card, index) => `${index + 1}. ${card.label}${card.caption ? ` (${card.caption})` : ""}`).join("\n");
 
-// Checagens que não dependem do modelo, parte a parte.
 export function checkDesign(design: MaterialDesign, kind: MaterialKind): string[] {
   const problems = checkMaterialCards(design.cards.map((card) => ({ ...card, caption: card.caption ?? undefined })), kind);
   if (design.adaptations.some((item) => !item.basis.trim())) problems.push("Cada adaptação precisa dizer em que item do perfil ou regra se baseia.");
@@ -224,7 +202,6 @@ function activityAgent(model: AgentModel, context: ActivityContext) {
     const design = state.design!;
     const previous = state.activities[context];
     const feedback = state.feedback[context] ?? [];
-    // Material refeito: a atividade anterior se apoiava em cartões que mudaram.
     const materialChanged = state.redo.includes("material");
     const revision = previous && (feedback.length || materialChanged)
       ? [
@@ -296,8 +273,6 @@ export function buildMaterialGraph(model: AgentModel) {
     .addEdge("casa", "revisor")
     .addConditionalEdges(
       "revisor",
-      // Material reprovado volta ao criador (e as três atividades são refeitas com
-      // os cartões novos); senão, só as atividades reprovadas são refeitas.
       (state: MaterialStateType) => (!state.redo.length ? END : state.redo.includes("material") ? "criador" : state.redo.filter((part): part is ActivityContext => part !== "material")),
       ["criador", "sala_comum", "aee", "casa", END],
     )
@@ -312,13 +287,10 @@ export async function runMaterialAgent(input: MaterialAgentInput, model: AgentMo
     .invoke({ request: requestText(input), kind: input.kind, toleranceMinutes: input.facts.toleranceMinutes })
     .catch((error: unknown) => { throw firstAgentError(error); });
   const design = result.design;
-  // A atividade do contexto principal do pedido vem primeiro.
   const order = [input.context, ...CONTEXT_KEYS.filter((context) => context !== input.context)];
   const activities = order.filter((context) => result.activities[context]).map((context) => toActivity(context, result.activities[context]!));
   if (!design || activities.length !== 3) throw new Error("Os agentes não completaram o material e as três atividades.");
 
-  // Adaptações rastreáveis (item 17.4): as do material, com a base no perfil, e as
-  // regras obrigatórias da plataforma, pelo código. Sem nenhuma, entram as do perfil.
   const fromRules = input.rules.filter((rule) => rule.id !== "R00-ANTISSEGREGACAO").map((rule) => ({ text: rule.then, basis: `Regra ${rule.id}: ${rule.when}.` }));
   const adaptations = [...design.adaptations.filter((item) => item.text.trim() && item.basis.trim()), ...fromRules];
   const content = finalizeMaterial(normalizeMaterialContent({
@@ -327,7 +299,6 @@ export async function runMaterialAgent(input: MaterialAgentInput, model: AgentMo
     activities,
     adaptations: adaptations.length ? adaptations : profileAdaptations(input.facts, input.kind),
     familyTip: design.familyTip ?? "",
-    // O que continuou pendente depois da correção: a professora confere.
     reviewNotes: PARTS.flatMap((part) => (result.feedback[part] ?? []).map((problem) => `${PART_LABEL[part]}: ${problem}`)),
   }), rules);
   const trace = [...result.trace, { agent: "Finalização", summary: "Juntou o material e as atividades, aplicou os limites de tamanho e de tempo e listou as adaptações com a base de cada uma." }];

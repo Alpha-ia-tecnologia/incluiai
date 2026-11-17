@@ -9,8 +9,6 @@ import { TutorialCard } from "@/components/tutorial-card";
 
 export const dynamic = "force-dynamic";
 
-// Um vídeo tutorial, com narração e legenda gravadas no próprio vídeo, e os
-// próximos da lista do perfil.
 export default async function TutorialPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -28,7 +26,6 @@ export default async function TutorialPage({ params }: { params: Promise<{ id: s
         <Badge tone="brand"><Clock size={12} aria-hidden /> {formatDuration(tutorial.seconds)}</Badge>
         <Badge>{tutorial.audience}</Badge>
       </p>
-      {/* Legenda e narração já estão gravadas no vídeo. */}
       <video controls preload="metadata" playsInline poster={tutorial.poster ? `/tutoriais/${tutorial.poster}` : undefined} className="aspect-video w-full rounded-2xl border border-line bg-ink-strong" aria-label={`Vídeo: ${tutorial.title}`}>
         <source src={`/tutoriais/${tutorial.video}`} type="video/mp4" />
       </video>

@@ -1,9 +1,3 @@
-// Carteirinha digital do estudante: regras puras, testadas com node --test
-// (src/lib/student-card-core.test.mjs). O código do QR, a foto e o contato de
-// emergência ficam em src/lib/student-card.ts.
-
-// O código do QR é aleatório (18 bytes, 24 caracteres): não deriva do nome nem
-// do id do estudante, e trocar o código invalida a carteirinha anterior.
 export const CARD_TOKEN_PATTERN = /^[A-Za-z0-9_-]{24}$/;
 
 export function newCardToken(): string {
@@ -16,7 +10,6 @@ export const MAX_CARD_PHOTO_BYTES = MAX_CARD_PHOTO_MB * 1024 * 1024;
 
 export type CardPhotoType = "image/jpeg" | "image/png";
 
-// O tipo vem dos primeiros bytes, não da extensão nem do que o navegador declara.
 export function sniffCardPhoto(bytes: Uint8Array): CardPhotoType | null {
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
   const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -63,7 +56,6 @@ function stripJpeg(bytes: Uint8Array): Uint8Array | null {
   return null;
 }
 
-// PNG sem metadados: saem os blocos de texto, data e Exif.
 const PNG_METADATA = new Set(["eXIf", "tEXt", "zTXt", "iTXt", "tIME"]);
 function stripPng(bytes: Uint8Array): Uint8Array | null {
   const parts: Uint8Array[] = [bytes.subarray(0, 8)];
@@ -84,7 +76,6 @@ export function stripPhotoMetadata(bytes: Uint8Array, type: CardPhotoType): Uint
   return type === "image/jpeg" ? stripJpeg(bytes) : stripPng(bytes);
 }
 
-// Telefone brasileiro com DDD, guardado só com os dígitos (10 ou 11).
 export function normalizePhone(input: string): string | null {
   let digits = input.replace(/\D/g, "");
   if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) digits = digits.slice(2);
@@ -100,9 +91,6 @@ export function formatPhone(digits: string): string {
     : `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
 }
 
-// "Como me ajudar", na voz do estudante: só o que é funcional (comunicação, o
-// que acalma, o que incomoda), duas ideias por linha para caber no cartão.
-// Nada de diagnóstico.
 export type CardHelp = { communication: string | null; calming: string[]; avoid: string[] };
 
 export function cardHelp(input: { channel: string | null; commandSteps: number | null; calming: string[]; triggers: string[] }): CardHelp {

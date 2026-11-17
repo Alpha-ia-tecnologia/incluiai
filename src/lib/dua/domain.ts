@@ -1,10 +1,6 @@
-// Desenho Universal para a Aprendizagem (DUA) — modelo único do planejamento,
-// usado pelo servidor (valida e grava) e pelas telas (formulário e revisão).
 // Referência pedagógica: Diretrizes DUA 3.0 (CAST) — engajamento, representação
 // e ação e expressão. As perguntas da interface são uma tradução proposta.
-// Puro, sem React e sem banco, para ser testado com node --test.
 
-// ---------------------------------------------------------------- princípios
 export type DuaPrinciple = "engajamento" | "representacao" | "acao_expressao";
 export const DUA_PRINCIPLES: readonly DuaPrinciple[] = ["engajamento", "representacao", "acao_expressao"];
 export const PRINCIPLE_LABEL: Record<DuaPrinciple, string> = {
@@ -17,15 +13,12 @@ export const PRINCIPLE_QUESTION: Record<DuaPrinciple, string> = {
   representacao: "Como apresentar e tornar a informação compreensível?",
   acao_expressao: "Como permitir agir e demonstrar a aprendizagem?",
 };
-// Exemplos de partida: o professor escolhe conforme o objetivo e as barreiras,
-// sem obrigação de produzir todos os formatos nem de marcar todas as diretrizes.
 export const PRINCIPLE_EXAMPLES: Record<DuaPrinciple, readonly string[]> = {
   engajamento: ["Escolhas pertinentes", "Propósito claro", "Etapas previsíveis", "Colaboração", "Temas significativos"],
   representacao: ["Texto acessível", "Áudio", "Imagens", "Símbolos", "Objetos", "Demonstrações", "Esclarecimento de vocabulário"],
   acao_expressao: ["Fala", "Escrita", "Seleção de alternativas", "Organização de elementos", "Recursos digitais", "Comunicação alternativa"],
 };
 
-// ---------------------------------------------------------------- barreiras
 export type BarrierStatus = "prevista" | "observada" | "hipotese";
 export const BARRIER_STATUSES: readonly BarrierStatus[] = ["prevista", "observada", "hipotese"];
 export const BARRIER_STATUS_LABEL: Record<BarrierStatus, string> = {
@@ -46,8 +39,6 @@ export const BARRIER_CATEGORY_LABEL: Record<BarrierCategory, string> = {
   outra: "Outra barreira da tarefa ou do contexto",
 };
 
-// ---------------------------------------------------------------- origem
-// Quem propôs: professor, colaboração profissional ou sugestão revisada (IA ou regras).
 export type OriginKind = "professor" | "colaboracao" | "ia";
 export type DuaOrigin = { kind: OriginKind; suggestionId?: string; blockId?: string };
 export const ORIGIN_LABEL: Record<OriginKind, string> = {
@@ -56,7 +47,6 @@ export const ORIGIN_LABEL: Record<OriginKind, string> = {
   ia: "Sugestão revisada",
 };
 
-// ---------------------------------------------------------------- conteúdo coletivo
 export type DuaCriterion = { id: string; description: string };
 export type DuaBarrier = { id: string; description: string; category: BarrierCategory; status: BarrierStatus; origin: DuaOrigin };
 export type StrategyDetails = { what: string; purpose: string; when: string; how: string };
@@ -71,11 +61,8 @@ export type DuaStrategy = {
   details: StrategyDetails;
   origin: DuaOrigin;
 };
-// O planejamento coletivo: nada aqui identifica estudante (apoios individuais ficam à parte).
 export type DuaContent = {
   title: string;
-  // Objetivo de aprendizagem ≠ meio de acesso ≠ forma de resposta ≠ apoio (3.1).
-  // bnccCodes: habilidades da base oficial; curriculum: outra referência (currículo municipal).
   objective: { learning: string; curriculum: string; bnccCodes: string[] };
   criteria: DuaCriterion[];
   context: { audience: string; organization: string; resources: string[]; notes: string };
@@ -96,7 +83,6 @@ export const emptyDuaContent = (title = ""): DuaContent => ({
 
 export const emptyStrategyDetails = (): StrategyDetails => ({ what: "", purpose: "", when: "", how: "" });
 
-// Lê o JSON gravado tolerando campos ausentes de versões antigas.
 export function normalizeContent(value: Partial<DuaContent> | null | undefined): DuaContent {
   const base = emptyDuaContent();
   if (!value) return base;
@@ -122,7 +108,6 @@ export function normalizeContent(value: Partial<DuaContent> | null | undefined):
   };
 }
 
-// ---------------------------------------------------------------- estados separados por finalidade
 export type ReviewState = "rascunho" | "em_revisao" | "validado";
 export const REVIEW_STATE_LABEL: Record<ReviewState, string> = { rascunho: "Rascunho", em_revisao: "Em revisão", validado: "Validado" };
 export type ExecutionState = "planejada" | "em_andamento" | "concluida" | "cancelada";
@@ -139,13 +124,10 @@ export const APPLICATION_CONTEXT_LABEL: Record<ApplicationContext, string> = { s
 export type Sharing = "privado" | "compartilhado";
 export const SHARING_LABEL: Record<Sharing, string> = { privado: "Só a equipe do planejamento", compartilhado: "Compartilhado com a equipe da escola" };
 
-// ---------------------------------------------------------------- validação para aplicação (RF02)
 export type DuaProblem = { field: string; message: string };
 
 const filled = (value: string | undefined | null) => Boolean(value && value.trim());
 
-// O rascunho pode ficar incompleto. Para validar: objetivo, análise das barreiras,
-// opções selecionadas e critérios observáveis (o responsável é conferido no servidor).
 export function validationProblems(content: DuaContent): DuaProblem[] {
   const problems: DuaProblem[] = [];
   if (!filled(content.title)) problems.push({ field: "title", message: "Dê um título à atividade." });
@@ -165,27 +147,20 @@ export function validationProblems(content: DuaContent): DuaProblem[] {
   return problems;
 }
 
-// Opções que ainda não dizem a qual barreira respondem (aviso, não impede validar).
 export const strategiesWithoutBarrier = (content: DuaContent) => content.strategies.filter((strategy) => !strategy.barrierIds.length);
 
-// Base que uma sugestão considerou: se mudar antes da aprovação, a sugestão volta à conferência.
 export const suggestionBasis = (content: DuaContent) => ({
   objective: content.objective,
   criteria: content.criteria.map(({ id, description }) => ({ id, description })),
   barriers: content.barriers.map(({ id, description, category, status }) => ({ id, description, category, status })),
 });
 
-// Reaproveitar em outra turma (CA08): só o conteúdo coletivo, com origens preservadas.
-// O tipo DuaContent não tem campo individual; a cópia é profunda para não compartilhar referência.
 export const collectiveCopy = (content: DuaContent, title?: string): DuaContent => {
   const copy = normalizeContent(JSON.parse(JSON.stringify(content)) as DuaContent);
   return title ? { ...copy, title } : copy;
 };
 
-// ---------------------------------------------------------------- apoios individuais (acesso restrito)
-// Item do perfil usado como referência: com origem, data e a versão efetivamente consultada.
 export type ProfileRef = { field: string; label: string; value: string; source: string; updatedAt: string | null; version: string };
-// Vínculo com o Plano de ensino do estudante (objetivo existente).
 export type PlanLink = { kind: "objetivo"; planId: string; objectiveId: string; description: string };
 export type StudentVoiceKind = "interesse" | "recurso_util" | "forma_escolhida" | "dificuldade" | "avaliacao";
 export const STUDENT_VOICE_KINDS: readonly StudentVoiceKind[] = ["interesse", "recurso_util", "forma_escolhida", "dificuldade", "avaliacao"];
@@ -199,8 +174,6 @@ export const STUDENT_VOICE_LABEL: Record<StudentVoiceKind, string> = {
 export type VoiceOrigin = "estudante" | "familia" | "profissional";
 export const VOICE_ORIGINS: readonly VoiceOrigin[] = ["estudante", "familia", "profissional"];
 export const VOICE_ORIGIN_LABEL: Record<VoiceOrigin, string> = { estudante: "Dito ou mostrado pelo estudante", familia: "Contado pela família", profissional: "Percebido pelo profissional" };
-// Sempre com contexto, origem e data: uma escolha pontual (ex.: áudio) não vira
-// classificação permanente do estudante ("auditivo"). Preferências são revisáveis.
 export type StudentVoiceEntry = { id: string; kind: StudentVoiceKind; text: string; context: string; origin: VoiceOrigin; date: string };
 export type IndividualObjective = { text: string; justification: string; objectiveId: string | null };
 export type DuaSupportData = {
@@ -211,7 +184,6 @@ export type DuaSupportData = {
   profileRefs: ProfileRef[];
   planLinks: PlanLink[];
   studentVoice: StudentVoiceEntry[];
-  // Objetivo individual diferente do coletivo: explícito, justificado e ligado ao plano.
   individualObjective: IndividualObjective | null;
   origin: DuaOrigin;
 };
@@ -228,10 +200,8 @@ export function supportProblems(data: Pick<DuaSupportData, "support" | "purpose"
   return problems;
 }
 
-// ---------------------------------------------------------------- evidências (RF07)
 export type CriterionStatus = "demonstrado" | "parcial" | "ainda_nao_demonstrado" | "sem_oportunidade" | "nao_registrado";
 export const CRITERION_STATUSES: readonly CriterionStatus[] = ["demonstrado", "parcial", "ainda_nao_demonstrado", "sem_oportunidade", "nao_registrado"];
-// "Sem oportunidade" e "ainda não registrado" não são análise: ficam distintos de "ainda não demonstrou".
 export const CRITERION_STATUS_LABEL: Record<CriterionStatus, string> = {
   demonstrado: "Demonstrou",
   parcial: "Demonstrou em parte",
@@ -249,8 +219,6 @@ export const OBSERVATION_LABEL: Record<EvidenceObservation, string> = {
   nao_registrado: "Ainda não registrado",
 };
 
-// Resultado a partir dos critérios. Nada observado = sem resultado (não é "não"):
-// não entra em progresso nem em conclusão sobre aprendizagem.
 export function resultFromCriteria(criteria: ReadonlyArray<{ status: CriterionStatus }>): "sim" | "parcial" | "nao" | null {
   const observed = criteria.filter((item) => isObserved(item.status));
   if (!observed.length) return null;
@@ -259,15 +227,11 @@ export function resultFromCriteria(criteria: ReadonlyArray<{ status: CriterionSt
   return "nao";
 }
 
-// "Sem oportunidade" vence "não registrado" quando os dois aparecem: houve a tentativa.
 export function observationOf(criteria: ReadonlyArray<{ status: CriterionStatus }>): EvidenceObservation {
   if (criteria.some((item) => isObserved(item.status))) return "observado";
   return criteria.some((item) => item.status === "sem_oportunidade") ? "sem_oportunidade" : "nao_registrado";
 }
 
-// ---------------------------------------------------------------- próximos passos (RF08)
-// Sugestões de acompanhamento com a base usada e o que falta observar. São
-// recomendações para revisão: não substituem a decisão nem o resultado observado.
 export type FollowUpSuggestion = { text: string; basis: string; pending: string };
 export type FollowUpEvidence = {
   criteria: ReadonlyArray<{ status: CriterionStatus }>;
@@ -296,7 +260,6 @@ export function followUpSuggestions(evidence: readonly FollowUpEvidence[], plann
   return out.slice(0, 6);
 }
 
-// ---------------------------------------------------------------- sugestões (RF05, 6.2)
 export type AiBlockDecision = "pendente" | "aceito" | "editado" | "recusado";
 export const AI_BLOCK_DECISION_LABEL: Record<AiBlockDecision, string> = { pendente: "Aguardando decisão", aceito: "Aceito sem alteração", editado: "Aceito com edição", recusado: "Recusado" };
 export type AiBlock = {
@@ -309,7 +272,6 @@ export type AiBlock = {
   resources: string[];
   suggestedEvidence: string;
   pendingInformation: string[];
-  // Proposta de novo critério (só entra com decisão explícita do profissional).
   criterionProposal: string | null;
   flags: { changesObjective: boolean; changesCriterion: boolean; individual: boolean; problems: string[]; blocked: boolean };
   decision: AiBlockDecision;
@@ -322,13 +284,11 @@ export type AiPurpose = "opcoes" | "apoio_individual";
 export const AI_PURPOSE_LABEL: Record<AiPurpose, string> = { opcoes: "Opções de acesso e participação para a turma", apoio_individual: "Apoio individual para um estudante" };
 export const AI_SUGGESTION_LABEL = "Sugestão para revisão";
 
-// Estado da sugestão depois das decisões: só sai de "aguardando revisão" quando todo bloco foi decidido.
 export function suggestionStateAfter(blocks: ReadonlyArray<Pick<AiBlock, "decision">>): AiState {
   if (blocks.some((block) => block.decision === "pendente")) return "aguardando_revisao";
   return blocks.some((block) => block.decision === "aceito" || block.decision === "editado") ? "aceito" : "recusado";
 }
 
-// ---------------------------------------------------------------- materiais (RF06)
 export type MaterialFormat = "roteiro_passos" | "fonte_ampliada" | "rotina_visual" | "prancha_comunicacao" | "alertas_sensoriais" | "anexo";
 export const MATERIAL_FORMATS: readonly MaterialFormat[] = ["roteiro_passos", "fonte_ampliada", "rotina_visual", "prancha_comunicacao", "alertas_sensoriais", "anexo"];
 export const MATERIAL_FORMAT_LABEL: Record<MaterialFormat, string> = {
@@ -339,7 +299,6 @@ export const MATERIAL_FORMAT_LABEL: Record<MaterialFormat, string> = {
   alertas_sensoriais: "Alertas sensoriais",
   anexo: "Material da biblioteca anexado",
 };
-// Recursos de acessibilidade de cada formato (registrados no material).
 export const MATERIAL_ACCESSIBILITY: Record<MaterialFormat, readonly string[]> = {
   roteiro_passos: ["Uma ação por passo", "Linguagem direta", "Texto selecionável"],
   fonte_ampliada: ["Fonte ampliada", "Espaçamento maior", "Texto selecionável"],
@@ -352,7 +311,6 @@ export type MaterialScope = "coletivo" | "individual";
 export type MaterialSection = { heading: string; items: string[] };
 export const DRAFT_NOTICE = "RASCUNHO — material ainda não validado para uso pedagógico";
 
-// Roteiro acessível gerado a partir da versão do planejamento (sem IA, sem dado individual).
 export function buildActivityScript(content: DuaContent, format: MaterialFormat): MaterialSection[] {
   const text = (value: string) => value.trim();
   const sections: MaterialSection[] = [
@@ -370,21 +328,16 @@ export function buildActivityScript(content: DuaContent, format: MaterialFormat)
   return sections.filter((section) => section.items.length);
 }
 
-// Material individual: o roteiro coletivo mais o apoio planejado (sem justificativa do perfil).
 export function buildSupportScript(content: DuaContent, format: MaterialFormat, support: Pick<DuaSupportData, "support" | "usageContext">): MaterialSection[] {
   const sections = buildActivityScript(content, format);
   const items = [support.support.trim(), support.usageContext.trim() ? `Quando usar: ${support.usageContext.trim()}` : ""].filter(Boolean);
   return items.length ? [...sections, { heading: "Meu apoio nesta atividade", items }] : sections;
 }
 
-// ---------------------------------------------------------------- indicadores (seção 9)
-// Medidas de uso e documentação, com período, escopo, unidade e denominador.
-// Denominador zero = sem base para cálculo (nunca 0%). Não há "nota de conformidade DUA".
 export type DuaIndicator = { key: string; label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null };
 export const ratio = (numerator: number, denominator: number) => (denominator > 0 ? Math.round((numerator / denominator) * 1000) / 10 : null);
 export const NO_BASE_TEXT = "Sem base para cálculo no período";
 
-// ---------------------------------------------------------------- frequência do AEE
 export type AeeSessionStatus = "realizado" | "falta" | "cancelamento";
 export const AEE_SESSION_STATUSES: readonly AeeSessionStatus[] = ["realizado", "falta", "cancelamento"];
 export const AEE_SESSION_STATUS_LABEL: Record<AeeSessionStatus, string> = { realizado: "Realizado", falta: "Falta", cancelamento: "Cancelamento" };

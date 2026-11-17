@@ -4,10 +4,6 @@ import { PLAN_AGENT_NAMES, checkObjectives, checkPaee, checkPei, normalizePlanPr
 import { CaseAnalysisSchema, ObjectivesProposalSchema, PaeeProposalSchema, PeiProposalSchema, PlanProposalSchema, PlanReviewSchema } from "./agents/schemas.ts";
 import { NO_NEED, NO_RESOURCE, canonicalItems, mergeProposalDefaults, missingPlanItems } from "./plan-documents.ts";
 
-// Os agentes do plano (PAEE, PEI e objetivos) com um modelo de mentira: o caminho
-// do grafo, o que cada agente recebe, o que é refeito quando o revisor devolve
-// uma parte e a conferência dos nomes com as listas. Nenhuma chamada à API.
-
 const CONTEXT = "Estudante de 7 anos, 2º ano. Frequenta o AEE.\n\n## Estudo de caso\nNecessidades educacionais identificadas: Comunicação alternativa e aumentativa";
 const analysis = { sintese: "Participa com apoio visual.", potencialidades: ["Memória visual"], barreiras: ["Instruções só orais"], prioridades: [{ dimension: "comunicacao", justificativa: "Pede por gestos." }], cuidados: ["Avisar as trocas"] };
 const paee = (extra = {}) => ({ accessibilityResources: ["Rotina visual"], assistiveTech: ["prancha de comunicação"], supportStaff: [NO_NEED], networkDemands: ["Formação em comunicação alternativa"], ...extra });
@@ -46,12 +42,10 @@ test("aprovado de primeira: analista, PAEE, PEI e objetivos em paralelo, revisor
   assert.equal(fake.calls.at(-1).agent, PLAN_AGENT_NAMES.revisor);
   assert.equal(read, analysis);
   assert.deepEqual(trace.map((step) => step.agent).slice(-2), [PLAN_AGENT_NAMES.revisor, "Finalização"]);
-  // Nomes com a grafia das listas do formulário; a frase do objetivo ajustada.
   assert.deepEqual(proposal.assistiveTech, ["Prancha de comunicação"]);
   assert.deepEqual(proposal.aeeServices, ["Comunicação alternativa e aumentativa (CAA)"]);
   assert.equal(proposal.objectives[0].action, "comunicará três necessidades da rotina escolar");
   assert.equal(proposal.objectives[0].criterion, "4 de 5 tentativas");
-  // Com a autoria preenchida pela equipe, não falta nenhum item do conteúdo mínimo.
   const missing = missingPlanItems(mergeProposalDefaults({}, proposal));
   assert.deepEqual([missing.paee, missing.pei], [[], []]);
   assert.doesNotThrow(() => PlanProposalSchema.parse(JSON.parse(JSON.stringify(proposal))));
@@ -90,14 +84,12 @@ test("parte devolvida: só o agente dela refaz, com os problemas e a versão ant
 });
 
 test("checagens da plataforma valem mesmo com o revisor aprovando; o que sobra vai para o professor", async () => {
-  // O PEI vem com um tipo de AEE fora do Censo e sem devolutiva nas duas rodadas.
   const broken = pei({ aeeServices: ["Reforço escolar", "Ensino de Libras"], familyFeedback: [] });
   const fake = fakeModel({ answers: { pei: () => broken } });
   const { proposal, trace } = await runPlanAgents(CONTEXT, fake.model);
   assert.equal(fake.count(PLAN_AGENT_NAMES.pei), 2);
   assert.equal(fake.count(PLAN_AGENT_NAMES.revisor), 2);
   assert.match(fake.calls.filter((call) => call.agent === PLAN_AGENT_NAMES.pei)[1].prompt, /"Reforço escolar" não é um tipo de atendimento do Censo Escolar/);
-  // Na proposta só entram os tipos do Censo; a devolutiva fica para a equipe.
   assert.deepEqual(proposal.aeeServices, ["Ensino de Libras"]);
   assert.deepEqual(proposal.familyFeedback, []);
   assert.match(trace.at(-1).summary, /Ponto\(s\) para o professor conferir:.*Não diz como a família recebe a devolutiva\./);
@@ -134,7 +126,6 @@ test("formulário: o que o estudo de caso registrou e o que a proposta trouxe se
   );
   assert.equal(merged.aeeTeacher, "Beatriz");
   assert.equal(merged.assistiveTech, "Prancha de comunicação; Acionador");
-  // O estudo indicou profissional de apoio: o "não há necessidade" da proposta não apaga o registro.
   assert.equal(merged.supportStaff, "Profissional de apoio escolar");
   assert.equal(merged.aeeServices, "Ensino de Libras; Comunicação alternativa e aumentativa (CAA)");
   assert.equal(merged.monitoring, "Registro de aula no diário");

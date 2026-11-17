@@ -13,8 +13,6 @@ import { Character } from "@/components/character";
 
 export const dynamic = "force-dynamic";
 
-// Um cartão por perfil. Com contas de demonstração no banco, o cartão mostra o
-// e-mail; num banco real, diz o que cada perfil acompanha.
 const PROFILES = [
   { role: "secretaria", label: "Secretaria de Educação", scope: "A rede inteira e os indicadores", icon: Building2, color: "var(--sky-soft)" },
   { role: "coordenacao", label: "Coordenação pedagógica", scope: "Os estudantes e o painel da escola", icon: School, color: "var(--sage-soft)" },
@@ -35,7 +33,6 @@ export default async function LoginPage() {
   const brand = await currentBrand();
   const demoAccounts = await prisma.user.findMany({ where: { demo: true, deactivatedAt: null }, select: { email: true, role: true } });
   const demo = demoAccounts.length > 0;
-  // Quem chegou pelo QR de uma carteirinha: depois de entrar, a plataforma abre o estudante.
   const fromCard = Boolean((await cookies()).get(PENDING_CARD_COOKIE)?.value);
   const cards = PROFILES.flatMap((profile) => {
     if (!demo) return [{ ...profile, key: profile.role, detail: profile.scope }];

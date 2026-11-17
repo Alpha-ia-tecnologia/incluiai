@@ -1,5 +1,4 @@
-// Arquivos de exemplo do Educacenso para os testes (dados fictícios), nas edições
-// 2025 e 2026 do leiaute, com o número oficial de campos de cada registro.
+// Edições 2025 e 2026 do leiaute, com o número oficial de campos de cada registro.
 
 const line = (count, values) => Array.from({ length: count }, (_, index) => values[index + 1] ?? "").join("|");
 
@@ -14,7 +13,6 @@ const PEOPLE = [
   { 3: "P8", 6: "ALUNO DE MUITOS VINCULOS", 7: "04/04/2016", 17: "1", 25: "1" },
   { 3: "G1", 6: "GESTORA COM DEFICIENCIA", 7: "01/01/1980", 17: "1", 24: "1" },
 ];
-// Turmas: código, nome, tipo, etapa agregada, classe especial, mediação, horários (dia: intervalo; 0 = domingo).
 const CLASSES = [
   ["T2A", "2º ANO A", "curricular", "302", false, "1", { 1: "07:00-11:00", 2: "07:00-11:00", 3: "07:00-11:00", 4: "07:00-11:00", 5: "07:00-11:00" }],
   ["TAEE", "SALA DE RECURSOS MULTIFUNCIONAIS", "aee", "", false, "1", { 1: "13:00-15:00" }],
@@ -23,7 +21,6 @@ const CLASSES = [
   ["TAEE2", "AEE MANHA", "aee", "", false, "1", { 2: "08:00-09:00" }],
   ["REM", "6º ANO A DISTANCIA", "curricular", "302", false, "3", {}],
 ];
-// Matrículas: [pessoa, turma, tipos de AEE marcados (posição a partir do primeiro)].
 const ENROLLMENTS = [
   ["P1", "T2A"], ["P1", "TAEE", [0, 9]],
   ["P2", "TAEE", [1]],

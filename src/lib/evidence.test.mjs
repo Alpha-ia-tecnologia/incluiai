@@ -1,4 +1,3 @@
-// Testes do dossiê de evidências: node --test src/lib/evidence.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { evidenceGroups, evidenceSummary, itemTotals } from "./evidence.ts";
@@ -117,7 +116,6 @@ test("PAEE e PEI: o plano vale antes do estudo de caso, e plano antigo pede para
   assert.match(old.pei_monitoramento.detail, /Registre no PEI como o plano será acompanhado/);
   assert.equal(old.pei_acessibilidade.status, "conferir");
   assert.match(old.pei_acessibilidade.detail, /Registre no PEI a acessibilidade na avaliação/);
-  // Prova adaptada aprovada também é acessibilidade avaliativa.
   assert.equal(byId(evidenceGroups({ ...complete, plan: older })).pei_acessibilidade.status, "ok");
 });
 
@@ -132,7 +130,6 @@ test("Censo: estudo de caso concluído basta, mesmo sem plano", () => {
 test("estudo de caso como o INEP descreve: impedimentos e condução pelo AEE", () => {
   const content = { ...complete.caseStudy.content, participantes: "Família", impedimentos: "" };
   const items = byId(evidenceGroups({ ...complete, caseStudy: { ...complete.caseStudy, content } }));
-  // Estudo concluído antes destes campos: vale, mas pede para conferir.
   assert.equal(items.impedimentos.status, "conferir");
   assert.equal(items.conducao.status, "conferir");
   assert.equal(items.conducao.detail, "Registre em Quem participou: professor(a) do AEE e professor(a) da sala comum.");

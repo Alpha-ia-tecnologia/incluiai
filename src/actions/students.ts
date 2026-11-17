@@ -12,7 +12,6 @@ const validStages = new Set([
   "ensino_medio",
   "eja",
 ]);
-// O turno aceita as opções padrão ou um valor digitado em "Outro" (ex.: Noite).
 const isValidShift = (shift: string) => shift.length > 0 && shift.length <= 40;
 
 export async function createStudent(formData: FormData) {
@@ -30,8 +29,6 @@ export async function createStudent(formData: FormData) {
   const className = String(formData.get("className") ?? "").trim();
   const shift = String(formData.get("shift") ?? "").trim();
   const guardianName = String(formData.get("guardianName") ?? "").trim();
-  // Todo estudante cadastrado é atendido pela educação especial: o cadastro não
-  // pergunta mais se recebe AEE, e a frequência do atendimento é opcional.
   const aeeFrequency = String(formData.get("aeeFrequency") ?? "").trim();
   const parsedBirthDate = new Date(`${birthDate}T12:00:00`);
 
@@ -39,7 +36,6 @@ export async function createStudent(formData: FormData) {
     where: { id: schoolId },
     select: { id: true },
   });
-  // Quem é de uma escola cadastra estudantes só nela.
   if (user.schoolId && schoolId !== user.schoolId) {
     throw new Error("Você cadastra estudantes só na sua escola.");
   }

@@ -10,9 +10,6 @@ import { PLATFORM_ROLE } from "@/lib/tenancy-core";
 
 export const dynamic = "force-dynamic";
 
-// Segunda etapa do login (seção 14): a senha já foi conferida; falta o código
-// do aplicativo. Quem precisa das duas etapas e ainda não ligou (REQUIRE_2FA)
-// liga aqui mesmo, antes de entrar.
 export default async function SecondStepPage() {
   if (await getCurrentUser()) redirect("/");
   const pending = await getPendingLogin();

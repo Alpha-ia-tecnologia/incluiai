@@ -3,9 +3,6 @@
 import { useSyncExternalStore } from "react";
 import { isTextScale, type TextScale } from "@/lib/speech-text";
 
-// Tamanho do texto (tela e impressão), guardado neste navegador. O script do
-// layout raiz aplica a escolha antes da primeira pintura (TEXT_SCALE_SCRIPT).
-
 export const TEXT_SCALE_KEY = "incluiedu-texto";
 export const TEXT_SCALE_SCRIPT = `try{var s=localStorage.getItem("${TEXT_SCALE_KEY}");if(s==="2"||s==="3")document.documentElement.dataset.textScale=s}catch(e){}`;
 const EVENT = "incluiedu-texto";
@@ -16,7 +13,6 @@ const apply = (value: TextScale) => {
 };
 
 function subscribe(callback: () => void) {
-  // Outra aba mudou o tamanho: esta acompanha.
   const fromStorage = (event: StorageEvent) => {
     if (event.key !== TEXT_SCALE_KEY) return;
     apply(isTextScale(event.newValue) ? event.newValue : "1");
@@ -40,7 +36,6 @@ const OPTIONS: { value: TextScale; label: string; size: string }[] = [
   { value: "3", label: "Texto maior", size: "text-lg" },
 ];
 
-// onNavy: dentro de um herói em marinho (portal da família).
 export function TextSizeControl({ onNavy = false }: { onNavy?: boolean } = {}) {
   const scale = useSyncExternalStore(subscribe, current, () => "1" as TextScale);
   const choose = (value: TextScale) => {

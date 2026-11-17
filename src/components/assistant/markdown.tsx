@@ -3,9 +3,6 @@
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
-// Markdown leve para as respostas do assistente: títulos curtos, listas,
-// negrito, código e links. Links internos abrem na própria plataforma.
-
 const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\))/g;
 const LINK = /^\[([^\]]+)\]\(([^)\s]+)\)$/;
 const BULLET = /^\s*[-*•]\s+/;

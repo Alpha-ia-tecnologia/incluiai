@@ -6,7 +6,6 @@ import type { PasswordState } from "@/actions/account";
 import { PASSWORD_MIN } from "@/lib/user-admin";
 import { hintCls, inputCls, labelCls, primaryButtonCls } from "@/components/form-styles";
 
-// Senha nova com confirmação; com askCurrent, pede também a senha atual.
 export function PasswordForm({ action, askCurrent = false, button, pendingLabel, savedMessage }: {
   action: (previous: PasswordState, formData: FormData) => Promise<PasswordState>;
   askCurrent?: boolean;

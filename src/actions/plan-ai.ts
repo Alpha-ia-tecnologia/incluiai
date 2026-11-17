@@ -13,8 +13,6 @@ import { planDocumentsFromForm } from "@/lib/plan-documents";
 
 const requireTeam = requireStudentTeam;
 
-// Prepara uma proposta de PPI com os agentes (ou com as regras, sem IA) e a
-// guarda como rascunho. Nada vira plano antes da revisão do professor.
 export async function generatePlanDraft(studentId: string) {
   const user = await requireTeam(studentId);
   await createPlanDraft(studentId, user);
@@ -22,7 +20,6 @@ export async function generatePlanDraft(studentId: string) {
   redirect(`/estudantes/${studentId}/ppi#proposta`);
 }
 
-// O professor revisa a proposta, escolhe os objetivos e ativa o plano.
 export async function activatePlanDraft(studentId: string, formData: FormData) {
   const prisma = await db();
   const user = await requireTeam(studentId);
@@ -46,7 +43,6 @@ export async function activatePlanDraft(studentId: string, formData: FormData) {
       studentId,
       status: "ativo",
       initialSituation,
-      // PAEE e PEI: estratégias da proposta revisadas, autoria e o conteúdo mínimo da Portaria.
       ...planDocumentsFromForm((name) => formData.get(name)),
       reviewDate,
       objectives: {
@@ -58,7 +54,6 @@ export async function activatePlanDraft(studentId: string, formData: FormData) {
             criterion: objective.criterion,
             deadlineWeeks: objective.deadlineWeeks,
             description: buildObjectiveDescription({ studentName: student.name, ...objective }),
-            // O código proposto pela IA só entra se existir na base oficial.
             bnccCode: validBnccCode(objective.bnccCode),
             dimension: objective.dimension,
             currentSupport: objective.currentSupport,

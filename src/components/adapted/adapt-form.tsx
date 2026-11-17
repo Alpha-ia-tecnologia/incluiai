@@ -9,8 +9,6 @@ import { Assurances } from "@/components/explain";
 
 type Action = (previous: AdaptState, formData: FormData) => Promise<AdaptState>;
 
-// Enviar a atividade da turma (foto, PDF ou texto colado). Com arquivo, o
-// primeiro envio só transcreve; o professor confere o texto e então adapta.
 export function AdaptForm({ action, canRead, aiOn, objectives, showOptions = true, adaptLabel = "Adaptar" }: {
   action: Action;
   canRead: boolean;

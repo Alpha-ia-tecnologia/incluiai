@@ -6,14 +6,6 @@ import { db } from "@/lib/prisma";
 import { requireStudentTeam } from "@/lib/auth";
 import { addMaterialImages, approveStudentMaterial, createStudentMaterial, saveMaterialActivity } from "@/lib/material-generate";
 
-// Materiais de apoio. Cada ação confere a equipe do estudante; a geração e as
-// regras ficam em src/lib/material-generate.ts (também usado pelo assistente).
-// Os resultados voltam como estado (useActionState) para a mensagem chegar à
-// pessoa também no build de produção.
-//
-// Cada material tem página própria (/estudantes/ID/materiais/MATERIAL); a
-// galeria (/estudantes/ID/materiais) mostra o resumo. Toda mudança atualiza as duas.
-
 export type MaterialActionState = { status: "idle" | "ok" | "erro"; message?: string; materialId?: string };
 
 const failure = (error: unknown, fallback: string): MaterialActionState => {
@@ -31,10 +23,7 @@ function revalidateMaterial(studentId: string, materialId: string) {
   revalidatePath(`${materialPath(studentId, materialId)}/imprimir`);
 }
 
-// Ao criar, leva à página do material novo. O redirect fica fora do try (ele
-// lança o desvio do Next) e acontece no mesmo envio: o botão segue ocupado, com
-// o canteiro, até a página nova chegar. O aviso de criado vai na URL (criado=ia
-// ou regras; imagens=N e falhas=1 quando as imagens foram pedidas).
+// O redirect fica fora do try: ele lança o desvio do Next.
 export async function generateMaterial(studentId: string, _previous: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
   let target: string;
   try {
@@ -90,11 +79,9 @@ export async function sendMaterialActivity(studentId: string, materialId: string
   }
 }
 
-// Excluir sai da página do material (que deixa de existir) e volta à galeria.
 export async function deleteMaterial(studentId: string, materialId: string) {
   const prisma = await db();
   await requireStudentTeam(studentId);
-  // Só apaga material DESTE estudante (o id sozinho não basta).
   const removed = await prisma.material.deleteMany({ where: { id: materialId, studentId } });
   if (!removed.count) throw new Error("Material não encontrado para este estudante.");
   revalidateMaterial(studentId, materialId);

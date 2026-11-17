@@ -1,4 +1,3 @@
-// Materiais de apoio: rotina visual, história social, prancha de comunicação… criar, aprovar e imprimir.
 export default {
   id: "09-materiais-de-apoio",
   title: "Materiais de apoio",

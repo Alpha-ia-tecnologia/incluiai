@@ -12,9 +12,8 @@ type CardAction = (state: CardFormState, formData: FormData) => Promise<CardForm
 
 const MAX_SIDE = 800;
 
-// Reduz a foto no próprio aparelho e a recodifica em JPG: o arquivo fica leve e
-// sai sem os metadados do celular (a localização, por exemplo). Se o navegador
-// não conseguir, a foto original segue, e o servidor tira os metadados.
+// Reduz a foto no próprio aparelho e a recodifica em JPG: sai sem os
+// metadados do celular (a localização, por exemplo).
 async function shrinkPhoto(file: File): Promise<File> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
@@ -83,15 +82,12 @@ export function CardPreferencesForm({ action, firstName, settings, guardian, has
   hasProfile: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
-  // Envio pelo onSubmit (como no registro de aula): com action={...}, o React
-  // limparia o formulário depois de salvar, e o parentesco voltaria ao valor
-  // da primeira renderização. Assim, a tela continua mostrando o que foi salvo.
+  // Com action={...}, o React limparia o formulário depois de salvar.
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     startTransition(() => formAction(data));
   }
-  // Sem contato salvo, o formulário começa com o responsável do cadastro (só grava ao salvar).
   const name = settings.emergencyName || guardian.name;
   const phone = settings.emergencyPhone || guardian.phone;
   return (

@@ -49,7 +49,6 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
       <header className="mb-7 flex items-center justify-between gap-5">
         <div className="min-w-0 max-w-2xl">
           <h1 className="font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{journey.title}</h1>
-          {/* Sem capítulos, a introdução aparece só no estado vazio, logo abaixo. */}
           {journey.intro && chapters.length ? <p className="mt-2 text-base text-ink-soft">{journey.intro}</p> : null}
           {chapters.length ? (
             <div className="mt-5 max-w-md">
@@ -200,7 +199,6 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
   );
 }
 
-// Um número da história com o gráfico que o explica (padrão do Painel de indicadores).
 function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
   const viz = item.viz;
   let chart: ReactNode = null;

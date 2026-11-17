@@ -13,32 +13,24 @@ type Query = { criado?: string | string[]; imagens?: string | string[]; falhas?:
 
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
-// Página de um material: o material inteiro, com as ações da equipe (aprovar,
-// desenhar imagens, levar atividade, imprimir e excluir). Mesma regra da
-// galeria: a equipe pedagógica edita; família e terapeuta só leem.
 export default async function MaterialPage({ params, searchParams }: { params: Promise<{ id: string; materialId: string }>; searchParams: Promise<Query> }) {
   const prisma = await db();
   const [{ id, materialId }, query] = await Promise.all([params, searchParams]);
   await requireStudentPage(id, "Material de apoio");
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  // Só material DESTE estudante: o id do material sozinho não basta.
   const material = await prisma.material.findFirst({
     where: { id: materialId, studentId: id },
     include: { images: { select: { cardIndex: true, altText: true, createdAt: true } }, student: { select: { schoolId: true } } },
   });
   if (!material) notFound();
-  // O layout do estudante já confere o acesso; a página confere de novo, perto dos dados.
   if (!canAccessStudent(user, material.student.schoolId, id)) redirect("/");
   const team = canEditStudentRecord(user.role);
-  // Desenhar imagens também depende da autorização da família.
   const imagesOn = await imagesAllowedFor(id);
   const objective = material.objectiveId
     ? await prisma.objective.findFirst({ where: { id: material.objectiveId, plan: { studentId: id } }, select: { description: true } })
     : null;
 
-  // Aviso de criado (vem do redirect de generateMaterial): o texto sai daqui,
-  // não da URL, que só diz como foi feito e quantas imagens saíram.
   const created = one(query.criado);
   const imageCount = Number.parseInt(one(query.imagens), 10);
   const notice = created === "ia" || created === "regras"

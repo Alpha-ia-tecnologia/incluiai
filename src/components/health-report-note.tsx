@@ -2,8 +2,6 @@ import Link from "next/link";
 import { ArrowRight, FileText } from "lucide-react";
 import { linkCls } from "@/components/form-styles";
 
-// Faixa do estudo de caso que leva aos laudos: convite discreto quando não há
-// nenhum (é opcional) e aviso quando há sugestões esperando revisão.
 export function HealthReportsNote({ studentId, reports }: { studentId: string; reports: { status: string; reviewedAt: Date | null }[] }) {
   const pending = reports.filter((report) => report.status === "lido" && !report.reviewedAt).length;
   const total = reports.length;

@@ -18,7 +18,6 @@ async function requireCensus(): Promise<SessionUser> {
   return user;
 }
 
-// Envio do arquivo de migração: vira uma prévia (o arquivo não fica guardado).
 export async function uploadCensusFile(schoolId: string, _previous: CensusState, formData: FormData): Promise<CensusState> {
   const user = await requireCensus();
   const file = formData.get("file");
@@ -29,7 +28,6 @@ export async function uploadCensusFile(schoolId: string, _previous: CensusState,
   redirect(`/censo/importacoes/${result.importId}`);
 }
 
-// Revisão manual: vincular a um estudante, cadastrar como novo ou ignorar com motivo.
 export async function decideCensusPerson(importId: string, personKey: string, _previous: CensusState, formData: FormData): Promise<CensusState> {
   const user = await requireCensus();
   const choice = String(formData.get("decision") ?? "");
@@ -75,7 +73,6 @@ export async function verifyCensusNow(_previous: CensusState): Promise<CensusSta
   return { saved: true };
 }
 
-// Janela do Censo e horários das verificações (a Secretaria configura para a rede).
 export async function saveCensusWindow(_previous: CensusState, formData: FormData): Promise<CensusState> {
   const user = await requireCensus();
   if (!censusAccess(user)?.canConfigure) return { error: "Só a Secretaria configura a janela do Censo." };
@@ -91,7 +88,6 @@ export async function saveCensusWindow(_previous: CensusState, formData: FormDat
   return { saved: true };
 }
 
-// Matrículas de AEE que o FNDE considerou no Fundeb (vazio apaga).
 export async function saveFndeCount(_previous: CensusState, formData: FormData): Promise<CensusState> {
   const prisma = await db();
   const user = await requireCensus();

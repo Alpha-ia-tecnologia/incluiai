@@ -18,8 +18,6 @@ import type { AgentModel, AgentProgress } from "./types";
 
 export type AgentReport = (progress: AgentProgress) => void;
 
-// Avisa quem pediu (a tela do assistente) quando cada agente começa e termina.
-// Os formulários chamam sem `report` e nada muda para eles.
 export function reporting(model: AgentModel, report?: AgentReport): AgentModel {
   if (!report) return model;
   return async (request) => {
@@ -35,11 +33,6 @@ export function reporting(model: AgentModel, report?: AgentReport): AgentModel {
   };
 }
 
-// Geração de propostas, usada pelos formulários e pelo assistente. A IA
-// (agentes com LangGraph) entra quando há chave; o motor de regras responde
-// quando ela está desligada ou falha. Nada aqui vira plano ou atividade
-// aplicada: tudo nasce como proposta para a decisão do professor.
-
 export function describeAgentError(error: unknown) {
   if (error instanceof AgentOutputError) return error.message;
   if (error instanceof DeepSeekAPIError) return error.message;
@@ -50,10 +43,8 @@ export function describeAgentError(error: unknown) {
   return "erro inesperado";
 }
 
-// Prepara uma proposta de PPI e a guarda como rascunho em PlanDraft.
 export async function createPlanDraft(studentId: string, user: SessionUser, report?: AgentReport) {
   const prisma = await db();
-  // A proposta de plano (IA ou regras) também exige o estudo de caso concluído (CA02).
   await assertCaseStudyConcluded(studentId);
   const { student, text, hasEnoughData } = await loadPlanContext(studentId);
   if (!hasEnoughData) {
@@ -65,7 +56,6 @@ export async function createPlanDraft(studentId: string, user: SessionUser, repo
   let trace: TraceStep[] = [];
   let source: "ia" | "regras" = "regras";
 
-  // IA só com a autorização da família; sem ela, a proposta sai pelas regras.
   if (await aiAllowedFor(studentId)) {
     const anonymizer = await loadAnonymizer(studentId);
     const agents = createAgentModel(anonymizer);
@@ -103,7 +93,6 @@ export async function createPlanDraft(studentId: string, user: SessionUser, repo
   return { proposal, analysis, trace, source };
 }
 
-// Os 3 cartões (sala comum / AEE / casa) para um objetivo.
 export async function buildActivityCards(input: EngineInput, report?: AgentReport): Promise<ActivityCard[]> {
   const prisma = await db();
   if (await aiAllowedFor(input.student.id)) {
@@ -129,7 +118,6 @@ export async function buildActivityCards(input: EngineInput, report?: AgentRepor
   return generateActivityCards(input);
 }
 
-// Guarda os cartões como "sugerida": a decisão continua com o professor.
 export async function saveSuggestedActivities(studentId: string, objectiveId: string, cards: ActivityCard[]) {
   const prisma = await db();
   return prisma.activity.createManyAndReturn({

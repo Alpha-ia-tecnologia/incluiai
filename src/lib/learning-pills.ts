@@ -1,7 +1,4 @@
-// Formação em pílulas (item 9 do plano), pura para teste com node --test
-// (src/lib/learning-pills.test.mjs): textos curtos, de até 2 minutos, ao lado
-// do passo em que a dúvida aparece. Versão 1: rascunho da plataforma para a
-// equipe pedagógica revisar. Textos próprios, sem trechos copiados.
+// Versão 1: rascunho da plataforma para a equipe pedagógica revisar. Textos próprios, sem trechos copiados.
 
 export type Pill = {
   slug: string;
@@ -146,7 +143,6 @@ export const PILLS: Pill[] = [
 
 export const pillBySlug = (slug: string) => PILLS.find((pill) => pill.slug === slug);
 
-// Tempo de leitura em minutos, a 180 palavras por minuto (leitura atenta).
 export function readingMinutes(pill: Pill): number {
   const text = [pill.summary, pill.why, ...pill.steps, pill.example, ...pill.avoid, pill.where.text].join(" ");
   return Math.max(1, Math.ceil(text.split(/\s+/).filter(Boolean).length / 180));

@@ -6,9 +6,6 @@ import { parseJson } from "../format";
 import { normalizeContent, suggestionBasis, type DuaContent } from "./domain";
 import { planningAccess, type PlanningAccess } from "./access";
 
-// Peças comuns da camada de dados do DUA. Nada aqui é ação pública: as ações
-// (src/actions/dua*.ts) chamam estas funções com o usuário da sessão.
-
 export type DuaErrorKind = "nao_encontrado" | "sem_permissao" | "conflito" | "invalido";
 export class DuaError extends Error {
   constructor(message: string, readonly kind: DuaErrorKind = "invalido", readonly problems: { field: string; message: string }[] = []) {
@@ -22,8 +19,6 @@ export const STUDENT_FORBIDDEN = "Você não tem permissão para esta ação com
 
 export type Need = keyof Omit<PlanningAccess, "owner">;
 
-// Carrega o planejamento conferindo a permissão. Sem leitura, responde "não
-// encontrado": quem está fora do recorte não fica sabendo que ele existe.
 export async function loadPlanningFor(user: SessionUser, planningId: string, need: Need) {
   const prisma = await db();
   const planning = await prisma.duaPlanning.findUnique({ where: { id: planningId } });
@@ -43,7 +38,6 @@ export async function latestVersion(planningId: string) {
 
 export const contentOf = (version: { content: string }): DuaContent => normalizeContent(parseJson<Partial<DuaContent> | null>(version.content, null));
 
-// Recorte do estudante: equipe pedagógica com acesso (família e terapeuta não entram no DUA).
 export function canWorkWithStudent(user: SessionUser, student: { id: string; schoolId: string }) {
   return canEditStudentRecord(user.role) && canAccessStudent(user, student.schoolId, student.id);
 }
@@ -56,8 +50,6 @@ export async function studentInReach(user: SessionUser, studentId: string) {
   return student;
 }
 
-// Evento do planejamento: sem nome de estudante no detalhe (o histórico é lido
-// por toda a equipe do planejamento).
 export async function audit(user: SessionUser, planningId: string, action: string, objectType: string, extra: { objectId?: string; versionNumber?: number; detail?: string } = {}) {
   const prisma = await db();
   await prisma.duaAuditEvent.create({
@@ -65,7 +57,6 @@ export async function audit(user: SessionUser, planningId: string, action: strin
   });
 }
 
-// Histórico de acessos do estudante (LGPD), o mesmo lido pela família.
 export async function studentLog(user: SessionUser, studentId: string, action: "criou" | "editou" | "visualizou" | "enviou", detail: string) {
   const prisma = await db();
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action, detail } });
@@ -83,8 +74,6 @@ export function dateFromInput(value: string, label = "a data"): Date {
 
 export const clip = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
 
-// Estudantes que a pessoa acompanha (para escolher participantes e apoios). A
-// lista já sai filtrada pelo recorte; a ação confere de novo ao gravar.
 export async function studentsInReach(user: SessionUser, filter: { className?: string | null } = {}) {
   const prisma = await db();
   const rows = await prisma.student.findMany({

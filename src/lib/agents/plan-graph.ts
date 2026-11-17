@@ -11,17 +11,8 @@ import {
 } from "./schemas.ts";
 import { firstAgentError, type AgentModel } from "./types.ts";
 
-// Geração do plano (PAEE, PEI e objetivos) por agentes, orquestrada com LangGraph:
-//
-//                       ┌→ agente do PAEE ──┐
-//   início → analista ──→ agente do PEI ────→ revisor ─┬─ aprovado ou limite → finalizar → fim
-//                       └→ planejador ──────┘    ↑     └─ parte reprovada → refaz só ela
-//
-// O analista lê o caso. Em paralelo, o agente do PAEE propõe os quatro itens do
-// art. 10 da Portaria MEC nº 421/2026, o agente do PEI os do art. 11 (com os
-// nomes do Censo Escolar) e o planejador os objetivos. O revisor confere cada
-// parte e a coerência entre elas, e soma as checagens determinísticas. Nada
-// vira plano sem a revisão da equipe.
+// O agente do PAEE propõe os quatro itens do art. 10 da Portaria MEC nº 421/2026,
+// o agente do PEI os do art. 11 (com os nomes do Censo Escolar).
 
 export const MAX_PLAN_REVIEWS = 2;
 
@@ -59,8 +50,6 @@ const PART_LABEL: Record<PlanPart, string> = { paee: "PAEE", pei: "PEI", objetiv
 const CLINICAL_TERMS = /\b(diagn[óo]stico|laudo|cid[- ]?\d|medica[çc][ãa]o|patologia|transtorno|s[íi]ndrome|d[ée]ficit cognitivo)\b/i;
 const CLINICAL_PROBLEM = { problema: "Há linguagem clínica.", correcao: "Descreva o que o estudante faz e de que apoio precisa, sem termos clínicos." };
 
-// As opções de cada campo, com os nomes do formulário (e do Censo Escolar, nos
-// atendimentos do AEE e nos recursos da avaliação).
 const optionLines = (fields: [string, readonly string[]][]) => fields.map(([field, options]) => `- ${field}: ${options.join("; ")}`).join("\n");
 const PAEE_OPTIONS = optionLines([
   ["accessibilityResources", ACCESSIBILITY_RESOURCE_OPTIONS], ["assistiveTech", ASSISTIVE_TECH_OPTIONS],
@@ -74,7 +63,6 @@ const PEI_OPTIONS = optionLines([
 const fold = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const outside = (items: string[], options: readonly string[]) => items.filter((item) => item.trim() && !options.some((option) => fold(option) === fold(item)));
 
-// Checagens que não dependem do modelo, parte a parte.
 export function checkPaee(paee: PaeeProposal): Problem[] {
   const problems: Problem[] = [];
   const unknown = outside(paee.supportStaff, SUPPORT_STAFF_OPTIONS);
@@ -94,7 +82,6 @@ export function checkPei(pei: PeiProposal): Problem[] {
   return problems;
 }
 
-// Garantem o formato da frase do objetivo.
 export function checkObjectives(proposal: ObjectivesProposal): Problem[] {
   const problems: Problem[] = [];
   if (proposal.objectives.length < 1 || proposal.objectives.length > 3) {
@@ -123,8 +110,6 @@ const clamp = (value: number, min: number, max: number, fallback: number) =>
 const cleanItems = (items: string[], limit: number) =>
   [...new Set(items.map((item) => item.replace(/;/g, ",").trim()).filter(Boolean))].slice(0, limit);
 
-// Ajustes finais (sem IA): limites da escala, prazos, formato dos itens e nomes
-// das listas. Tipos de AEE e profissionais de apoio só com os nomes da lista.
 export function normalizePlanProposal(proposal: PlanProposal): PlanProposal {
   return {
     initialSituation: cleanItems(proposal.initialSituation, 8),
@@ -161,7 +146,6 @@ export function normalizePlanProposal(proposal: PlanProposal): PlanProposal {
 const base = (state: PlanStateType) => `Informações do estudante:\n\n${state.context}\n\nAnálise do caso:\n${JSON.stringify(state.analysis)}`;
 const problemLines = (problems: Problem[]) => problems.map((item) => `- [${item.alvo}] ${item.problema} Correção: ${item.correcao}`).join("\n");
 
-// Pedido de correção para a parte devolvida pelo revisor, com a versão anterior.
 function corrections(state: PlanStateType, part: PlanPart, previous: unknown) {
   const problems = state.feedback[part];
   return problems?.length && previous

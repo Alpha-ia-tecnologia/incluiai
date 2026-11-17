@@ -26,7 +26,6 @@ const TREND_META: Record<Trend, { label: string; icon: LucideIcon }> = {
   sem_dados: { label: "Sem registros", icon: Minus },
 };
 
-// As 12 áreas de apoio de "Como aprende", na escala de 0 (IND) a 5 (FIS-T).
 const PROFILE_SUPPORT = [
   { title: "Aprendizagem", fields: [["readingSupport", "Leitura"], ["writingSupport", "Escrita"], ["mathSupport", "Matemática"]] },
   { title: "Interação", fields: [["peerInteraction", "Interação com colegas"], ["adultInteraction", "Interação com adultos"], ["groupWork", "Trabalho em grupo"]] },
@@ -34,8 +33,6 @@ const PROFILE_SUPPORT = [
   { title: "Movimento", fields: [["fineMotor", "Coordenação fina"], ["grossMotor", "Coordenação ampla"]] },
 ] as const satisfies ReadonlyArray<{ title: string; fields: ReadonlyArray<readonly [keyof FunctionalProfile, string]> }>;
 
-// No computador este cartão fica na coluna estreita: as barras descem para a
-// linha de baixo, como no celular, para o nome da área e o nível caberem.
 const NARROW_BARS = "lg:[&_li]:grid-cols-[minmax(0,1fr)_auto] lg:[&_li>span:nth-child(2)]:col-span-2 lg:[&_li>span:nth-child(2)]:row-start-2";
 
 export default async function StudentOverview({ params }: { params: Promise<{ id: string }> }) {
@@ -56,26 +53,18 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   });
   const intersector = student.intersectorReports[0];
   const user = await getCurrentUser();
-  // Família e terapeuta também abrem o resumo: os gráficos que mostram mais do
-  // diário do que o resumo já mostrava (histórico completo, participação,
-  // contagens) ficam só com a equipe pedagógica.
   const pedagogical = Boolean(user && canSeePedagogicalDetail(user.role));
   const caseSynthesis = parseCaseStudy(student.caseStudy?.content).sintese;
-  // Laudos: as orientações aceitas na revisão, sem termos clínicos, valem para
-  // a equipe pedagógica; o aviso de sugestões a revisar, só para quem vê laudos.
   const reportGuidance = pedagogical ? guidanceForPlan(student.healthReports.filter((report) => report.reviewedAt).map((report) => parseAccepted(report.accepted))) : [];
   const reportsToReview = user && canSeeClinicalDetail(user.role) ? student.healthReports.filter((report) => report.status === "lido" && !report.reviewedAt).length : 0;
 
 
   const activePlan = student.plans.find((p) => p.status === "ativo");
   const objectives = activePlan?.objectives.filter((o) => o.status === "ativo") ?? [];
-  // Antes do primeiro plano não há aula para registrar: o aviso de falta de
-  // registro só entra quando o acompanhamento já começou.
   const alerts = studentAlerts({ plans: student.plans, entries: student.diaryEntries })
     .filter((alert) => alert.kind !== "sem_registro" || Boolean(activePlan) || student.diaryEntries.length > 0);
   // Censo Escolar (orientação do INEP): o estudo de caso concluído ou o plano
   // ativo respaldam a declaração do estudante como público da educação especial.
-  // Vale igual para todos os estudantes acompanhados, com ou sem AEE.
   const census = pedagogical
     ? censusReference({ caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: Boolean(activePlan), specialEducation: specialEducationAnswer(parseCaseStudy(student.caseStudy?.content).publicoAlvo) })
     : null;
@@ -170,7 +159,6 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                         </p>
                       ) : null
                     ) : insight.lastSupportLevels.length > 0 ? (
-                      // Família e terapeuta veem só os últimos registros, como antes.
                       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                         <span>Últimos registros:</span>
                         <SupportSteps levels={insight.lastSupportLevels} label="Últimos níveis de apoio registrados, do mais antigo ao mais recente" />
@@ -283,7 +271,6 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
             </dl>
           )}
           {profile ? (
-            // As 12 áreas ocupavam metade da coluna: ficam recolhidas, a um toque.
             <details className="group mt-5 border-t border-line pt-2">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
                 <h3>Apoio de que precisa em cada área</h3>

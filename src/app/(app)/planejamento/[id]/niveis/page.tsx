@@ -21,8 +21,6 @@ export const dynamic = "force-dynamic";
 
 const ORDER: LevelKey[] = ["mais_apoio", "padrao", "desafio"];
 
-// A mesma atividade da turma em três níveis de complexidade (item 5 do plano):
-// mesmo tema e mesma habilidade, caminhos diferentes para o mesmo objetivo (DUA).
 export default async function LevelsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lote?: string }> }) {
   const prisma = await db();
   const [{ id }, query, user] = await Promise.all([params, searchParams, getCurrentUser()]);

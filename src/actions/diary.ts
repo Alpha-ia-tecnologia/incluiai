@@ -6,9 +6,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { homeActivityNote } from "@/lib/user-journey";
 import { saveDiaryEntry, saveFamilyNote } from "@/lib/records";
 
-// Registro em 3 toques (itens 5 e 17.6): participação + apoio + critério.
-// Ao registrar sobre uma atividade aceita, ela passa a "aplicada" — fechando
-// o ciclo sugerir → decidir → aplicar → registrar.
 export async function createDiaryEntry(studentId: string, formData: FormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Faça login para registrar a aula.");
@@ -30,8 +27,6 @@ export async function createDiaryEntry(studentId: string, formData: FormData) {
   revalidatePath(`/estudantes/${studentId}`);
 }
 
-// A família avisa que fez em casa uma atividade enviada pela escola. Vira uma
-// observação da família, que a equipe vê no resumo do estudante.
 export async function markHomeActivityDone(activityId: string) {
   const prisma = await db();
   const user = await getCurrentUser();

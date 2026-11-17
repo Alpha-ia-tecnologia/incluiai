@@ -1,12 +1,8 @@
-// Rótulos e sugestões do assistente, sem dependências de servidor: a tela e
-// as ferramentas usam os mesmos textos.
-
 export const TOOL_LABELS: Record<string, string> = {
   buscar_estudantes: "Consultando os estudantes",
   ver_estudante: "Lendo o acompanhamento do estudante",
   ver_atividades: "Consultando as atividades",
   proximos_passos_dua: "Consultando os próximos passos do DUA",
-  // Sem duração: a faixa de espera dá o tempo certo (com imagens, até 4 minutos).
   propor_plano: "Preparando a proposta de plano com os agentes",
   gerar_atividades: "Criando as 3 sugestões de atividade com os agentes",
   criar_material: "Montando o material de apoio",
@@ -64,7 +60,6 @@ export function suggestionsFor(role: string): string[] {
       "Como transformo uma observação clínica em orientação para a sala?",
     ];
   }
-  // A Secretaria vê a rede em números: perguntas sobre escolas, não sobre estudantes.
   if (role === "secretaria") {
     return [
       "Quais escolas têm mais estudantes com aviso?",

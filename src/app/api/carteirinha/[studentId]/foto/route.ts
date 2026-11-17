@@ -3,8 +3,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { canViewCard } from "@/lib/student-card";
 import { unavailableResponse } from "@/lib/tenant";
 
-// Foto da carteirinha: só para a família e a equipe que faz a carteirinha, e só
-// enquanto a família autoriza. Para os demais, "não encontrada".
 export async function GET(_request: Request, { params }: { params: Promise<{ studentId: string }> }) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;

@@ -7,10 +7,6 @@ import { approveAdaptedTask, createAdaptedTask, createLevels, deleteAdaptedTask,
 import { loadPlanningFor } from "@/lib/dua/shared";
 import { ANSWER_FORMATS, type AdaptedContent, type AnswerFormat, type TaskKind } from "@/lib/task-adaptation";
 
-// Adaptar a atividade ou a prova da turma (estudante) e os três níveis (DUA).
-// Com arquivo, o primeiro passo só transcreve: o professor confere o texto antes.
-
-// No passo "conferir", as escolhas do primeiro envio voltam para o formulário não se apagar.
 export type AdaptState = { error?: string; step?: "conferir"; title?: string; text?: string; saved?: boolean; kind?: TaskKind; options?: string[]; objectiveId?: string };
 
 const kindOf = (value: FormDataEntryValue | null): TaskKind => (value === "prova" ? "prova" : "atividade");
@@ -38,7 +34,6 @@ export async function adaptForStudent(studentId: string, _previous: AdaptState, 
   redirect(`/estudantes/${studentId}/atividades/adaptadas/${task.id}`);
 }
 
-// O conteúdo editado vem campo a campo (item-0-prompt, item-0-options…).
 function contentFrom(formData: FormData): AdaptedContent {
   const lines = (name: string) => String(formData.get(name) ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
   const count = Number(formData.get("itemCount") ?? 0);

@@ -18,7 +18,6 @@ const STATE_TONE: Record<ExecutionState, "neutral" | "brand" | "green" | "amber"
 
 const summaryCls = "flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden";
 
-// Data para <input type="date">, pelas partes locais (a aplicação é gravada ao meio-dia).
 export const inputDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 function defaultsFor(application: ApplicationView, evidence: EvidenceView | undefined): EvidenceDefaults {
@@ -35,20 +34,14 @@ function defaultsFor(application: ApplicationView, evidence: EvidenceView | unde
   };
 }
 
-// Uma aplicação: versão, contexto, data, turma, situação e responsáveis; o
-// controle de situação e participantes (para quem responde por ela) e o
-// registro de evidência de cada participante visível, recolhido por estudante.
 export function ApplicationCard({ planningId, application, students }: { planningId: string; application: ApplicationView; students: StudentOption[] }) {
   const evidenceByStudent = new Map(application.evidences.map((item) => [item.studentId, item]));
   const participantIds = new Set(application.participants.map((person) => person.id));
-  // Evidência de quem foi retirado da aplicação continua visível (não se perde o registro).
   const withdrawn = application.evidences.filter((item) => !participantIds.has(item.studentId));
   const cancelled = application.state === "cancelada";
   const criteria = application.content.criteria.map(({ id, description }) => ({ id, description }));
   const strategies = application.content.strategies.map(({ id, description }) => ({ id, description }));
   const headingId = `aplicacao-${application.id}`;
-  // Documentação: participantes visíveis com evidência registrada (observada ou
-  // "sem oportunidade"), como no indicador do painel. Mede registro, não aprendizagem.
   const documented = application.participants.filter((person) => {
     const observation = evidenceByStudent.get(person.id)?.observation;
     return observation !== undefined && observation !== "nao_registrado";

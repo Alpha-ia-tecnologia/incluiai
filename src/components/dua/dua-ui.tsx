@@ -4,10 +4,6 @@ import { Badge } from "@/components/ui";
 import { hintCls, labelCls } from "@/components/form-styles";
 import { ORIGIN_LABEL, REVIEW_STATE_LABEL, type DuaOrigin, type ReviewState } from "@/lib/dua/domain";
 
-// Peças visuais do planejamento com DUA, no padrão das telas do IncluiEdu
-// (rótulos visíveis, azul só em ação e marca).
-
-// Campos e botões vêm do kit único da plataforma (src/components/form-styles.ts).
 export { inputCls, textareaCls, labelCls, hintCls, linkCls, primaryButtonCls as buttonCls, quietButtonCls as secondaryCls } from "@/components/form-styles";
 export const dangerCls = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-coral/40 bg-paper-raised px-4 py-2.5 text-sm font-medium text-coral hover:bg-coral-soft disabled:pointer-events-none disabled:opacity-60";
 
@@ -20,7 +16,6 @@ export function OriginBadge({ origin }: { origin: DuaOrigin }) {
   return <Badge tone={origin.kind === "ia" ? "brand" : "neutral"}>{ORIGIN_LABEL[origin.kind]}</Badge>;
 }
 
-// Mensagem do resultado de uma ação: sucesso anunciado com calma, erro com alerta.
 export function ResultMessage({ result, id }: { result: { ok: boolean; message?: string; problems?: { field: string; message: string }[] } | null; id?: string }) {
   if (!result) return <p id={id} role="status" aria-live="polite" className="sr-only" />;
   if (result.ok) {
@@ -53,6 +48,5 @@ export function Field({ id, label, hint, required, children }: { id: string; lab
   );
 }
 
-// Lista de textos curtos editada como texto, um item por linha (sem arrastar).
 export const linesToList = (value: string) => value.split("\n").map((item) => item.trim()).filter(Boolean);
 export const listToLines = (items: string[]) => items.join("\n");

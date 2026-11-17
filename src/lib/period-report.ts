@@ -1,7 +1,4 @@
-// Relatório do período (devolutiva à família, Portaria MEC nº 421/2026, art. 11, IV),
-// puro para teste com node --test (src/lib/period-report.test.mjs): o período,
-// a fotografia dos registros e o rascunho do parecer, feito por regras (sem IA).
-// O relatório validado não muda mais: guarda os dados como estavam.
+// Relatório do período (devolutiva à família, Portaria MEC nº 421/2026, art. 11, IV).
 
 export type ReportObjective = {
   description: string;
@@ -25,7 +22,6 @@ export type ReportData = {
   materials: string[];
   familyNotes: number;
   therapistReports: number;
-  // Sondagem no período (apoio médio por área no começo e no fim); ausente em relatórios antigos.
   assessment?: { label: string; start: number | null; end: number | null }[] | null;
 };
 
@@ -33,7 +29,6 @@ const DAY = 86_400_000;
 export const isoDay = (date: Date) => date.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 export const brDate = (iso: string) => iso.split("-").reverse().join("/");
 
-// Semestre letivo de referência: janeiro a junho ou julho a dezembro.
 export function currentSemester(today: Date = new Date()): { start: string; end: string } {
   const [year, month] = isoDay(today).split("-").map(Number);
   return month <= 6 ? { start: `${year}-01-01`, end: `${year}-06-30` } : { start: `${year}-07-01`, end: `${year}-12-31` };
@@ -48,14 +43,11 @@ export function periodProblem(start: string, end: string, today: Date = new Date
   return null;
 }
 
-// Nível de apoio de um objetivo numa data: o último registro de aula até ali,
-// ou o nível do início do objetivo quando ainda não havia registro.
 export function supportAt(entries: ReadonlyArray<{ date: Date; supportLevel: number }>, limit: Date, fallback: number | null): number | null {
   const before = entries.filter((entry) => entry.date <= limit).sort((a, b) => a.date.getTime() - b.date.getTime());
   return before.length ? before[before.length - 1].supportLevel : fallback;
 }
 
-// Itens mais citados (o que funcionou nos registros), sem repetir.
 export function topItems(items: string[], limit = 5): string[] {
   const counts = new Map<string, { label: string; count: number }>();
   for (const raw of items) {
@@ -70,7 +62,6 @@ export function topItems(items: string[], limit = 5): string[] {
 
 export const lessSupport = (objective: ReportObjective) => objective.supportEnd !== null && objective.supportEnd < objective.supportStart;
 
-// Rascunho do parecer, para o AEE ler, corrigir e completar antes de validar.
 export function draftOpinion(data: ReportData): string {
   const name = data.student.name.split(" ")[0];
   const parts: string[] = [];
@@ -92,12 +83,10 @@ export function draftOpinion(data: ReportData): string {
   if (improvedAreas.length) parts.push(`Na sondagem, passou a precisar de menos apoio em ${improvedAreas.join(", ")}.`);
   if (data.strategies.length) parts.push(`O que mais ajudou: ${data.strategies.join(", ")}.`);
   if (data.familyNotes) parts.push(`A família registrou ${data.familyNotes} ${data.familyNotes === 1 ? "observação" : "observações"} de casa no período.`);
-  // Sem ponto depois do colchete: quem completa termina a frase.
   parts.push("Próximos passos: [complete com o que a equipe combinou para o próximo período]");
   return parts.join("\n\n");
 }
 
-// Parecer pronto para validar: escrito (não só o rascunho) e sem o marcador a completar.
 export function opinionProblem(opinion: string): string | null {
   const text = opinion.trim();
   if (text.length < 80) return "Escreva o parecer do período (pelo menos algumas frases).";

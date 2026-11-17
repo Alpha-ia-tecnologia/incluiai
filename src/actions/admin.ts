@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getCurrentUser, isNetworkRole } from "@/lib/auth";
 
-// Cadastros da rede (escolas e turmas) — apenas perfis de gestão.
 async function requireNetworkUser() {
   const user = await getCurrentUser();
   if (!user || !isNetworkRole(user.role)) {

@@ -1,6 +1,4 @@
-// Banco de recursos (busca, recurso com fotografia, níveis de apoio, impressão) e calendário inclusivo.
-
-// Mostra a folha como sai na impressão, sem abrir a janela do navegador (que não aparece na gravação).
+// A janela de impressão do navegador não aparece na gravação.
 async function printPreview(t, button, narration) {
   await t.page.evaluate(() => { window.print = () => {}; });
   await t.say(narration, async () => {
@@ -15,7 +13,6 @@ async function printPreview(t, button, narration) {
   await t.pause(300);
 }
 
-// O cartão em volta de um título da página.
 async function sectionOf(t, title) {
   const handle = await t.page.evaluateHandle((title) => [...document.querySelectorAll("main h2, main h3")].find((h) => h.textContent.includes(title))?.parentElement ?? null, title);
   const element = handle.asElement();

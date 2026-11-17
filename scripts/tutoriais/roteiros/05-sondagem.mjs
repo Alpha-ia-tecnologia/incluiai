@@ -1,4 +1,3 @@
-// Sondagem: aplicar a linha de base e ler o resultado.
 export default {
   id: "05-sondagem",
   title: "Sondagem",

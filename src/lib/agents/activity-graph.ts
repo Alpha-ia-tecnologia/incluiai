@@ -8,15 +8,6 @@ import {
   type ActivityContext, type AgentCard, type TraceStep,
 } from "./schemas";
 
-// Geração de atividades por agentes, orquestrada com LangGraph:
-//
-//        ┌→ sala_comum ┐
-//   início → aee ───────→ revisor ─┬─ tudo aprovado ou limite → finalizar → fim
-//        └→ casa ──────┘    ↑      └─ reprovadas → refaz só essas, em paralelo
-//
-// Os três especialistas trabalham em paralelo; o revisor combina a avaliação
-// do Claude com checagens determinísticas das regras da plataforma.
-
 export const MAX_ACTIVITY_RETRIES = 1;
 
 export type ActivityGraphInput = {
@@ -35,7 +26,6 @@ const ActivityState = Annotation.Root({
   context: Annotation<string>(),
   rules: Annotation<AdaptationRule[]>(),
   taskToleranceMinutes: Annotation<number>(),
-  // Os especialistas escrevem em paralelo: cada um acrescenta sua atividade.
   cards: Annotation<Partial<Record<ActivityContext, AgentCard>>>({ reducer: (current, next) => ({ ...current, ...next }), default: () => ({}) }),
   feedback: Annotation<Partial<Record<ActivityContext, string[]>>>({ reducer: (_current, next) => next, default: () => ({}) }),
   redo: Annotation<ActivityContext[]>({ reducer: (_current, next) => next, default: () => [] }),
@@ -48,7 +38,6 @@ function rulesText(rules: AdaptationRule[]) {
   return rules.map((rule) => `- [${rule.id}] ${rule.then}`).join("\n");
 }
 
-// Checagens que não dependem do modelo.
 export function checkCard(context: ActivityContext, card: AgentCard, toleranceMinutes: number): string[] {
   const problems: string[] = [];
   const limit = context === "casa" ? Math.min(10, toleranceMinutes || 10) : toleranceMinutes || 25;
@@ -107,7 +96,6 @@ function finalizeCards(state: ActivityStateType): ActivityCard[] {
       successCriterion: card.successCriterion,
       planB: card.planB,
       classParticipation: context === "sala_comum" ? card.classParticipation ?? undefined : undefined,
-      // Problemas que continuaram depois da correção: o professor confere.
       reviewNotes: state.feedback[context] ?? [],
       source: "ia" as const,
     };

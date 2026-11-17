@@ -8,8 +8,6 @@ import { ResultMessage, hintCls, labelCls, secondaryCls } from "../dua-ui";
 
 type Feedback = { ok: boolean; message?: string; problems?: { field: string; message: string }[] } | null;
 
-// Colaboradores do planejamento: marcar e salvar (sem arrastar). O servidor só
-// aceita profissionais que planejam, da escola do planejamento.
 export function CollaboratorsForm({ planningId, options, selected }: { planningId: string; options: { id: string; name: string; roleLabel: string }[]; selected: string[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();

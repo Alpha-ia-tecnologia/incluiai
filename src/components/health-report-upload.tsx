@@ -7,8 +7,7 @@ import { choiceCls, hintCls, inputCls, labelCls, primaryButtonCls } from "@/comp
 import { MAX_REPORT_BYTES, MAX_REPORT_MB } from "@/lib/health-report";
 import type { UploadState } from "@/actions/health-reports";
 
-// Envio do laudo. O tamanho é conferido aqui antes do envio (acima do limite
-// a requisição nem chega à ação) e de novo no servidor, com o tipo real.
+// Acima do limite a requisição nem chega à ação.
 export function HealthReportUpload({ action }: { action: (state: UploadState, formData: FormData) => Promise<UploadState> }) {
   const [state, formAction] = useActionState(action, {});
   const [tooBig, setTooBig] = useState(false);

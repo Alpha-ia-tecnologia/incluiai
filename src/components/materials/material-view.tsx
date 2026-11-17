@@ -12,9 +12,6 @@ import { MaterialImagesButton, SendActivityButton } from "./material-actions";
 import { Pictogram } from "./pictogram";
 import { ReadAloud } from "@/components/read-aloud";
 
-// Um material de apoio completo. O mesmo componente serve à página (com ações)
-// e à impressão (printMode: sem botões, cartões grandes e marca de sugestão).
-
 export type MaterialRow = {
   id: string;
   kind: string;
@@ -84,10 +81,7 @@ function ActivityCard({ activity, index, studentId, materialId, printMode, canEd
   );
 }
 
-// printHref: onde fica a versão para imprimir (null = a página já imprime por conta
-// própria, como a leitura do portal da família).
 export function MaterialView({ studentId, material, objective, imagesOn, printMode = false, canEdit = true, printHref }: { studentId: string; material: MaterialRow; objective: string | null; imagesOn: boolean; printMode?: boolean; canEdit?: boolean; printHref?: string | null }) {
-  // Ações só para a equipe pedagógica; o servidor confere de novo em cada uma.
   const actions = canEdit && !printMode;
   const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
   const trace = parseJson<TraceStep[]>(material.trace, []);

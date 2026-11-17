@@ -9,11 +9,6 @@ import {
 import { planningAccess } from "./access";
 import { DuaError, STUDENT_FORBIDDEN, audit, canWorkWithStudent, clip, contentOf, loadPlanningFor, studentLog } from "./shared";
 
-// Materiais vinculados à atividade (RF06). Cada um guarda a versão de origem, a
-// finalidade, o formato e os recursos de acessibilidade, o escopo (coletivo ou
-// individual), o autor, a participação de sugestões revisadas e a revisão.
-// Sem validação, a impressão sai marcada como RASCUNHO.
-
 const VALIDATORS = new Set(["professor_sala", "professor_aee", "coordenacao", "gestao"]);
 
 export type MaterialInput = { versionNumber: number; format: string; purpose: string; scope: string; supportId: string; resourceId: string };
@@ -34,7 +29,6 @@ export async function createMaterial(user: SessionUser, planningId: string, inpu
   let supportId: string | null = null;
   let sections: MaterialSection[];
   if (scope === "individual") {
-    // Material individual: a partir do apoio do estudante, dentro do recorte dele.
     const support = await prisma.duaSupport.findUnique({ where: { id: input.supportId }, include: { student: { select: { id: true, schoolId: true } } } });
     if (!support || support.planningId !== planningId || !canWorkWithStudent(user, support.student)) throw new DuaError(STUDENT_FORBIDDEN, "sem_permissao");
     if (!access.edit && support.responsibleId !== user.id) throw new DuaError("Só quem responde pelo apoio ou edita o planejamento prepara o material individual.", "sem_permissao");
@@ -88,7 +82,6 @@ async function loadMaterialFor(user: SessionUser, materialId: string) {
   return { material, access };
 }
 
-// Validação profissional para uso pedagógico: só de material de versão validada.
 export async function validateMaterial(user: SessionUser, materialId: string, revision: number) {
   const prisma = await db();
   const { material, access } = await loadMaterialFor(user, materialId);
@@ -125,13 +118,11 @@ export type MaterialView = {
   validatedByName: string | null;
   validatedAt: Date | null;
   createdAt: Date;
-  // Quem está lendo pode validar? (o servidor confere de novo ao validar)
   canValidate: boolean;
 };
 
 type MaterialRow = Awaited<ReturnType<typeof loadMaterialFor>>["material"];
 
-// Mesma regra de validateMaterial: quem valida o planejamento, ou o responsável pelo apoio (com papel de validação).
 async function canValidateMaterial(user: SessionUser, row: MaterialRow) {
   const prisma = await db();
   if (planningAccess(user, row.planning).validate) return true;
@@ -175,7 +166,6 @@ export async function getMaterial(user: SessionUser, materialId: string): Promis
   return viewOf(material, await canValidateMaterial(user, material));
 }
 
-// Materiais da biblioteca municipal que podem ser anexados.
 export async function libraryOptions() {
   const prisma = await db();
   return prisma.resource.findMany({ select: { id: true, title: true }, orderBy: { title: "asc" }, take: 300 });

@@ -2,10 +2,6 @@ import type { PrintableSheet } from "@/lib/resource-print-types";
 import { PrintDocumentHeader } from "./print-document-header";
 import styles from "./resource-print.module.css";
 
-// Páginas do professor, só no papel: o plano de atividade e a folha de registro
-// da aplicação (frente e verso, na impressão em dois lados). Na tela a proposta
-// aparece no cartão da atividade; aqui ela sai sem os números de uso da rede
-// nem os elementos de navegação.
 const lines = (count: number) => Array.from({ length: count }, (_, index) => <span key={index} className={styles.answerLine} />);
 
 export function ActivityPrintPlan({ network, resourceTitle, resourceType, activityTitle, context, durationMinutes, objective, materials, adaptations, steps, evidenceCriterion, sheets }: {
@@ -23,7 +19,6 @@ export function ActivityPrintPlan({ network, resourceTitle, resourceType, activi
   sheets: PrintableSheet[];
 }) {
   const questions = sheets.filter((sheet) => sheet.kind === "cards" && sheet.choices);
-  // Sem a tabela de respostas sobra espaço na folha de registro para mais linhas.
   const roomy = questions.length === 0;
   return <>
     <section className={`${styles.plan} ${styles.printOnly}`} data-resource-plan>

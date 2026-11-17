@@ -2,9 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-// Voz do próprio navegador para as instruções dos jogos. As frases não têm
-// dado pessoal (nem o nome do estudante), então qualquer voz em português serve;
-// a que roda no aparelho tem preferência. Sem voz, o botão "Ouvir" some.
 export function useSpeech() {
   const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [available, setAvailable] = useState(false);

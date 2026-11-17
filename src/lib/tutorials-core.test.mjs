@@ -1,4 +1,3 @@
-// Testes dos vídeos tutoriais: node --test src/lib/tutorials-core.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { formatDuration, isTutorial, parseTutorials, tutorialsForRole } from "./tutorials-core.ts";

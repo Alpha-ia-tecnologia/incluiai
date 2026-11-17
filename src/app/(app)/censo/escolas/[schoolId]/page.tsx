@@ -29,8 +29,6 @@ function Issues({ row }: { row: CoverageRow }) {
 }
 const IMPORT_STATUS: Record<string, string> = { previa: "Prévia aberta", aplicada: "Aplicada", descartada: "Descartada" };
 
-// O Censo de uma escola: código INEP, importação do arquivo e a dupla matrícula
-// de cada estudante do AEE. Só a coordenação e a gestão da escola (com nomes).
 export default async function CensusSchoolPage({ params, searchParams }: { params: Promise<{ schoolId: string }>; searchParams: Promise<{ aplicado?: string }> }) {
   const prisma = await db();
   const user = await getCurrentUser();
@@ -51,7 +49,6 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
   const open = imports.find((item) => item.status === "previa");
   const rows = result?.coverage.rows ?? [];
   const note = result ? schoolFundebNote(result.info) : null;
-  // Com dupla matrícula, mas com alerta no vínculo: aparecem à parte para conferir no Educacenso.
   const alerts = rows.filter((row) => row.status === "dupla" && row.issues.length);
 
   return (

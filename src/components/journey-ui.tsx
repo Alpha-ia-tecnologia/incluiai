@@ -7,8 +7,7 @@ import type { ChapterTone, Journey } from "@/lib/user-journey";
 import { percentOf } from "@/lib/series";
 import { RingStat } from "@/components/data-viz";
 
-// Cada capítulo tem a sua cor de categoria; o texto *-ink sobre o *-soft
-// correspondente passa de 4.5:1 (ver a paleta em globals.css).
+// O texto *-ink sobre o *-soft correspondente passa de 4.5:1 (ver a paleta em globals.css).
 export const TONE_CLASSES: Record<ChapterTone, { soft: string; ink: string; solid: string }> = {
   rose: { soft: "bg-rose-soft", ink: "text-rose-ink", solid: "bg-rose-ink" },
   sky: { soft: "bg-sky-soft", ink: "text-sky-ink", solid: "bg-sky-ink" },
@@ -18,7 +17,6 @@ export const TONE_CLASSES: Record<ChapterTone, { soft: string; ink: string; soli
   lilac: { soft: "bg-lilac-soft", ink: "text-brand-strong", solid: "bg-brand" },
 };
 
-// Barra da história: um trecho por capítulo, preenchido quando concluído.
 export function JourneyBar({ journey }: { journey: Journey }) {
   return (
     <div className="flex gap-1" aria-hidden>
@@ -29,10 +27,6 @@ export function JourneyBar({ journey }: { journey: Journey }) {
   );
 }
 
-// Primeiro acesso: a história do perfil em poucas linhas e um convite para começar.
-// character={false}: a página já tem o seu herói em marinho no topo (portal da
-// família, terapeuta); aí as boas-vindas viram um cartão claro, para não empilhar
-// dois blocos escuros.
 export function JourneyWelcome({ journey, character = true }: { journey: Journey; character?: boolean }) {
   const start = journey.current ?? journey.chapters[0];
   const navy = character;
@@ -58,7 +52,6 @@ export function JourneyWelcome({ journey, character = true }: { journey: Journey
                 <PendingButton className={`task-action ${navy ? "task-action-on-navy" : ""}`} pendingText="Abrindo o capítulo...">Começar: {start.action.label} <ArrowRight size={16} aria-hidden /></PendingButton>
               </form>
             ) : null}
-            {/* A história completa fica em "Minha jornada", no menu. */}
             <form action={dismissWelcome}>
               <button type="submit" className={`min-h-12 rounded-xl px-4 text-sm underline-offset-4 hover:underline ${navy ? "text-on-navy-soft hover:text-on-navy" : "text-ink-soft hover:text-ink"}`}>Agora não</button>
             </form>
@@ -70,7 +63,6 @@ export function JourneyWelcome({ journey, character = true }: { journey: Journey
   );
 }
 
-// Cartão compacto: onde a pessoa está na história e o próximo passo.
 export function JourneyProgress({ journey, layout = "card" }: { journey: Journey; layout?: "card" | "strip" }) {
   if (!journey.chapters.length) return null;
   const current = journey.current;

@@ -1,4 +1,3 @@
-// Evolução do estudante, relatório do período (devolutiva à família) e dossiê de evidências.
 const TABS = "nav[aria-label='Seções do estudante']";
 
 // As abas rolam de lado: traz a aba para a vista antes de clicar.
@@ -28,7 +27,6 @@ export default {
     await t.say("No resumo do estudante, clique em Ver evolução.", () => t.click({ text: "Ver evolução", in: "ol[aria-label='Etapas do acompanhamento']", tag: "a" }));
     await t.say("O gráfico mostra quantos acontecimentos houve em cada mês.", () => t.ring({ css: "section[aria-label='Eventos por mês']" }, 1800));
     await t.say("Mais abaixo, cada acontecimento aparece no seu mês: aulas registradas, reuniões e o plano.", async () => {
-      // O mês mais recente: as datas do seed acompanham o dia de hoje.
       const month = await t.find({ css: "section[aria-labelledby^='mes-'] ol" });
       await t.scrollTo(month, "center");
       await t.ring(month, 2000);

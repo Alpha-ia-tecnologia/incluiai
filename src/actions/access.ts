@@ -7,8 +7,6 @@ import { recordChange } from "@/lib/access-log";
 
 export type NominalAccessState = { error?: string };
 
-// Acesso nominal da Secretaria (seções 10 e 14): motivo obrigatório; vale 8 horas
-// e entra no histórico de acessos que a família consulta.
 export async function requestNominalAccess(studentId: string, _previous: NominalAccessState, formData: FormData): Promise<NominalAccessState> {
   const prisma = await db();
   const user = await getCurrentUser();

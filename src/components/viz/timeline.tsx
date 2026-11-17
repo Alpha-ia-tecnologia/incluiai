@@ -1,9 +1,5 @@
 import type { ReactNode } from "react";
 
-// Linha do tempo vertical (conquistas, relatórios), com o mesmo traço
-// tracejado dos capítulos da jornada. Cada item tem a data em texto; o
-// marcador é decorativo e o estado, quando houver, vem escrito em `badge`.
-
 export type TimelineItem = {
   key: string;
   date: string;

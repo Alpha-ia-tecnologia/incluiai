@@ -2,8 +2,6 @@ import { db } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser } from "@/lib/auth";
 import { unavailableResponse } from "@/lib/tenant";
 
-// Entrega a imagem de apoio de uma atividade a quem tem acesso ao estudante
-// (equipe escolar e família, para as atividades de casa).
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;
@@ -19,7 +17,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!image || !canAccessStudent(user, image.activity.student.schoolId, image.activity.studentId)) {
     return new Response("Imagem não encontrada", { status: 404 });
   }
-  // A família vê só as atividades de casa que a escola enviou; o terapeuta não usa atividades.
   const homeActivity = image.activity.context === "casa" && ["aceita", "aplicada"].includes(image.activity.status);
   if (user.role === "terapeuta" || (user.role === "familia" && !homeActivity)) {
     return new Response("Imagem não encontrada", { status: 404 });

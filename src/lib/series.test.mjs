@@ -1,4 +1,3 @@
-// Testes das séries dos gráficos: node --test src/lib/series.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { countItems, criterionSplit, monthlyCounts, participationSplit, percentOf, sessionsByMonth, supportSeries, supportTrend, weeklyCounts } from "./series.ts";
@@ -6,7 +5,7 @@ import { countItems, criterionSplit, monthlyCounts, participationSplit, percentO
 const at = (iso) => new Date(`${iso}T12:00:00-03:00`);
 
 test("registros por semana: últimas N semanas, a atual por último, segunda a domingo", () => {
-  const now = at("2026-10-17"); // sábado
+  const now = at("2026-10-17");
   const weeks = weeklyCounts([at("2026-10-12"), at("2026-10-17"), at("2026-10-11"), at("2026-09-01")], 3, now);
   assert.equal(weeks.length, 3);
   assert.deepEqual(weeks.map((week) => week.value), [0, 1, 2]);

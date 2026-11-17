@@ -1,4 +1,3 @@
-// Planejamento com DUA: uma atividade da turma, das quatro etapas até a validação.
 const STEPS = "nav[aria-label='Etapas do planejamento']";
 
 export default {

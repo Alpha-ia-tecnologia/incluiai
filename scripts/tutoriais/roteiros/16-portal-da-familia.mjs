@@ -1,8 +1,3 @@
-// Portal da família: acompanhar, responder a pergunta da semana, fazer a
-// atividade de casa, contar uma conquista e decidir as autorizações.
-
-// Antes de gravar: a professora do AEE prepara as sugestões e aceita a
-// atividade de casa, para o portal ter uma atividade enviada pela escola.
 async function sendHomeActivity(t, studentId) {
   const context = await t.page.browser().createBrowserContext();
   const page = await context.newPage();
@@ -27,7 +22,6 @@ async function sendHomeActivity(t, studentId) {
   }
 }
 
-// O cartão inteiro em volta de um título.
 async function card(t, title) {
   const heading = await t.find({ text: title, tag: "h2, h3, p, span", in: "main" });
   return (await heading.evaluateHandle((el) => el.closest(".ui-card") ?? el.parentElement)).asElement();

@@ -1,9 +1,6 @@
 import { CheckSquare, MessageCircle, Paintbrush, PencilLine, Spline, TextCursorInput } from "lucide-react";
 import { ANSWER_FORMAT_LABEL, highlightParts, printPages, type AdaptedContent, type AnswerFormat } from "@/lib/task-adaptation";
 
-// A atividade adaptada como o estudante recebe (tela e impressão). Na tela, o
-// apoio de cada questão aparece para o professor; na impressão, não.
-
 const FORMAT_ICON: Record<AnswerFormat, typeof PencilLine> = {
   escrever: PencilLine, marcar: CheckSquare, ligar: Spline, completar: TextCursorInput, desenhar: Paintbrush, oral: MessageCircle,
 };
@@ -16,7 +13,6 @@ function Prompt({ text, highlight }: { text: string; highlight: boolean }) {
   );
 }
 
-// forStudent: a folha do estudante (impressão), sem o apoio do professor.
 export function AdaptedView({ content, highlight, icons, largeText = false, itemsPerPage = null, forStudent = false }: {
   content: AdaptedContent;
   highlight: boolean;

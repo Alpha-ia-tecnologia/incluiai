@@ -11,9 +11,6 @@ import {
 import { Field, ResultMessage, dangerCls, inputCls, labelCls, secondaryCls, textareaCls } from "../dua-ui";
 import type { Outcome } from "./support-form";
 
-// Participação do estudante (3.4): o que ele disse ou mostrou, sempre com contexto,
-// origem e data. Registros revisáveis, nunca uma classificação do estudante.
-
 const dateLabel = (value: string) => value.split("-").reverse().join("/");
 
 type Props = { planningId: string; studentId: string; supportId: string; entries: StudentVoiceEntry[]; canEdit: boolean; today: string };

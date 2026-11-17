@@ -25,7 +25,6 @@ function Excerpt({ text }: { text: string }) {
 }
 
 function SuggestionRow({ row }: { row: ReviewRow }) {
-  // Campo de uma resposta só que já tem resposta: a sugestão troca, então vem desmarcada.
   const replacing = row.field.type !== "multi" && row.current.length > 0;
   return (
     <fieldset className="min-w-0 rounded-2xl border border-line bg-paper-raised p-4 sm:p-5">
@@ -56,7 +55,6 @@ export default async function HealthReportPage({
   const prisma = await db();
   const { id, laudoId } = await params;
   const user = await requireStudentPage(id);
-  // Só o AEE e a coordenação; a leitura vai para o histórico depois da permissão.
   if (!canSeeClinicalDetail(user.role)) redirect(`/estudantes/${id}/estudo-de-caso`);
   await recordView(user, id, "Laudos do estudo de caso");
   const { revisado } = await searchParams;
@@ -83,7 +81,6 @@ export default async function HealthReportPage({
   const confirmed = rows.filter((row) => row.fresh.length === 0 && row.known.length > 0);
   const nothingNew = Boolean(reading) && freshRows.length === 0 && (reading?.guidance.length ?? 0) === 0;
   const stale = isReadingStalled(report.status, report.createdAt);
-  // "falhou" só volta quando a falha foi na IA (há nota de privacidade); PDF com senha ou danificado precisa de outro arquivo.
   const canRetry = !report.reviewedAt && RETRY_STATUSES.has(report.status) && (report.status !== "lendo" || stale) && (report.status !== "falhou" || Boolean(report.privacyNote));
   const joinedFields = REPORT_FIELDS.filter((field) => accepted.fields[field.key]?.length);
 

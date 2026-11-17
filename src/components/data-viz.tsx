@@ -3,16 +3,7 @@ import type { ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight, Minus, Quote } from "lucide-react";
 import { HatchedDonut, SIGNAL, type ChartSegment } from "./charts";
 
-// Kit de visualização de dados no padrão do Painel de indicadores: cartões
-// brancos sobre quadro cinza (dash-board / dash-card), números grandes,
-// pílulas de situação (lima = bom, amarelo = intermediário, laranja = atenção,
-// azul-claro = informação) e gráficos em SVG listrado, sem biblioteca.
-// Quantidade sem juízo (contagens, usos, partes) sai no azul da marca.
-// Regras de acesso: todo gráfico tem o valor também em texto (aria-label ou
-// tabela para leitor de tela) e nenhuma informação depende só da cor.
-
 export type Tone = "good" | "mid" | "alert" | "neutral" | "info";
-// Pílulas e contadores: as cinco situações têm o mesmo peso (cor cheia, texto escuro).
 export const TONE_CLASSES: Record<Tone, string> = {
   good: "bg-signal-lime text-ink-strong",
   mid: "bg-signal-yellow text-ink-strong",
@@ -22,7 +13,6 @@ export const TONE_CLASSES: Record<Tone, string> = {
 };
 export const TONE_COLOR: Record<Tone, string> = { good: SIGNAL.lime, mid: SIGNAL.yellow, alert: SIGNAL.orange, neutral: SIGNAL.track, info: SIGNAL.cyan };
 
-// Cores das divisões usadas na plataforma (mesmas do painel).
 export const SEGMENT_COLORS: Record<string, string> = {
   total: SIGNAL.lime, sim: SIGNAL.lime, avancando: SIGNAL.lime, aplicada: SIGNAL.lime, demonstrado: SIGNAL.lime, alcancado: SIGNAL.lime, validado: SIGNAL.lime,
   parcial: SIGNAL.yellow, sugerida: SIGNAL.yellow, em_revisao: SIGNAL.yellow,
@@ -33,7 +23,6 @@ export const SEGMENT_COLORS: Record<string, string> = {
 export const withSegmentColors = (rows: ReadonlyArray<{ key: string; label: string; value: number }>): ChartSegment[] =>
   rows.map((row) => ({ ...row, color: SEGMENT_COLORS[row.key] ?? SIGNAL.lime }));
 
-// Cor do nível de apoio: 0–1 lima, 2–3 amarelo, 4–5 laranja.
 export const supportColor = (level: number) => (level <= 1 ? SIGNAL.lime : level <= 3 ? SIGNAL.yellow : SIGNAL.orange);
 const SUPPORT_CODES = ["IND", "SUP", "VERB", "MOD", "FIS-P", "FIS-T"];
 const SUPPORT_NAMES = ["Independente", "Supervisão", "Instrução verbal", "Modelo", "Apoio físico parcial", "Apoio físico total"];
@@ -44,12 +33,10 @@ export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode
   return <span className={`status-pill inline-flex max-w-full items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${TONE_CLASSES[tone]}`}>{children}</span>;
 }
 
-// Quadro cinza que agrupa cartões, como no painel.
 export function DataBoard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`dash-board grid min-w-0 gap-3 ${className}`}>{children}</div>;
 }
 
-// Cartão com título, dica e seta para o detalhe.
 export function DataCard({ title, hint, href, linkLabel, children, className = "", id }: { title: string; hint?: string; href?: string; linkLabel?: string; children: ReactNode; className?: string; id?: string }) {
   return (
     <section id={id} aria-label={title} className={`dash-card min-w-0 ${className}`}>
@@ -65,7 +52,6 @@ export function DataCard({ title, hint, href, linkLabel, children, className = "
   );
 }
 
-// Mudança entre dois momentos. `better` diz o sentido bom (no apoio, menos é avanço).
 export function TrendBadge({ delta, better, text }: { delta: number | null; better: "up" | "down"; text?: string }) {
   if (delta === null) return null;
   const good = delta === 0 ? null : (delta < 0) === (better === "down");
@@ -74,7 +60,6 @@ export function TrendBadge({ delta, better, text }: { delta: number | null; bett
   return <StatusPill tone={tone}><Icon size={12} aria-hidden /> {text ?? `${delta > 0 ? "+" : ""}${decimal(delta)}`}</StatusPill>;
 }
 
-// Número grande com rótulo, pílula, tendência e um minigráfico opcional.
 export function StatTile({ label, value, unit, hint, tone, status, trend, chart, href, linkLabel }: {
   label: string;
   value: ReactNode;
@@ -104,9 +89,7 @@ export function StatTile({ label, value, unit, hint, tone, status, trend, chart,
   );
 }
 
-// Minigráfico de linha. `invert` põe o 0 em cima (nível de apoio: subir = menos apoio).
-// Ao abrir, a área cresce de baixo para cima e a linha se revela por recorte
-// (viz-wipe): com non-scaling-stroke, o viz-draw (tracejado) cortava a linha no meio.
+// Com non-scaling-stroke, o viz-draw (tracejado) cortava a linha no meio.
 export function Sparkline({ values, label, domain, invert = false, color = SIGNAL.ink, height = 36 }: { values: ReadonlyArray<number>; label: string; domain?: [number, number]; invert?: boolean; color?: string; height?: number }) {
   if (values.length < 2) return <p className="text-xs text-ink-soft">Poucos registros para a linha.</p>;
   const [min, max] = domain ?? [Math.min(...values), Math.max(...values)];
@@ -129,9 +112,6 @@ export function Sparkline({ values, label, domain, invert = false, color = SIGNA
   );
 }
 
-// Evolução do nível de apoio (0 em cima = independente). A área mostra a autonomia
-// ganha; a linha tracejada é a meta. Tabela para leitor de tela com cada registro.
-// Ao abrir, só a área cresce; linha, pontos e referências ficam parados (ver Sparkline).
 export function SupportChart({ points, start, target, label, height = 168 }: { points: ReadonlyArray<{ date: string; value: number }>; start?: number | null; target?: number | null; label: string; height?: number }) {
   if (points.length < 2) return <p className="text-sm text-ink-soft">Com dois registros ou mais, a evolução do apoio aparece aqui.</p>;
   const x = (index: number) => (index / (points.length - 1)) * 100;
@@ -179,7 +159,6 @@ export function SupportChart({ points, start, target, label, height = 168 }: { p
   );
 }
 
-// Anel com percentual (listrado). Sem base (null), mostra o texto e não desenha arco.
 export function RingStat({ id, value, label, size = 112, color = SIGNAL.brand, children }: { id: string; value: number | null; label: string; size?: number; color?: string; children?: ReactNode }) {
   const pct = value === null ? 0 : Math.min(100, Math.max(0, value));
   return (
@@ -189,7 +168,6 @@ export function RingStat({ id, value, label, size = 112, color = SIGNAL.brand, c
   );
 }
 
-// Uma marca por registro, em ordem (ex.: participação de cada aula), com legenda e texto.
 export function DotStrip({ items, label, legend }: { items: ReadonlyArray<{ key: string; title: string; tone: Tone }>; label: string; legend?: ReadonlyArray<{ tone: Tone; label: string }> }) {
   if (!items.length) return null;
   return (
@@ -210,7 +188,6 @@ export function DotStrip({ items, label, legend }: { items: ReadonlyArray<{ key:
   );
 }
 
-// Nível de apoio por área (0–5), com o código e o nome sempre em texto.
 export function SupportBars({ rows }: { rows: ReadonlyArray<{ label: string; level: number }> }) {
   return (
     <ul className="grid min-w-0 gap-2.5">
@@ -230,7 +207,6 @@ export function SupportBars({ rows }: { rows: ReadonlyArray<{ label: string; lev
   );
 }
 
-// Itens com contagem, como pílulas (ex.: o que funcionou nas aulas).
 export function CountChips({ items, tone = "good", unit = "x" }: { items: ReadonlyArray<{ label: string; value?: number }>; tone?: Tone; unit?: string }) {
   return (
     <ul className="flex min-w-0 flex-wrap gap-1.5">
@@ -244,7 +220,6 @@ export function CountChips({ items, tone = "good", unit = "x" }: { items: Readon
   );
 }
 
-// Fala da família ou do estudante, em destaque.
 export function QuoteCard({ text, source }: { text: string; source: string }) {
   return (
     <figure className="dash-card relative min-w-0 overflow-hidden">
@@ -255,7 +230,6 @@ export function QuoteCard({ text, source }: { text: string; source: string }) {
   );
 }
 
-// Colunas pequenas para uma série curta (ex.: aulas por semana), com o total em texto.
 export function MiniColumns({ points, label }: { points: ReadonlyArray<{ label: string; title: string; value: number }>; label: string }) {
   const max = Math.max(1, ...points.map((point) => point.value));
   return (

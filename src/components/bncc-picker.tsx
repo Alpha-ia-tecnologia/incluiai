@@ -4,11 +4,6 @@ import { useEffect, useId, useState } from "react";
 import { Lightbulb, Search, X } from "lucide-react";
 import { hintCls, inputCls, labelCls, quietButtonCls } from "@/components/form-styles";
 
-// Campo de habilidade da BNCC: busca por código ou palavra na base oficial, com
-// as do ano do estudante primeiro, e sugestões pelo texto do objetivo. Uma
-// habilidade (objetivo do plano, com campo `name` no formulário) ou várias
-// (planejamento com DUA, controlado por value/onChange).
-
 export type BnccOption = { code: string; component: string; years: string; description: string };
 
 type Props = {
@@ -21,7 +16,6 @@ type Props = {
   value?: string[];
   onChange?: (codes: string[]) => void;
   readOnly?: boolean;
-  // Texto de onde sai a sugestão: uma função (lê o formulário na hora) ou o próprio texto.
   suggestFrom?: () => string;
 };
 
@@ -41,7 +35,6 @@ export function BnccPicker({ label, hint, studentId, dimension, multiple = false
   const [busy, setBusy] = useState(false);
   const codes = value ?? own;
 
-  // Detalhes das habilidades já escolhidas (planejamento salvo).
   const missing = codes.filter((code) => !details[code]).join(",");
   useEffect(() => {
     if (!missing) return;
@@ -52,7 +45,6 @@ export function BnccPicker({ label, hint, studentId, dimension, multiple = false
     return () => { alive = false; };
   }, [missing]);
 
-  // Busca enquanto digita, com uma pequena pausa.
   useEffect(() => {
     const text = query.trim();
     if (text.length < 2) return;

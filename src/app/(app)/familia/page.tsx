@@ -7,8 +7,6 @@ import { ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-// Família com mais de um filho vinculado escolhe aqui; a equipe confere como a
-// família vê o portal, só com os estudantes que já acompanha (a própria escola).
 export default async function FamilyPortalIndex() {
   const prisma = await db();
   const user = await getCurrentUser();

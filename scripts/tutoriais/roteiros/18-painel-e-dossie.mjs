@@ -1,4 +1,3 @@
-// Coordenação: painel de indicadores e dossiê de evidências.
 async function card(t, title) {
   const heading = await t.find({ text: title, tag: "h2, h3, p", in: "main" });
   return (await heading.evaluateHandle((el) => el.closest(".ui-card, section") ?? el.parentElement)).asElement();

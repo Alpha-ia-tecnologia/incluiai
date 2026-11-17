@@ -10,9 +10,6 @@ import { MaterialMetaList, materialMeta } from "@/components/dua/materials/mater
 
 export const dynamic = "force-dynamic";
 
-// Material para ler e imprimir: texto selecionável, estrutura de leitura simples
-// (título, dados do material e seções com listas). Sem validação, o aviso de
-// RASCUNHO aparece na tela e no papel.
 export default async function MaterialPrintPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const { id, materialId } = await params;
   const user = await getCurrentUser();
@@ -44,7 +41,6 @@ export default async function MaterialPrintPage({ params }: { params: Promise<{ 
 
       {draft ? <div role="note" aria-label="Aviso de rascunho" className="mb-6">{notice}</div> : null}
 
-      {/* O h1 da página é o título do planejamento (layout); o material é a seção. */}
       <h2 className="break-words font-display text-2xl font-medium leading-tight text-ink sm:text-3xl">{material.title}</h2>
 
       <section aria-label="Dados do material" className="mt-4 rounded-xl border border-line p-4 print:break-inside-avoid">

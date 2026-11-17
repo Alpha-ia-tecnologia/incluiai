@@ -1,9 +1,6 @@
 // PAEE e PEI no plano de ensino: o documento único que a Portaria MEC nº 421/2026
 // permite (art. 7º, § 2º), com o conteúdo mínimo de cada um (arts. 10 e 11) e
-// quem elabora, como orienta o INEP (src/lib/federal-guidance.ts). Puro, para
-// teste com node --test (src/lib/plan-documents.test.mjs). Os atendimentos do
-// AEE e os recursos nas avaliações usam os nomes do Educacenso, para a escola
-// declarar no Censo o que o plano registra.
+// quem elabora, como orienta o INEP (src/lib/federal-guidance.ts).
 import { AEE_SERVICE_LABELS, ASSESSMENT_RESOURCE_LABELS } from "./educacenso.ts";
 
 export type PlanDocuments = {
@@ -57,8 +54,6 @@ export const NO_DEMAND = "Nenhuma demanda";
 export const NETWORK_DEMAND_OPTIONS = [NO_DEMAND, "Formação da equipe em Educação Especial Inclusiva", "Formação em comunicação alternativa", "Formação em Libras", "Rede de saúde", "Assistência social (CRAS ou CREAS)", "Conselho Tutelar"];
 // Os tipos de AEE do Educacenso: o Censo recusa vínculo de AEE sem nenhum.
 export const AEE_SERVICE_OPTIONS = AEE_SERVICE_LABELS;
-// Na avaliação: primeiro os recursos do Educacenso (sala de aula e Saeb), depois
-// medidas da escola que o Censo não lista.
 export const NO_RESOURCE = "Nenhum recurso";
 export const ASSESSMENT_ACCESSIBILITY_OPTIONS = [...ASSESSMENT_RESOURCE_LABELS, "Formas variadas de resposta", "Resposta com comunicação alternativa", "Ambiente mais silencioso", NO_RESOURCE];
 export const MONITORING_OPTIONS = ["Registro de aula no diário", "Sondagem a cada revisão", "Reunião entre AEE e classe comum", "Revisão do plano com a equipe", "Portfólio de atividades"];
@@ -68,14 +63,11 @@ const MAX_LENGTH = 600;
 const filled = (value: string | null | undefined) => Boolean(value?.trim());
 const list = (value: string | null | undefined) => (value ?? "").split(/[;\n]/).map((item) => item.trim()).filter(Boolean);
 
-// Campos do formulário (criar, ativar a proposta ou completar): vazio vira null.
 export function planDocumentsFromForm(get: (name: string) => unknown): PlanDocuments {
   const entries = PLAN_DOCUMENT_KEYS.map((key) => [key, String(get(key) ?? "").trim().slice(0, MAX_LENGTH) || null] as const);
   return Object.fromEntries(entries) as PlanDocuments;
 }
 
-// O que falta no plano para o conteúdo mínimo e a autoria. A participação da
-// família é pedida; a do estudante, "quando possível", não entra na conta.
 export function missingPlanItems(plan: Partial<PlanDocuments>): { paee: PlanItem[]; pei: PlanItem[]; authorship: string[] } {
   const authorship = [
     !filled(plan.aeeTeacher) && "professor(a) do AEE",
@@ -94,8 +86,6 @@ export function missingCount(plan: Partial<PlanDocuments>): number {
   return missing.paee.length + missing.pei.length + missing.authorship.length;
 }
 
-// Sugestões para o formulário a partir do que o estudo de caso já registrou: a
-// equipe confere antes de salvar. Monitoramento e devolutiva não vêm prontos.
 const RESOURCE_TO_STAFF: Record<string, string> = { "Profissional de apoio": "Profissional de apoio escolar", "Intérprete de Libras": "Tradutor e intérprete de Libras", "Guia-intérprete": "Guia-intérprete" };
 const RESOURCE_TO_TECH: Record<string, string> = { "Prancha de comunicação": "Prancha de comunicação", "Mobiliário adaptado": "Mobiliário adaptado" };
 const REFERRAL_TO_NETWORK: Record<string, string> = {
@@ -103,7 +93,6 @@ const REFERRAL_TO_NETWORK: Record<string, string> = {
   "Assistência social (CRAS ou CREAS)": "Assistência social (CRAS ou CREAS)", "Conselho Tutelar": "Conselho Tutelar",
 };
 const RESOURCE_TO_ASSESSMENT: Record<string, string> = { "Intérprete de Libras": "Tradutor-intérprete de Libras", "Guia-intérprete": "Guia-intérprete" };
-// Necessidades do estudo de caso que correspondem a um tipo de AEE do Educacenso.
 const NEED_TO_SERVICE: Record<string, string> = {
   ...Object.fromEntries(AEE_SERVICE_LABELS.map((label) => [label, label])),
   "Comunicação alternativa e aumentativa": "Comunicação alternativa e aumentativa (CAA)",
@@ -126,23 +115,16 @@ export function planDefaultsFromCaseStudy(content: Record<string, string>, aeeTe
   };
 }
 
-// ------------------------------------------------------------- proposta dos agentes
-
-// Campos em lista que a proposta dos agentes (ou das regras) pode trazer.
 export const PROPOSAL_LIST_KEYS = [
   "accessibilityResources", "assistiveTech", "supportStaff", "networkDemands",
   "aeeServices", "aeeStrategies", "commonRoomStrategies", "assessmentAccessibility", "monitoring", "familyFeedback",
 ] as const satisfies readonly PlanDocumentKey[];
 export type ProposalListKey = (typeof PROPOSAL_LIST_KEYS)[number];
 
-// "Não precisa" só vale como registro quando está sozinho no campo.
 const EXCLUSIVE = [NO_NEED, NO_DEMAND, NO_RESOURCE];
 const fold = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const dropExclusive = (items: string[]) => (items.length > 1 ? items.filter((item) => !EXCLUSIVE.includes(item)) : items);
 
-// Confere os itens propostos com as opções do campo: o nome reconhecido volta
-// com a grafia da lista (para o Censo e o formulário baterem). `strict` descarta
-// o que não está na lista, como nos tipos de AEE e nos profissionais de apoio.
 export function canonicalItems(items: readonly string[], options: readonly string[], config: { strict?: boolean; limit?: number } = {}): string[] {
   const byFold = new Map(options.map((option) => [fold(option), option]));
   const out: string[] = [];
@@ -154,9 +136,6 @@ export function canonicalItems(items: readonly string[], options: readonly strin
   return dropExclusive(out).slice(0, config.limit ?? 8);
 }
 
-// Junta o que o estudo de caso já registrou com o que a proposta trouxe, campo a
-// campo e sem repetir: nada do que a equipe indicou no estudo se perde, e a
-// equipe confere tudo antes de salvar.
 export function mergeProposalDefaults(base: Partial<PlanDocuments>, proposal: Partial<Record<ProposalListKey, readonly string[]>>): Partial<PlanDocuments> {
   const merged: Partial<PlanDocuments> = { ...base };
   for (const key of PROPOSAL_LIST_KEYS) {
@@ -166,9 +145,7 @@ export function mergeProposalDefaults(base: Partial<PlanDocuments>, proposal: Pa
   return merged;
 }
 
-// O plano e o último arquivo do Censo aplicado: tipos de AEE (registro 60) e
-// recursos nas avaliações (registro 30). Só compara o que os dois têm: plano sem
-// o campo, estudante sem AEE no arquivo ou arquivo anterior a este campo ficam de fora.
+// Tipos de AEE (registro 60) e recursos nas avaliações (registro 30) do Censo.
 export type CensusDeclared = { aee: boolean; services: string[]; resources?: string[] };
 export type CensusDifference = { key: "aeeServices" | "assessmentAccessibility"; label: string; plan: string[]; census: string[] };
 

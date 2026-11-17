@@ -8,8 +8,6 @@ import { Field, ResultMessage, buttonCls, inputCls } from "./dua-ui";
 
 type Option = { value: string; label: string };
 
-// "Planejar atividade com DUA" (RF01, entrada pelo planejamento pedagógico).
-// Não exige estudo de caso, diagnóstico, laudo, PAEE nem PEI (CA01).
 export function NewPlanningForm({ classes, reusable, defaultReuse }: { classes: Option[]; reusable: Option[]; defaultReuse?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();

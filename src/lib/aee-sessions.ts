@@ -4,10 +4,6 @@ import type { SessionUser } from "./auth";
 import { assertStudentTeam } from "./records";
 import { AEE_SESSION_STATUSES, type AeeSessionStatus } from "./dua/domain";
 
-// Frequência do AEE (descritivo DUA, seção 5 e CA10): realizado, falta ou
-// cancelamento. É informação distinta de usar um recurso ou alcançar um objetivo:
-// nada aqui cria registro de aula, evidência ou conclusão sobre aprendizagem.
-
 export type AeeSessionInput = { date: string; status: string; reason: string; note: string };
 
 const SESSION_ROLES = new Set(["professor_aee", "coordenacao", "gestao"]);
@@ -23,7 +19,6 @@ export async function saveAeeSession(user: SessionUser, studentId: string, input
   if (Number.isNaN(date.getTime())) throw new Error("Informe a data do atendimento.");
   const reason = input.reason.trim().slice(0, 300);
   if (input.status !== "realizado" && !reason) throw new Error("Diga o motivo da falta ou do cancelamento.");
-  // Um registro por estudante e dia: registrar de novo corrige, não duplica.
   const sameDay = await prisma.aeeSession.findFirst({ where: { studentId, date: { gte: new Date(`${input.date}T00:00:00`), lte: new Date(`${input.date}T23:59:59`) } }, select: { id: true } });
   const data = { date, status: input.status, reason: input.status === "realizado" ? null : reason, note: input.note.trim().slice(0, 1200) || null, authorId: user.id, authorName: user.name };
   if (sameDay) await prisma.aeeSession.update({ where: { id: sameDay.id }, data });

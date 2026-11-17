@@ -12,20 +12,12 @@ import {
 import { planningAccess } from "./access";
 import { DuaError, STUDENT_FORBIDDEN, audit, canWorkWithStudent, clip, loadPlanningFor, studentInReach, studentLog } from "./shared";
 
-// Apoios individuais (RF04): ligam a atividade às necessidades e potencialidades
-// de um estudante. Acesso restrito ao recorte do estudante. Criar o vínculo não
-// altera o perfil funcional nem o plano: o profissional atualiza esses registros
-// pelo fluxo próprio deles.
-
 const VALIDATORS = new Set(["professor_sala", "professor_aee", "coordenacao", "gestao"]);
 
-// Campos do estudo de caso úteis ao apoio. Diagnóstico, saúde, acompanhamentos
-// externos e composição familiar ficam de fora (necessidade de saber).
 const CASE_STUDY_REFS = ["barreiras", "potencialidades", "aprendeMelhor", "gostaEscola", "achaDificil", "comoSeSente", "comunicacaoEscola", "recursos"];
 
 const list = (value: string | null | undefined) => parseJson<string[]>(value, []).filter(Boolean).join(", ");
 
-// Itens que o profissional pode escolher como referência, sempre com origem, data e versão.
 export async function profileReferences(user: SessionUser, studentId: string): Promise<ProfileRef[]> {
   const prisma = await db();
   await studentInReach(user, studentId);
@@ -70,7 +62,6 @@ export async function profileReferences(user: SessionUser, studentId: string): P
   return refs;
 }
 
-// Objetivos do Plano de ensino ativo do estudante, para vincular o apoio.
 export async function planObjectives(user: SessionUser, studentId: string) {
   const prisma = await db();
   await studentInReach(user, studentId);
@@ -95,7 +86,6 @@ export type SupportInput = {
   individualObjectiveId: string;
 };
 
-// Monta os dados conferindo no servidor que perfil e objetivos são DESTE estudante.
 async function buildSupportData(user: SessionUser, studentId: string, input: SupportInput, previous: DuaSupportData | null, authorKind: "professor" | "colaboracao"): Promise<DuaSupportData> {
   const available = await profileReferences(user, studentId);
   const profileRefs = available.filter((ref) => input.profileFields.includes(ref.field));
@@ -120,7 +110,6 @@ async function buildSupportData(user: SessionUser, studentId: string, input: Sup
 
 export async function createSupport(user: SessionUser, planningId: string, studentId: string, input: SupportInput) {
   const prisma = await db();
-  // Quem lê o planejamento (inclusive compartilhado) planeja o apoio dos SEUS estudantes.
   const { planning, access } = await loadPlanningFor(user, planningId, "read");
   const student = await studentInReach(user, studentId);
   const data = await buildSupportData(user, studentId, input, null, access.owner ? "professor" : "colaboracao");
@@ -134,8 +123,6 @@ export async function createSupport(user: SessionUser, planningId: string, stude
   return support.id;
 }
 
-// Quem pode mexer num apoio: quem edita o planejamento ou o responsável pelo apoio,
-// sempre dentro do recorte do estudante.
 async function loadSupportFor(user: SessionUser, supportId: string, need: "edit" | "validate") {
   const prisma = await db();
   const support = await prisma.duaSupport.findUnique({ where: { id: supportId }, include: { planning: true, student: { select: { id: true, schoolId: true, name: true } } } });
@@ -152,7 +139,6 @@ export async function updateSupport(user: SessionUser, supportId: string, revisi
   const prisma = await db();
   const { support, access, data: previous } = await loadSupportFor(user, supportId, "edit");
   const data = await buildSupportData(user, support.studentId, input, previous, access.owner ? "professor" : "colaboracao");
-  // Editar um apoio validado devolve para rascunho: a validação vale para o que foi conferido.
   const updated = await prisma.duaSupport.updateMany({ where: { id: supportId, revision }, data: { data: JSON.stringify(data), state: "rascunho", validatedAt: null, validatedById: null, validatedByName: null, revision: { increment: 1 } } });
   if (!updated.count) throw new DuaError("Outro profissional alterou este apoio agora há pouco. Atualize a página e confira antes de salvar.", "conflito");
   await audit(user, support.planningId, "editou apoio individual", "apoio", { objectId: supportId });
@@ -166,12 +152,10 @@ export async function validateSupport(user: SessionUser, supportId: string, revi
   if (problems.length) throw new DuaError("Ainda falta completar o apoio para validar.", "invalido", problems);
   const updated = await prisma.duaSupport.updateMany({ where: { id: supportId, revision }, data: { state: "validado", validatedAt: new Date(), validatedById: user.id, validatedByName: user.name, revision: { increment: 1 } } });
   if (!updated.count) throw new DuaError("Outro profissional alterou este apoio agora há pouco. Atualize a página e confira antes de validar.", "conflito");
-  // Validar não altera matrícula, classificação nem perfil (CA12).
   await audit(user, support.planningId, "validou apoio individual", "apoio", { objectId: supportId });
   await studentLog(user, support.studentId, "editou", `Apoio individual validado na atividade com DUA "${support.planning.title}"`);
 }
 
-// Participação do estudante (3.4): sempre com contexto, origem e data; revisável.
 export async function addStudentVoice(user: SessionUser, supportId: string, entry: Omit<StudentVoiceEntry, "id">) {
   const prisma = await db();
   const { support, data } = await loadSupportFor(user, supportId, "edit");
@@ -230,7 +214,6 @@ function viewOf(user: SessionUser, row: { id: string; planningId: string; data: 
   };
 }
 
-// Apoios de um planejamento: só os dos estudantes no recorte de quem lê.
 export async function listSupports(user: SessionUser, planningId: string): Promise<SupportView[]> {
   const prisma = await db();
   await loadPlanningFor(user, planningId, "read");
@@ -242,7 +225,6 @@ export async function listSupports(user: SessionUser, planningId: string): Promi
   return rows.filter((row) => canWorkWithStudent(user, row.student)).map((row) => viewOf(user, { ...row, student: { id: row.student.id, name: row.student.name } }));
 }
 
-// Apoios de um estudante em todas as atividades (memória educacional do estudante).
 export async function listStudentSupports(user: SessionUser, studentId: string): Promise<SupportView[]> {
   const prisma = await db();
   const student = await studentInReach(user, studentId);

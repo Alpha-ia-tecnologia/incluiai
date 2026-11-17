@@ -11,7 +11,6 @@ import { AdaptedView } from "@/components/adapted/adapted-view";
 
 export const dynamic = "force-dynamic";
 
-// Folha para o estudante: sem o apoio do professor, com a letra e as páginas pedidas.
 export default async function PrintAdaptedTaskPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const prisma = await db();
   const { id, taskId } = await params;

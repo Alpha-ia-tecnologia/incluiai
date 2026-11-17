@@ -1,6 +1,4 @@
-// Estudo de caso do AEE: etapa de diagnóstico pedagógico que reúne escuta da
-// família, da escola e do próprio estudante antes de planejar. Segue o roteiro
-// usual da educação especial (identificação do caso, coleta de informações em
+// Segue o roteiro usual da educação especial (identificação do caso, coleta de informações em
 // diferentes fontes, análise e encaminhamentos). Não depende de laudo: o AEE é
 // atendimento pedagógico (Nota Técnica MEC/SECADI/DPEE nº 04/2014). Segue também
 // o que o INEP descreve para o Censo Escolar: impedimentos observados na escola,
@@ -25,7 +23,6 @@ export type CaseStudyField = {
   options?: ChoiceOption[];
   hint?: string;
   placeholder?: string;
-  // Obrigatório apenas para concluir; o rascunho pode ficar incompleto.
   requiredToConclude?: boolean;
   wide?: boolean;
 };
@@ -33,7 +30,7 @@ export type CaseStudyField = {
 export type CaseStudySection = {
   id: string;
   title: string;
-  source: string; // com quem/onde a informação é levantada
+  source: string;
   description: string;
   fields: CaseStudyField[];
 };
@@ -196,12 +193,10 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
 
 export const CASE_STUDY_FIELDS = CASE_STUDY_SECTIONS.flatMap((section) => section.fields);
 
-// O essencial do estudo (os campos exigidos para concluir), na ordem do que o
-// INEP diz que o estudo de caso documenta para respaldar a declaração no Censo
+// O que o INEP diz que o estudo de caso documenta para respaldar a declaração no Censo
 // Escolar (src/lib/federal-guidance.ts): (i) impedimentos de longo prazo,
 // potencialidades e demandas de apoio; (ii) barreiras do contexto escolar;
-// (iii) estratégias e recursos de acessibilidade. O último grupo registra quem
-// conduziu, a quem o estudo se refere e a síntese.
+// (iii) estratégias e recursos de acessibilidade.
 export const ESSENTIAL_GROUPS: { title: string; hint: string; keys: string[] }[] = [
   { title: "Impedimentos, potencialidades e demandas de apoio", hint: "O que se observa na participação, o que o estudante já faz bem e do que ele precisa.", keys: ["impedimentos", "potencialidades", "necessidades"] },
   { title: "Barreiras do contexto escolar", hint: "Arquitetônicas, comunicacionais, pedagógicas, tecnológicas ou atitudinais.", keys: ["barreiras"] },
@@ -209,13 +204,8 @@ export const ESSENTIAL_GROUPS: { title: string; hint: string; keys: string[] }[]
   { title: "Conclusão do estudo", hint: "Quem participou, se o estudante é público da educação especial e a síntese do caso.", keys: ["participantes", "publicoAlvo", "sintese"] },
 ];
 
-// Nomes que mudaram: o que foi salvo antes aparece com o nome de hoje.
 const RENAMED: Record<string, Record<string, string>> = { barreiras: { "Física": BARRIERS.fisica } };
 
-// Campos que saíram do formulário por não alimentarem nenhuma outra parte da
-// plataforma (histórico escolar, marcos do desenvolvimento, rotina em casa,
-// comportamento nas atividades e frequência sugerida do AEE). As respostas já
-// dadas continuam guardadas: a ação de salvar as mantém (src/actions/case-study.ts).
 export const RETIRED_CASE_FIELDS: readonly string[] = [
   "idadeEntrada", "frequencia", "reprovacoes", "jaFrequentou", "apoiosAnteriores",
   "andou", "falou", "comunicacaoCasa", "autonomiaCasa", "expectativas", "comportamento", "frequenciaAee",
@@ -242,23 +232,17 @@ export function sectionProgress(section: CaseStudySection, content: CaseStudyCon
   return { filled, total: section.fields.length };
 }
 
-// Campos clínicos: visíveis e editáveis só por quem pode ver dado clínico
-// (canSeeClinicalDetail); também ficam fora do que vai para a IA (agents/context.ts).
 export const CLINICAL_CASE_FIELDS: ReadonlySet<string> = new Set(["diagnostico", "saude", "acompanhamentos", "moraCom"]);
 
 export function missingToConclude(content: CaseStudyContent): CaseStudyField[] {
   return CASE_STUDY_FIELDS.filter((field) => field.requiredToConclude && !content[field.key]?.trim());
 }
 
-// O INEP descreve o estudo de caso conduzido pelo professor do AEE: sem ele
-// entre os participantes, o estudo não conclui.
+// O INEP descreve o estudo de caso conduzido pelo professor do AEE.
 const participantsOf = (content: CaseStudyContent) => (content.participantes ?? "").split(/[;\n]/).map((item) => item.trim());
 export const conductedByAee = (content: CaseStudyContent) => participantsOf(content).includes(AEE_TEACHER);
 export const withRegularTeacher = (content: CaseStudyContent) => participantsOf(content).includes(REGULAR_TEACHER);
 
-// O Plano de ensino (PPI/PAEE) parte do estudo de caso CONCLUÍDO — inclusive a
-// proposta preparada pela IA ou pelas regras (descritivo DUA, CA02). O planejamento
-// de atividade da turma com DUA não depende disso.
 export const CASE_STUDY_REQUIRED_MESSAGE =
   "Conclua o estudo de caso do estudante antes de criar o plano de ensino. O plano parte do que o estudo de caso levantou.";
 

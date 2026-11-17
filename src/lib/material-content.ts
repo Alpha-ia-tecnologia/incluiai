@@ -1,13 +1,3 @@
-// Materiais de apoio (item 17.10): o conteúdo do material e as regras que valem
-// para a IA e para o motor de regras. Puro (sem banco e sem React), para ser
-// testado com node --test (src/lib/material-content.test.mjs).
-//
-// Um material completo traz os cartões (com a descrição do pictograma), como
-// preparar e apresentar ao estudante, como usar, as atividades para aplicar o
-// material (sala comum, AEE e casa, cada uma com o que registrar depois), o
-// porquê de cada adaptação (ligado ao perfil ou à regra de adaptação) e os
-// recursos de acessibilidade. A IA propõe; o profissional aprova antes do uso.
-
 export type MaterialKind = "rotina_visual" | "historia_social" | "prancha_caa" | "sequencia_tarefa" | "quadro_escolhas" | "regulacao";
 export type MaterialContext = "sala_comum" | "aee" | "casa";
 
@@ -29,7 +19,6 @@ export const MATERIAL_CONTEXTS: { value: MaterialContext; label: string }[] = [
 ];
 export const MATERIAL_CONTEXT_LABEL: Record<MaterialContext, string> = { sala_comum: "Sala comum", aee: "AEE", casa: "Casa" };
 
-// Situações comuns para começar (a pessoa pode escrever outra).
 export const MATERIAL_TOPICS = [
   "Chegada à escola", "Hora do lanche", "Ida ao banheiro", "Troca de sala ou de atividade", "Recreio",
   "Leitura compartilhada", "Atividade de matemática", "Educação física", "Lavar as mãos", "Fim do dia e saída",
@@ -50,7 +39,7 @@ export type MaterialActivity = {
   successCriterion: string;
   planB: string;
   classParticipation?: string;
-  record?: string; // o que observar e registrar depois de aplicar
+  record?: string;
 };
 export type MaterialAdaptation = { text: string; basis: string };
 export type MaterialContent = {
@@ -58,7 +47,7 @@ export type MaterialContent = {
   purpose: string;
   intro: string;
   cards: MaterialCard[];
-  preparation: string[]; // como montar: imprimir, recortar, onde deixar
+  preparation: string[];
   howToUse: string[];
   activities: MaterialActivity[];
   adaptations: MaterialAdaptation[];
@@ -67,7 +56,6 @@ export type MaterialContent = {
   reviewNotes: string[];
 };
 
-// Material gravado antes desta versão ({ intro, cards[{label, hint}] }) continua legível.
 export function normalizeMaterialContent(value: unknown): MaterialContent {
   const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
   const list = <T>(item: unknown): T[] => (Array.isArray(item) ? (item as T[]) : []);
@@ -92,13 +80,9 @@ export function normalizeMaterialContent(value: unknown): MaterialContent {
   };
 }
 
-// --------------------------------------------------------------- o que vem do perfil
-
-// Fatos do perfil (Como aprende) que orientam o material, já em texto legível.
-// Montados no servidor a partir do FunctionalProfile; aqui não há banco.
 export type ProfileFacts = {
   firstName: string;
-  expressiveChannel: string; // código (fala, libras, gestos, caa_prancha, ...)
+  expressiveChannel: string;
   expressiveLabel: string;
   receptiveLabel: string;
   commandSteps: number;
@@ -107,9 +91,9 @@ export type ProfileFacts = {
   interests: string[];
   calming: string[];
   triggers: string[];
-  sensitiveTo: string[]; // áreas sensoriais com hipersensibilidade (ex.: "auditiva")
-  readingSupport: number; // 0..5
-  fineMotorSupport: number; // 0..5
+  sensitiveTo: string[];
+  readingSupport: number;
+  fineMotorSupport: number;
   usesWheelchair: boolean;
   strengths: string;
 };
@@ -126,7 +110,6 @@ export function responseFormsFor(facts: Pick<ProfileFacts, "expressiveChannel" |
   return facts.fineMotorSupport >= 3 ? ["Falar a resposta", "Apontar o cartão"] : ["Falar a resposta", "Apontar ou mover o cartão", "Escrever ou desenhar, se quiser"];
 }
 
-// Por que assim: cada adaptação diz em que item do perfil se baseia.
 export function profileAdaptations(facts: ProfileFacts, kind: MaterialKind): MaterialAdaptation[] {
   const out: MaterialAdaptation[] = [];
   if (facts.commandSteps <= 1) out.push({ text: "Uma ação por cartão e uma instrução de cada vez, com o cartão à vista.", basis: `Como aprende: compreende comandos de ${facts.commandSteps} etapa.` });
@@ -151,20 +134,14 @@ export const ACCESSIBILITY_BY_KIND: Record<MaterialKind, string[]> = {
   regulacao: ["Cores e expressões simples", "Escala em poucos níveis", "Estratégia concreta em cada cartão", "Fica à mão durante toda a atividade"],
 };
 
-// --------------------------------------------------------------- verificações (IA e regras)
-
 const words = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
 const normalizeText = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-// Linguagem clínica ou diagnóstico não entram no material (salvaguarda da plataforma).
 const CLINICAL = /\b(diagnos\w*|laudo\w*|cid\b|cid[- ]?\d{1,2}\b|tea\b|tdah\b|autis\w*|sindrome\w*|transtorno\w*|deficiencia intelectual|medicament\w*|medicacao|patolog\w*)/;
-// O pictograma não pode pedir texto escrito na imagem.
 const TEXT_IN_IMAGE = /\b(com|contendo|mostrando|escrev\w*)\s+(o |a |um |uma )?(texto|palavras?|frase|legenda|letreiro|nome)\b|\blegenda\b|\bletreiro\b/i;
 
 type MaterialRules = { kind: MaterialKind; toleranceMinutes: number };
 export const hasClinicalLanguage = (value: unknown) => CLINICAL.test(normalizeText(JSON.stringify(value)));
 
-// As verificações também valem parte a parte (cartões, cada atividade), para o
-// revisor dos agentes devolver só o que precisa ser refeito.
 export function checkMaterialCards(cards: MaterialCard[], kind: MaterialKind): string[] {
   const problems: string[] = [];
   const range = MATERIAL_KINDS.find((item) => item.kind === kind)?.cards ?? [3, 12];
@@ -199,7 +176,6 @@ export function checkMaterial(content: MaterialContent, rules: MaterialRules): s
 const clip = (value: unknown, max: number) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 const clipList = (value: unknown, maxItems: number, maxChars: number) => (Array.isArray(value) ? value.map((item) => clip(item, maxChars)).filter(Boolean).slice(0, maxItems) : []);
 
-// Ajustes finais em tudo o que vier da IA: limites de tamanho e de tempo, sem confiar no modelo.
 export function finalizeMaterial(content: MaterialContent, rules: MaterialRules): MaterialContent {
   const range = MATERIAL_KINDS.find((item) => item.kind === rules.kind)?.cards ?? [3, 12];
   const contexts: MaterialContext[] = ["sala_comum", "aee", "casa"];
@@ -237,11 +213,8 @@ export function finalizeMaterial(content: MaterialContent, rules: MaterialRules)
   };
 }
 
-// --------------------------------------------------------------- motor de regras (sem IA)
-
 type RulesInput = { kind: MaterialKind; topic: string; context: MaterialContext; objective: string | null; facts: ProfileFacts };
 
-// Passos conhecidos de situações comuns; para as demais, uma sequência genérica com o tema.
 const SITUATION_STEPS: Record<string, string[]> = {
   "Chegada à escola": ["Chegar e cumprimentar", "Guardar a mochila", "Pendurar o casaco", "Sentar no lugar marcado", "Olhar a rotina do dia"],
   "Hora do lanche": ["Lavar as mãos", "Pegar o lanche", "Sentar à mesa", "Comer com calma", "Jogar o lixo fora", "Guardar a lancheira"],
@@ -276,7 +249,6 @@ function rulesCards(input: RulesInput): MaterialCard[] {
   }
   if (kind === "historia_social") {
     const help = facts.expressiveChannel.startsWith("caa") ? "eu mostro na minha prancha" : "eu peço ajuda";
-    // Estratégia do perfil pode ser substantivo ("canto silencioso") ou ação ("respirar devagar").
     const calm = facts.calming[0] ? firstLower(facts.calming[0]) : "respirar devagar";
     const lines = [
       `Hoje vai ter ${firstLower(situation)}.`,
@@ -300,7 +272,6 @@ function rulesCards(input: RulesInput): MaterialCard[] {
     const choices = ["Fazer sozinho", "Fazer com um colega", "Fazer com a professora", ...(theme ? [`Usar o material de ${theme}`] : [])];
     return [...choices.slice(0, 3), ...options].slice(0, 6).map((label) => ({ label, visual: visualOf(label, theme), alt: `Opção: ${label}` }));
   }
-  // regulacao
   const strategies = (facts.calming.length ? facts.calming : ["Respirar devagar", "Beber água", "Apertar uma bolinha"]).slice(0, 3);
   return [
     { label: "Estou calmo", visual: "Rosto tranquilo e sorridente, cor verde suave", alt: "Termômetro: estou calmo" },

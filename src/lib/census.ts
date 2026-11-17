@@ -7,14 +7,6 @@ import { buildSyncPlan, censusCounts, regularOnlyIds, schoolFundebNote, sumCount
 import { aeeEstimate, isoDay, networkSnapshots, schoolCoverage, schoolStudents } from "./census-core";
 import { censusReference, specialEducationAnswer, type CensusReferenceRecord } from "./federal-guidance";
 
-// Censo Escolar (Educacenso) na escola: o arquivo de migração vira uma prévia,
-// a equipe revisa e aplica; a aplicação atualiza o cadastro e guarda a
-// referência da escola. O arquivo em si não fica guardado.
-//
-// Quem faz o quê (seção 10, necessidade de saber): coordenação e gestão da
-// escola importam e veem os nomes; a Secretaria vê a rede em números e
-// configura a janela do Censo e o número do FNDE.
-
 export const CENSUS_MAX_BYTES = 5 * 1024 * 1024;
 
 export type CensusAccess = { network: boolean; schoolId: string | null; canImport: boolean; canConfigure: boolean };
@@ -25,7 +17,6 @@ export function censusAccess(user: SessionUser): CensusAccess | null {
   return null;
 }
 
-// A escola que a pessoa pode abrir com nomes (coordenação ou gestão dela; sem escola na conta, qualquer uma).
 export function canOpenSchool(user: SessionUser, schoolId: string): boolean {
   const access = censusAccess(user);
   return Boolean(access?.canImport && (!access.schoolId || access.schoolId === schoolId));
@@ -58,7 +49,6 @@ export async function analyzeCensusFile(user: SessionUser, schoolId: string, con
   const special = specialEdPersons(parsed);
   const students = await schoolStudents(schoolId);
   const stats: ImportStats = { ...parsed.stats, persons: parsed.persons.length, special: special.length, edition: parsed.edition };
-  // Uma prévia por escola: a anterior é descartada e perde os dados das pessoas.
   await prisma.censusImport.updateMany({ where: { schoolId, status: "previa" }, data: { status: "descartada", persons: "[]", regularOnly: "[]" } });
   const created = await prisma.censusImport.create({
     data: {
@@ -71,7 +61,6 @@ export async function analyzeCensusFile(user: SessionUser, schoolId: string, con
   return { importId: created.id };
 }
 
-// Estudantes de outras escolas da rede, só como chaves de identidade (para avisar de transferência).
 async function elsewhereCheck(schoolId: string): Promise<(keys: string[]) => boolean> {
   const prisma = await db();
   const others = await prisma.student.findMany({ where: { NOT: { schoolId } }, select: { name: true, birthDate: true, inepId: true, cpf: true } });
@@ -119,15 +108,12 @@ export async function discardImport(user: SessionUser, importId: string) {
   await prisma.censusImport.update({ where: { id: importId }, data: { status: "descartada", persons: "[]", regularOnly: "[]" } });
 }
 
-// O que o último arquivo aplicado declarou para o estudante: tipos de AEE
-// (registro 60) e recursos nas avaliações (registro 30). `resources` veio depois.
+// Tipos de AEE (registro 60) e recursos nas avaliações (registro 30).
 export type CensusMeta = { syncedAt: string; schoolInep: string; aee: boolean; regular: boolean; aeeClass: string | null; regularClass: string | null; services: string[]; resources?: string[] };
 export const censusMetaOf = (value: string | null) => parseJson<CensusMeta | null>(value, null);
 
-// CPF na tela: só os dígitos do meio (a prévia não precisa do número inteiro).
 export const maskCpf = (cpf: string) => (cpf.length === 11 ? `***.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-**` : cpf);
 
-// Aplica a prévia numa transação: cadastra, atualiza, guarda a referência e o código INEP da escola.
 export async function applyImport(user: SessionUser, importId: string): Promise<{ error: string } | { created: number; updated: number }> {
   const prisma = await db();
   const loaded = await loadImport(user, importId);
@@ -183,7 +169,6 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
   return { created, updated };
 }
 
-// Ligar à mão o ID INEP de um estudante que a verificação não encontrou.
 export async function setStudentInep(user: SessionUser, studentId: string, inepId: string): Promise<string | null> {
   const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
@@ -212,9 +197,6 @@ export type SchoolOverview = {
 
 // Orientação do INEP: para declarar o estudante no Censo, basta um registro de
 // referência; o estudo de caso concluído ou o PAEE já bastam. Laudo não entra.
-// O estudo só respalda quando conclui que o estudante é público da educação
-// especial (censusReference): "em avaliação" e "não é público" ficam de fora. O
-// conteúdo do estudo é JSON, por isso a busca pelo trecho da resposta.
 const STUDY_BACKS = { status: "concluido", NOT: [{ content: { contains: '"publicoAlvo":"Em avaliação' } }, { content: { contains: '"publicoAlvo":"Não' } }] };
 const REFERENCED = { OR: [{ caseStudy: { is: STUDY_BACKS } }, { plans: { some: { status: "ativo" } } }] };
 
@@ -235,8 +217,6 @@ export async function schoolReferences(schoolId: string): Promise<ReferenceRow[]
   }));
 }
 
-// Visão do Censo: por escola, as contagens do último arquivo, a dupla matrícula dos
-// estudantes do AEE e o que a plataforma registra. A Secretaria recebe só os números.
 export async function censusOverview(user: SessionUser) {
   const prisma = await db();
   const access = censusAccess(user);
@@ -267,8 +247,6 @@ export async function censusOverview(user: SessionUser) {
     });
   }
   const withFile = rows.filter((row) => row.counts);
-  // A estimativa usa os arquivos de toda a rede (a classe comum pode estar em outra
-  // escola); a coordenação vê a da própria escola, a Secretaria a da rede.
   const estimate: AeeEstimate = aeeEstimate(network, access.schoolId ?? undefined);
   return {
     access,

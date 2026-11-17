@@ -13,10 +13,6 @@ import type { SuggestionView } from "@/lib/dua/suggestions";
 import { ResultMessage, buttonCls, dangerCls, hintCls, inputCls, labelCls, secondaryCls, textareaCls } from "./dua-ui";
 import { newId } from "./step-objective";
 
-// "Sugestão para revisão" (RF05): cada bloco é aceito, editado ou recusado pelo
-// profissional. Mudança de objetivo, critério novo e apoio individual aparecem
-// destacados (CA04). Aceitar só incorpora ao rascunho; validar é outra decisão.
-
 type Props = {
   planningId: string;
   purpose: AiPurpose;
@@ -142,7 +138,6 @@ function BlockCard({ index, planningId, suggestionId, block, stale, canDecide, b
   const [pending, start] = useTransition();
   const [result, setResult] = useState<DuaResult | null>(null);
   const base = `bloco-${block.id}`;
-  // Decidido aqui, os botões somem: o foco vai para a decisão registrada (teclado e leitor de tela).
   const decisionRef = useRef<HTMLParagraphElement>(null);
   const justDecided = useRef(false);
   useEffect(() => {

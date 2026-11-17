@@ -28,17 +28,12 @@ export default async function StudentLayout({
     include: { school: true },
   });
   if (!student) notFound();
-  // Necessidade de saber (item 7): bloqueia acesso fora do escopo do perfil.
   if (!canAccessStudent(user, student.schoolId, student.id)) redirect("/");
-  // A ficha é da equipe. Família e terapeuta têm o portal deles (seções 8 e 12
-  // da proposta): pelo endereço, as abas mostravam notas e o diário pedagógico.
   if (user.role === "familia") redirect(`/familia/${student.id}`);
   if (user.role === "terapeuta") redirect("/terapeuta");
-  // A Secretaria abre a ficha com nome só depois de informar o motivo.
   if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
 
   const showJourney = canSeePedagogicalDetail(user.role);
-  // Secretaria com motivo registrado: leitura, sem as abas de trabalho.
   const readOnly = !canEditStudentRecord(user.role);
   const grant = needsNominalJustification(user.role)
     ? await prisma.accessGrant.findFirst({ where: { userId: user.id, studentId: student.id, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: "desc" }, select: { expiresAt: true } })
@@ -69,8 +64,6 @@ export default async function StudentLayout({
     hasDiary: progress.diaryEntries.length > 0,
   } : null;
 
-  // Cabeçalho numa linha (identidade, selos e próximo passo) e abas numa linha:
-  // o conteúdo da aba começa logo na primeira tela.
   return (
     <>
       <StudentHead>
@@ -90,7 +83,6 @@ export default async function StudentLayout({
             <p className="student-head-detail mt-0.5 text-sm text-ink-soft">
               {ageFrom(student.birthDate)} anos · {student.gradeYear} ({student.className}) · {SHIFTS[student.shift] ?? student.shift} · {STAGES[student.stage] ?? student.stage} · {student.school.name}
             </p>
-            {/* Selos embaixo da identidade: o nome e a turma ficam numa linha só. */}
             {student.aeeFrequency || student.supportProfessional || student.accessibilityNotes ? (
               <div className="student-head-detail mt-2 flex min-w-0 flex-wrap gap-1.5">
                 {student.aeeFrequency ? <Badge tone="brand">AEE {student.aeeFrequency}</Badge> : null}

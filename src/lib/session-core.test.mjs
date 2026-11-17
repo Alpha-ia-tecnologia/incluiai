@@ -1,4 +1,3 @@
-// Testes da sessão e do limite de tentativas: node --test src/lib/session-core.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { LOGIN_MAX_FAILURES, SESSION_IDLE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core.ts";

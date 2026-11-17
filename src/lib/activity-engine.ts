@@ -3,12 +3,6 @@ import { applicableRules, type AdaptationRule } from "./rules";
 import { parseJson } from "./format";
 import { supportInfo } from "./scale";
 
-// Motor de personalização (item 17.3): combina regras determinísticas com
-// templates parametrizados pelo interesse âncora. Os agentes de IA (lib/agents,
-// orquestrados com LangGraph) substituem os templates quando há chave; as regras
-// obrigatórias valem nos dois caminhos. A IA nunca fecha o ciclo sozinha:
-// ela propõe, o professor decide, o registro corrige.
-
 export interface ActivityCard {
   title: string;
   context: "sala_comum" | "aee" | "casa";
@@ -23,7 +17,7 @@ export interface ActivityCard {
   successCriterion: string;
   planB: string;
   classParticipation?: string;
-  reviewNotes?: string[]; // pendências apontadas pelo agente revisor
+  reviewNotes?: string[];
   source: "regras" | "ia";
 }
 

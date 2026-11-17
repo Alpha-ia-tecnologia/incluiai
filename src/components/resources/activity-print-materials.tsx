@@ -17,7 +17,6 @@ function CardVisual({ card }: { card: PrintableCard }) {
 }
 
 function SheetContent({ sheet }: { sheet: PrintableSheet }) {
-  // Alternativas de uma pergunta: folha inteira, numeradas na ordem da varredura.
   if (sheet.kind === "cards" && sheet.choices) return <ol className={`${styles.cards} ${styles.choices}`} style={{ "--card-columns": sheet.columns ?? 2 } as React.CSSProperties}>
     {sheet.cards.map((card, index) => <li key={`${card.label}-${index}`} className={styles.choiceCard} data-print-card>
       <span className={styles.choiceNumber} aria-hidden="true">{index + 1}</span>
@@ -80,7 +79,6 @@ export function ActivityPrintMaterials({ activityId, activityTitle, resourceTitl
         <h4>{sheet.title}</h4><p data-resource-screen>{sheet.instruction}</p>
       </header>
       <SheetContent sheet={sheet} />
-      {/* No papel, a orientação de quem aplica fica separada do enunciado, no pé da folha. */}
       <p className={`${styles.teacherNote} ${styles.printOnly}`}><strong>Orientação ao professor:</strong> {sheet.instruction}</p>
     </section>)}
   </section>;

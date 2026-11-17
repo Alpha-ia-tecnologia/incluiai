@@ -3,8 +3,7 @@ import { buildActivityImagePrompt } from "./activity-image";
 import { generateImage } from "./openai-images";
 import { loadAnonymizer } from "../agents/anonymize";
 
-// Gera e guarda a imagem de apoio de uma atividade (substitui a anterior).
-// Fica fora dos arquivos "use server": quem chama confere a permissão antes.
+// Fica fora dos arquivos "use server" para não virar uma ação pública.
 export async function createActivityImage(activityId: string, kind: string, user: { name: string; role: string }) {
   const prisma = await db();
   const activity = await prisma.activity.findUniqueOrThrow({

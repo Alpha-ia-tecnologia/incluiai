@@ -55,15 +55,11 @@ type Step = {
   options?: Option[];
   placeholder?: string;
   required?: boolean;
-  // "Outro": permite digitar uma resposta fora das opções.
   allowOther?: boolean;
   otherType?: "text" | "number";
-  // Perguntas abertas com itens prontos para marcar (resposta em texto).
   suggestions?: string[];
 };
 
-// Prepara os rascunhos ao voltar ou editar uma resposta já dada: itens
-// conhecidos viram seleção; o restante vai para o campo "Outro".
 function draftsFor(step: Step, value: Answer | undefined): { text: string; multi: string[] } {
   if (Array.isArray(value)) return { text: "", multi: value };
   if (!value) return { text: "", multi: [] };
@@ -418,8 +414,6 @@ export function ProfileChat({
   firstName: string;
   initialAnswers?: ProfileAnswers;
   hasSavedProfile?: boolean;
-  // Hora do último salvamento, vinda do redirecionamento da ação: muda a cada
-  // vez que o perfil é gravado, para a confirmação aparecer de novo.
   savedAt?: string | null;
 }) {
   const steps = useMemo(() => buildSteps(firstName), [firstName]);
@@ -435,7 +429,6 @@ export function ProfileChat({
     hasSavedProfile ? steps.length : firstMissingIndex >= 0 ? firstMissingIndex : 0,
   );
   const [editingField, setEditingField] = useState<string | null>(null);
-  // A confirmação some quando a pessoa volta a mexer nas respostas.
   const [dismissedSave, setDismissedSave] = useState<string | null>(null);
   const savedNotice = savedAt && dismissedSave !== savedAt ? savedAt : null;
   const [textDraft, setTextDraft] = useState("");
@@ -497,7 +490,6 @@ export function ProfileChat({
       setCurrentIndex(steps.length);
       return;
     }
-    // A próxima pergunta já mostra a resposta existente (ex.: sugestão do estudo de caso).
     const nextStep = steps[currentIndex + 1];
     const drafts = nextStep ? draftsFor(nextStep, nextAnswers[nextStep.field]) : { text: "", multi: [] };
     setTextDraft(drafts.text);
@@ -588,7 +580,6 @@ export function ProfileChat({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display font-semibold text-ink">Perfil guiado</h2>
-                {/* Verde só quando há o que revisar; em andamento é a conversa guiada, em azul. */}
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${done ? "bg-green-soft text-green" : "bg-brand-soft text-brand-strong"}`}>
                   {done ? "Pronto para revisar" : "Conversa guiada"}
                 </span>
@@ -599,7 +590,6 @@ export function ProfileChat({
                 items={[{ icon: ShieldCheck, text: "Sem informações de diagnóstico" }]}
               />
             </div>
-            {/* O andamento também em texto, inclusive no celular: a barra abaixo só repete. */}
             <div className="shrink-0 text-right">
               <p className="text-xs font-semibold tabular-nums text-ink">{progress}%</p>
               <p className="text-xs tabular-nums text-ink-soft">{answeredCount} de {steps.length}</p>
@@ -848,7 +838,6 @@ function AnswerControl({
     </div>
   );
 
-  // Pergunta aberta com itens prontos: marca vários e/ou escreve em "Outro".
   if (step.kind === "text" && step.suggestions) {
     const confirm = () => onAnswer([...multiDraft, ...splitItems(textDraft, ",")].join(", "));
     return (
@@ -1115,7 +1104,6 @@ function Review({
               {steps
                 .filter((step) => step.section === section)
                 .map((step) => (
-                  // dl > div > dt + dd: o botão de editar fica num dd próprio, na coluna da direita.
                   <div key={step.field} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 py-2.5">
                     <dt className="col-start-1 text-xs font-semibold text-ink-soft">
                       {step.label}
@@ -1146,7 +1134,6 @@ function Review({
         </p>
       ) : null}
 
-      {/* Confirmação junto do botão, onde a pessoa está; `key` refaz o aviso (e o foco) a cada salvamento. */}
       {savedNotice && !error && !pending ? (
         <div className="mt-5">
           <CreatedNotice key={savedNotice}>Perfil salvo.</CreatedNotice>

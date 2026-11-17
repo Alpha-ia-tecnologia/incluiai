@@ -5,11 +5,6 @@ import { supportColor, withSegmentColors, type Tone } from "@/components/data-vi
 import { criterionSplit, participationSplit, percentOf, type Trend } from "@/lib/series";
 import { supportInfo } from "@/lib/scale";
 
-// Peças de visualização das páginas do estudante, no padrão do Painel de
-// indicadores (src/components/data-viz.tsx). Nível de apoio: 0 (independente)
-// a 5 (apoio físico total); menos apoio é avanço. Todo valor aparece também
-// em texto, e nenhuma informação depende só da cor.
-
 type LessonEntry = { date: Date | string; participation?: string; criterionMet?: string };
 
 export const TREND_TONE: Record<Trend, Tone> = { avancando: "good", estavel: "info", atencao: "alert", sem_dados: "neutral" };
@@ -22,8 +17,6 @@ export function ChartFrame({ children }: { children: ReactNode }) {
   return <div className="relative min-w-0 overflow-x-clip pr-2">{children}</div>;
 }
 
-// Medidor compacto do nível de apoio: cinco casas (nenhuma preenchida =
-// independente), com o código e o nome em texto ao lado.
 export function SupportMeter({ level, showName = true }: { level: number; showName?: boolean }) {
   const value = Math.round(Math.min(5, Math.max(0, level)));
   const info = supportInfo(value);
@@ -42,7 +35,6 @@ export function SupportMeter({ level, showName = true }: { level: number; showNa
   );
 }
 
-// Sequência dos últimos níveis de apoio (do mais antigo ao mais recente).
 export function SupportSteps({ levels, label }: { levels: ReadonlyArray<number>; label: string }) {
   return (
     <ol aria-label={label} className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2">
@@ -56,8 +48,6 @@ export function SupportSteps({ levels, label }: { levels: ReadonlyArray<number>;
   );
 }
 
-// Pílulas só com texto, que quebram linha em vez de cortar o nome (o
-// CountChips corta com reticências, e aqui o nome é toda a informação).
 export function TextChips({ items }: { items: ReadonlyArray<string> }) {
   return (
     <ul className="flex min-w-0 flex-wrap gap-1.5">
@@ -66,7 +56,6 @@ export function TextChips({ items }: { items: ReadonlyArray<string> }) {
   );
 }
 
-// Rosca da participação nas aulas, com a legenda em números.
 export function ParticipationDonut({ id, entries, size = 120 }: { id: string; entries: ReadonlyArray<LessonEntry>; size?: number }) {
   const segments = withSegmentColors(participationSplit(entries));
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
@@ -83,7 +72,6 @@ export function ParticipationDonut({ id, entries, size = 120 }: { id: string; en
   );
 }
 
-// Divisão do resultado esperado (critério do objetivo) nos registros.
 export function CriterionBar({ entries }: { entries: ReadonlyArray<LessonEntry> }) {
   return <StackedBar segments={withSegmentColors(criterionSplit(entries))} empty="Ainda sem registro de resultado." />;
 }
@@ -94,8 +82,6 @@ const SCALE_MARKERS = [
   { label: "Meta", marker: "rotate-45 rounded-[2px] border-2 border-ink-strong bg-white", align: "text-right justify-end" },
 ] as const;
 
-// Escala do apoio de um objetivo (início, último registro e meta). A escala
-// é decorativa para o leitor de tela; os três valores ficam em texto abaixo.
 export function ObjectiveScale({ initial, latest, target, caption }: { initial: number; latest: number; target: number; caption?: string }) {
   const values = [initial, latest, target];
   return (

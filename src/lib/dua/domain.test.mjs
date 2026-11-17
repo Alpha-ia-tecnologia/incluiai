@@ -1,4 +1,3 @@
-// Testes do modelo do planejamento com DUA: node --test src/lib/dua/domain.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -11,7 +10,6 @@ const strategy = (id, description, principles, extra = {}) => ({
   details: { what: "", purpose: "", when: "", how: "" }, origin: { kind: "professor" }, ...extra,
 });
 
-// Planejamento pronto para validar: objetivo, critério, barreira e uma opção ligada a eles.
 const complete = () => ({
   ...emptyDuaContent("Compreensão de uma narrativa"),
   objective: { learning: "Identificar dois personagens principais e ordenar três acontecimentos da história.", curriculum: "EF15LP03", bnccCodes: [] },
@@ -64,7 +62,6 @@ test("resultado: sem oportunidade e não registrado não viram 'nao'", () => {
   assert.equal(resultFromCriteria([{ status: "sem_oportunidade" }]), null);
   assert.equal(resultFromCriteria([{ status: "nao_registrado" }]), null);
   assert.equal(resultFromCriteria([{ status: "sem_oportunidade" }, { status: "nao_registrado" }]), null);
-  // Só os critérios observados entram no resultado.
   assert.equal(resultFromCriteria([{ status: "demonstrado" }, { status: "sem_oportunidade" }]), "sim");
   assert.equal(resultFromCriteria([{ status: "ainda_nao_demonstrado" }, { status: "nao_registrado" }]), "nao");
   assert.equal(resultFromCriteria([{ status: "demonstrado" }, { status: "ainda_nao_demonstrado" }]), "parcial");
@@ -89,7 +86,6 @@ test("apoio individual: objetivo diferente do coletivo exige justificativa e ví
   assert.deepEqual(fields(supportProblems({ ...base, individualObjective: { text: "Apontar um personagem", justification: "", objectiveId: null } })), ["individualObjective.justification", "individualObjective.objectiveId"]);
   assert.deepEqual(fields(supportProblems({ ...base, individualObjective: { text: "Apontar um personagem", justification: "Objetivo do Plano de ensino em andamento", objectiveId: null } })), ["individualObjective.objectiveId"]);
   assert.deepEqual(supportProblems({ ...base, individualObjective: { text: "Apontar um personagem", justification: "Objetivo do Plano de ensino em andamento", objectiveId: "obj-1" } }), []);
-  // Sem texto, não há objetivo individual a justificar.
   assert.deepEqual(supportProblems({ ...base, individualObjective: { text: " ", justification: "", objectiveId: null } }), []);
 });
 
@@ -112,7 +108,6 @@ test("reaproveitar: só o conteúdo coletivo, com origens, em cópia profunda", 
   const original = complete();
   original.barriers[1] = { ...original.barriers[1], origin: { kind: "ia", suggestionId: "sug-1", blockId: "bl-1" } };
   original.strategies[2] = { ...original.strategies[2], origin: { kind: "colaboracao" } };
-  // Campo que não faz parte do planejamento coletivo (ex.: apoio individual colado por engano).
   const withExtra = { ...original, apoios: [{ studentId: "est-1", support: "Prancha" }] };
   const copy = collectiveCopy(withExtra, "Narrativa — Turma C");
   assert.equal(copy.title, "Narrativa — Turma C");
@@ -151,7 +146,6 @@ test("próximos passos: cada situação gera a sugestão esperada, com base e pe
   assert.deepEqual(texts(followUpSuggestions([evidence(["parcial"])])), ["Retomar a atividade com outra forma de apresentação."]);
   assert.deepEqual(texts(followUpSuggestions([evidence(["demonstrado"], { remainingBarriers: "barulho do pátio" })])), ["Revisar a clareza das instruções e as barreiras que permaneceram."]);
   assert.deepEqual(texts(followUpSuggestions([evidence(["demonstrado"], { studentChoice: " " })])), ["Consultar o estudante sobre a estratégia utilizada."]);
-  // Apoio planejado sem registro de uso.
   assert.deepEqual(texts(followUpSuggestions([evidence(["demonstrado"], { supportProvided: "" })], [{ support: "Prancha" }])), ["Verificar se o recurso previsto estava disponível."]);
   assert.deepEqual(followUpSuggestions([evidence(["demonstrado"], { supportProvided: "" })]), []);
   const [suggestion] = followUpSuggestions([evidence(["demonstrado"], { remainingBarriers: " barulho do pátio " })]);
@@ -170,7 +164,6 @@ test("próximos passos: sem repetição e no máximo 6", () => {
   const items = followUpSuggestions([all, { ...all, date: "11/10/2026" }], [{ support: "Prancha" }]);
   assert.equal(items.length, 6);
   assert.equal(new Set(texts(items)).size, 6);
-  // A primeira evidência dá a base; a sétima sugestão (AEE) fica de fora do limite.
   assert.ok(items.every((item) => item.basis.includes("10/10/2026") && item.pending.trim()));
   assert.ok(!texts(items).includes("Discutir o apoio com o profissional do AEE."));
 });
@@ -185,7 +178,6 @@ test("material: roteiro em passos e fonte ampliada saem da versão, sem dado ind
   assert.deepEqual(sections[2].items, ["Responder oralmente, apontando ou por escrito"]);
   assert.deepEqual(buildActivityScript(content, "fonte_ampliada"), sections);
   assert.deepEqual(buildActivityScript(content, "anexo"), sections);
-  // Seções vazias não aparecem.
   assert.deepEqual(headings(buildActivityScript({ ...emptyDuaContent("x"), criteria: [{ id: "c1", description: "Aponta" }] }, "roteiro_passos")), ["O que vamos observar"]);
 });
 

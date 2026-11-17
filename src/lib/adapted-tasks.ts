@@ -14,10 +14,6 @@ import type { AgentAttachment } from "./agents/types";
 import { adaptByRules, isAdaptOption, levelsByRules, normalizeAdapted, type AdaptedContent, type LevelKey, type TaskKind } from "./task-adaptation";
 import { loadPlanningFor, contentOf, latestVersion } from "./dua/shared";
 
-// Atividade ou prova da turma adaptada (item 1) e a mesma atividade em três
-// níveis no DUA (item 5). O arquivo enviado só passa pela IA para ser
-// transcrito: não fica guardado. Regras puras em task-adaptation.ts.
-
 export const MAX_TASK_FILE_BYTES = 10 * 1024 * 1024;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
@@ -45,7 +41,6 @@ async function transcribe(file: File, anonymizerFor: () => Promise<Anonymizer>):
   }
 }
 
-// Foto ou PDF da atividade, para um estudante: só com a autorização da família para IA.
 export async function readTaskForStudent(user: SessionUser, studentId: string, file: File): Promise<ReadResult> {
   if (!(await aiAllowedFor(studentId))) return { error: "Ler foto ou PDF usa IA, e a família deste estudante ainda não autorizou. Cole o texto da atividade." };
   const result = await transcribe(file, () => loadAnonymizer(studentId));
@@ -97,7 +92,6 @@ async function draftTask(where: { id: string; studentId?: string; planningId?: s
   return task;
 }
 
-// Ajustes do professor no texto adaptado (rascunho).
 export async function saveAdaptedContent(where: { id: string; studentId?: string; planningId?: string }, content: AdaptedContent) {
   const prisma = await db();
   const task = await draftTask(where);
@@ -118,10 +112,6 @@ export async function deleteAdaptedTask(where: { id: string; studentId?: string;
   await prisma.adaptedTask.delete({ where: { id: task.id } });
 }
 
-// ------------------------------------------------------------ DUA: três níveis
-
-// Planejamento coletivo: saem os nomes de estudantes, responsáveis, profissionais
-// e escolas do recorte (mesma regra das sugestões do DUA).
 async function planningAnonymizer(schoolId: string | null): Promise<Anonymizer> {
   const prisma = await db();
   const [students, users, schools] = await Promise.all([
@@ -139,8 +129,6 @@ async function planningAnonymizer(schoolId: string | null): Promise<Anonymizer> 
   });
 }
 
-// Foto ou PDF da atividade da turma no DUA: planejamento coletivo, sem dado de
-// estudante; vale a mesma regra das sugestões do DUA (IA configurada).
 export async function readTaskForPlanning(user: SessionUser, planningId: string, file: File): Promise<ReadResult> {
   const { planning } = await loadPlanningFor(user, planningId, "edit");
   if (!isAIEnabled()) return { error: "A leitura de foto ou PDF usa IA, que está desligada nesta instalação. Cole o texto da atividade." };

@@ -11,9 +11,6 @@ import {
 } from "@/lib/health-report";
 import { processHealthReport } from "@/lib/agents/health-report-reader";
 
-// Laudos do estudo de caso: anexar, ler pela IA, revisar e excluir. Laudo é
-// dado clínico: só o AEE e a coordenação com acesso ao estudante.
-
 export type UploadState = { error?: string };
 
 const reportPath = (studentId: string, reportId?: string) => `/estudantes/${studentId}/estudo-de-caso/laudos${reportId ? `/${reportId}` : ""}`;
@@ -39,9 +36,6 @@ function refresh() {
   revalidatePath("/estudantes/[id]", "layout");
 }
 
-// Guarda o laudo e pede a leitura pela IA. O arquivo fica guardado mesmo
-// quando a leitura não acontece (foto, PDF escaneado, IA desligada, sem
-// autorização da família ou erro).
 export async function uploadHealthReport(studentId: string, _state: UploadState, formData: FormData): Promise<UploadState> {
   const prisma = await db();
   const user = await requireReportTeam(studentId);
@@ -68,7 +62,6 @@ export async function uploadHealthReport(studentId: string, _state: UploadState,
   redirect(reportPath(studentId, report.id));
 }
 
-// Nova tentativa de leitura, quando a anterior não aconteceu ou não terminou.
 export async function retryHealthReport(reportId: string) {
   const prisma = await db();
   const { report, user } = await loadReport(reportId);
@@ -80,8 +73,6 @@ export async function retryHealthReport(reportId: string) {
   redirect(reportPath(report.studentId, reportId));
 }
 
-// Revisão da equipe: só o que foi marcado entra no estudo de caso. Os valores
-// chegam do formulário, mas só valem os que a leitura sugeriu.
 export async function reviewHealthReport(reportId: string, formData: FormData) {
   const prisma = await db();
   const { report, user } = await loadReport(reportId);
@@ -130,7 +121,6 @@ export async function reviewHealthReport(reportId: string, formData: FormData) {
   redirect(`${reportPath(studentId, reportId)}?revisado=1`);
 }
 
-// Exclui o arquivo e a leitura. O que já foi juntado ao estudo de caso fica.
 export async function deleteHealthReport(reportId: string) {
   const prisma = await db();
   const { report, user } = await loadReport(reportId);

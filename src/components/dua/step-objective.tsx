@@ -9,8 +9,6 @@ export type StepProps = { content: DuaContent; update: (next: DuaContent) => voi
 
 export const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-// Etapa 1 (3.1): o objetivo vem antes de qualquer recurso. Objetivo de aprendizagem
-// ≠ meio de acesso ≠ forma de resposta ≠ apoio — a tela ajuda a separar.
 export function StepObjective({ content, update, readOnly }: StepProps) {
   const set = (patch: Partial<DuaContent>) => update({ ...content, ...patch });
   return (

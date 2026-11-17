@@ -2,8 +2,6 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { pillBySlug, readingMinutes } from "@/lib/learning-pills";
 
-// "Saiba mais" ao lado do passo em que a dúvida aparece (formação em pílulas, item 9).
-// onNavy: dentro de um herói em marinho.
 export function PillLink({ slug, onNavy = false }: { slug: string; onNavy?: boolean }) {
   const pill = pillBySlug(slug);
   if (!pill) return null;

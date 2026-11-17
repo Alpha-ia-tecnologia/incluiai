@@ -4,7 +4,6 @@ import { supportInfo } from "@/lib/scale";
 import { Character, type CharacterVariant } from "./character";
 import { BUTTON_CLS, type ButtonVariant } from "./form-styles";
 
-// Anel de progresso para KPIs percentuais — valor sempre também em texto.
 function ProgressRing({ pct }: { pct: number }) {
   const r = 24;
   const c = 2 * Math.PI * r;
@@ -26,7 +25,6 @@ function ProgressRing({ pct }: { pct: number }) {
   );
 }
 
-// info = indicador sem juízo de valor; verde, âmbar e coral indicam estado.
 type KpiTone = "info" | "amber" | "coral" | "green" | "neutral";
 
 const KPI_CARD_TONES: Record<KpiTone, string> = {
@@ -72,8 +70,6 @@ export function KpiCard({
   );
 }
 
-// Título da página. level 2 = título de uma aba dentro de uma ficha que já tem
-// o título principal (ex.: o nome do estudante no cabeçalho).
 export function PageHeader({ title, lede, actions, level = 1 }: { title: string; lede?: string; actions?: ReactNode; level?: 1 | 2 }) {
   const Heading = level === 1 ? "h1" : "h2";
   return (
@@ -89,10 +85,6 @@ export function PageHeader({ title, lede, actions, level = 1 }: { title: string;
   );
 }
 
-// Herói das telas principais: faixa em marinho com o título, o personagem do assunto
-// e, se houver, ações e números (HeroStat). O que entra em `actions` e `children`
-// usa as versões sobre o marinho (primaryOnNavyCls, Assurances onNavy…). O personagem é decorativo; no
-// celular fica pequeno acima do título, para títulos longos não encostarem nele.
 export function PageHero({ title, lede, eyebrow, character, actions, children, preload = false }: {
   title: string;
   lede?: ReactNode;
@@ -116,7 +108,6 @@ export function PageHero({ title, lede, eyebrow, character, actions, children, p
   );
 }
 
-// Número dentro do herói: valor grande e o que ele conta.
 export function HeroStat({ value, label }: { value: ReactNode; label: string }) {
   return (
     <div className="min-w-0 rounded-xl bg-paper-raised px-4 py-3">
@@ -160,7 +151,6 @@ export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; childr
   );
 }
 
-// Selo do nível de apoio (0-5): vocabulário central da plataforma.
 export function SupportPill({ level }: { level: number }) {
   const info = supportInfo(level);
   const hue = ["green", "green", "brand", "amber", "coral", "coral"][Math.min(5, Math.max(0, level))] as BadgeTone;
@@ -180,8 +170,6 @@ export function AIDisclaimer() {
   );
 }
 
-// Estado vazio com o personagem do assunto da tela (ver docs/visual.md) e,
-// quando faz sentido, a ação que resolve o vazio.
 export function EmptyState({ title, hint, character = "resources", action }: { title: string; hint?: string; character?: CharacterVariant; action?: ReactNode }) {
   return (
     <div className="rounded-2xl border border-dashed border-line bg-surface-muted/40 px-6 py-12 text-center">
@@ -193,7 +181,6 @@ export function EmptyState({ title, hint, character = "resources", action }: { t
   );
 }
 
-// Botões do kit (src/components/form-styles.ts): pílula com quatro pesos.
 export function Button({ variant = "primary", className = "", children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; children: ReactNode }) {
   return <button type="button" {...rest} className={`${BUTTON_CLS[variant]} ${className}`}>{children}</button>;
 }
@@ -202,7 +189,6 @@ export function ButtonLink({ href, variant = "primary", className = "", children
   return <Link href={href} className={`${BUTTON_CLS[variant]} ${className}`}>{children}</Link>;
 }
 
-// Botão primário padrão do design system (mantido para os formulários existentes).
 export function PrimaryButton({ children, className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
   return (
     <button

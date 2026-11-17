@@ -6,8 +6,6 @@ import type { Pic } from "@/lib/games/games-core";
 import { GamePictogram } from "./game-pictogram";
 import type { GameControls } from "./types";
 
-// Sequência da rotina: tocar nas etapas na ordem. A etapa certa sobe para o
-// seu lugar; a errada fica onde está e o jogo pede a que vem agora.
 export function SequenceGame({ routine, steps, order, controls }: { routine: string; steps: Pic[]; order: number[]; controls: GameControls }) {
   const [placed, setPlaced] = useState(0);
   const [tried, setTried] = useState<number | null>(null);
@@ -19,7 +17,6 @@ export function SequenceGame({ routine, steps, order, controls }: { routine: str
     onInstruction(placed === 0 ? `${routine}. O que vem primeiro?` : placed < steps.length ? `${routine}. O que vem depois de ${steps[placed - 1].label.toLowerCase()}?` : `${routine}. Pronto!`);
   }, [onInstruction, placed, routine, steps]);
 
-  // Dica: destaca a etapa que vem agora.
   useEffect(() => {
     registerHint(() => {
       if (placed >= steps.length) return;
@@ -51,7 +48,6 @@ export function SequenceGame({ routine, steps, order, controls }: { routine: str
     controls.onFeedback(`${steps[index].label} vem depois. O que vem agora?`, "Ainda não. O que vem agora?");
   }
 
-  // Mesma grade para os lugares e para as etapas: uma coluna por etapa no tablet.
   const columns = steps.length <= 3 ? "grid-cols-3" : steps.length === 4 ? "grid-cols-2 sm:grid-cols-4" : steps.length === 5 ? "grid-cols-3 sm:grid-cols-5" : "grid-cols-3 sm:grid-cols-6";
   return (
     <div className="mx-auto grid w-full max-w-5xl gap-8">

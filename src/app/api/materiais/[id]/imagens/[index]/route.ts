@@ -2,8 +2,6 @@ import { db } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser } from "@/lib/auth";
 import { unavailableResponse } from "@/lib/tenant";
 
-// Entrega o pictograma de um cartão do material a quem tem acesso ao estudante,
-// do mesmo jeito que a imagem de apoio das atividades.
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string; index: string }> }) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;
@@ -21,7 +19,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!image || !canAccessStudent(user, image.material.student.schoolId, image.material.studentId)) {
     return new Response("Imagem não encontrada", { status: 404 });
   }
-  // A família só vê material aprovado pela equipe; o terapeuta não usa materiais.
   if (user.role === "terapeuta" || (user.role === "familia" && image.material.status !== "aprovado")) {
     return new Response("Imagem não encontrada", { status: 404 });
   }

@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 import { Character, type CharacterVariant } from "./character";
 
-// Página de aviso (não encontrado, erro): personagem, o que aconteceu em uma
-// frase e o caminho de volta, sobre o marinho (as ações usam primaryOnNavyCls). Sem código de erro técnico na frente da pessoa.
 export function StatusPage({ character, eyebrow, title, children, actions }: {
   character: CharacterVariant;
   eyebrow: string;

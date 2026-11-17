@@ -1,4 +1,3 @@
-// Entrar, conhecer o Início, o menu e onde pedir ajuda.
 export default {
   id: "01-primeiros-passos",
   title: "Primeiros passos",

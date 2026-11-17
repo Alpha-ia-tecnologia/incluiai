@@ -1,17 +1,9 @@
-// A ficha do estudante de ponta a ponta, na ordem em que a professora a usa:
-// cadastrar, ver a trilha, concluir o estudo de caso, conferir o Censo, criar o
-// plano e salvar Como aprende. Depois, a impressão do banco de recursos e as
-// telas de gestão. Nada aqui chama os agentes de IA (que têm custo).
-//
-// Rodar: BASE=http://localhost:3213 npm run test:e2e:playwright
-// Usa as contas do banco de exemplo (npm run db:setup) e cria um estudante novo.
 import { expect, test } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
 const PASSWORD = "demo123";
 const STUDENT = `Teste Playwright ${Date.now().toString(36)}`;
-// Preenchido pelo teste do cadastro e usado pelos seguintes.
 let studentPath = "";
 
 async function login(page, email) {
@@ -24,7 +16,6 @@ async function login(page, email) {
 
 const content = (page) => page.locator("#conteudo");
 const tabs = (page) => page.getByRole("navigation", { name: "Seções do estudante" });
-// Campo de múltipla escolha: o grupo pela legenda e a opção pelo rótulo.
 const option = (page, group, label) => page.getByRole("group", { name: group }).getByText(label, { exact: true });
 
 test.describe("ficha do estudante", () => {
@@ -34,7 +25,6 @@ test.describe("ficha do estudante", () => {
 
   test("cadastro: não pergunta se recebe AEE e abre a ficha do estudante", async ({ page }) => {
     await page.goto("/estudantes/novo");
-    // Responde a pergunta da vez: escolhe a opção ou escreve e envia.
     const say = async (question, answer) => {
       await expect(content(page).getByText(question).last()).toBeVisible();
       await expect(content(page)).not.toContainText("matriculado no AEE");
@@ -54,18 +44,15 @@ test.describe("ficha do estudante", () => {
     await say("Qual é a data de nascimento?", { date: "2017-03-15" });
     await say("Em qual escola o estudante está matriculado?", { option: true });
     await say("Qual é a etapa de ensino?", { option: "Anos Iniciais" });
-    // Ano, turma e turno dependem do cadastro da escola: vale a primeira opção.
     await say("Em qual ano ou série está?", { option: true });
     await say("Qual é a turma?", { option: true });
     await say("Em qual turno estuda?", { option: true });
     await say("Quem é o responsável pelo estudante?", { text: "Responsável de Teste" });
     await say("Qual é o telefone do responsável?", { option: "Prefiro informar depois" });
-    // A frequência do atendimento é opcional; a pergunta sobre o AEE não existe mais.
     await say("Com qual frequência é atendido?", { option: "Prefiro informar depois" });
     await say("O estudante conta com profissional de apoio?", { option: "Não" });
     await page.getByRole("button", { name: "Não há informação a acrescentar" }).click();
     await page.getByRole("button", { name: "Salvar no prontuário" }).click();
-    // A ficha nova, não a própria página do cadastro (/estudantes/novo).
     await page.waitForURL((url) => /^\/estudantes\/(?!novo$)[a-z0-9]+$/.test(url.pathname));
     studentPath = new URL(page.url()).pathname;
     await expect(page.getByRole("heading", { level: 1 })).toContainText(STUDENT);
@@ -78,7 +65,6 @@ test.describe("ficha do estudante", () => {
     await expect(tabs(page).getByRole("list", { name: "Mais seções do estudante" }).getByRole("link")).toHaveText([
       "Sondagem", "Como aprende", "Atividades", "Atividades com DUA", "Atendimentos AEE", "Evolução", "Materiais de apoio", "Relatórios", "Carteirinha",
     ]);
-    // A seção aberta pelo menu aparece na linha, marcada, e o menu fecha.
     await tabs(page).getByRole("link", { name: "Sondagem" }).click();
     await page.waitForURL(`**${studentPath}/sondagem`);
     await expect(tabs(page).locator('.tab-strip a[aria-current="page"]')).toHaveText("Sondagem");
@@ -93,7 +79,6 @@ test.describe("ficha do estudante", () => {
       /Estudo de caso/, /Planejar/, /Conhecer/, /Preparar/, /Registrar/, /Ver evolução/,
     ]);
     await expect(content(page)).toContainText("Falta o registro de referência para declarar este estudante");
-    // Antes do primeiro plano não há aula para registrar: o aviso de falta de registro não aparece.
     await expect(content(page)).not.toContainText("Sem registro de acompanhamento");
   });
 
@@ -106,10 +91,8 @@ test.describe("ficha do estudante", () => {
       "3. Estratégias e recursos de acessibilidade",
       "4. Conclusão do estudo",
     ]);
-    // O que é opcional fica recolhido, e nada ali é obrigatório.
     await expect(page.locator("#aprofundar")).not.toHaveAttribute("open", "");
     await expect(page.locator("#aprofundar [required]")).toHaveCount(0);
-    // Campos que saíram do estudo de caso.
     for (const removed of ["Histórico escolar", "Frequência escolar", "Reprovações", "Quando começou a andar", "Frequência sugerida para o AEE"]) {
       await expect(content(page)).not.toContainText(removed);
     }
@@ -123,7 +106,6 @@ test.describe("ficha do estudante", () => {
     await page.getByLabel(/Síntese do caso/).fill("Comunica-se por gestos e aprende melhor com apoio visual. Prioridade: ampliar a comunicação.");
     await page.getByRole("button", { name: "Concluir estudo de caso" }).click();
 
-    // A leitura confirma, mostra o próximo passo e não trata o opcional como pendência.
     await page.waitForURL(/estudo-de-caso\?concluido=1/);
     await expect(content(page).getByRole("status")).toContainText("Estudo de caso salvo e concluído.");
     const next = page.getByRole("region", { name: "Próximo passo", exact: true });
@@ -153,7 +135,6 @@ test.describe("ficha do estudante", () => {
     await expect(content(page)).toContainText("a equipe ainda avalia se o estudante é público da educação especial");
     await expect(content(page).getByRole("link", { name: /Rever o estudo de caso/ })).toBeVisible();
     await expect(content(page)).not.toContainText("com registro de referência");
-    // Volta à resposta que respalda, para os próximos testes.
     await setAnswer("Sim: estudante com deficiência");
     await page.goto(studentPath);
     await expect(content(page)).toContainText("Censo Escolar: com registro de referência (Estudo de caso)");
@@ -168,12 +149,9 @@ test.describe("ficha do estudante", () => {
     const census = form.getByRole("group", { name: /Declarado no Censo Escolar/ });
     await expect(census.getByRole("group", { name: /Atendimentos do AEE/ })).toBeVisible();
     await expect(census.getByRole("group", { name: /Recursos na avaliação/ })).toBeVisible();
-    // O estudo de caso já sugere a tecnologia assistiva indicada e o tipo de AEE
-    // que corresponde à necessidade registrada.
     await expect(form.getByRole("group", { name: /Tecnologia assistiva e CAA/ }).getByLabel("Prancha de comunicação")).toBeChecked();
     const service = census.getByRole("group", { name: /Atendimentos do AEE/ }).getByLabel("Comunicação alternativa e aumentativa (CAA)");
     await expect(service).toBeChecked();
-    // Para conferir o aviso, o plano é salvo sem nenhum atendimento do AEE.
     await census.getByRole("group", { name: /Atendimentos do AEE/ }).getByText("Comunicação alternativa e aumentativa (CAA)", { exact: true }).click();
     await expect(service).not.toBeChecked();
 
@@ -182,7 +160,6 @@ test.describe("ficha do estudante", () => {
     await form.getByLabel(/Quando a equipe vai revisar este plano/).fill(review);
     await form.getByRole("button", { name: /Salvar plano e definir objetivos/ }).click();
 
-    // Salvou sem os atendimentos do AEE: o plano existe, e o PEI traz o aviso para conferir.
     await expect(page.locator("#pei")).toBeVisible();
     await expect(page.locator("#pei")).toContainText("Para conferir: sem os atendimentos do AEE no plano");
     await page.goto(studentPath);
@@ -190,7 +167,6 @@ test.describe("ficha do estudante", () => {
   });
 
   test("Como aprende: salvar confirma o perfil, sem erro falso", async ({ page }) => {
-    // Um estudante do banco de exemplo que já tem o perfil preenchido.
     await page.goto("/estudantes?q=Dante");
     const card = page.locator("article").filter({ has: page.getByRole("heading", { name: /Dante/ }) }).first();
     const href = await card.getByRole("link", { name: "Ver acompanhamento" }).first().getAttribute("href");
@@ -206,7 +182,6 @@ test.describe("ficha do estudante", () => {
     await page.locator('a[href^="/recursos/c"]').filter({ hasText: "Configuração de varredura por acionador" }).first().click();
     await page.waitForURL(/\/recursos\/c/);
     const plan = page.locator("[data-resource-plan]").first();
-    // Na tela, o plano de atividade e o cabeçalho do documento não aparecem.
     await expect(plan).toBeHidden();
     await page.emulateMedia({ media: "print" });
     await expect(plan).toBeVisible();
@@ -215,11 +190,9 @@ test.describe("ficha do estudante", () => {
       await expect(plan.locator("[data-print-document-header]")).toContainText(field);
     }
     await expect(page.locator("[data-resource-plan]").nth(1)).toContainText("Registro da aplicação");
-    // O que é da tela não vai para o papel: título de página, métricas de uso e botões.
     await expect(page.locator("[data-resource-introduction]")).toBeHidden();
     await expect(page.locator("[data-resource-instructions]").first()).toBeHidden();
     await expect(page.getByRole("button", { name: /Imprimir/ }).first()).toBeHidden();
-    // Alternativas do quiz numeradas e a orientação ao professor no pé da folha.
     const quiz = page.locator("[data-resource-activity]").filter({ has: page.getByRole("heading", { name: "Quiz acessível da turma" }) });
     await expect(quiz.locator("[data-resource-sheet]").first().locator("ol > li")).toHaveCount(4);
     await expect(quiz.locator("[data-resource-sheet]").first()).toContainText("Orientação ao professor:");
@@ -236,7 +209,6 @@ test.describe("gestão", () => {
     await expect(content(page)).not.toContainText(/\d+ no AEE\)/);
     await page.goto("/estudantes/importar");
     await expect(content(page)).toContainText("frequencia_aee");
-    // A coluna "aee" (sim ou não) saiu do modelo da planilha.
     await expect(content(page).getByText("aee", { exact: true })).toHaveCount(0);
   });
 });

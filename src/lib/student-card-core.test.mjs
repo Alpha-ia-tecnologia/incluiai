@@ -1,4 +1,3 @@
-// Testes da carteirinha: node --test src/lib/student-card-core.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CARD_TOKEN_PATTERN, cardHelp, formatPhone, hasHelp, newCardToken, normalizePhone, sniffCardPhoto, stripPhotoMetadata } from "./student-card-core.ts";

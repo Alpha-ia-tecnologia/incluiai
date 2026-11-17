@@ -1,5 +1,3 @@
-// Testes dos agentes das sugestões do DUA com um modelo de mentira (nenhuma
-// chamada à API): node --test src/lib/dua/suggestion-agents.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -40,8 +38,6 @@ const block = (principle, extra = {}) => ({
 const approveAll = { avaliacoes: DUA_PRINCIPLES.map((principle) => ({ principle, aprovado: true, problemas: [] })) };
 const principleOf = (agent) => DUA_PRINCIPLES.find((principle) => DUA_SPECIALISTS[principle] === agent);
 
-// Modelo de mentira: responde por agente e guarda os pedidos. `reviews` são as
-// respostas do revisor, na ordem das rodadas.
 function fakeModel({ analysisResult = analysis(), reviews = [approveAll], blocksFor } = {}) {
   const calls = [];
   const count = (agent) => calls.filter((call) => call.agent === agent).length;
@@ -66,7 +62,6 @@ test("aprovado de primeira: analista, três especialistas e revisor; um bloco po
   assert.deepEqual(raw.blocks.map((item) => item.principles[0]), ["engajamento", "representacao", "acao_expressao"]);
   assert.deepEqual(review, { pending: [], rounds: 1 });
   assert.equal(trace.at(-1).agent, DUA_REVIEWER);
-  // A resposta passa pelas verificações da plataforma (6.3) sem nenhum apontamento.
   const { blocks, checks } = checkBlocks(raw, context(), PEOPLE, SCHOOLS);
   assert.equal(blocks.length, 3);
   assert.ok(blocks.every((item) => !item.flags.blocked && item.flags.problems.length === 0));
@@ -95,7 +90,6 @@ test("focos: barreira inexistente vira hipótese, princípio sem foco recebe um,
   assert.deepEqual([foci.engajamento[0].barrierId, foci.engajamento[0].hypothesis], [null, "Pouca escolha na atividade"]);
   assert.equal(foci.acao_expressao.length, 1);
   assert.equal(foci.acao_expressao[0].barrierId, "b1");
-  // 2 + 2 + 1 = 5: nada é cortado; com 2 em cada, o último princípio perde o segundo.
   assert.equal(foci.representacao.length, 2);
   const full = distributeFoci(analysis(DUA_PRINCIPLES.flatMap((principle) => [focus(principle), focus(principle, "b2")])), context());
   assert.deepEqual(DUA_PRINCIPLES.map((principle) => full[principle].length), [2, 2, 1]);
@@ -138,7 +132,6 @@ test("ponto que o revisor mantém depois da correção acompanha o bloco, sem ba
 });
 
 test("verificações da plataforma devolvem o bloco mesmo com o revisor aprovando", async () => {
-  // O especialista de representação cita diagnóstico na primeira rodada e corrige na segunda.
   const fake = fakeModel({
     blocksFor: (principle, call, expected) => ({
       blocks: Array.from({ length: expected }, () => block(principle, principle === "representacao" && call === 1 ? { strategy: "Simplificar a leitura por causa do laudo do estudante, com texto reduzido." } : {})),
@@ -156,7 +149,6 @@ test("especialista que esquece o próprio princípio ou traz blocos a mais é aj
   const { raw } = await runDuaSuggestionAgents(input(), fake.model);
   assert.equal(raw.blocks.length, 3);
   assert.deepEqual(raw.blocks.map((item) => item.principles), [["engajamento"], ["representacao"], ["acao_expressao"]]);
-  // As duas rodadas apontaram o problema ao especialista.
   assert.match(fake.calls.filter((call) => call.agent === DUA_SPECIALISTS.engajamento)[1].prompt, /Traga um bloco para cada foco recebido \(1\); vieram 2\./);
 });
 

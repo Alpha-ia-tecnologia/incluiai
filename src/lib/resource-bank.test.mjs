@@ -69,7 +69,6 @@ test("cada proposta contém materiais, cinco a sete passos e três a quatro adap
   }
 });
 
-// O catálogo começa sem uso; os números da demonstração ficam em DEMO_RESOURCE_USAGE (seed.mjs).
 test("identidade dos seis recursos e doze propostas originais permanece estável e todos começam sem uso", () => {
   for (const [title, expected] of originalResources) {
     const resource = RESOURCE_CATALOG.find((entry) => entry.title === title);
@@ -86,7 +85,6 @@ test("identidade dos seis recursos e doze propostas originais permanece estável
     assert.equal(resource.timesUsed, 0, resource.title);
     assert.equal(resource.positiveOutcomes, 0, resource.title);
   }
-  // O seed usa este objeto no update do upsert: omitir os campos impede zerar o histórico existente.
   for (const activity of activities) {
     assert.ok(!Object.hasOwn(activity, "timesUsed"), activity.title);
     assert.ok(!Object.hasOwn(activity, "positiveOutcomes"), activity.title);

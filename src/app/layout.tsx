@@ -7,7 +7,6 @@ import { currentTenant } from "@/lib/prisma";
 import { brandOf } from "@/lib/tenant";
 import { brandCss, derivePalette } from "@/lib/branding/palette";
 
-// Noto Sans: a fonte da apresentação da plataforma.
 const noto = Noto_Sans({
   variable: "--font-noto",
   subsets: ["latin"],

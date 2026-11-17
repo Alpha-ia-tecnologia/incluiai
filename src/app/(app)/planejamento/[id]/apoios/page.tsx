@@ -21,14 +21,11 @@ type StudentOptions = { profileOptions: ProfileOption[]; objectives: ObjectiveOp
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
-// Data local do servidor no formato do <input type="date">.
 function todayInput() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-// Perfil e objetivos do estudante para o formulário. A camada de dados confere o
-// recorte; fora dele, o formulário simplesmente não aparece.
 async function optionsFor(user: SessionUser, studentId: string): Promise<StudentOptions | null> {
   try {
     const [refs, objectives] = await Promise.all([profileReferences(user, studentId), planObjectives(user, studentId)]);
@@ -42,8 +39,6 @@ async function optionsFor(user: SessionUser, studentId: string): Promise<Student
   }
 }
 
-// Apoios individuais (RF04): acesso restrito ao recorte do estudante. A lista,
-// os estudantes e as sugestões já saem filtrados pela camada de dados.
 export default async function SupportsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ estudante?: string | string[]; todos?: string | string[] }> }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const user = await getCurrentUser();
@@ -54,7 +49,6 @@ export default async function SupportsPage({ params, searchParams }: { params: P
   try {
     const { planning } = await loadPlanning(user, id);
     const [supports, suggestions, everyone] = await Promise.all([listSupports(user, id), listSuggestions(user, id), studentsInReach(user)]);
-    // ?estudante= só vale para quem está no recorte (é assim que chega a entrada pelo estudante).
     const selected = everyone.find((student) => student.id === wanted) ?? null;
     const studentIds = [...new Set([...supports.filter((support) => support.canEdit).map((support) => support.student.id), ...(selected ? [selected.id] : [])])];
     const options = new Map(await Promise.all(studentIds.map(async (studentId) => [studentId, await optionsFor(user, studentId)] as const)));
@@ -65,8 +59,6 @@ export default async function SupportsPage({ params, searchParams }: { params: P
   }
   const { planning, supports, suggestions, everyone, selected, options } = data;
 
-  // A turma do planejamento vem primeiro; "todos" mostra os demais estudantes que a
-  // pessoa acompanha (por exemplo, no AEE). Mesmo filtro de studentsInReach por turma.
   const className = planning.className;
   const classmates = className ? everyone.filter((student) => student.className === className) : everyone;
   const showAll = !className || first(query.todos) === "1" || Boolean(selected && selected.className !== className);

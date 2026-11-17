@@ -9,8 +9,6 @@ import { linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-// Uma pílula de formação (item 9): por que importa, como fazer, um exemplo,
-// o que evitar e onde fazer na plataforma. Para a equipe da escola e da rede.
 export default async function PillPage({ params }: { params: Promise<{ slug: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

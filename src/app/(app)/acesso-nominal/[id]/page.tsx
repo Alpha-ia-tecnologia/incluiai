@@ -8,8 +8,6 @@ import { NominalAccessForm } from "@/components/nominal-access-form";
 
 export const dynamic = "force-dynamic";
 
-// A Secretaria acompanha a rede pelos números do Painel. Abrir a ficha de um
-// estudante com nome pede o motivo, que fica registrado e a família vê.
 export default async function NominalAccessPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

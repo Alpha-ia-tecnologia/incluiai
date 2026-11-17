@@ -5,10 +5,6 @@ import {
 } from "./agents/material-agent.ts";
 import { checkMaterial } from "./material-content.ts";
 
-// Os agentes do material de apoio com um modelo de mentira: confere o caminho do
-// grafo (criador → três atividades → revisor), o que cada agente recebe e o que
-// é refeito quando o revisor devolve uma parte. Nenhuma chamada à API.
-
 const facts = {
   firstName: "Dante", expressiveChannel: "caa_prancha", expressiveLabel: "Prancha de comunicação", receptiveLabel: "Fala com apoio visual",
   commandSteps: 1, attentionMinutes: 8, toleranceMinutes: 12, interests: ["Dinossauros"], calming: ["Canto silencioso"], triggers: ["Mudança de rotina"],
@@ -47,8 +43,6 @@ const activity = (title, overrides = {}) => ({
 const TITLES = { [MATERIAL_ACTIVITY_AGENTS.sala_comum]: "Lanche com a turma", [MATERIAL_ACTIVITY_AGENTS.aee]: "Ensaio da rotina", [MATERIAL_ACTIVITY_AGENTS.casa]: "Lanche em casa" };
 const approveAll = { avaliacoes: ["material", "sala_comum", "aee", "casa"].map((parte) => ({ parte, aprovado: true, problemas: [] })) };
 
-// Modelo de mentira: responde por agente e guarda os pedidos. `reviews` são as
-// respostas do revisor, na ordem das rodadas.
 function fakeModel({ reviews = [approveAll], activityFor = (agent) => activity(TITLES[agent]) } = {}) {
   const calls = [];
   const model = async (request) => {
@@ -75,7 +69,6 @@ test("aprovado de primeira: criador, três atividades e revisor, uma chamada cad
   assert.equal(fake.calls.at(-1).agent, MATERIAL_REVIEWER);
   assert.equal(title, "Rotina da hora do lanche");
   assert.equal(content.cards.length, 5);
-  // A atividade do contexto pedido (AEE) vem primeiro; as três têm contexto e registro.
   assert.deepEqual(content.activities.map((item) => item.context), ["aee", "sala_comum", "casa"]);
   assert.ok(content.activities.every((item) => item.record));
   assert.ok(content.activities.find((item) => item.context === "sala_comum").classParticipation);
@@ -148,12 +141,10 @@ test("material devolvido: o criador refaz e as três atividades acompanham os ca
 });
 
 test("verificações da plataforma valem mesmo com o revisor aprovando; o que sobra vira ponto para conferir", async () => {
-  // A atividade de casa passa do limite de 10 minutos nas duas rodadas.
   const fake = fakeModel({ activityFor: (agent) => activity(TITLES[agent], agent === MATERIAL_ACTIVITY_AGENTS.casa ? { durationMinutes: 25 } : {}) });
   const { content, trace } = await runMaterialAgent(input(), fake.model);
   assert.equal(fake.count(MATERIAL_ACTIVITY_AGENTS.casa), 2);
   assert.equal(fake.count(MATERIAL_REVIEWER), 2);
-  // O ajuste final corta a duração; a professora ainda é avisada do ponto.
   assert.equal(content.activities.find((item) => item.context === "casa").durationMinutes, 10);
   assert.equal(content.reviewNotes.length, 1);
   assert.match(content.reviewNotes[0], /^Atividade de casa: "Lanche em casa" dura 25 min/);

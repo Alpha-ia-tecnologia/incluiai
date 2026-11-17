@@ -1,14 +1,8 @@
 import type { ReactNode } from "react";
 import { ChevronDown, ChevronRight, Info, type LucideIcon } from "lucide-react";
 
-// Elementos visuais no lugar de parágrafos explicativos (docs/visual.md, "Menos texto"):
-// - Steps: "como funciona" em etapas curtas com ícone, no lugar da prosa;
-// - Assurances: garantias e cuidados (privacidade, revisão humana) em selos;
-// - HowToRead: definição ou explicação longa, recolhida atrás de "Como ler".
-
 export type StepItem = { icon: LucideIcon; label: string };
 
-// Etapas de um fluxo, na ordem. Cada uma com 2 a 5 palavras.
 export function Steps({ items, label, className = "" }: { items: StepItem[]; label: string; className?: string }) {
   return (
     <ol aria-label={label} className={`flex flex-wrap items-center gap-x-1.5 gap-y-2 ${className}`}>
@@ -27,8 +21,6 @@ export function Steps({ items, label, className = "" }: { items: StepItem[]; lab
 
 export type AssuranceItem = { icon: LucideIcon; text: string };
 
-// Garantias que a pessoa precisa saber antes de agir. Cada uma com até 6 palavras.
-// onNavy: dentro de um herói em marinho.
 export function Assurances({ items, label, className = "", onNavy = false }: { items: AssuranceItem[]; label: string; className?: string; onNavy?: boolean }) {
   return (
     <ul aria-label={label} className={`flex flex-wrap gap-2 ${className}`}>
@@ -42,9 +34,6 @@ export function Assurances({ items, label, className = "", onNavy = false }: { i
   );
 }
 
-// Explicação a um toque: fechada por padrão, aberta na impressão do navegador
-// só se a pessoa abriu.
-// onNavy: dentro de uma superfície marinho (destaque do Painel).
 export function HowToRead({ summary = "Como ler", children, className = "", onNavy = false }: { summary?: string; children: ReactNode; className?: string; onNavy?: boolean }) {
   return (
     <details className={`group ${className}`}>

@@ -3,9 +3,6 @@ import { Badge } from "@/components/ui";
 import { BARRIER_STATUS_LABEL, type DuaSupportData } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 
-// Leitura do apoio individual, usada no planejamento e na página do estudante.
-// Sem hooks: renderiza no servidor, dentro do recorte já filtrado pela camada de dados.
-
 function Item({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div className="min-w-0">

@@ -1,16 +1,3 @@
-// Som final de cada vídeo tutorial: a narração e, por baixo, a trilha sonora.
-//
-// A trilha entra baixa (TRILHA_VOLUME, padrão -8 dB: uns 16 dB abaixo da voz, a faixa
-// usual de música de fundo), abaixa sozinha enquanto a narração fala, começa e termina
-// com fade e, nos vídeos mais longos que ela, se repete com uma emenda cruzada.
-//
-// O gravador usa este módulo. Sozinho, ele refaz o som dos vídeos já gravados com a
-// narração que o gravador guardou em WORK, sem regravar a tela:
-//
-//   node scripts/tutoriais/mixar.mjs [roteiros]
-//
-// Variáveis: TRILHA (arquivo de áudio; padrão scripts/tutoriais/trilha.flac; vazio = sem
-// trilha), TRILHA_VOLUME (em dB), e FFMPEG, OUT e WORK, as mesmas do gravador.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, renameSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -21,7 +8,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const env = process.env;
 const FADE_IN = 1.5;
 const FADE_OUT = 3;
-const SEAM = 3; // segundos de emenda cruzada quando a trilha se repete
+const SEAM = 3;
 
 export const MUSIC = {
   file: env.TRILHA ?? join(HERE, "trilha.flac"),
@@ -35,7 +22,6 @@ export function duration(ffmpeg, file) {
   return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
 }
 
-// Junta a imagem de `video`, a narração (WAV, opcional) e a trilha num MP4 em `out`.
 export function mux({ ffmpeg, video, narration, seconds, out, music = MUSIC }) {
   const args = ["-y", "-loglevel", "error", "-i", video];
   if (narration) args.push("-i", narration);
@@ -59,7 +45,6 @@ export function mux({ ffmpeg, video, narration, seconds, out, music = MUSIC }) {
   graph.push(`${bed}aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:${seconds.toFixed(2)},volume=${music.volume}dB,afade=t=in:d=${FADE_IN},afade=t=out:st=${fadeOut}:d=${FADE_OUT}[bed]`);
   if (narration) {
     graph.push("[1:a]aformat=sample_rates=48000:channel_layouts=stereo,asplit[voice][key]");
-    // A trilha abaixa enquanto a voz fala e volta nas pausas.
     graph.push("[bed][key]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=500[ducked]");
     graph.push("[voice][ducked]amix=inputs=2:duration=first:normalize=0[audio]");
   } else {
@@ -69,7 +54,6 @@ export function mux({ ffmpeg, video, narration, seconds, out, music = MUSIC }) {
   execFileSync(ffmpeg, [...args, "-movflags", "+faststart", out]);
 }
 
-// Sozinho: refaz o som dos vídeos já gravados.
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const ffmpeg = env.FFMPEG ?? "ffmpeg";
   const out = env.OUT ?? join(HERE, "..", "..", "public", "tutoriais");

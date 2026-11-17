@@ -11,10 +11,6 @@ import { canPlanDua, collaboratorIds, planningAccess, readablePlanningsWhere } f
 import { validBnccCode } from "../bncc";
 import { DuaError, NOT_FOUND, audit, clip, contentOf, latestVersion, loadPlanningFor } from "./shared";
 
-// Planejamento coletivo e suas versões (RF02, seção 7). Validada, a versão não
-// muda: toda gravação é condicional (estado ≠ validado e mesma revisão), o que
-// também avisa quando outro profissional salvou antes.
-
 const MAX_CONTENT = 200_000;
 const MAX_ITEMS = 40;
 
@@ -36,7 +32,6 @@ export type PlanningSummary = {
 
 const normalizeText = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-// Busca por título, objetivo, barreira ou opção (evolução prevista no descritivo).
 function matches(content: DuaContent, query: string) {
   const haystack = normalizeText([content.title, content.objective.learning, content.objective.curriculum, ...content.barriers.map((item) => item.description), ...content.strategies.map((item) => item.description)].join(" \n "));
   return normalizeText(query).split(/\s+/).filter(Boolean).every((term) => haystack.includes(term));
@@ -73,7 +68,6 @@ export async function listPlannings(user: SessionUser, filters: { query?: string
     }));
 }
 
-// Turmas da escola de quem planeja (vínculo por nome, como no cadastro de estudantes).
 export async function classOptions(user: SessionUser) {
   const prisma = await db();
   const classes = await prisma.schoolClass.findMany({ where: user.schoolId ? { schoolId: user.schoolId } : {}, select: { name: true, gradeYear: true, school: { select: { name: true } } }, orderBy: { name: "asc" } });
@@ -98,7 +92,6 @@ export async function createPlanning(user: SessionUser, input: { title: string; 
   let content: DuaContent = emptyDuaContent(title);
   let reusedFromId: string | null = null;
   if (input.reuseFromId) {
-    // Reaproveitar (CA08): só o conteúdo coletivo, da última versão validada (ou da última).
     const { planning } = await loadPlanningFor(user, input.reuseFromId, "read");
     const source = (await prisma.duaPlanningVersion.findFirst({ where: { planningId: planning.id, state: "validado" }, orderBy: { version: "desc" } })) ?? (await latestVersion(planning.id));
     content = collectiveCopy(contentOf(source), title);
@@ -135,14 +128,10 @@ export async function loadPlanning(user: SessionUser, planningId: string) {
   };
 }
 
-// ----------------------------------------------------------------- gravação do rascunho
-
 const ids = (value: unknown) => (Array.isArray(value) ? value.map((item) => clip(item, 64)).filter(Boolean).slice(0, MAX_ITEMS) : []);
 const texts = (value: unknown, max = 300) => (Array.isArray(value) ? value.map((item) => clip(item, max)).filter(Boolean).slice(0, MAX_ITEMS) : []);
 const oneOf = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(value as T) ? (value as T) : fallback);
 
-// Limpa o que veio da tela e preserva a origem gravada de cada item: a tela não
-// consegue marcar um item como "sugestão revisada" nem apagar essa marca.
 export function reconcileContent(previous: DuaContent, incoming: Partial<DuaContent>, authorKind: OriginKind): DuaContent {
   const raw = normalizeContent(incoming as DuaContent);
   const previousOrigins = new Map<string, DuaOrigin>([...previous.barriers, ...previous.strategies].map((item) => [item.id, item.origin]));
@@ -178,7 +167,6 @@ export function reconcileContent(previous: DuaContent, incoming: Partial<DuaCont
   });
   return {
     title: clip(raw.title, 160),
-    // Só habilidades que existem na base oficial da BNCC.
     objective: { learning: clip(raw.objective.learning, 2000), curriculum: clip(raw.objective.curriculum, 300), bnccCodes: [...new Set(raw.objective.bnccCodes.map(validBnccCode).filter((code) => code !== null))].slice(0, 10) },
     criteria,
     context: { audience: clip(raw.context.audience, 300), organization: clip(raw.context.organization, 1200), resources: texts(raw.context.resources), notes: clip(raw.context.notes, 2000) },
@@ -215,8 +203,6 @@ export async function saveDraft(user: SessionUser, planningId: string, input: { 
   return { ok: true, revision: input.revision + 1, savedAt: new Date().toISOString() };
 }
 
-// ----------------------------------------------------------------- revisão, validação e versões
-
 async function transition(user: SessionUser, planningId: string, version: number, revision: number, from: ReviewState[], data: Record<string, unknown>) {
   const prisma = await db();
   const current = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version } } });
@@ -241,8 +227,6 @@ export async function returnToDraft(user: SessionUser, planningId: string, versi
   await audit(user, planningId, "voltou para rascunho", "versao", { versionNumber: version });
 }
 
-// "Validar para aplicação" (RF05): decisão pedagógica registrada com autoria, data
-// e versão. Não altera matrícula, classificação nem dados censitários (CA12).
 export async function validateVersion(user: SessionUser, planningId: string, version: number, revision: number) {
   const prisma = await db();
   await loadPlanningFor(user, planningId, "validate");
@@ -254,7 +238,6 @@ export async function validateVersion(user: SessionUser, planningId: string, ver
   await audit(user, planningId, "validou para aplicação", "versao", { versionNumber: version });
 }
 
-// Editar depois de validar abre a versão seguinte; as aplicações continuam presas à versão usada (CA07).
 export async function openNewVersion(user: SessionUser, planningId: string) {
   const prisma = await db();
   await loadPlanningFor(user, planningId, "edit");
@@ -265,14 +248,12 @@ export async function openNewVersion(user: SessionUser, planningId: string) {
       data: { planningId, version: latest.version + 1, state: "rascunho", content: latest.content, createdById: user.id, createdByName: user.name, updatedById: user.id, updatedByName: user.name },
     });
   } catch {
-    // Outro profissional abriu a mesma versão ao mesmo tempo: segue com ela.
     return (await latestVersion(planningId)).version;
   }
   await audit(user, planningId, "abriu nova versão", "versao", { versionNumber: latest.version + 1, detail: `Copiada da versão ${latest.version}, que continua validada.` });
   return latest.version + 1;
 }
 
-// Compartilhar é decisão separada da validação e exige uma versão validada.
 export async function setSharing(user: SessionUser, planningId: string, sharing: Sharing) {
   const prisma = await db();
   await loadPlanningFor(user, planningId, "share");
@@ -284,7 +265,6 @@ export async function setSharing(user: SessionUser, planningId: string, sharing:
   await audit(user, planningId, sharing === "compartilhado" ? "compartilhou com a equipe" : "deixou de compartilhar", "planejamento");
 }
 
-// Colaboradores: profissionais que planejam, da mesma escola do planejamento.
 export async function collaboratorOptions(user: SessionUser, planningId: string) {
   const prisma = await db();
   const { planning } = await loadPlanningFor(user, planningId, "read");

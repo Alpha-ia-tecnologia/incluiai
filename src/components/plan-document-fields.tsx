@@ -7,8 +7,7 @@ import {
 } from "@/lib/plan-documents";
 
 // Os campos do PAEE e do PEI (Portaria MEC nº 421/2026, arts. 10 e 11), com quem
-// elabora cada um, como orienta o INEP. Mesmos campos ao criar, ao ativar a
-// proposta e ao completar um plano. `idPrefix` evita ids repetidos na página.
+// elabora cada um, como orienta o INEP.
 // Atendimentos do AEE e recursos na avaliação usam os nomes do Educacenso.
 const multi = { legendClassName: labelCls, inputClassName: inputCls };
 const legendCls = "px-1 text-sm font-semibold text-ink";

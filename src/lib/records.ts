@@ -5,9 +5,6 @@ import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study"
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
 import { recordChange } from "./access-log";
 
-// Gravações do acompanhamento usadas pelos formulários e pelo assistente.
-// Cada uma confere a permissão de quem grava; nada aqui é ação pública.
-
 export async function assertStudentTeam(user: SessionUser, studentId: string) {
   const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true, name: true } });
@@ -17,8 +14,6 @@ export async function assertStudentTeam(user: SessionUser, studentId: string) {
   return student;
 }
 
-// Plano de ensino só com estudo de caso concluído (CA02), em toda criação de plano:
-// manual, a partir de proposta e na própria proposta da IA ou das regras.
 export async function assertCaseStudyConcluded(studentId: string) {
   const prisma = await db();
   const caseStudy = await prisma.caseStudy.findUnique({ where: { studentId }, select: { status: true } });
@@ -37,8 +32,6 @@ export type DiaryEntryInput = {
   authorRole: string;
 };
 
-// Registro em 3 toques. Ao registrar sobre uma atividade aceita, ela passa a
-// "aplicada", fechando o ciclo sugerir → decidir → aplicar → registrar.
 export async function saveDiaryEntry(user: SessionUser, studentId: string, input: DiaryEntryInput) {
   const prisma = await db();
   await assertStudentTeam(user, studentId);
@@ -52,8 +45,6 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
     const activity = await prisma.activity.findFirst({ where: { id: activityId, studentId }, select: { id: true } });
     if (!activity) throw new Error("Atividade não encontrada para este estudante.");
   }
-  // O papel é declarado por quem conduziu (pode ser "intérprete de Libras");
-  // família e terapeuta não registram aula da escola. O autor real vem da sessão.
   const authorRole = input.authorRole.trim().slice(0, 60);
   if (!authorRole || ["familia", "terapeuta"].includes(authorRole)) throw new Error("Escolha o seu papel neste registro.");
   const entry = await prisma.diaryEntry.create({
@@ -138,7 +129,6 @@ export async function decideActivity(user: SessionUser, studentId: string, activ
   await assertStudentTeam(user, studentId);
   const activity = await prisma.activity.findFirst({ where: { id: activityId, studentId } });
   if (!activity) throw new Error("Atividade não encontrada para este estudante.");
-  // Quem decidiu fica na atividade e no histórico de acessos (seção 17.7: a decisão é humana).
   const decided = { decidedBy: user.name, decidedAt: new Date() };
   const updated = await prisma.activity.update({
     where: { id: activityId },
@@ -148,8 +138,6 @@ export async function decideActivity(user: SessionUser, studentId: string, activ
   return updated;
 }
 
-// Um plano ativo por vez: para começar outro, a equipe encerra o atual (com
-// motivo) e o histórico fica guardado.
 export const ACTIVE_PLAN_EXISTS_MESSAGE = "Já existe um plano ativo para este estudante. Revise ou encerre o plano atual antes de criar outro.";
 export async function assertNoActivePlan(studentId: string) {
   const prisma = await db();
@@ -157,8 +145,6 @@ export async function assertNoActivePlan(studentId: string) {
   if (active) throw new Error(ACTIVE_PLAN_EXISTS_MESSAGE);
 }
 
-// Revisão do plano: guarda a decisão da equipe, a data que estava marcada e se
-// saiu no prazo; a data de revisão do plano passa a ser a próxima.
 export async function reviewStudentPlan(user: SessionUser, studentId: string, planId: string, input: { summary: string; nextReviewDate: Date }) {
   const prisma = await db();
   await assertStudentTeam(user, studentId);
@@ -179,8 +165,6 @@ export async function reviewStudentPlan(user: SessionUser, studentId: string, pl
   await notifyFamily(studentId, "plano_revisado", `/familia/${studentId}`);
 }
 
-// Encerrar o plano: o plano e as revisões ficam no histórico; os objetivos
-// ainda ativos saem do acompanhamento junto com ele.
 export async function closeStudentPlan(user: SessionUser, studentId: string, planId: string, reason: string) {
   const prisma = await db();
   await assertStudentTeam(user, studentId);

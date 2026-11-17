@@ -7,8 +7,6 @@ import { validateDuaSupport } from "@/actions/dua";
 import { ResultMessage, buttonCls } from "../dua-ui";
 import type { Outcome } from "./support-form";
 
-// "Validar apoio": confirma o apoio para esta atividade. O componente continua
-// montado depois de validar para a mensagem chegar ao leitor de tela.
 export function ValidateSupport({ planningId, studentId, supportId, revision, validated }: { planningId: string; studentId: string; supportId: string; revision: number; validated: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();

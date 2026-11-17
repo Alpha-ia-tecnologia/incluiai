@@ -1,4 +1,3 @@
-// Testes das regras do Censo: node --test src/lib/census-rules.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseEducacensoFile, specialEdPersons } from "./educacenso.ts";
@@ -34,7 +33,6 @@ test("plano: atualiza quem já está, cria quem falta, pede revisão de homônim
   assert.deepEqual([byName["MENINO DA PRE"].create.stage, byName["MENINO DA PRE"].create.className], ["educacao_infantil", "PRE II"]);
   assert.equal(byName["SO NO AEE"].action, "review");
   assert.equal(byName["SO NO AEE"].candidates.length, 2);
-  // Enquanto o homônimo não é vinculado na revisão, quem tem AEE fica como ausente.
   assert.deepEqual(plan.missing, [{ id: "s2", name: "Lívia Martins" }, { id: "s3", name: "Só no AEE" }]);
   assert.equal(plan.totals.doublePending, 5);
 });
@@ -99,7 +97,6 @@ test("alertas do vínculo: sem tipo de AEE, horário coincidente, vínculos dema
   assert.deepEqual(issuesOf(snapshot["ALUNO A DISTANCIA"]), ["comum_nao_presencial"]);
   assert.deepEqual(issuesOf(snapshot["ALUNO DE MUITOS VINCULOS"]), ["vinculos_demais", "aee_duplicado"]);
   assert.deepEqual(issuesOf(snapshot["DANTE RIBEIRO"]), []);
-  // Referência antiga, sem os campos novos: nenhum alerta.
   assert.deepEqual(issuesOf({ key: "x", name: "X", inepId: "", cpf: "", birthDate: "", special: true, aee: true, regular: true, stage: "302" }), []);
 });
 
@@ -128,7 +125,6 @@ test("Fundeb: dependência da escola e estimativa do AEE considerado na rede", (
 
   const municipal = { dependency: "municipal", privateCategory: "", municipalPartnership: false };
   const school = toSnapshot(persons);
-  // Outra escola municipal com a classe comum da Nova Aluna e o AEE repetido do Dante.
   const other = [
     { key: "a", name: "NOVA ALUNA DA SILVA", inepId: "999888777666", cpf: "", birthDate: "2018-06-05", special: true, aee: false, regular: true, stage: "302" },
     { key: "b", name: "DANTE RIBEIRO", inepId: "123456789012", cpf: "", birthDate: "2019-03-12", special: true, aee: true, regular: false, stage: "", aeeLinks: 1, aeeNoService: 0, activityLinks: 1 },
@@ -139,10 +135,7 @@ test("Fundeb: dependência da escola e estimativa do AEE considerado na rede", (
     { id: "2", name: "EMEF Outra", info: municipal, persons: other },
     { id: "3", name: "Escola estadual", info: { ...municipal, dependency: "estadual" }, persons: state },
   ]);
-  // Contam: Dante (302), Menino da Pré (301) e Nova Aluna (classe comum na outra escola, 302).
-  // Sem classe comum presencial pública nos arquivos: a da classe especial e o aluno a distância.
   assert.deepEqual(estimate, { considered: 3, byStage: { 301: 1, 302: 2 }, notVerifiable: 2, blocked: 2, repeated: 1, otherNetwork: 1, partner: 0 });
-  // Só a outra escola: o Dante já não se repete e a classe comum dele está na primeira.
   assert.equal(networkAeeEstimate([
     { id: "1", name: "EMEF Paulo Freire", info: municipal, persons: school },
     { id: "2", name: "EMEF Outra", info: municipal, persons: other },
@@ -151,7 +144,7 @@ test("Fundeb: dependência da escola e estimativa do AEE considerado na rede", (
 
 test("janela do Censo: duas verificações por dia, no horário de Brasília", () => {
   const config = { enabled: true, periodStart: "2026-10-20", periodEnd: "2026-10-23", times: ["16:00", "08:00"] };
-  assert.equal(nextRun(config, now).toISOString(), "2026-10-22T19:00:00.000Z"); // 12h em Brasília → 16h
+  assert.equal(nextRun(config, now).toISOString(), "2026-10-22T19:00:00.000Z");
   assert.equal(nextRun(config, new Date("2026-10-22T20:00:00Z")).toISOString(), "2026-10-23T11:00:00.000Z");
   assert.equal(nextRun(config, new Date("2026-10-23T20:00:00Z")), null);
   assert.equal(monitorState(config, now, null).status, "ativo");

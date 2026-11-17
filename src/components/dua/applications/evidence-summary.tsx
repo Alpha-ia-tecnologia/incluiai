@@ -16,8 +16,6 @@ export type EvidenceSummaryData = {
   nextStep: string;
 };
 
-// Tom do estado de cada critério: só o que foi observado ganha cor de resultado;
-// "sem oportunidade" e "não registrado" ficam neutros (não são "ainda não").
 const STATUS_TONE: Record<CriterionStatus, "green" | "brand" | "amber" | "neutral"> = {
   demonstrado: "green",
   parcial: "brand",
@@ -28,7 +26,6 @@ const STATUS_TONE: Record<CriterionStatus, "green" | "brand" | "amber" | "neutra
 
 export const observationTone = (observation: EvidenceObservation) => (observation === "observado" ? "green" : "neutral");
 
-// Resumo do registro já feito, para conferir antes de atualizar.
 export function EvidenceSummary({ evidence }: { evidence: EvidenceSummaryData }) {
   const texts = [
     { label: "Forma de participação", value: evidence.participationForm },

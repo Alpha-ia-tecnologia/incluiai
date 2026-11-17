@@ -4,9 +4,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import type { GameControls } from "./types";
 
-// Rodadas de escolha (associação e emoções): uma pergunta, opções grandes.
-// A opção errada fica apagada e o estudante tenta outra; a certa passa para a
-// rodada seguinte depois de um instante.
 export type RoundView = {
   id: string;
   instruction: string;
@@ -28,7 +25,6 @@ export function RoundsGame({ rounds, controls, optionsClass }: { rounds: RoundVi
     if (round) onInstruction(round.instruction);
   }, [onInstruction, round]);
 
-  // Dica: destaca a resposta da rodada.
   useEffect(() => {
     registerHint(() => {
       if (right) return;

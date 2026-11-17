@@ -5,9 +5,6 @@ import { parseCaseStudy } from "./case-study";
 import { censusMetaOf } from "./census";
 import { evidenceGroups, evidenceSummary, type EvidenceGroup } from "./evidence";
 
-// Dossiê de evidências (item 8): junta, por estudante, os registros que as
-// regras de evidence.ts conferem. Uma consulta para a escola inteira.
-
 const DAY = 86_400_000;
 
 export type StudentEvidence = { id: string; name: string; className: string; schoolId: string; school: string; groups: EvidenceGroup[]; summary: ReturnType<typeof evidenceSummary> };
@@ -48,7 +45,6 @@ export async function loadEvidence(where: Prisma.StudentWhereInput, now: Date = 
       aee: { done: sessions("realizado"), absences: sessions("falta"), cancelled: sessions("cancelamento") },
       lastReportAt: student.reports[0]?.validatedAt ?? null,
       assessmentAt: student.assessments[0]?.appliedAt ?? null,
-      // Sem quem decidiu, a linha veio de antes das autorizações: a família ainda não escolheu.
       census: censusMetaOf(student.census),
       consent: student.consent ? { aiUse: student.consent.aiUse, therapistLink: student.consent.therapistLink, decidedAt: student.consent.updatedBy ? student.consent.updatedAt : null } : null,
     });

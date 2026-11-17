@@ -1,13 +1,10 @@
 import { z } from "zod/v4";
 import { AgentOutputError, type AgentModel, type AgentRequest } from "./types";
 
-// Provedor de reserva: DeepSeek, pela API HTTP no formato OpenAI
-// (https://api-docs.deepseek.com). Só é usado com DEEPSEEK_API_KEY e a ligação
-// explícita DEEPSEEK_ENABLED=1 (env.ts). Atenção (LGPD): a DeepSeek processa e
-// armazena dados na China.
+// DeepSeek, pela API HTTP no formato OpenAI (https://api-docs.deepseek.com).
+// Atenção (LGPD): a DeepSeek processa e armazena dados na China.
 //
-// O modo JSON da DeepSeek garante JSON válido, mas não segue um esquema: o
-// esquema vai no prompt e a resposta é validada com o mesmo Zod do Claude.
+// O modo JSON da DeepSeek garante JSON válido, mas não segue um esquema.
 
 export const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-flash";
 const BASE_URL = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/$/, "");
@@ -25,7 +22,6 @@ export class DeepSeekAPIError extends Error {
   }
 }
 
-// Extrai o objeto JSON mesmo que venha entre cercas de markdown ou com texto em volta.
 export function extractJson(content: string): unknown {
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const text = (fenced ? fenced[1] : content).trim();
@@ -84,7 +80,7 @@ async function callOnce<T>(request: AgentRequest<T>, schema: string): Promise<T>
 }
 
 // Resposta vazia ou JSON fora do esperado acontecem de vez em quando no modo
-// JSON da DeepSeek: vale uma segunda tentativa antes de desistir.
+// JSON da DeepSeek.
 class RetryableOutputError extends AgentOutputError {}
 const MAX_ATTEMPTS = 2;
 

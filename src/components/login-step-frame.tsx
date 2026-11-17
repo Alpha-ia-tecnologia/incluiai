@@ -4,8 +4,6 @@ import { Sprout } from "lucide-react";
 import { logout } from "@/actions/auth";
 import { quietButtonCls } from "@/components/form-styles";
 
-// Moldura dos passos do login depois da senha (senha nova, duas etapas): a
-// marca, o selo do passo, o título e a saída para entrar com outra conta.
 export function LoginStepFrame({ badge, icon, title, lede, children }: { badge: string; icon: ReactNode; title: string; lede: string; children: ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-3 sm:p-6">

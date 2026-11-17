@@ -1,9 +1,3 @@
-// Jogos educativos do AEE: regras puras, testadas com node --test
-// (src/lib/games/games-core.test.mjs). Os jogos rodam no navegador, com o
-// professor ao lado: sem tempo limite, sem pontuação que compare estudantes e
-// sem punição ao errar (a carta só pede outra tentativa). No fim, o professor
-// decide se registra a aula.
-
 export const GAME_KEYS = ["memoria", "sequencia", "associacao", "emocoes"] as const;
 export type GameKey = (typeof GAME_KEYS)[number];
 export const isGameKey = (value: unknown): value is GameKey => GAME_KEYS.includes(value as GameKey);
@@ -12,8 +6,6 @@ export const LEVELS = ["facil", "medio", "desafio"] as const;
 export type Level = (typeof LEVELS)[number];
 export const isLevel = (value: unknown): value is Level => LEVELS.includes(value as Level);
 export const LEVEL_LABEL: Record<Level, string> = { facil: "Fácil", medio: "Médio", desafio: "Desafio" };
-// Os jogos de fotografias (src/lib/games.ts) têm dois níveis: o fácil vira
-// "com mais apoio"; o médio e o desafio, "mais desafios".
 export const photoLevel = (level: Level): 1 | 2 => (level === "facil" ? 1 : 2);
 
 export const GAMES: Record<GameKey, { title: string; skill: string }> = {
@@ -23,7 +15,6 @@ export const GAMES: Record<GameKey, { title: string; skill: string }> = {
   emocoes: { title: "Emoções", skill: "Comunicação e emoções" },
 };
 
-// Figura do jogo: chave da fotografia local (game-photos.ts) e nome acessível.
 export type Pic = { key: string; label: string };
 
 export const THEMES = {
@@ -47,8 +38,6 @@ const THEME_HINTS: [ThemeKey, RegExp][] = [
   ["animais", /anima|bicho|cachorro|gato|peixe|passaro|dinossauro|coelho|cavalo/],
 ];
 
-// O tema começa pelo que o estudante mais gosta ("Como aprende", na ordem em
-// que a equipe registrou); sem pista, animais.
 export function themeFromInterests(interests: string[]): ThemeKey {
   for (const interest of interests) {
     const text = normalize(interest);
@@ -58,15 +47,12 @@ export function themeFromInterests(interests: string[]): ThemeKey {
   return "animais";
 }
 
-// Nível sugerido pelo apoio de que o estudante precisa hoje (escala de 0 a 5):
-// mais apoio, menos cartas e menos opções. O professor pode trocar.
 export function suggestedLevel(profile: { readingSupport: number; mathSupport: number; organization: number } | null): Level {
   if (!profile) return "facil";
   const average = (profile.readingSupport + profile.mathSupport + profile.organization) / 3;
   return average >= 3.5 ? "facil" : average >= 2 ? "medio" : "desafio";
 }
 
-// Embaralhamento de Fisher-Yates; o sorteio vem de fora para os testes repetirem.
 export function shuffle<T>(items: readonly T[], random: () => number = Math.random): T[] {
   const out = [...items];
   for (let index = out.length - 1; index > 0; index -= 1) {
@@ -76,7 +62,6 @@ export function shuffle<T>(items: readonly T[], random: () => number = Math.rand
   return out;
 }
 
-// ---------- Memória ----------
 export const MEMORY_PAIRS: Record<Level, number> = { facil: 2, medio: 4, desafio: 6 };
 export type MemoryCard = { id: string; pic: Pic };
 
@@ -85,7 +70,6 @@ export function memoryDeck(theme: ThemeKey, level: Level, random: () => number =
   return shuffle(pics.flatMap((pic) => [{ id: `${pic.key}-1`, pic }, { id: `${pic.key}-2`, pic }]), random);
 }
 
-// ---------- Sequência da rotina ----------
 type Routine = { label: string; steps: Pic[]; facil: number[]; medio: number[] };
 export const ROUTINES: Record<string, Routine> = {
   maos: {
@@ -125,13 +109,11 @@ export type RoutineKey = keyof typeof ROUTINES;
 export const ROUTINE_KEYS = Object.keys(ROUTINES);
 export const isRoutineKey = (value: unknown): value is RoutineKey => typeof value === "string" && value in ROUTINES;
 
-// Etapas na ordem certa: no fácil, 3; no médio, 4; no desafio, a rotina inteira.
 export function routineSteps(routine: RoutineKey, level: Level): Pic[] {
   const { steps, facil, medio } = ROUTINES[routine];
   return level === "facil" ? facil.map((index) => steps[index]) : level === "medio" ? medio.map((index) => steps[index]) : [...steps];
 }
 
-// ---------- Associação e emoções: 5 rodadas ----------
 export const ROUNDS = 5;
 export const OPTION_COUNT: Record<Level, number> = { facil: 2, medio: 3, desafio: 4 };
 export const QUANTITY_MAX: Record<Level, number> = { facil: 3, medio: 5, desafio: 9 };
@@ -140,7 +122,6 @@ export type AssociationMode = "palavra" | "quantidade";
 export const isAssociationMode = (value: unknown): value is AssociationMode => value === "palavra" || value === "quantidade";
 export type ChoiceRound = { id: string; pic: Pic; count: number; options: string[]; answer: string };
 
-// Sorteia ROUNDS alvos sem repetir em seguida (com poucas figuras, repete de forma espaçada).
 function targets<T>(items: readonly T[], random: () => number): T[] {
   const out: T[] = [];
   while (out.length < ROUNDS) out.push(...shuffle(items, random).filter((item, index) => !(index === 0 && item === out.at(-1))));
@@ -162,7 +143,6 @@ export function quantityRounds(theme: ThemeKey, level: Level, random: () => numb
   const pics = targets(themePics(theme), random);
   return counts.map((count, index) => {
     const distractors = shuffle(numbers.filter((value) => value !== count), random).slice(0, OPTION_COUNT[level] - 1);
-    // Números em ordem crescente: a posição ajuda a contar.
     return { id: `r${index}`, pic: pics[index], count, answer: String(count), options: [count, ...distractors].sort((a, b) => a - b).map(String) };
   });
 }
@@ -170,7 +150,6 @@ export function quantityRounds(theme: ThemeKey, level: Level, random: () => numb
 export const EMOTIONS = ["feliz", "triste", "bravo", "medo"] as const;
 export type Emotion = (typeof EMOTIONS)[number];
 export const EMOTION_LABEL: Record<Emotion, string> = { feliz: "Feliz", triste: "Triste", bravo: "Bravo", medo: "Com medo" };
-// Sempre na mesma ordem: a posição fixa ajuda quem precisa de previsibilidade.
 export const EMOTION_OPTIONS: Record<Level, Emotion[]> = { facil: ["feliz", "triste"], medio: ["feliz", "triste", "bravo"], desafio: ["feliz", "triste", "bravo", "medo"] };
 
 export const SITUATIONS: { text: string; icon: string; emotion: Emotion }[] = [
@@ -194,11 +173,8 @@ export function emotionRounds(level: Level, random: () => number = Math.random):
   return targets(pool, random).map((item, index) => ({ id: `r${index}`, text: item.text, icon: item.icon, answer: item.emotion, options }));
 }
 
-// ---------- Fim do jogo: a nota e o registro sugerido ----------
 export type GameResult = { done: number; total: number; hints: number; retries: number };
 
-// Nota do registro, igual para todos os jogos da página: o nome do jogo, o
-// nível e quantas dicas e tentativas a mais houve. O professor pode editar.
 export function gameNote(title: string, level: Level, detail: string | null, result: GameResult, unit: string): string {
   const parts = [
     `${result.done} de ${result.total} ${unit}`,
@@ -212,7 +188,6 @@ export function sessionNote(game: GameKey, level: Level, detail: string | null, 
   return gameNote(GAMES[game].title, level, detail, result, game === "memoria" ? "pares" : game === "sequencia" ? "etapas" : "rodadas");
 }
 
-// Ponto de partida para o professor: ele confere e muda antes de registrar.
 export function suggestedRecord(result: GameResult): { participation: "total" | "parcial"; criterionMet: "sim" | "parcial" | "nao"; supportLevel: number } {
   const finished = result.done >= result.total;
   return {

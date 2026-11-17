@@ -1,11 +1,6 @@
 import type { ReactNode } from "react";
 import { HatchedDonut, Legend, type ChartSegment } from "@/components/charts";
 
-// Rosca listrada com o total no centro e a legenda ao lado (cada parte com
-// número e percentual em texto), no padrão do Painel de indicadores. O rótulo
-// da rosca repete as partes para o leitor de tela. Sem nenhum valor, não há
-// base para percentual: mostra só o texto de vazio, nunca uma rosca com 0%.
-
 export function DonutSummary({ id, segments, label, caption, center, empty, size = 128 }: {
   id: string;
   segments: ChartSegment[];

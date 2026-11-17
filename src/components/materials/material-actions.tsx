@@ -16,7 +16,6 @@ function Result({ state }: { state: MaterialActionState }) {
   );
 }
 
-// Gera os pictogramas que faltam (um por cartão, até 12).
 export function MaterialImagesButton({ studentId, materialId, missing }: { studentId: string; materialId: string; missing: number }) {
   const [state, action] = useActionState<MaterialActionState>(generateMaterialImagesAction.bind(null, studentId, materialId), { status: "idle" });
   return (
@@ -29,7 +28,6 @@ export function MaterialImagesButton({ studentId, materialId, missing }: { stude
   );
 }
 
-// Leva uma atividade do material para as Atividades do estudante, como sugerida.
 export function SendActivityButton({ studentId, materialId, index, title }: { studentId: string; materialId: string; index: number; title: string }) {
   const [state, action] = useActionState<MaterialActionState>(sendMaterialActivity.bind(null, studentId, materialId, index), { status: "idle" });
   return (

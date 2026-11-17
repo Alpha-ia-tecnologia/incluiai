@@ -1,12 +1,8 @@
-// Arquivo de migração do Educacenso (Censo Escolar), puro para teste com
-// node --test (src/lib/educacenso.test.mjs). O INEP não tem API pública: a
-// troca oficial é o arquivo TXT com campos separados por "|", que o sistema de
-// gestão da escola exporta (ISO-8859-1). Aqui se leem os registros do AEE:
-//   00 escola · 20 turma · 30 pessoa física · 60 matrícula
+// O INEP não tem API pública: a troca oficial é o arquivo TXT com campos separados por "|", que o sistema de
+// gestão da escola exporta (ISO-8859-1).
 //
 // Posições conferidas nas planilhas oficiais do INEP, "Layout de Importação e
-// Exportação do Educacenso" 2025 (Matrícula Inicial, versão 2) e 2026. A edição
-// sai do número de campos de cada registro; "campo N" = índice N-1 do split.
+// Exportação do Educacenso" 2025 (Matrícula Inicial, versão 2) e 2026.
 
 export type Edition = 2025 | 2026;
 export type Dependency = "federal" | "estadual" | "municipal" | "privada" | "";
@@ -14,17 +10,17 @@ export type Dependency = "federal" | "estadual" | "municipal" | "privada" | "";
 // privada (32: 1 particular, 2 comunitária, 3 confessional, 4 filantrópica) e
 // parceria ou convênio com a Secretaria Municipal (34).
 export type CensusSchool = { code: string; name: string; dependency: Dependency; privateCategory: string; municipalPartnership: boolean };
-type Interval = [number, number]; // minutos do dia, de [início, fim)
+type Interval = [number, number];
 export type CensusClass = {
   systemCode: string;
   inepCode: string;
   name: string;
   isAee: boolean;
-  isRegular: boolean; // curricular, não é classe especial e é presencial
-  isRemoteRegular: boolean; // curricular e não é classe especial, mas semipresencial ou a distância
-  isComplementary: boolean; // atividade complementar
+  isRegular: boolean;
+  isRemoteRegular: boolean;
+  isComplementary: boolean;
   stageGroup: string;
-  schedule: Interval[]; // um intervalo por dia (0 = domingo); [0, 0] sem aula
+  schedule: Interval[];
 };
 export type CensusPerson = {
   key: string;
@@ -51,7 +47,6 @@ export type CensusPerson = {
 export type ParseStats = { totalLines: number; parsed: Record<string, number>; skipped: { line: number; reason: string }[] };
 export type ParsedCensusFile = { edition: Edition; school: CensusSchool | null; classes: CensusClass[]; persons: CensusPerson[]; stats: ParseStats };
 
-// Campos que não mudaram entre 2025 e 2026.
 const COMMON = {
   school: { code: 2, name: 6, dependency: 21, privateCategory: 32, municipalPartnership: 34 },
   schoolClass: { systemCode: 3, inepCode: 4, name: 5, mediation: 6, scheduleStart: 7 },
@@ -130,13 +125,11 @@ export function toIsoDate(brazilian: string): string {
   return date.getUTCMonth() === Number(month) - 1 && date.getUTCDate() === Number(day) ? `${year}-${month}-${day}` : "";
 }
 
-// Nome do Censo (maiúsculas) para o cadastro: "MARIA DA SILVA" vira "Maria da Silva".
 const PARTICLES = new Set(["da", "de", "do", "das", "dos", "e"]);
 export function titleCase(name: string): string {
   return name.toLowerCase().replace(/\s+/g, " ").trim().split(" ").map((word, index) => (index > 0 && PARTICLES.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1))).join(" ");
 }
 
-// Horário de um dia da turma ("hh:mm-hh:mm"), em minutos; [0, 0] sem aula ou inválido.
 export function parseInterval(value: string): Interval {
   const match = /^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/.exec(value.trim());
   if (!match) return [0, 0];
@@ -144,7 +137,6 @@ export function parseInterval(value: string): Interval {
   return start < end && end <= 24 * 60 ? [start, end] : [0, 0];
 }
 
-// Duas turmas coincidem quando, em algum dia, os horários se cruzam.
 export const schedulesOverlap = (a: Interval[], b: Interval[]) => a.some(([start, end], day) => end > start && (b[day]?.[1] ?? 0) > start && (b[day]?.[0] ?? 0) < end && b[day][1] > b[day][0]);
 
 function parseClass(fields: string[], edition: Edition): CensusClass | null {
@@ -166,13 +158,11 @@ function parseClass(fields: string[], edition: Edition): CensusClass | null {
     isCurricular = flag(fields, LAYOUT[2025].classCurricular);
     isComplementary = flag(fields, LAYOUT[2025].classComplementary);
   }
-  // Sem o tipo de turma preenchido, o nome decide: sala de recursos é AEE; o resto, classe comum.
   if (!isAee && !isCurricular && !isComplementary) {
     isAee = /\bAEE\b|SALA DE RECURSOS/i.test(name);
     isCurricular = !isAee && !/ATIVIDADE COMPLEMENTAR/i.test(name);
   }
   const edLayout = LAYOUT[edition];
-  // Mediação vazia: o arquivo é antigo ou incompleto; conta como presencial.
   const presential = ["", "1"].includes(field(fields, layout.mediation));
   // Classe especial não é classe comum: não confirma a dupla matrícula.
   const common = isCurricular && !flag(fields, edLayout.specialClass);
@@ -221,7 +211,6 @@ type State = {
   ordered: CensusPerson[];
   orderedClasses: CensusClass[];
   school: CensusSchool | null;
-  // Horários de cada pessoa, para conferir no fim se AEE e classe comum coincidem.
   schedules: Map<CensusPerson, { aee: Interval[][]; regular: Interval[][] }>;
 };
 
@@ -299,8 +288,6 @@ function readLine(state: State, raw: string, index: number) {
   // Registros 10 (infraestrutura), 40 (gestor), 50 (profissional) e 99 não interessam aqui.
 }
 
-// A edição sai do número de campos dos registros 00, 20 e 60 (um "|" no fim da
-// linha conta um campo a mais). Sem contagem conhecida, decide o tipo de turma.
 export function detectEdition(lines: string[][]): Edition {
   const votes = { 2025: 0, 2026: 0 };
   for (const fields of lines) {
@@ -316,7 +303,7 @@ export function detectEdition(lines: string[][]): Edition {
 }
 
 export function parseEducacensoFile(content: string): ParsedCensusFile {
-  // O arquivo começa no "00": um BOM (ou o "ÿ" que ele vira em ISO-8859-1) sai antes.
+  // Um BOM (ou o "ÿ" que ele vira em ISO-8859-1) sai antes.
   const lines = content.replace(/^\D+/, "").split(/\r?\n/);
   const edition = detectEdition(lines.map((line) => line.trim()).filter(Boolean).map((line) => line.split("|")));
   const state: State = { edition, stats: { totalLines: 0, parsed: {}, skipped: [] }, persons: new Map(), classes: new Map(), ordered: [], orderedClasses: [], school: null, schedules: new Map() };
@@ -335,10 +322,8 @@ export function parseEducacensoFile(content: string): ParsedCensusFile {
   return { edition, school: state.school, classes: state.orderedClasses, persons: state.ordered, stats: state.stats };
 }
 
-// Quem interessa ao AEE: aluno do público da educação especial ou com matrícula no AEE.
 export const specialEdPersons = (parsed: ParsedCensusFile) => parsed.persons.filter((person) => person.enrolled && (person.special || person.hasAee));
 
-// Chaves de identidade para conciliar com o cadastro: ID INEP, CPF, nome com nascimento.
 export function identityKeys(person: { inepId?: string | null; cpf?: string | null; name: string; birthDate?: string | null }): string[] {
   const keys: string[] = [];
   if (person.inepId) keys.push(`inep:${digitsOnly(person.inepId)}`);

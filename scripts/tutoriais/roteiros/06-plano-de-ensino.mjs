@@ -1,4 +1,3 @@
-// Plano de ensino (PPI): objetivos observáveis ligados à BNCC e a revisão do plano.
 const OBJETIVO = "Definir um objetivo de aprendizagem";
 
 export default {

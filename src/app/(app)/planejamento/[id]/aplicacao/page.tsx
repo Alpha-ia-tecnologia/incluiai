@@ -20,8 +20,6 @@ export const dynamic = "force-dynamic";
 
 const today = () => inputDate(new Date());
 
-// Aplicação e evidências (RF07, CA10): quando, onde e com quem a atividade
-// aconteceu, e o que foi observado com cada participante.
 export default async function ApplicationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser();
@@ -47,15 +45,10 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
     };
   });
 
-  // Resumo das evidências que a pessoa pode ver (os dados já carregados acima).
-  // Critério observado (demonstrou, em parte, ainda não) fica na barra; "sem
-  // oportunidade" e "não registrado" ficam à parte: não são progresso nem "ainda não".
   const statuses = applications.flatMap((application) => application.evidences.flatMap((evidence) => evidence.criteria.map((item) => item.status)));
   const criterionRows = CRITERION_STATUSES.map((status) => ({ key: status, label: CRITERION_STATUS_LABEL[status], value: statuses.filter((item) => item === status).length }));
   const observedSegments = withSegmentColors(criterionRows.filter((row) => isObserved(row.key)));
   const outsideRows = criterionRows.filter((row) => !isObserved(row.key));
-  // Documentação geral: participações visíveis em aplicações não canceladas com
-  // evidência registrada (observada ou "sem oportunidade"), como no painel.
   const active = applications.filter((application) => application.state !== "cancelada");
   const participations = active.reduce((sum, application) => sum + application.participants.length, 0);
   const documented = active.reduce((sum, application) => sum + application.participants.filter((person) => application.evidences.some((evidence) => evidence.studentId === person.id && evidence.observation !== "nao_registrado")).length, 0);

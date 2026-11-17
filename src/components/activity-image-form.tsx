@@ -7,7 +7,6 @@ import { PendingButton } from "@/components/pending-button";
 import { IMAGE_KINDS } from "@/lib/images/activity-image";
 import type { ImageActionState } from "@/actions/activity-images";
 
-// Pedido de imagem de apoio para uma atividade, com o tipo escolhido pelo professor.
 export function ActivityImageForm({ action, hasImage }: {
   action: (previous: ImageActionState, formData: FormData) => Promise<ImageActionState>;
   hasImage: boolean;

@@ -1,10 +1,6 @@
 import type { DiaryEntry, Objective, Plan } from "@prisma/client";
 import { splitItems } from "./form-options";
 
-// Detecção de padrões e alertas (itens 9 e 17.6).
-// Tudo aqui é determinístico e auditável: contagens e comparações simples
-// sobre os registros de 3 toques. Nenhuma inferência clínica.
-
 export type Trend = "avancando" | "estavel" | "atencao" | "sem_dados";
 
 export interface ObjectiveInsight {
@@ -105,10 +101,8 @@ export function studentAlerts(input: {
   return alerts;
 }
 
-// Estratégias marcadas como "funcionou" nos registros, para priorização (item 17.6.2).
 export function strategiesThatWorked(entries: DiaryEntry[]): string[] {
   const seen = new Set<string>();
-  // Cada registro pode marcar várias estratégias, separadas por ";".
   for (const e of entries) {
     for (const w of splitItems(e.whatWorked)) seen.add(w);
   }

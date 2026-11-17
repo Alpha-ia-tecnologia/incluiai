@@ -1,7 +1,5 @@
 import { ShieldAlert } from "lucide-react";
 
-// Aviso para a equipe: a IA está configurada, mas a família ainda não autorizou
-// o uso com os dados deste estudante. As propostas saem pelas regras da plataforma.
 export function ConsentNote({ show }: { show: boolean }) {
   if (!show) return null;
   return (

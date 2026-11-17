@@ -53,15 +53,12 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     (!query || normalized(student.name).includes(normalized(query))) &&
     (!selectedClass || `${student.schoolId}|${student.className}` === selectedClass)
   );
-  // Próximo passo de cada estudante, calculado uma vez para o resumo e os cartões.
   const rows = students.map((student) => {
     const progress = {
       id: student.id, caseStudy: (student.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null, hasProfile: !!student.profile, hasPlan: !!student.plans.length,
       hasObjective: !!student.plans[0]?.objectives.length,
       hasPreparedActivity: !!student.activities.length, hasDiary: !!student.diaryEntries.length,
     };
-    // Etapa feita é a que já tem registro; o próximo passo pode pular o estudo
-    // de caso de quem já tem plano, e a linha mostra isso.
     const steps = [
       { label: JOURNEY_STEPS[0].label, done: progress.caseStudy === "concluido" },
       { label: JOURNEY_STEPS[1].label, done: progress.hasPlan && progress.hasObjective },
@@ -77,8 +74,6 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     return { key: step.key, label: `${step.step}. ${step.label}`, value, detail: pct === null ? undefined : `${pct}%` };
   });
   const inRoutine = rows.filter((row) => row.next.step === 5 && row.steps[4].done).length;
-  // A Secretaria vê a rede em números (seção 10): aqui, só encontra um estudante
-  // pela busca (3 letras ou mais) e abre a ficha informando o motivo.
   const nominal = user.role !== "secretaria";
   const searching = query.length >= 3;
   const listed = nominal || searching ? rows : [];
@@ -129,9 +124,6 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
             </p>
           ) : null}
           {nominal && !action && students.length ? (
-            // Resumo da lista atual (respeita a busca e a turma escolhidas).
-            // Trilha das cinco etapas com quantos estudantes estão em cada uma: compacta,
-            // para os cartões dos estudantes aparecerem logo abaixo.
             <section aria-labelledby="etapas-resumo" className="dash-board mb-6">
               <div className="dash-card min-w-0">
                 <div className="mb-5 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">

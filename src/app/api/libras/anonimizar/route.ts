@@ -4,8 +4,6 @@ import { anonymizeForLibras } from "@/lib/libras-anonymize";
 import { LIBRAS_MAX_CHARS } from "@/lib/vlibras-core";
 import { unavailableResponse } from "@/lib/tenant";
 
-// Antes da tradução para Libras (VLibras): devolve o texto sem nomes, documentos,
-// datas e contatos. O navegador só envia ao governo o que voltar daqui.
 export async function POST(request: NextRequest) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;

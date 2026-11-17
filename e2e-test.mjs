@@ -1,8 +1,3 @@
-// Suite E2E da IncluiEdu — Chrome instalado via puppeteer-core.
-// Uso: node e2e-test.mjs  (BASE=http://localhost:3213 por padrão)
-//   CHROME_PATH=...    caminho do Chrome (padrão: o do sistema)
-//   E2E_ONLY=espera    só o prontuário (seção 4) e a espera dos agentes (seção 7)
-//   E2E_PAGO=1         com a IA ligada, roda também "Preparar 3 sugestões" (agentes pagos)
 import puppeteer from "puppeteer-core";
 import { existsSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -45,7 +40,6 @@ async function clickByText(page, text) {
   if (!ok) throw new Error(`botão não encontrado: ${text}`);
 }
 
-// ChoiceField: o <select> tem id gerado (useId); é achado pelo rótulo.
 async function choose(page, label, value) {
   const handle = await page.evaluateHandle((l) => [...document.querySelectorAll("label")].find((item) => item.textContent.includes(l))?.control ?? null, label);
   const select = handle.asElement();
@@ -53,15 +47,12 @@ async function choose(page, label, value) {
   await select.select(value);
   return select;
 }
-// ChoiceField com "Outro": escolhe a opção e digita no campo que se abre.
 async function chooseOther(page, label, text) {
   const select = await choose(page, label, "__outro__");
   const id = await select.evaluate((element) => element.id);
   await page.waitForSelector(`[id="${id}-outro"]`, { timeout: 5000 });
   await page.type(`[id="${id}-outro"]`, text);
 }
-// MultiChoiceField: abre "Outro" do grupo (pela legenda) e digita o item
-// (o texto digitado conta mesmo sem tocar em Adicionar).
 async function typeOther(page, legend, text) {
   const opened = await page.evaluate((l) => {
     const fieldset = [...document.querySelectorAll("fieldset")].find((item) => item.querySelector("legend")?.textContent.includes(l));
@@ -74,7 +65,6 @@ async function typeOther(page, legend, text) {
   await input.asElement().type(text);
 }
 
-// Formulário "Preparar 3 sugestões": o motivo de não estar disponível vem da própria página.
 async function activitiesForm(page) {
   return page.evaluate(() => {
     const text = document.body.innerText;
@@ -103,7 +93,6 @@ async function login(page, email) {
 }
 
 if (!ONLY_WAIT) {
-  // ---------- 1. Não autenticado ----------
   {
     const { ctx, page } = await newSession();
     await page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
@@ -111,7 +100,6 @@ if (!ONLY_WAIT) {
     await ctx.close();
   }
 
-  // ---------- 1b. Sessão no servidor: sair revoga; muitas tentativas bloqueiam ----------
   {
     const { ctx, page } = await newSession();
     await login(page, "aee@escola.edu.br");
@@ -119,14 +107,12 @@ if (!ONLY_WAIT) {
     check("sessão: cookie httpOnly com código aleatório", Boolean(session?.httpOnly) && !String(session?.value ?? "").includes("."), JSON.stringify({ httpOnly: session?.httpOnly }));
     await clickByText(page, "Sair da plataforma");
     await page.waitForFunction(() => location.pathname.startsWith("/login"), { timeout: 15000 }).catch(() => {});
-    // O mesmo cookie, copiado antes de sair, não abre mais a plataforma.
     const other = await newSession();
     if (session) await other.page.setCookie({ name: session.name, value: session.value, domain: session.domain, path: session.path });
     await other.page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
     check("sessão: depois de sair, o cookie antigo não vale", other.page.url().includes("/login"), `url=${other.page.url()}`);
     await other.ctx.close();
 
-    // E-mail sem conta: o bloqueio não trava as contas de demonstração.
     await page.goto(`${BASE}/login`, { waitUntil: "networkidle2" });
     let message = "";
     for (let attempt = 1; attempt <= 6; attempt++) {
@@ -142,7 +128,6 @@ if (!ONLY_WAIT) {
     await ctx.close();
   }
 
-  // ---------- 2. Login e roteamento por perfil ----------
   for (const [email, path, h1part] of [
     ["secretaria@municipio.gov.br", "/", "O que vamos fazer hoje?"],
     ["professor@escola.edu.br", "/", "O que vamos fazer hoje?"],
@@ -157,7 +142,6 @@ if (!ONLY_WAIT) {
     await ctx.close();
   }
 
-  // ---------- 3. Controle de acesso ----------
   {
     const { ctx, page } = await newSession();
     await login(page, "professor@escola.edu.br");
@@ -172,19 +156,16 @@ if (!ONLY_WAIT) {
     const { ctx, page } = await newSession();
     const familyHome = await login(page, "familia@email.com");
     const childId = new URL(familyHome).pathname.split("/").pop();
-    // A ficha é da equipe: pelo endereço, a família volta para o portal dela.
     for (const path of ["/estudantes", "/recursos", "/painel", `/estudantes/${childId}`, `/estudantes/${childId}/diario`, `/estudantes/${childId}/perfil`, `/estudantes/${childId}/atividades`]) {
       await page.goto(`${BASE}${path}`, { waitUntil: "networkidle2" });
       await settle(page);
       check(`família bloqueada de ${path.replace(childId, ":id")}`, page.url().includes("/familia/"), `url=${page.url()}`);
     }
     await page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
-    // O seed não tem material aprovado nem relatório validado: o portal não mostra seção vazia.
     const portalText = await page.evaluate(() => document.body.innerText);
     check("família: portal sem seções vazias (materiais e relatórios)", !portalText.includes("Materiais para usar em casa") && !portalText.includes("Relatórios da escola") && portalText.includes("Atividades para fazer em casa"));
     await ctx.close();
 
-    // Terapeuta: só o espaço de orientações (sem diário, notas da família ou ficha).
     const therapist = await newSession();
     await login(therapist.page, "terapeuta@clinica.com.br");
     for (const path of [`/estudantes/${childId}/diario`, `/estudantes/${childId}`, `/familia/${childId}`]) {
@@ -196,7 +177,6 @@ if (!ONLY_WAIT) {
   }
 }
 
-// ---------- 4. Prontuário: todas as abas ----------
 let danteHref = "";
 {
   const { ctx, page, errors } = await newSession();
@@ -218,11 +198,9 @@ let danteHref = "";
     ["/materiais", "Materiais de apoio"],
   ]) {
     await page.goto(`${BASE}${danteHref}${tab}`, { waitUntil: "networkidle2" });
-    // A ficha tem um h1 (o nome do estudante); o título de cada aba é h2.
     const hasHeading = await page.evaluate((expected) => [...document.querySelectorAll("h1, h2")].some((title) => title.textContent.includes(expected)), heading);
     check(`seção ${tab || "/resumo"} renderiza`, hasHeading);
   }
-  // Revisão do plano com a equipe: entra no histórico com a próxima data.
   {
     await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
     const opened = await page.evaluate(() => { const details = document.querySelector("#revisao details"); if (details) details.open = true; return Boolean(details); });
@@ -235,8 +213,7 @@ let danteHref = "";
       check("plano: revisão registrada no histórico", await page.evaluate((text) => Boolean(document.querySelector("#revisao")?.textContent.includes(text)), note));
     }
   }
-  // PAEE e PEI (Portaria MEC nº 421/2026; orientação do INEP): o selo federal, os
-  // dois documentos e completar quem elaborou cada um.
+  // PAEE e PEI (Portaria MEC nº 421/2026; orientação do INEP).
   {
     await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
     const text = await page.evaluate(() => document.body.innerText);
@@ -246,7 +223,7 @@ let danteHref = "";
     if (!opened) check("plano: formulário do PAEE e do PEI presente", false);
     else {
       const stamp = String(Date.now()).slice(-5);
-      // Atendimentos do AEE e recursos na avaliação com os nomes do Educacenso; os atendimentos vêm do estudo de caso.
+      // Atendimentos do AEE e recursos na avaliação com os nomes do Educacenso.
       const form = await page.evaluate(() => {
         const box = document.querySelector("#completar-paee-pei");
         const checked = [...box.querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.closest("label")?.textContent.trim());
@@ -263,7 +240,6 @@ let danteHref = "";
     }
   }
   check("prontuário sem erros de cliente", errors.length === 0, errors.join("; "));
-  // Dados clínicos do estudo de caso: o AEE vê; a sala comum, não (só AEE e coordenação).
   await page.goto(`${BASE}${danteHref}/estudo-de-caso`, { waitUntil: "networkidle2" });
   check("estudo de caso: AEE vê os campos clínicos", await page.evaluate(() => document.body.innerText.includes("Diagnóstico informado pela família")));
   await ctx.close();
@@ -276,13 +252,11 @@ let danteHref = "";
 }
 
 if (!ONLY_WAIT) {
-  // ---------- 5. Fluxos de formulário ----------
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "aee@escola.edu.br");
     const countSuggestions = () => page.evaluate(() => [...document.querySelectorAll("button")].filter((button) => button.textContent.trim() === "Usar esta atividade").length);
 
-    // 5a. Preparar 3 sugestões: aguarda três novos cartões, mesmo com sugestões anteriores.
     await page.goto(`${BASE}${danteHref}/atividades`, { waitUntil: "networkidle2" });
     const form = await activitiesForm(page);
     if (form.skip) {
@@ -299,7 +273,6 @@ if (!ONLY_WAIT) {
       check("preparar 3 sugestões de atividade", (await countSuggestions()) === suggestionsBefore + 3);
     }
 
-    // 5b. Aceitar a primeira sugestão e localizar seu link para registrar a aula.
     let acceptedDiaryHref = null;
     if ((await countSuggestions()) === 0) {
       console.log("SKIP  aceitar atividade e registrar a aula: não há sugestão aberta");
@@ -311,8 +284,6 @@ if (!ONLY_WAIT) {
       check("aceitar atividade (sugerida → aceita)", Boolean(acceptedDiaryHref));
     }
 
-    // 5c. Registrar a aula em três partes, preenchendo as escolhas obrigatórias
-    // (pela atividade aceita ou, sem ela, direto no diário).
     {
       await page.goto(`${BASE}${acceptedDiaryHref ?? `${danteHref}/diario`}`, { waitUntil: "networkidle2" });
       await page.click('input[name="participation"][value="total"]');
@@ -326,8 +297,6 @@ if (!ONLY_WAIT) {
       check("registro da aula salvo no histórico", await page.evaluate((note) => Boolean(document.querySelector("#historico-registros")?.textContent.includes(note)), diaryNote));
     }
 
-    // 5d. Criar material de apoio (IA ou regras): ao criar, abre a página do material novo;
-    // de volta à galeria, há um cartão a mais, e é o primeiro.
     await page.goto(`${BASE}${danteHref}/materiais`, { waitUntil: "networkidle2" });
     const materialsBefore = await page.$$eval("article[id^='material-']", (items) => items.length);
     await page.$eval("input[name=kind][value=historia_social]", (radio) => radio.click());
@@ -357,7 +326,6 @@ if (!ONLY_WAIT) {
     await ctx.close();
   }
 
-  // 5e. Relatório do terapeuta
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "terapeuta@clinica.com.br");
@@ -376,7 +344,6 @@ if (!ONLY_WAIT) {
     await ctx.close();
   }
 
-  // 5f. Família registra conquista + log de acessos
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "familia@email.com");
@@ -386,10 +353,7 @@ if (!ONLY_WAIT) {
     await page.waitForFunction(() => document.body.innerText.includes("pediu água pela prancha no jantar"), { timeout: 20000 }).catch(() => {});
     check("família registra conquista de casa", await page.evaluate(() => document.body.innerText.includes("pediu água pela prancha no jantar")));
     check("família vê log de acessos (LGPD)", await page.evaluate(() => document.body.innerText.toLowerCase().includes("quem acessou os dados")));
-    // Seção 12: com nome de quem acessou (a professora do AEE abriu a ficha nesta mesma execução).
-    // O histórico completo fica num "ver mais" fechado: textContent lê a lista inteira.
     check("família vê o nome de quem acessou a ficha", await page.evaluate(() => /Beatriz[\s\S]{0,160}visualizou/.test(document.querySelector("#conteudo")?.textContent ?? "")));
-    // Autorizações (seções 12 e 14): sem a conexão autorizada, o terapeuta fica em espera.
     check("família vê as autorizações", await page.evaluate(() => Boolean(document.querySelector("#autorizacoes"))));
     await clickByText(page, "Retirar a autorização: Conexão com o terapeuta");
     await page.waitForFunction(() => [...document.querySelectorAll("#autorizacoes button")].some((button) => button.textContent.includes("Autorizar: Conexão com o terapeuta")), { timeout: 15000 }).catch(() => {});
@@ -404,7 +368,6 @@ if (!ONLY_WAIT) {
     await ctx.close();
   }
 
-  // ---------- 6. Painel de indicadores (secretaria) ----------
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "secretaria@municipio.gov.br");
@@ -414,16 +377,12 @@ if (!ONLY_WAIT) {
     const body = await page.evaluate(() => document.body.innerText);
     check("painel: indicadores da rede", body.includes("Jornada do acompanhamento") && body.includes("Toda a rede") && Boolean(await page.$('nav[aria-label="Indicador do medidor"]')));
     check("painel: banco de práticas agregado", body.toLowerCase().includes("banco de práticas por perfil"));
-    // Secretaria vê a rede em números (seção 10): sem nomes no painel nem na lista;
-    // a ficha com nome pede motivo, é só leitura e a família vê o acesso.
     check("secretaria: painel sem nomes, com avisos por escola", body.includes("Avisos por escola") && !body.includes("Dante Oliveira"));
     await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
     check("secretaria: lista de estudantes só com busca", !(await page.evaluate(() => document.body.innerText.includes("Dante Oliveira"))));
     await page.goto(`${BASE}/estudantes?q=Dan`, { waitUntil: "networkidle2" });
     check("secretaria: busca com 3 letras encontra o estudante", await page.evaluate(() => document.body.innerText.includes("Dante Oliveira")));
     await page.goto(`${BASE}${danteHref}`, { waitUntil: "networkidle2" });
-    // Sem acesso válido, pede o motivo; numa nova execução (acesso de 8 h ainda
-    // válido), a ficha abre direto, sempre com a faixa de leitura.
     const asked = page.url().includes("/acesso-nominal/");
     const reopened = !asked && (await page.evaluate(() => document.body.innerText.includes("Acesso de leitura com motivo registrado")));
     check("secretaria: ficha com nome pede o motivo", asked || reopened, `url=${page.url()}`);
@@ -475,11 +434,6 @@ if (!ONLY_WAIT) {
   }
 }
 
-// ---------- 7. Espera do assistente (canteiro vivo) ----------
-// O fluxo SSE do turno é simulado no navegador (só a interface é testada; nada
-// chega à IA) e <html data-espera-escala="20"> acelera os relógios: 20 s viram 1 s.
-// window.__conversation, quando definido, responde à leitura de uma conversa
-// (com window.__conversationDelay ms de atraso, para testar corridas).
 const stubTurn = (page) => page.evaluateOnNewDocument(() => {
   const realFetch = window.fetch.bind(window);
   const encoder = new TextEncoder();
@@ -515,7 +469,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
   const focused = () => page.evaluate(() => (document.activeElement?.classList.contains("assistant-fab") ? "fab" : document.activeElement?.tagName ?? ""));
   const lastItem = () => page.evaluate(() => [...document.querySelectorAll("#assistente-painel ol > li")].at(-1)?.textContent ?? "");
   const tipRegion = () => page.$eval('#assistente-painel [data-testid="espera-dica"]', (el) => el.textContent);
-  // Forma do sinal no botão flutuante (não só a cor): ponto redondo ou losango girado.
   const markShape = () => page.$eval(".assistant-fab-mark", (el) => { const style = getComputedStyle(el); return `${el.dataset.activity}|${style.borderRadius}|${style.transform === "none" ? "reto" : "girado"}`; });
   const writeAndSend = async (text) => {
     await page.focus("#assistente-painel textarea");
@@ -528,7 +481,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
 
   await page.click(".assistant-fab");
   await page.waitForSelector('[data-testid="espera-jardim"]', { timeout: 20000 });
-  // O popup abre a última conversa salva da pessoa: começa de uma vazia.
   await page.click('#assistente-painel button[aria-label="Nova conversa"]');
   await sleep(150);
   const assistantOff = await page.evaluate(() => Boolean(document.querySelector("#assistente-painel")?.textContent.includes("O assistente ainda não está ativo")));
@@ -564,7 +516,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
     check("espera: anúncio do agente com tempo habitual", (await status()) === "O analista lê o caso. Costuma levar de 1 a 3 minutos.", await status());
     await sleep(1200);
     check("espera: aos 20 s, aviso de que a resposta fica salva", (await garden("data-elapsed")) === "20" && (await status()).includes("Pode fechar o painel"), await status());
-    // O link de página inteira fica desligado durante o turno: clicar não navega nem fecha o painel.
     const urlBefore = page.url();
     await page.click('#assistente-painel a[aria-label="Abrir em página inteira"]');
     await sleep(300);
@@ -589,13 +540,10 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
     check("espera: sem rolagem horizontal a 320 px", (await page.evaluate(() => document.documentElement.scrollWidth)) <= 320);
     check("espera: a dica do turno não volta com a faixa fechada", (await tipRegion()) === "", await tipRegion());
 
-    // Turno 2, enviado pelo teclado com o painel fechado depois: o foco fica no
-    // campo durante o turno, e o botão focado não troca de nome (o status anuncia).
     await writeAndSend("Mais uma pergunta");
     check("espera: envio pelo teclado mantém o foco no campo", (await focused()) === "TEXTAREA");
     await page.keyboard.press("Escape");
     await sleep(100);
-    // Mesma fase em que a dica do turno 1 apareceu (texto chegando): ela não reaparece.
     await sse({ type: "text", delta: "Segunda " });
     await sleep(200);
     check("espera: a dica velha não reaparece no turno seguinte", (await tipRegion()) === "" && !(await page.$eval('#assistente-painel [data-testid="espera-legenda"]', (el) => el.textContent)).includes("Dica:"), await tipRegion());
@@ -608,7 +556,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
     check("espera: fora do foco, o nome do botão mostra a resposta pronta", (await fab("aria-label")) === "Abrir o assistente (resposta pronta)");
     await page.click(".assistant-fab");
     await sleep(150);
-    // O broto ao lado do horário cresce ao aparecer e não repete ao reabrir o popup.
     const sprout = () => page.evaluate(() => {
       const icon = [...document.querySelectorAll("#assistente-painel ol > li")].at(-1)?.querySelector("p svg.lucide-sprout");
       return icon ? (icon.classList.contains("assistant-sprout-mark") ? "crescendo" : "assentado") : "ausente";
@@ -623,8 +570,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
     const reopened = await sprout();
     check("espera: broto da resposta nova cresce uma vez só", growing === "crescendo" && settled === "assentado" && reopened === "assentado" && (await lastItem()).includes("Segunda resposta."), `${growing}/${settled}/${reopened}`);
 
-    // Turno 2b: com o painel aberto e o foco no botão flutuante, o turno acaba;
-    // fechar pelo próprio botão dá o nome do estado de agora, não o guardado.
     await writeAndSend("Pergunta com o painel aberto");
     await page.focus(".assistant-fab");
     await done("e-msg2b", "Resposta com o painel aberto.");
@@ -636,7 +581,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
     await page.click(".assistant-fab");
     await sleep(200);
 
-    // Turno 3: erro do turno anunciado uma vez só (na conversa, sem alerta).
     await writeAndSend("Pergunta com erro");
     await sse({ type: "error", message: "Erro de teste." });
     await sseEnd();
@@ -644,8 +588,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
     const alerts = await page.evaluate(() => document.querySelectorAll("#assistente-painel [role=alert]").length);
     check("espera: erro do turno sem alerta repetido, com reenvio", alerts === 0 && (await lastItem()).includes("Erro de teste.") && (await lastItem()).includes("Usar a mesma mensagem"), `alertas=${alerts}`);
 
-    // Turno 4: a conexão cai depois que o servidor começou (painel fechado),
-    // numa conversa nova. O servidor avisa a conversa antes de tudo.
     const dropTurn = async (text, conversationId) => {
       await page.click('#assistente-painel button[aria-label="Nova conversa"]');
       await sleep(150);
@@ -674,23 +616,18 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
     await sleep(200);
     const dropped = await lastItem();
     check("espera: queda sem reenvio, com 'Ver se a resposta ficou pronta'", dropped.includes("A conexão caiu antes de a resposta chegar") && dropped.includes("Ver se a resposta ficou pronta") && !dropped.includes("Usar a mesma mensagem"), dropped);
-    // Outra mensagem antes de a primeira terminar: o servidor recusa (ocupado), e
-    // a bolha oferece a consulta, não o reenvio (repetiria os agentes).
     await writeAndSend("Mandei de novo");
     await sse({ type: "error", message: "Aguarde a resposta anterior terminar." });
     await sseEnd();
     await sleep(200);
     const busy = await lastItem();
     check("espera: depois da queda, o erro de ocupado oferece a consulta, não o reenvio", busy.includes("Aguarde a resposta anterior terminar.") && busy.includes("Ver se a resposta ficou pronta") && !busy.includes("Usar a mesma mensagem"), busy);
-    // Consulta lenta e "Nova conversa" no meio: o resultado velho é descartado.
     await savedConversation("e-conv2", "Pergunta que cai", 800);
     await page.click("#assistente-painel ol > li:last-child button");
     await sleep(100);
     await page.click('#assistente-painel button[aria-label="Nova conversa"]');
     await sleep(1100);
     check("espera: consulta atrasada não desfaz 'Nova conversa'", (await page.$$eval("#assistente-painel ol > li", (items) => items.length)) === 0 && (await page.$eval("#assistente-painel header", (el) => el.textContent)).includes("Nova conversa"));
-    // Nova queda; a consulta (pelo teclado) traz a resposta salva, sem recriar
-    // as mensagens que já estavam na tela, e devolve o foco ao campo.
     await dropTurn("Outra pergunta que cai", "e-conv3");
     await page.click(".assistant-fab");
     await sleep(200);
@@ -706,9 +643,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
   await ctx.close();
 }
 
-// Movimento reduzido na página do assistente a 320 px: composição parada,
-// sem botão de pausa, e o palco compacto pela largura da faixa. Depois, com
-// movimento normal, a geometria da faixa estreita e os anúncios das atividades.
 {
   const { ctx, page, errors } = await newSession();
   await stubTurn(page);
@@ -732,8 +666,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
     check("espera: sem botão de pausa no movimento reduzido", (await page.$eval('[data-testid="espera-pausar"]', (el) => getComputedStyle(el).display).catch(() => "?")) === "none");
     const stage = await page.$eval('[data-testid="espera-regar"]', (el) => Math.round(el.getBoundingClientRect().width)).catch(() => 0);
     check("espera: página a 320 px usa o palco compacto", stage === 44, String(stage));
-    // Movimento normal (com o botão de pausa): a legenda tem largura para 2 linhas,
-    // e o palco de 44 px não mostra a gota nem corta a arte em círculo.
     await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
     await sleep(150);
     const geometry = await page.$eval('[data-testid="espera-jardim"]', (root) => ({
@@ -743,8 +675,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
       pause: getComputedStyle(root.querySelector('[data-testid="espera-pausar"]')).display,
     }));
     check("espera: faixa estreita sem gota, arte inteira e legenda de 156 px ou mais", geometry.badge === "none" && geometry.clip === "none" && geometry.caption >= 156 && geometry.pause !== "none", JSON.stringify(geometry));
-    // Atividades: sem estimativa antes do primeiro evento; com o "queued" das
-    // imagens, a estimativa já vem certa (1 a 4 minutos).
     const sse = (event) => page.evaluate((e) => window.__sse(e), event);
     const status = () => page.$eval('[data-testid="espera-status"]', (el) => el.textContent);
     await sse({ type: "tool_start", step: { id: "a1", name: "gerar_atividades", label: "Criando as 3 sugestões de atividade com os agentes" } });
@@ -760,8 +690,6 @@ const stubTurn = (page) => page.evaluateOnNewDocument(() => {
   await ctx.close();
 }
 
-// Formulário de atividades: a ação de servidor fica pendente (interceptada,
-// nada chega aos agentes) e a espera inline não pode reabrir o botão.
 if (danteHref) {
   const { ctx, page, errors } = await newSession();
   await login(page, "aee@escola.edu.br");
@@ -769,7 +697,7 @@ if (danteHref) {
   await page.evaluate(() => { document.documentElement.dataset.esperaEscala = "20"; });
   await page.setRequestInterception(true);
   page.on("request", (request) => {
-    if (request.method() === "POST" && request.headers()["next-action"]) return; // sem resposta: fica pendente
+    if (request.method() === "POST" && request.headers()["next-action"]) return;
     request.continue();
   });
   const form = await activitiesForm(page);
@@ -789,7 +717,6 @@ if (danteHref) {
       await page.click('[data-testid="espera-regar"]');
       await sleep(1500);
       check("espera inline: regar e o relógio não reabrem o botão", (await page.evaluate(() => [...document.querySelectorAll("button[aria-busy]")].some((b) => b.getAttribute("aria-busy") === "true"))) && (await page.$eval('[data-testid="espera-jardim"]', (el) => el.getAttribute("data-elapsed"))) !== "0");
-      // Rolando até o cartão sair da tela, o IntersectionObserver pausa a respiração; voltando, ela segue.
       const card = '[data-testid="espera-jardim"][data-variant="inline"]';
       const breath = () => page.$eval(card, (el) => getComputedStyle(el.querySelector('[data-part="planta"]')).animationPlayState);
       const canLeave = await page.$eval(card, (el) => document.documentElement.scrollHeight - window.innerHeight > el.getBoundingClientRect().bottom + window.scrollY);
@@ -810,10 +737,6 @@ if (danteHref) {
   await ctx.close();
 }
 
-// Com E2E_PAGO=1 a ação de atividades termina de verdade (agentes pagos, ou
-// simulados num servidor de teste): quando o cartão some, o foco volta ao
-// botão só para quem estava nele pelo teclado. Quem regou com o mouse não
-// recebe o foco no botão, para o Espaço seguinte não reenviar a ação.
 if (danteHref && PAID) {
   const { ctx, page, errors } = await newSession();
   await login(page, "aee@escola.edu.br");
@@ -831,13 +754,11 @@ if (danteHref && PAID) {
         return active instanceof HTMLButtonElement && active.textContent.includes("Preparar 3 sugestões") ? "botão" : active?.tagName ?? "";
       });
     };
-    // Mouse: clica no botão e rega com o mouse.
     await (await submit()).asElement().click();
     await page.waitForSelector('[data-testid="espera-jardim"][data-variant="inline"]', { timeout: 10000 });
     await page.click('[data-testid="espera-regar"]');
     const afterMouse = await finish();
     check("espera inline: depois de regar com o mouse, o foco não vai para o botão", afterMouse !== "botão", afterMouse);
-    // Teclado: Enter no botão e Tab até a regadora.
     await (await submit()).asElement().focus();
     await page.keyboard.press("Enter");
     await page.waitForSelector('[data-testid="espera-jardim"][data-variant="inline"]', { timeout: 10000 });
@@ -850,10 +771,6 @@ if (danteHref && PAID) {
   await ctx.close();
 }
 
-// ---------- 8. Planejamento com DUA ----------
-// Cria uma atividade da turma a cada execução e a leva até "validada para aplicação".
-// Sem IA: as opções vêm dos exemplos da tela. Depois, família fora do planejamento e
-// Plano de ensino barrado sem estudo de caso concluído (CA02).
 const textOf = (page) => page.evaluate(() => document.body.innerText);
 // Botão pelo texto exato (o chip "Fala" não pode colidir com outros botões).
 async function clickExact(page, text) {
@@ -875,23 +792,19 @@ if (!ONLY_WAIT) {
     const h1 = await page.evaluate(() => [...document.querySelectorAll("h1")].map((title) => title.textContent).join(" | "));
     check("DUA: professor abre o Planejamento com DUA", h1.includes("Planejamento com DUA"), `h1=${h1}`);
 
-    // 8a. Nova atividade: abre o editor na etapa 1.
     await page.type("#novo-titulo", `Teste E2E DUA ${Date.now()}`);
     await clickByText(page, "Começar o planejamento");
     const editor = await page.waitForSelector("#dua-objetivo", { timeout: 30000 }).catch(() => null);
     check("DUA: cria a atividade e abre a etapa 1", Boolean(editor) && /\/planejamento\/[^/]+/.test(new URL(page.url()).pathname), page.url());
 
     if (editor) {
-      // 8b. Objetivo e um critério observável; o salvamento automático confirma.
       await page.type("#dua-objetivo", "Identificar dois personagens principais e ordenar três acontecimentos da história.");
       await clickByText(page, "Adicionar critério observável");
       const criterion = await page.waitForFunction(() => [...document.querySelectorAll("label")].find((label) => label.textContent.trim() === "Critério 1")?.control ?? null, { timeout: 5000 }).catch(() => null);
       if (criterion) await criterion.asElement().type("Diz ou aponta os dois personagens principais.");
-      // Logo depois de digitar a tela mostra "Alterações ainda não salvas"; "Tudo salvo" só volta depois da gravação.
       const saved = await page.waitForFunction(() => document.body.innerText.includes("Tudo salvo"), { timeout: 20000 }).then(() => true, () => false);
       check("DUA: objetivo e critério com salvamento automático", Boolean(criterion) && saved, criterion ? "sem “Tudo salvo”" : "campo Critério 1 não apareceu");
 
-      // 8b'. Habilidade da BNCC sugerida pelo texto do objetivo (base oficial, sem IA).
       await clickByText(page, "Sugerir pelo objetivo");
       const suggestion = await page.waitForFunction(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Usar esta habilidade")), { timeout: 15000 }).catch(() => null);
       let picked = "";
@@ -902,20 +815,17 @@ if (!ONLY_WAIT) {
       const kept = picked ? await page.waitForFunction((code) => [...document.querySelectorAll("li .font-mono")].some((item) => item.textContent === code) && document.body.innerText.includes("Tudo salvo"), { timeout: 20000 }, picked).then(() => true, () => false) : false;
       check("DUA: habilidade da BNCC sugerida pelo objetivo e guardada", kept, picked ? `código ${picked}` : "sem sugestão");
 
-      // 8c. Etapa 2: barreira pela sugestão de barreira comum.
       await clickByText(page, "Contexto e barreiras");
       const barrierChip = "Exigência de uma única forma de resposta";
       if (await hasButton(page, barrierChip)) await clickByText(page, barrierChip);
       const barrier = await page.waitForFunction((t) => [...document.querySelectorAll("textarea")].some((area) => area.value.includes(t)), { timeout: 5000 }, barrierChip).then(() => true, () => false);
       check("DUA: etapa 2 registra a barreira da tarefa", barrier);
 
-      // 8d. Etapa 3: opção pelo exemplo "Fala" (ação e expressão).
       await clickByText(page, "Opções e apoios");
       if (await hasButton(page, "Fala", true)) await clickExact(page, "Fala");
       const option = await page.waitForFunction(() => [...document.querySelectorAll("textarea")].some((area) => area.id.startsWith("opcao-") && area.value === "Fala"), { timeout: 5000 }).then(() => true, () => false);
       check("DUA: etapa 3 adiciona a opção “Fala”", option);
 
-      // 8e. Etapa 4: validar para aplicação (decisão registrada; a versão deixa de mudar).
       await clickByText(page, "Revisão para aplicação");
       if (await hasButton(page, "Validar para aplicação")) {
         await clickByText(page, "Validar para aplicação");
@@ -926,8 +836,6 @@ if (!ONLY_WAIT) {
       }
     }
 
-    // 8f. Plano de ensino (PPI) sem estudo de caso concluído. No seed, só Dante tem o
-    // estudo concluído; o aviso só aparece para estudante ainda sem plano ativo.
     await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
     const others = await page.evaluate(() => [...document.querySelectorAll("article")]
       .map((card) => ({ name: card.querySelector("h2")?.textContent ?? "", href: [...card.querySelectorAll("a")].find((link) => link.textContent.trim() === "Ver acompanhamento")?.getAttribute("href") ?? "" }))
@@ -937,7 +845,6 @@ if (!ONLY_WAIT) {
       await page.goto(`${BASE}${student.href}/ppi`, { waitUntil: "networkidle2" });
       const body = await textOf(page);
       if (body.includes("Conclua o estudo de caso")) { gate = { ...student, ok: true }; break; }
-      // Formulário de plano aberto sem estudo de caso concluído: a regra falhou.
       if (body.includes("Comece o plano do estudante") || body.includes("Preencher o plano do zero")) { gate = { ...student, ok: false }; break; }
     }
     if (gate) check("DUA: Plano de ensino pede o estudo de caso concluído", gate.ok, `${gate.name} (${gate.href}/ppi) mostra o formulário do plano`);
@@ -946,7 +853,6 @@ if (!ONLY_WAIT) {
     await ctx.close();
   }
 
-  // 8g. Família não entra no planejamento com DUA.
   {
     const { ctx, page } = await newSession();
     await login(page, "familia@email.com");
@@ -955,15 +861,10 @@ if (!ONLY_WAIT) {
     check("DUA: família não abre /planejamento", !new URL(page.url()).pathname.startsWith("/planejamento"), `url=${page.url()}`);
     await ctx.close();
   }
-  // ---------- 9. Verificação em duas etapas (seção 14) ----------
-  // Conta da coordenação, no fim da suíte: liga, entra com código, recusa código
-  // errado ou repetido, entra com código de recuperação e desliga. O segredo fica
-  // num arquivo temporário: se uma rodada parar no meio, a próxima desliga antes.
   {
     const email = "coordenacao@escola.edu.br";
     const secretFile = join(tmpdir(), "incluiedu-e2e-totp.json");
     let usedStep = -1;
-    // O servidor aceita a janela atual e a seguinte e recusa janela já usada.
     const nextCode = async (secret) => {
       for (;;) {
         const ahead = totpStep(Date.now()) + 1;
@@ -1060,10 +961,6 @@ if (!ONLY_WAIT) {
     check("2FA: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
-  // ---------- 10. Pessoas e acessos (gestão de contas) ----------
-  // A coordenação cria uma família vinculada a dois estudantes; a família cria a
-  // própria senha, troca a senha, perde a sessão quando a gestão redefine e não
-  // entra depois de desativada. Cada rodada cria uma conta nova (e-mail único).
   {
     const D = "Dante", R = "Ravi";
     const email = `familia.e2e.${Date.now()}@teste.edu.br`;
@@ -1163,9 +1060,6 @@ if (!ONLY_WAIT) {
     check("contas: professor não abre Pessoas e acessos", !new URL(teacher.page.url()).pathname.startsWith("/usuarios"), `url=${teacher.page.url()}`);
     await teacher.ctx.close();
   }
-  // ---------- 11. Importação de estudantes por planilha ----------
-  // Confere sem gravar, importa só as linhas prontas e, na segunda vez, aponta
-  // que já estão cadastrados. Nomes com a marca da rodada (não colidem).
   {
     const stamp = Date.now().toString(36);
     const names = [`Importado ${stamp} Um`, `Importado ${stamp} Dois`];
@@ -1221,9 +1115,6 @@ if (!ONLY_WAIT) {
     check("planilha: professor não importa", !new URL(teacher.page.url()).pathname.startsWith("/estudantes/importar"), `url=${teacher.page.url()}`);
     await teacher.ctx.close();
   }
-  // ---------- 12. Leitura em voz alta e tamanho do texto ----------
-  // No portal da família: "Ouvir esta página" e o tamanho do texto, que fica
-  // guardado no navegador e vale depois de recarregar.
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "familia@email.com");
@@ -1249,13 +1140,9 @@ if (!ONLY_WAIT) {
     check("acessibilidade: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
-  // ---------- 13. Objetivo do plano com habilidade da BNCC ----------
-  // Busca pelo código na base oficial, com as do ano do estudante primeiro; o plano
-  // mostra o código com o texto da habilidade; o painel conta por componente.
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "aee@escola.edu.br");
-    // O primeiro estudante com plano aberto para novos objetivos.
     await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
     const students = await page.evaluate(() => [...new Set([...document.querySelectorAll('a[href^="/estudantes/c"]')].map((link) => link.getAttribute("href").match(/^\/estudantes\/[^/?#]+/)?.[0]).filter(Boolean))]);
     let form = null;
@@ -1272,7 +1159,6 @@ if (!ONLY_WAIT) {
       // Clique direto: na janela de teste (800×600) a barra de navegação do celular cobre a lista.
       if (result) await result.evaluate((button) => button.click());
       check("BNCC: busca pelo código e escolhe a habilidade", /^EF01LP\d{2}$/.test(code) && await page.evaluate((c) => [...document.querySelectorAll('#novo-objetivo input[name="bnccCode"]')].some((input) => input.value === c), code), `código=${code}`);
-      // Primeira opção de cada lista obrigatória (pelo rótulo, como faz a pessoa).
       for (const label of ["O que o estudante vai fazer", "Com qual apoio ou condição", "Como saberemos que conseguiu"]) {
         const value = await page.evaluate((l) => [...[...document.querySelectorAll("label")].find((item) => item.textContent.includes(l))?.control?.options ?? []].find((option) => option.value && !option.value.startsWith("__"))?.value ?? "", label);
         if (value) await choose(page, label, value);
@@ -1290,9 +1176,6 @@ if (!ONLY_WAIT) {
     check("BNCC: painel conta objetivos por componente", (await textOf(coord.page)).includes("Objetivos por componente da BNCC"));
     await coord.ctx.close();
   }
-  // ---------- 14. Relatório do período (devolutiva à família) ----------
-  // O AEE monta o relatório do semestre, não valida com o trecho a completar,
-  // completa e valida; a família lê no portal e vê a validação no histórico.
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "aee@escola.edu.br");
@@ -1333,7 +1216,6 @@ if (!ONLY_WAIT) {
     check("relatório: sem erros de cliente (família)", family.errors.length === 0, family.errors.join("; "));
     await family.ctx.close();
   }
-  // ---------- 15. Adaptar a prova da turma (sem IA: pelas regras) ----------
   {
     const PROVA = ["1) Leia o texto. Depois, circule os animais que vivem na água.", "2) Ligue cada animal ao lugar onde ele vive.", "3) Qual é o alimento da vaca?", "a) capim", "b) carne", "c) peixe", "4) Desenhe um animal que você conhece."].join("\n");
     const { ctx, page, errors } = await newSession();
@@ -1370,7 +1252,6 @@ if (!ONLY_WAIT) {
     check("adaptar: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
 
-    // ---------- 16. A mesma atividade em três níveis (DUA) ----------
     const teacher = await newSession();
     await login(teacher.page, "professor@escola.edu.br");
     await teacher.page.goto(`${BASE}/planejamento`, { waitUntil: "networkidle2" });
@@ -1390,14 +1271,12 @@ if (!ONLY_WAIT) {
     check("níveis: sem erros de cliente", teacher.errors.length === 0, teacher.errors.join("; "));
     await teacher.ctx.close();
   }
-  // ---------- 17. Sondagem: linha de base ou reavaliação ----------
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "aee@escola.edu.br");
     await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
     const dante = await page.evaluate(() => [...document.querySelectorAll("article")].find((card) => card.textContent.includes("Dante"))?.querySelector('a[href^="/estudantes/c"]')?.getAttribute("href")?.match(/^\/estudantes\/[^/?#]+/)?.[0]);
     await page.goto(`${BASE}${dante}/sondagem/aplicar`, { waitUntil: "networkidle2" });
-    // Poucos itens: recusa.
     await page.evaluate(() => document.querySelectorAll('select[name^="item-"]').forEach((select) => { select.value = ""; }));
     await clickByText(page, "Salvar a sondagem");
     await page.waitForSelector('[role="alert"]', { timeout: 15000 }).catch(() => {});
@@ -1417,9 +1296,6 @@ if (!ONLY_WAIT) {
     check("sondagem: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
-  // ---------- 18. Contato ativo com a família: avisos e pergunta da semana ----------
-  // A validação do relatório (seção 14) avisou a família. A família responde a
-  // pergunta da semana (ou muda a resposta já dada) e o AEE vê no diário.
   {
     const NOTE = `Foi ao parque com o avô (${Date.now()}).`;
     const family = await newSession();
@@ -1436,7 +1312,6 @@ if (!ONLY_WAIT) {
     check("avisos: abrir a página zera o sino", (await bell()) === "Avisos", await bell());
     check("avisos: sem e-mail configurado, a preferência explica", body.includes("o e-mail não está configurado nesta instalação"));
 
-    // Preferência: sem a pergunta da semana, o portal não a mostra.
     await family.page.$eval('input[name="weeklyCheckIn"]', (box) => { box.checked = false; });
     await clickByText(family.page, "Salvar as preferências");
     await family.page.waitForFunction(() => document.body.innerText.includes("Preferências salvas"), { timeout: 15000 }).catch(() => {});
@@ -1472,9 +1347,6 @@ if (!ONLY_WAIT) {
     check("avisos: sem erros de cliente (equipe)", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
-  // ---------- 19. Dossiê de evidências ----------
-  // O AEE confere o dossiê do estudante e imprime (fica no histórico que a família
-  // vê); a coordenação vê a escola com nomes; a Secretaria, só números.
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "aee@escola.edu.br");
@@ -1519,8 +1391,6 @@ if (!ONLY_WAIT) {
     check("dossiê da escola: o professor da sala comum não abre", new URL(teacher.page.url()).pathname === "/");
     await teacher.ctx.close();
   }
-  // ---------- 20. Formação em pílulas ----------
-  // A equipe acha as pílulas na Ajuda e no "Saiba mais" ao lado do passo; a família não.
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "aee@escola.edu.br");
@@ -1546,17 +1416,11 @@ if (!ONLY_WAIT) {
     check("pílulas: são da equipe (a família não vê)", !familyHelp.includes("Formação em pílulas") && new URL(family.page.url()).pathname === "/ajuda");
     await family.ctx.close();
   }
-  // ---------- 21. Censo Escolar: importação, revisão, dupla matrícula e monitor ----------
-  // Arquivo de migração (leiaute 2025, número oficial de campos) da escola da
-  // coordenação: Dante com classe comum e AEE, Ravi só no AEE, uma aluna nova e
-  // Lívia, que estuda em outra escola da rede (revisão: ignorar com motivo).
   {
     const line = (count, values) => Array.from({ length: count }, (_, index) => values[index + 1] ?? "").join("|");
     const person = (code, inep, name, birth) => line(108, { 1: "30", 2: "21000001", 3: code, 4: inep, 6: name, 7: birth, 17: "1", 27: "1" });
     const enroll = (code, klass, caa, extra = {}) => line(32, { 1: "60", 2: "21000001", 3: code, 5: klass, ...(caa ? { 18: "1" } : {}), ...extra });
     const weekdays = (interval) => Object.fromEntries([8, 9, 10, 11, 12].map((day) => [day, interval]));
-    // Ravi: AEE sem tipo de atendimento. Aluna nova: AEE na terça de manhã, no horário da classe comum.
-    // Dante: no arquivo, também "Desenvolvimento de vida autônoma" (campo 10), que o PEI não registra.
     const file = [
       line(56, { 1: "00", 2: "21000001", 3: "1", 6: "EMEF MARIA FIRMINA DOS REIS", 21: "3", 34: "0" }),
       line(70, { 1: "20", 2: "21000001", 3: "T2B", 5: "2 ANO B", 6: "1", ...weekdays("07:00-11:00"), 14: "1", 15: "0", 16: "0", 25: "302" }),
@@ -1586,7 +1450,6 @@ if (!ONLY_WAIT) {
     let body = await textOf(page);
     check("censo: prévia do arquivo com a edição do leiaute", body.includes("Prévia do Censo: EMEF MARIA FIRMINA DOS REIS") && body.includes("leiaute 2025"), body.slice(0, 200));
     check("censo: a prévia diz o que a dependência da escola muda no Fundeb", body.includes("Escola municipal: o AEE oferecido aqui conta para a rede municipal"));
-    // Nas rodadas seguintes, os dois ficam em "Sem mudança", que vem fechado: textContent inclui o que está recolhido.
     const preview = await page.evaluate(() => document.body.textContent);
     check("censo: a prévia aponta AEE sem tipo de atendimento e horário coincidente", preview.includes("sem nenhum tipo de atendimento marcado") && preview.includes("O horário do AEE coincide com o da classe comum"));
     check("censo: Dante conciliado pelo nome e nascimento (ou pelo ID INEP já gravado)", /Dante Oliveira[\s\S]*(ID INEP: de vazio para 210000000001|Sem mudança)/.test(body) || body.includes("Sem mudança no cadastro"));
@@ -1607,7 +1470,6 @@ if (!ONLY_WAIT) {
     check("censo: dupla matrícula com alerta de horário coincidente", /Com dupla matrícula, mas com alerta no vínculo[\s\S]*Aluna Nova do Censo[\s\S]*Horário do AEE coincide/.test(body));
     check("censo: Dante confirmado com classe comum e AEE", await page.evaluate(() => [...document.querySelectorAll("details")].some((item) => item.textContent.includes("Confirmados") && item.textContent.includes("Dante Oliveira"))));
     check("censo: registro de referência na escola, com o selo federal", body.includes("Registro de referência para declarar no Censo") && body.includes("Orientação do Governo Federal") && await page.evaluate(() => [...document.querySelectorAll("details")].some((item) => item.textContent.includes("Com registro de referência") && item.textContent.includes("Dante Oliveira"))));
-    // O PEI de Dante e o arquivo aplicado: a diferença nos tipos de AEE aparece no plano.
     await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
     const pei = await page.evaluate(() => document.querySelector("#pei")?.textContent ?? "");
     check("censo: o PEI aponta o tipo de AEE diferente do arquivo", pei.includes("Diferente do último arquivo do Censo") && pei.includes("Desenvolvimento de vida autônoma"), pei.slice(-300));
@@ -1624,8 +1486,6 @@ if (!ONLY_WAIT) {
     check("censo: sem erros de cliente (coordenação)", errors.length === 0, errors.join("; "));
     await ctx.close();
 
-    // A Secretaria vê números, informa o FNDE e põe a janela em hoje, com uma
-    // verificação daqui a dois minutos (horário de Brasília): o agendador roda sozinho.
     const network = await newSession();
     await login(network.page, "secretaria@municipio.gov.br");
     await network.page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });
@@ -1674,8 +1534,7 @@ if (!ONLY_WAIT) {
     await teacher.ctx.close();
     unlinkSync(filePath);
   }
-  // ---------- 22. VLibras: botão de Libras e texto anonimizado antes de ir ao governo ----------
-  // O tradutor do governo é simulado aqui (nada chega a ele); o widget vem do jsDelivr.
+  // O widget vem do jsDelivr.
   {
     const { ctx, page, errors } = await newSession();
     const sent = [];
@@ -1715,7 +1574,6 @@ if (!ONLY_WAIT) {
     check("vlibras: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
 
-    // A troca usa só os nomes que a pessoa já vê: assim não revela quem está cadastrado.
     const family = await newSession();
     await login(family.page, "familia@email.com");
     const familyText = await family.page.evaluate(async () => (await (await fetch("/api/libras/anonimizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "Dante e Ravi Almeida" }) })).json()).text);
@@ -1728,7 +1586,6 @@ if (!ONLY_WAIT) {
     await visitor.ctx.close();
   }
 
-  // ---------- 23. Carteirinha digital: autorização, foto, QR que pede login e código trocado ----------
   {
     const family = await newSession();
     const childId = new URL(await login(family.page, "familia@email.com")).pathname.split("/").pop();
@@ -1738,7 +1595,6 @@ if (!ONLY_WAIT) {
     await aee.page.goto(cardPage, { waitUntil: "networkidle2" });
     check("carteirinha: sem autorização da família, a equipe não faz", (await textOf(aee.page)).includes("ainda não autorizou a carteirinha"));
 
-    // A família autoriza e escolhe o verso e o contato de emergência.
     await family.page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
     await clickByText(family.page, "Autorizar: Carteirinha digital");
     check("carteirinha: autorizar cria a carteirinha no portal", await family.page.waitForSelector("#carteirinha", { timeout: 15000 }).then(() => true, () => false));
@@ -1754,7 +1610,6 @@ if (!ONLY_WAIT) {
     check("carteirinha: sem diagnóstico no cartão", !/autis|TEA|CID|laudo|diagn/i.test(familyCard));
     check("carteirinha: o parentesco salvo continua no formulário", (await family.page.$eval("#contato-parentesco", (select) => select.value)) === "Mãe");
 
-    // A equipe envia a foto (PNG feito na hora) e vê o QR.
     const photoFile = join(tmpdir(), `carteirinha-${Date.now()}.png`);
     writeFileSync(photoFile, await aee.page.screenshot({ type: "png", clip: { x: 0, y: 0, width: 160, height: 200 } }));
     await aee.page.goto(cardPage, { waitUntil: "networkidle2" });
@@ -1779,7 +1634,6 @@ if (!ONLY_WAIT) {
     check("carteirinha: o terapeuta não vê a foto", (await therapist.page.evaluate(async (src) => (await fetch(src)).status, photoPath)) === 404);
     await therapist.ctx.close();
 
-    // QR lido sem login: só a entrada. Depois do login, a ficha do estudante.
     const reader = await newSession();
     await reader.page.goto(`${BASE}${qrPath}`, { waitUntil: "networkidle2" });
     const gate = await textOf(reader.page);
@@ -1788,7 +1642,6 @@ if (!ONLY_WAIT) {
     check("carteirinha: depois do login, o professor cai na ficha do estudante", landed.includes(`/estudantes/${childId}`), landed);
     await reader.page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
     check("carteirinha: depois de usado, o código não fica guardado", new URL(reader.page.url()).pathname === "/", reader.page.url());
-    // Código trocado: a carteirinha anterior deixa de abrir.
     await aee.page.goto(cardPage, { waitUntil: "networkidle2" });
     await clickByText(aee.page, "Gerar código novo");
     await aee.page.waitForFunction((old) => document.querySelector("[data-qr-path]")?.getAttribute("data-qr-path") !== old, { timeout: 15000 }, qrPath).catch(() => {});
@@ -1796,7 +1649,6 @@ if (!ONLY_WAIT) {
     check("carteirinha: código trocado não abre mais", reader.page.url().endsWith("/carteirinha/inativa") && !(await textOf(reader.page)).includes("Dante"), reader.page.url());
     await reader.ctx.close();
 
-    // A família vê a leitura no histórico e, ao retirar a autorização, a carteirinha some.
     await family.page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
     const history = await family.page.evaluate(() => { document.querySelectorAll("details").forEach((d) => { d.open = true; }); return document.body.innerText; });
     check("carteirinha: a leitura do QR entra no histórico da família", history.includes("visualizou · Código QR da carteirinha") && history.includes("enviou · Foto da carteirinha"));
@@ -1808,7 +1660,6 @@ if (!ONLY_WAIT) {
     await aee.ctx.close();
   }
 
-  // ---------- 24. Jogos educativos: todos numa página, com o estudante e o registro da aula ----------
   {
     const { ctx, page, errors } = await newSession();
     await login(page, "aee@escola.edu.br");
@@ -1826,7 +1677,6 @@ if (!ONLY_WAIT) {
     check("jogos: os 19 jogos juntos, numa página só", library.games === 19 && library.fullScreen.length === 4 && !library.separatePage, JSON.stringify(library));
     check("jogos: os de tela cheia levam o estudante escolhido", library.fullScreen.every((id) => id === studentId), JSON.stringify(library.fullScreen));
 
-    // Jogo de fotografias com o estudante: uma pista por rodada, um erro e o registro no fim.
     await page.evaluate(() => document.querySelector('input[name="game-level"][value="facil"]').click());
     await page.click("#play-encontre");
     await sleep(500);
@@ -1846,7 +1696,6 @@ if (!ONLY_WAIT) {
     await clickByText(page, "Registrar a aula");
     check("jogos: registra a aula do jogo de fotografias", await page.waitForFunction(() => document.body.innerText.includes("Aula registrada"), { timeout: 15000 }).then(() => true, () => false));
 
-    // Memória: uma dica, um erro e os pares.
     await page.goto(`${BASE}/jogar/memoria?estudante=${studentId}&nivel=facil&tema=animais`, { waitUntil: "networkidle2" });
     await clickByText(page, "Dica");
     const pics = await page.$$eval("[data-pic]", (cards) => cards.map((card) => card.getAttribute("data-pic")));
@@ -1867,12 +1716,10 @@ if (!ONLY_WAIT) {
     await settle(page);
     check("jogos: jogar de novo abre uma partida nova", page.url().includes("partida=") && (await textOf(page)).includes("0 de 2 pares"), page.url());
 
-    // Sequência: as etapas na ordem.
     await page.goto(`${BASE}/jogar/sequencia?estudante=${studentId}&nivel=facil&rotina=maos`, { waitUntil: "networkidle2" });
     for (let step = 0; step < 3; step += 1) { await page.click(`[data-step="${step}"]`); await sleep(250); }
     check("jogos: sequência da rotina até o fim", await page.waitForFunction(() => document.body.innerText.includes("Você terminou"), { timeout: 10000 }).then(() => true, () => false));
 
-    // Associação e emoções: um erro, depois as respostas.
     for (const path of ["associacao?modo=quantidade&nivel=medio", "emocoes?nivel=desafio"]) {
       await page.goto(`${BASE}/jogar/${path.replace("?", `?estudante=${studentId}&`)}`, { waitUntil: "networkidle2" });
       await page.evaluate(() => [...document.querySelectorAll('ul[aria-label="Opções"] button')].find((b) => !b.dataset.answer)?.click());
@@ -1887,7 +1734,6 @@ if (!ONLY_WAIT) {
     check("jogos: o registro aparece em Registrar aula", diary.includes("Jogo: Memória por temas (fácil, Animais). 2 de 2 pares · 1 dica · 1 tentativa a mais."));
     check("jogos: o registro do jogo de fotografias também", diary.includes("Jogo: Encontre a imagem (fácil). 5 de 5 rodadas · 5 dicas · 1 tentativa a mais."), diary.slice(0, 300));
 
-    // Sem estudante: o jogo de tela cheia abre igual, sem registro.
     await page.goto(`${BASE}/jogar/emocoes?nivel=facil`, { waitUntil: "networkidle2" });
     const alone = await textOf(page);
     check("jogos: tela cheia sem estudante", page.url().includes("/jogar/emocoes") && alone.includes("Emoções") && !/com (Dante|Ravi)/.test(alone) && !alone.includes("Registrar a aula"), page.url());

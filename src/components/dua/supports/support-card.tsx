@@ -9,12 +9,8 @@ import { SupportSummary } from "./support-summary";
 import { StudentVoice } from "./student-voice";
 import { ValidateSupport } from "./validate-support";
 
-// Cartão de um apoio individual (RF04). Renderiza no servidor e junta as partes
-// interativas: edição, validação, participação do estudante e sugestões.
-
 type Props = {
   support: SupportView;
-  // Opções do estudante para editar; só chegam quando a pessoa pode editar.
   options: { profileOptions: ProfileOption[]; objectives: ObjectiveOption[] } | null;
   suggestions: SuggestionView[];
   aiOn: boolean;

@@ -10,11 +10,6 @@ import { loadPseudonymizer, parsePseudonyms } from "./privacy";
 import { decidedSinceLastTurn, historyLength, MAX_HISTORY_MESSAGES, toConversationView, toMessageView } from "./store";
 import type { AssistantEvent, ToolStep } from "./types";
 
-// Um turno do assistente: a mensagem da pessoa entra anonimizada, o modelo
-// usa as ferramentas (laço do SDK, com transmissão) e a resposta volta à tela
-// com os nomes restaurados. O histórico enviado ao modelo é guardado como
-// está, sem edições: os blocos de raciocínio ficam vinculados à conversa.
-
 export const ASSISTANT_MODEL = process.env.ASSISTANT_MODEL || process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
 const MAX_ITERATIONS = 8;
 const HOLD_BACK = 24;
@@ -25,11 +20,8 @@ export function isAssistantEnabled(): boolean {
 
 type History = Anthropic.Beta.Messages.BetaMessageParam[];
 let client: Anthropic | null = null;
-// Uma resposta por conversa de cada vez: duas ao mesmo tempo corromperiam o histórico.
 const busy = new Set<string>();
 
-// Corte seguro do texto transmitido: não parte um marcador ([ESTUDANTE 1])
-// nem uma palavra ao meio, para a restauração dos nomes valer no trecho enviado.
 export function safeCut(text: string): number {
   if (text.length <= HOLD_BACK) return 0;
   let cut = text.length - HOLD_BACK;
@@ -110,7 +102,6 @@ export async function runAssistantTurn(input: {
     }
     await prisma.assistantMessage.create({ data: { conversationId: conversation.id, role: "usuario", text } });
 
-    // Contexto do turno: ações decididas desde a última resposta e a página aberta.
     const notes: string[] = [];
     for (const action of await decidedSinceLastTurn(conversation)) {
       notes.push(`[A pessoa ${action.status === "confirmada" ? "confirmou" : "cancelou"} a ação ${action.kind}${action.result ? `: ${privacy.apply(action.result)}` : ""}]`);
@@ -186,8 +177,6 @@ export async function runAssistantTurn(input: {
       }
     }
 
-    // Histórico: tudo o que o modelo viu e disse, sem edição. Se o turno foi
-    // interrompido antes de o modelo responder, a nota entra como resposta.
     let newHistory: History = [...runner.params.messages];
     if (newHistory.at(-1)?.role !== "assistant" || finalNote) {
       if (newHistory.at(-1)?.role === "assistant") newHistory = closeDanglingToolUses(newHistory);

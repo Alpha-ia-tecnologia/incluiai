@@ -4,9 +4,6 @@ import { Badge } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
 import { STATUS_LABEL, type EvidenceGroup, type EvidenceStatus } from "@/lib/evidence";
 
-// O checklist do dossiê, na tela e na impressão. `tabs` diz para quais abas
-// da ficha a pessoa pode ir (a Secretaria só lê as abas de consulta).
-
 const TONE = { ok: "green", conferir: "amber", pendente: "coral", info: "neutral" } as const;
 const ICON = { ok: CircleCheck, conferir: TriangleAlert, pendente: CircleAlert, info: Info };
 

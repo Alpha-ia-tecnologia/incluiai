@@ -10,10 +10,6 @@ import { MATERIAL_CONTEXTS, MATERIAL_KINDS, MATERIAL_TOPICS, type MaterialKind }
 import { labelCls, inputCls, linkCls, primaryButtonCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
-// Formulário "Criar um material": tipo, situação, objetivo do plano, contexto e
-// imagens. A geração (IA ou regras) e as conferências ficam no servidor, que ao
-// terminar leva à página do material novo; o estado só volta com erro.
-
 const ICONS: Record<MaterialKind, LucideIcon> = {
   rotina_visual: ListOrdered,
   sequencia_tarefa: ListChecks,
@@ -29,7 +25,6 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
   objectives: { id: string; description: string }[];
   defaultContext: string;
   aiOn: boolean;
-  // IA com chave nesta instalação (sem a autorização da família, aiOn é falso, mas a IA existe).
   aiConfigured: boolean;
   imagesOn: boolean;
 }) {

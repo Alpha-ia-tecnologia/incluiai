@@ -1,4 +1,3 @@
-/** Regras locais dos jogos: sem dados pessoais, cronômetro ou pontuação clínica. */
 export type GameId = "memoria" | "encontre" | "contar" | "sequencia" | "cores" | "rotina" | "letras" | "palavras" | "somar" | "usos" | "classificar" | "comparar" | "silabas" | "subtrair" | "numeros";
 export type GameLevel = 1 | 2;
 export type GameObjectId = "apple" | "banana" | "orange" | "ball" | "backpack" | "book";
@@ -181,7 +180,6 @@ export function objectById(id: GameObjectId): GameObject {
   return GAME_OBJECTS.find((object) => object.id === id)!;
 }
 
-/** Fisher–Yates; não altera a lista de origem. O RNG é injetável para testes. */
 export function shuffle<T>(items: readonly T[], rng: RandomSource = Math.random): T[] {
   const result = [...items];
   for (let index = result.length - 1; index > 0; index -= 1) {
@@ -200,7 +198,6 @@ function choicesFor(target: GameObject, level: GameLevel, rng: RandomSource, exc
   return shuffle([target, ...shuffle(otherObjects, rng).slice(0, level === 1 ? 2 : 3)], rng).map(objectChoice);
 }
 
-/** A letra representa a escrita inicial, sem usar acentos como distratores. */
 export function initialLetter(word: string): string {
   return word.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 1).toLocaleUpperCase("pt-BR");
 }
@@ -297,8 +294,6 @@ export function generateRound(gameId: GameId, level: GameLevel = 1, rng: RandomS
       };
     }
     case "usos": {
-      // Cada situação nomeia uma função específica, evitando frutas como
-      // respostas concorrentes a uma pergunta genérica sobre comer ou brincar.
       const prompts = {
         book: level === 1 ? "Qual objeto tem páginas para ler uma história?" : "Você quer ler uma história folheando páginas. Qual objeto pode usar?",
         ball: level === 1 ? "Qual objeto é feito para brincar de chutar e rolar?" : "Na brincadeira, você quer usar um objeto feito para chutar e rolar. Qual destes pode escolher?",
@@ -377,8 +372,6 @@ export function generateRound(gameId: GameId, level: GameLevel = 1, rng: RandomS
         { id: "lanche", label: "Guardar o lanche", image: banana.image, objectId: banana.id },
         { id: "mochila", label: "Fechar a mochila", image: backpack.image, objectId: backpack.id },
       ];
-      // As duas ordens são possíveis no cotidiano. A história explicita qual
-      // delas reconstruir, sem apresentar uma preferência como regra universal.
       const order = level === 2 && rng() >= 0.5 ? [steps[1], steps[0], steps[2]] : steps;
       const first = order[0].id === "livro" ? "o livro" : "o lanche";
       const second = order[1].id === "livro" ? "o livro" : "o lanche";
@@ -392,7 +385,6 @@ export function generateRound(gameId: GameId, level: GameLevel = 1, rng: RandomS
 }
 
 export function isCorrectAnswer(round: GameRound, answer: string | readonly string[]): boolean {
-  // Classificar usa objeto + grupo, conferidos por isCorrectClassification.
   if (round.kind === "memoria" || round.kind === "classificar") return false;
   if (round.kind === "silabas") {
     return Array.isArray(answer) && answer.length === round.syllables.length

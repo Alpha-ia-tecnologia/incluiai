@@ -1,7 +1,3 @@
-// Terapeuta: conhecer o contexto escolar e enviar orientações para a escola.
-// Só com a conexão autorizada pela família (o seed já traz a de Dante).
-
-// Opção de um grupo do formulário, achada pelo título do grupo (há opções repetidas entre grupos).
 async function option(t, group, label) {
   const handle = await t.page.evaluateHandle((group, label) => {
     const norm = (value) => String(value ?? "").replace(/\s+/g, " ").trim();

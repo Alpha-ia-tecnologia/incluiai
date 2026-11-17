@@ -1,11 +1,5 @@
 import { Swatch } from "@/components/charts";
 
-// Colunas empilhadas e listradas (ex.: atendimentos do mês por situação), no
-// padrão do Painel de indicadores. O total fica acima de cada coluna, a
-// legenda nomeia as partes com o total do período e a tabela oculta dá cada
-// número ao leitor de tela: o desenho nunca é a única forma de ler o dado.
-// Parte com zero não é desenhada; período todo vazio vira texto.
-
 export type StackSeries = { key: string; label: string; color: string };
 export type StackRow = { label: string; title: string; counts: Readonly<Record<string, number>> };
 
@@ -31,8 +25,6 @@ export function StackedColumns({ rows, series, caption, empty = "Sem registros n
               <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-end">
                 <span className="mb-1 text-xs tabular-nums text-ink-soft">{total}</span>
                 {total > 0 ? (
-                  // 78% no máximo: o total acima da coluna mais alta continua visível.
-                  // A pilha inteira cresce uma vez; o total acima já aparece no lugar.
                   <div className="viz-grow-y flex w-full max-w-10 flex-col-reverse gap-[2px]" style={{ height: `${Math.max(8, (total / max) * 78)}%` }}>
                     {series.map((item) => {
                       const value = row.counts[item.key] ?? 0;

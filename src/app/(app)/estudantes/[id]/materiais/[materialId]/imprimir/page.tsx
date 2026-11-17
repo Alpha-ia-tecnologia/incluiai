@@ -8,9 +8,6 @@ import { MaterialView } from "@/components/materials/material-view";
 
 export const dynamic = "force-dynamic";
 
-// Versão para imprimir: cartões grandes com linha de recorte, atividades em outra
-// página e a marca de SUGESTÃO enquanto a equipe não aprovar o material.
-// O acesso ao estudante já foi conferido no layout do estudante.
 export default async function PrintMaterialPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const prisma = await db();
   const { id, materialId } = await params;

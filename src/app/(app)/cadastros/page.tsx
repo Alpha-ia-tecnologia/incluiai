@@ -14,9 +14,6 @@ export const dynamic = "force-dynamic";
 
 const fieldStyle = { labelClassName: labelCls, inputClassName: inputCls };
 const shiftOptions = Object.entries(SHIFTS).map(([value, label]) => ({ value, label }));
-// Os dois formulários terminam iguais: Salvar embaixo, no fim da linha. Com os
-// cartões lado a lado, o botão fica na mesma altura nos dois. A grade dos campos
-// segue a largura do cartão (container), que é estreito com os dois lado a lado.
 const formCls = "@container flex flex-1 flex-col gap-5";
 const fieldsCls = "grid items-start gap-4 @md:grid-cols-2";
 const footerCls = "mt-auto flex justify-end border-t border-line pt-4";
@@ -32,7 +29,6 @@ export default async function RegistriesPage() {
     include: { classes: { orderBy: { name: "asc" } }, _count: { select: { students: true } } },
     orderBy: { name: "asc" },
   });
-  // Regiões já usadas na rede entram nas opções, além das sugestões padrão.
   const regionOptions = [...new Set([...REGION_OPTIONS, ...schools.map((school) => school.region)])];
 
   return (
@@ -102,7 +98,6 @@ export default async function RegistriesPage() {
                 {s.classes.length === 0 ? (
                   <p className="mt-4 border-t border-line pt-4 text-sm text-ink-soft">Nenhuma turma cadastrada nesta escola.</p>
                 ) : (
-                  // Tabela leve; se não couber numa tela estreita, rola dentro do cartão.
                   <div className="mt-4 min-w-0 overflow-x-auto">
                     <table className="w-full border-collapse text-left text-sm">
                       <caption className="sr-only">Turmas da escola {s.name}</caption>

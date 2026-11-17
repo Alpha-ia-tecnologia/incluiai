@@ -25,11 +25,6 @@ import { toActionView } from "./store";
 import { TOOL_LABELS } from "./labels";
 import type { AgentProgress, AssistantEvent } from "./types";
 
-// Ferramentas do assistente. Cada uma confere a permissão da pessoa de novo
-// (o modelo só pede; quem autoriza é o servidor), devolve texto já com
-// pseudônimos no lugar dos nomes e, quando altera o acompanhamento, prepara
-// um cartão de confirmação em vez de gravar.
-
 export type ToolContext = {
   user: SessionUser;
   privacy: Pseudonymizer;
@@ -45,7 +40,6 @@ const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, ""
 
 const studentRef = z.string().describe("Marcador do estudante, como [ESTUDANTE 1], ou o id dele");
 
-// `report` avisa a tela quando cada agente de uma ferramenta longa começa e termina.
 type Report = (progress: AgentProgress) => void;
 
 function define<Schema extends z.ZodType>(ctx: ToolContext, name: string, description: string, inputSchema: Schema, run: (args: z.infer<Schema>, report: Report) => Promise<string>): BetaRunnableTool {
@@ -71,8 +65,6 @@ function define<Schema extends z.ZodType>(ctx: ToolContext, name: string, descri
   });
 }
 
-// O modelo se refere ao estudante pelo marcador ([ESTUDANTE 1]) ou pelo id;
-// um nome escrito por engano ainda é aceito se for único no escopo.
 async function resolveStudentId(ctx: ToolContext, ref: string): Promise<string> {
   const prisma = await db();
   const label = ref.match(/ESTUDANTE\s*(\d+)/i);
@@ -120,9 +112,6 @@ const journeyInput = (student: {
   hasDiary: student.diaryEntries.length > 0,
 });
 
-// ---------------------------------------------------------------------------
-// Equipe escolar e gestão
-// ---------------------------------------------------------------------------
 function staffTools(ctx: ToolContext): BetaRunnableTool[] {
   const network = isNetworkRole(ctx.user.role);
 
@@ -240,15 +229,12 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       ].filter(Boolean).join("\n")).join("\n\n") + `\n\nPágina: /estudantes/${id}/atividades`;
     });
 
-  // Próximos passos do DUA (RF08), só leitura: saem das evidências registradas nas
-  // atividades com DUA. São recomendações; a decisão e o resultado ficam com a equipe.
   const proximosPassosDua = define(ctx, "proximos_passos_dua",
     "Próximos passos sugeridos para um estudante a partir das evidências das atividades planejadas com DUA. Cada sugestão traz a base usada e o que ainda precisa ser observado. São recomendações para a equipe revisar: não são decisão profissional nem resultado observado.",
     z.object({ estudante: studentRef }),
     async (args) => {
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
-      // studentFollowUp confere de novo o recorte do estudante (equipe pedagógica com acesso).
       const suggestions = await studentFollowUp(ctx.user, id);
       await logAccess(ctx, id, "Assistente: próximos passos das atividades com DUA");
       const label = ctx.privacy.studentLabel(id);
@@ -302,7 +288,6 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       const objective = await prisma.objective.findFirst({ where: { id: args.objetivoId, plan: { studentId: id } } });
       if (!objective) throw new Error("Objetivo não encontrado para este estudante. Consulte ver_estudante para os ids.");
       const withImages = Boolean(args.comImagens) && isImageGenerationEnabled();
-      // Avisa logo no início que haverá imagens: a tela conta 4 minutos em vez de 3.
       if (withImages) report({ agent: "Ilustração", phase: "queued" });
       const cards = await buildActivityCards({ student, profile, objective, lessonTopic: args.conteudoDaAula }, report);
       const created = await saveSuggestedActivities(id, objective.id, cards);
@@ -342,7 +327,6 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       const { material, content, source, images } = await createStudentMaterial(ctx.user, id, {
         kind: args.tipo, topic: args.tema ?? "", context: args.contexto ?? "aee", withImages: Boolean(args.imagens),
       });
-      // A galeria e a página própria do material novo.
       revalidatePath(`/estudantes/${id}/materiais`);
       revalidatePath(`/estudantes/${id}/materiais/${material.id}`);
       const kind = MATERIAL_KINDS.find((item) => item.kind === args.tipo);
@@ -469,7 +453,6 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       ].filter(Boolean).join("\n");
     });
 
-  // A Secretaria vê a rede em números (seção 10): sem ferramentas por estudante.
   if (ctx.user.role === "secretaria") return [indicadores, buscarRecursos, datasInclusivas(ctx)];
   return [
     buscarEstudantes, verEstudante, verAtividades, proximosPassosDua, proporPlano, gerarAtividades, criarMaterial,
@@ -489,9 +472,6 @@ function datasInclusivas(ctx: ToolContext): BetaRunnableTool {
     });
 }
 
-// ---------------------------------------------------------------------------
-// Família
-// ---------------------------------------------------------------------------
 function familyTools(ctx: ToolContext): BetaRunnableTool[] {
   const studentId = ctx.studentIds[0];
   const meuEstudante = define(ctx, "meu_estudante",
@@ -532,9 +512,6 @@ function familyTools(ctx: ToolContext): BetaRunnableTool[] {
   return [meuEstudante, contarConquista, datasInclusivas(ctx)];
 }
 
-// ---------------------------------------------------------------------------
-// Terapeuta
-// ---------------------------------------------------------------------------
 function therapistTools(ctx: ToolContext): BetaRunnableTool[] {
   const studentId = ctx.studentIds[0];
   const meuEstudante = define(ctx, "meu_estudante",
@@ -575,8 +552,6 @@ function therapistTools(ctx: ToolContext): BetaRunnableTool[] {
   return [meuEstudante, enviarOrientacoes, datasInclusivas(ctx)];
 }
 
-// A lista é determinística por perfil: a mesma conversa recebe sempre as
-// mesmas ferramentas na mesma ordem.
 export function buildTools(ctx: ToolContext): BetaRunnableTool[] {
   const role = ctx.user.role;
   if (role === "familia") return familyTools(ctx);

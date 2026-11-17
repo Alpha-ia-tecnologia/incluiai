@@ -1,4 +1,3 @@
-// Testes da gestão de contas: node --test src/lib/user-admin.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { accountSchoolProblem, assignableRoles, canManageAccount, isAccountManager, mergeLinks, passwordProblem, temporaryPassword } from "./user-admin.ts";

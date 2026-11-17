@@ -56,7 +56,6 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
         take: 5,
         include: { image: { select: { altText: true, kind: true, createdAt: true } } },
       },
-      // Só material aprovado pela equipe chega à família.
       materials: {
         where: { status: "aprovado" },
         orderBy: { createdAt: "desc" },
@@ -67,12 +66,10 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   });
   if (!student) notFound();
   if (!canAccessStudent(user, student.schoolId, student.id)) redirect("/");
-  // O portal guarda o que a família registra: o terapeuta tem o espaço dele.
   if (user.role === "terapeuta") redirect("/terapeuta");
   if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
 
   const isFamily = user.role === "familia";
-  // O acesso justificado da Secretaria nunca sai da lista, mesmo depois de 200 registros de rotina.
   const justified = await prisma.accessLog.findMany({ where: { studentId: student.id, action: "acesso justificado" }, orderBy: { createdAt: "desc" }, take: 50 });
   const accessLogs = [...new Map([...student.accessLogs, ...justified].map((log) => [log.id, log])).values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const [consent, reports, prefs, checkIn] = await Promise.all([
@@ -86,10 +83,8 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   const objectives = student.plans.flatMap((p) => p.objectives);
   const addNote = createFamilyNote.bind(null, id);
   const firstName = student.name.split(" ")[0];
-  // Carteirinha: com a autorização da família, para ela e para a equipe que a faz.
   const cardView = consent.card && canViewCard(user, student.schoolId, student.id) ? await loadCardView(student.id) : null;
   const decidesCard = isFamily && user.studentIds.includes(id);
-  // Feita = a família avisou pela própria página (nota com o título da atividade).
   const homeActivities = student.activities.map((activity) => ({ activity, doneAt: student.familyNotes.find((n) => n.note === homeActivityNote(activity.title))?.date }));
   const homeDone = homeActivities.filter((item) => item.doneAt).length;
   const lastNote = student.familyNotes[0];
@@ -113,7 +108,6 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       <section aria-label={`Resumo do acompanhamento de ${firstName}`} className="mb-6">
         <DataBoard className="sm:grid-cols-2">
           <StatTile label="Objetivos em andamento" value={objectives.length} hint={objectives.length ? undefined : "A escola ainda está montando o plano."} />
-          {/* Sem atividade enviada, não há o que medir: um anel vazio pareceria quebrado. */}
           {homeActivities.length ? (
             <RingTile
               id="familia-casa"
@@ -187,7 +181,6 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             )}
           </Card>
 
-          {/* Relatórios, materiais e conquistas só aparecem quando há algo para mostrar. */}
           {reports.length ? (
           <Card className="scroll-mt-24" id="relatorios">
             <SectionTitle><span className="flex items-center gap-1.5"><FileText size={13} aria-hidden /> Relatórios da escola</span></SectionTitle>
@@ -254,7 +247,6 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             <SectionTitle>
               <span className="flex items-center gap-1.5"><ShieldCheck size={13} aria-hidden /> Quem acessou os dados</span>
             </SectionTitle>
-            {/* Seção 12: a família entende quem acessou os dados, com nome, papel e o que fez. */}
             {accessLogs.length === 0 ? (
               <p className="text-sm text-ink-soft">Nenhum acesso registrado.</p>
             ) : (
@@ -302,7 +294,6 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   );
 }
 
-// Cada acesso: quem (nome e papel), o que fez e quando.
 function AccessList({ logs }: { logs: { id: string; actor: string; role: string; action: string; detail: string | null; createdAt: Date }[] }) {
   return (
     <ul className="divide-y divide-line text-sm">

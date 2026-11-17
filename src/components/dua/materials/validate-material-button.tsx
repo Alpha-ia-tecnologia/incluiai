@@ -6,8 +6,6 @@ import { CircleCheck } from "lucide-react";
 import { validateDuaMaterial, type DuaResult } from "@/actions/dua";
 import { ResultMessage, secondaryCls } from "../dua-ui";
 
-// Validação profissional do material para uso pedagógico. O servidor recusa
-// quando a versão de origem ainda não foi validada; a mensagem aparece aqui.
 export function ValidateMaterialButton({ planningId, materialId, revision, title }: { planningId: string; materialId: string; revision: number; title: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();

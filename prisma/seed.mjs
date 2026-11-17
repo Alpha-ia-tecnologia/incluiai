@@ -2,8 +2,6 @@ import { PrismaClient } from "@prisma/client";
 import { randomBytes, scryptSync } from "node:crypto";
 import { DEMO_RESOURCE_USAGE, RESOURCE_CATALOG } from "./resource-catalog.mjs";
 
-// Os dados de demonstração APAGAM tudo antes de criar os exemplos: num banco
-// PostgreSQL (produção), só com SEED_DEMO_OK=1, para um banco de testes.
 if (/^postgres(ql)?:\/\//.test(process.env.DATABASE_URL ?? "") && process.env.SEED_DEMO_OK !== "1") {
   console.error("\n✗ Este script apaga todos os dados. Num banco PostgreSQL, rode só num banco de testes, com SEED_DEMO_OK=1.\n");
   process.exit(1);
@@ -19,8 +17,6 @@ const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 const daysAhead = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
 
 async function main() {
-  // Planejamento com DUA e frequência do AEE: tudo cai em cascata com o
-  // planejamento ou o estudante, mas apagamos na ordem das chaves, antes dos estudantes.
   await prisma.duaEvidence.deleteMany();
   await prisma.duaApplication.deleteMany();
   await prisma.duaSuggestion.deleteMany();
@@ -63,7 +59,6 @@ async function main() {
     ],
   });
 
-  // ---- Dante: 7 anos, 2o ano, TEA, CAA por pranchas, dinossauros ----
   const dante = await prisma.student.create({
     data: {
       name: "Dante Oliveira",
@@ -103,7 +98,6 @@ async function main() {
     },
   });
 
-  // Estudo de caso concluído — etapa de diagnóstico que antecede o plano.
   await prisma.caseStudy.create({
     data: {
       studentId: dante.id,
@@ -215,7 +209,6 @@ async function main() {
     ],
   });
 
-  // ---- Lívia: 12 anos, 6o ano, paralisia cerebral, acionador ----
   const livia = await prisma.student.create({
     data: {
       name: "Lívia Santos",
@@ -307,7 +300,6 @@ async function main() {
     ],
   });
 
-  // ---- Ravi: 9 anos, 4o ano, deficiência intelectual, futebol ----
   const ravi = await prisma.student.create({
     data: {
       name: "Ravi Almeida",
@@ -389,7 +381,6 @@ async function main() {
     ],
   });
 
-  // ---- Banco municipal de recursos (com o uso fictício da demonstração) ----
   for (const entry of RESOURCE_CATALOG) {
     const { activities, ...resource } = entry;
     const [timesUsed, positiveOutcomes] = DEMO_RESOURCE_USAGE[entry.title] ?? [0, 0];
@@ -405,9 +396,6 @@ async function main() {
     });
   }
 
-  // ---- Autorizações das famílias (seções 12 e 14) ----
-  // Dante: IA e terapeuta autorizados; Lívia: só IA; Ravi: ainda sem decisão
-  // (mostra o aviso para a equipe e o portal pedindo a autorização).
   await prisma.consent.createMany({
     data: [
       { studentId: dante.id, aiUse: true, therapistLink: true, updatedBy: "Carla (mãe de Dante)" },
@@ -415,7 +403,6 @@ async function main() {
     ],
   });
 
-  // ---- Usuários com perfis de acesso (senha: demo123) ----
   const contas = [
     { name: "Secretaria de Educação", email: "secretaria@municipio.gov.br", role: "secretaria" },
     { name: "Ana Coordenadora", email: "coordenacao@escola.edu.br", role: "coordenacao", schoolId: escola1.id },

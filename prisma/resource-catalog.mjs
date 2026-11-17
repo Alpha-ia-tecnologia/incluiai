@@ -18,8 +18,6 @@ const activity = (
   evidenceCriterion,
 });
 
-// Catálogo inicial do banco de recursos: só o conteúdo. Uso e boa resposta
-// começam em zero e crescem com cada aplicação registrada na plataforma.
 const resource = (details, activities) => ({ timesUsed: 0, positiveOutcomes: 0, ...details, activities });
 
 export const RESOURCE_CATALOG = [
@@ -211,7 +209,6 @@ export const RESOURCE_CATALOG = [
   },
 ];
 
-// Uma proposta complementar para cada recurso original, sem renomear suas atividades.
 const complementaryActivities = [
   activity("Mochila para o próximo dia", "Escolher os materiais necessários para o próximo dia consultando uma lista de três itens.", "casa", 10,
     ["Lista com fotos de três materiais solicitados pela escola", "Mochila e materiais disponíveis", "Cartão falta ou preciso de ajuda"],
@@ -633,7 +630,6 @@ RESOURCE_CATALOG.push(
   ]),
 );
 
-// Uso e boa resposta só da base de demonstração (seed.mjs).
 export const DEMO_RESOURCE_USAGE = {
   "Rotina visual de chegada": [34, 29],
   "Prancha de comunicação: rotina escolar": [27, 24],

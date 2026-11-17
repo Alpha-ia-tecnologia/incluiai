@@ -8,10 +8,6 @@ import { canManageCard, canViewCard, rotateCardToken } from "@/lib/student-card"
 import { MAX_CARD_PHOTO_BYTES, MAX_CARD_PHOTO_MB, normalizePhone, sniffCardPhoto, stripPhotoMetadata } from "@/lib/student-card-core";
 import { FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
 
-// Carteirinha digital: a equipe cuida da foto e da impressão; a família decide
-// o verso e o contato de emergência. Tudo exige a autorização da família e
-// entra no histórico de acessos que ela consulta.
-
 export type CardFormState = { error?: string; saved?: boolean };
 
 async function loadCardStudent(studentId: string) {
@@ -60,7 +56,6 @@ export async function removeCardPhoto(studentId: string) {
   refresh(studentId);
 }
 
-// Carteirinha perdida: a equipe ou a família troca o código, e a anterior deixa de valer.
 export async function rotateStudentCard(studentId: string) {
   const { user, schoolId } = await loadCardStudent(studentId);
   if (!canViewCard(user, schoolId, studentId)) throw new Error("Você não tem permissão para trocar o código desta carteirinha.");
@@ -69,7 +64,6 @@ export async function rotateStudentCard(studentId: string) {
   refresh(studentId);
 }
 
-// Só a família escolhe o verso e o contato que aparecem na carteirinha.
 export async function saveCardPreferences(studentId: string, _state: CardFormState, formData: FormData): Promise<CardFormState> {
   const prisma = await db();
   const { user } = await loadCardStudent(studentId);

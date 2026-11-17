@@ -1,4 +1,3 @@
-// Carteirinha digital: a família autoriza e escolhe o verso; a escola põe a foto, confere e imprime.
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -19,7 +18,7 @@ function illustration() {
   }
 }
 
-// Mostra a folha como sai na impressão, sem abrir a janela do navegador (que não aparece na gravação).
+// A janela de impressão do navegador não aparece na gravação.
 async function printPreview(t, button, narration) {
   await t.page.evaluate(() => { window.print = () => {}; });
   await t.say(narration, async () => {
@@ -65,7 +64,6 @@ export default {
       await t.waitForText("Carteirinha atualizada");
     });
 
-    // Troca de conta por trás do quadro: a gravação não mostra a entrada.
     await t.card({ title: "Na escola", subtitle: "A equipe do AEE completa a carteirinha", eyebrow: "Carteirinha digital" });
     await t.pause(600);
     await t.page.deleteCookie(...(await t.page.cookies()));

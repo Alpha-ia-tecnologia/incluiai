@@ -7,10 +7,6 @@ import { cardPictogram, type PictogramKey } from "@/lib/pictograms";
 import { Pictogram } from "./pictogram";
 import { materialImageUrl } from "./material-view";
 
-// Cartão da galeria de materiais: miniatura (a imagem do primeiro cartão ou o
-// pictograma dele), tipo, situação e o tamanho do material. O material inteiro
-// abre na página própria; a galeria fica curta mesmo com muitos materiais.
-
 export type MaterialSummary = {
   id: string;
   title: string;
@@ -19,14 +15,12 @@ export type MaterialSummary = {
   createdAt: Date;
   cards: number;
   activities: number;
-  // Imagem desenhada do primeiro cartão ou, sem ela, o pictograma de reserva.
   thumb: { at: Date } | null;
   pictogram: PictogramKey;
 };
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
-// O que a galeria precisa de cada material: só o resumo, nunca o conteúdo inteiro.
 export function materialSummary(material: { id: string; title: string; kind: string; status: string; content: string; createdAt: Date; images: { createdAt: Date }[] }): MaterialSummary {
   const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
   const first = content.cards[0];
@@ -43,12 +37,10 @@ export function materialSummary(material: { id: string; title: string; kind: str
   };
 }
 
-// href: a página do material (equipe) ou a leitura do portal da família.
 export function MaterialGalleryCard({ studentId, material, href }: { studentId: string; material: MaterialSummary; href?: string }) {
   const titleId = `material-${material.id}-cartao`;
   return (
     <article id={`material-${material.id}`} aria-labelledby={titleId} className="flex w-full min-w-0 scroll-mt-24 flex-col rounded-2xl border border-line bg-paper-raised p-4 shadow-e1">
-      {/* Miniatura decorativa: o título e os dados abaixo dizem o que é. */}
       <div className="flex h-36 items-center justify-center rounded-xl bg-brand-soft">
         {material.thumb ? (
           <Image src={materialImageUrl(material.id, 0, material.thumb.at)} alt="" width={1024} height={1024} unoptimized className="size-28 rounded-xl bg-paper-raised object-contain" />

@@ -1,7 +1,3 @@
-// Orientações do Governo Federal que a plataforma segue no PAEE, no PEI e na
-// declaração do público da educação especial no Censo Escolar. Puro, para teste
-// com node --test (src/lib/plan-documents.test.mjs).
-//
 // Fonte: INEP, Perguntas frequentes do Censo Escolar, "Quais são os registros
 // administrativos que podem ser utilizados como referência para a declaração dos
 // alunos público da Educação Especial (...) no Censo Escolar?", publicada em
@@ -14,7 +10,6 @@ export const INEP_CENSUS_GUIDANCE = {
 
 export const FEDERAL_NORMS = ["Decreto nº 12.686/2025", "Portaria MEC nº 421/2026"] as const;
 
-// Linha de fonte para telas impressas e para o rodapé dos documentos.
 export const FEDERAL_SOURCE_LINE = `INEP/MEC, Censo Escolar (${INEP_CENSUS_GUIDANCE.publishedAt}); ${FEDERAL_NORMS.join("; ")}`;
 
 // O que o INEP orienta para declarar o estudante no Censo (resumo fiel da página).
@@ -35,25 +30,21 @@ export const PLAN_RULES = [
 
 // O INEP descreve o estudo de caso conduzido pelo professor do AEE, com a
 // participação do professor da classe comum, da família e, quando possível, do
-// estudante. São os nomes das opções de "Quem participou" (src/lib/case-study.ts).
+// estudante.
 export const AEE_TEACHER = "Professor(a) do AEE";
 export const REGULAR_TEACHER = "Professor(a) da sala comum";
 
 export type CensusReferenceRecord = "Estudo de caso" | "PAEE" | "PEI";
 
-// O que o estudo de caso respondeu em "Público da educação especial"
-// (src/lib/case-study.ts). null: estudo sem essa resposta, de antes de ela existir.
 export type SpecialEducationAnswer = "sim" | "em_avaliacao" | "nao" | null;
 export function specialEducationAnswer(value: string | null | undefined): SpecialEducationAnswer {
   const text = (value ?? "").trim();
   return text.startsWith("Sim") ? "sim" : text.startsWith("Em avaliação") ? "em_avaliacao" : text.startsWith("Não") ? "nao" : null;
 }
 
-// Registro de referência para declarar o estudante no Censo: o estudo de caso
-// concluído ou o plano ativo (PAEE e PEI no mesmo documento). O laudo fica de
-// fora de propósito: é dado clínico e não pode ser exigido. O estudo só respalda
-// a declaração quando conclui que o estudante é público da educação especial:
-// "em avaliação" ou "não é público" não respaldam, e `pending` diz por quê.
+// O laudo não pode ser exigido. O estudo só respalda a declaração quando conclui
+// que o estudante é público da educação especial: "em avaliação" ou "não é
+// público" não respaldam.
 export function censusReference(input: { caseStudyConcluded: boolean; hasActivePlan: boolean; specialEducation?: SpecialEducationAnswer }): { backed: boolean; records: CensusReferenceRecord[]; pending: string | null } {
   const records: CensusReferenceRecord[] = [];
   const answer = input.specialEducation ?? null;

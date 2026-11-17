@@ -8,15 +8,9 @@ import { CHANNELS, SHIFTS } from "./scale";
 import { parseJson } from "./format";
 import { cardHelp, formatPhone, hasHelp, newCardToken, type CardHelp } from "./student-card-core";
 
-// Carteirinha digital (regras puras em student-card-core.ts). A carteirinha só
-// existe com a autorização da família (Consent.card). O QR leva a /c/<código>,
-// que pede login e encaminha cada perfil para o que ele já pode ver.
-
 export const PENDING_CARD_COOKIE = "carteirinha_pendente";
 export const cardPath = (token: string) => `/c/${token}`;
 
-// Quem faz a carteirinha (foto, impressão, novo código): a equipe que escreve
-// na ficha e tem acesso ao estudante. Quem a vê: essa equipe e a família.
 export function canManageCard(user: SessionUser, schoolId: string, studentId: string): boolean {
   return canEditStudentRecord(user.role) && canAccessStudent(user, schoolId, studentId);
 }
@@ -104,7 +98,6 @@ export async function loadCardView(studentId: string): Promise<CardView | null> 
   };
 }
 
-// Novo código: a carteirinha impressa antes deixa de abrir qualquer coisa.
 export async function rotateCardToken(studentId: string): Promise<void> {
   const prisma = await db();
   await prisma.studentCard.update({ where: { studentId }, data: { token: newCardToken(), issuedAt: new Date() } });

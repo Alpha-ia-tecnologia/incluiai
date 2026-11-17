@@ -13,12 +13,6 @@ import { decideBlock, requestSuggestion } from "@/lib/dua/suggestions";
 import { saveAeeSession } from "@/lib/aee-sessions";
 import { studentInReach, loadPlanningFor } from "@/lib/dua/shared";
 
-// Ações do planejamento com DUA. Cada uma confere a sessão e delega à camada de
-// dados (src/lib/dua), que confere a permissão no planejamento e o recorte do
-// estudante. Toda entrada é validada aqui: o que vem da tela não é confiável.
-// Os erros voltam como resultado (não como exceção) para a mensagem chegar à
-// pessoa também no build de produção.
-
 export type DuaResult<T = undefined> =
   | { ok: true; value: T }
   | { ok: false; message: string; problems?: { field: string; message: string }[]; kind?: string };
@@ -33,7 +27,6 @@ async function run<T>(work: (user: SessionUser) => Promise<T>): Promise<DuaResul
   } catch (error) {
     if (error instanceof DuaError) return { ok: false, message: error.message, problems: error.problems, kind: error.kind };
     if (error instanceof z.ZodError) return { ok: false, message: "Alguns campos vieram em formato inesperado. Atualize a página e tente de novo.", kind: "invalido" };
-    // Mensagens das regras compartilhadas (records, aee-sessions) já são para a pessoa.
     if (error instanceof Error && /permissão|Informe|Escolha|Diga|registrad|estudo de caso/i.test(error.message)) return { ok: false, message: error.message };
     console.error("[dua] ação falhou:", error);
     return { ok: false, message: FALLBACK };
@@ -50,8 +43,6 @@ const refreshPlanning = (planningId: string) => {
 };
 const refreshStudent = (studentId: string) => revalidatePath(`/estudantes/${studentId}`, "layout");
 
-// ------------------------------------------------------------------ planejamento
-
 export async function createDuaPlanning(input: { title: string; className?: string; reuseFromId?: string }): Promise<DuaResult<{ id: string }>> {
   return run(async (user) => {
     const data = z.object({ title: text(160), className: text(80).optional(), reuseFromId: id.optional() }).parse(input);
@@ -61,7 +52,6 @@ export async function createDuaPlanning(input: { title: string; className?: stri
   });
 }
 
-// Salvamento automático do rascunho: sem revalidar a página (o editor mantém o próprio estado).
 export async function saveDuaDraft(input: { planningId: string; version: number; revision: number; content: DuaContent }): Promise<DuaResult<SaveResult>> {
   return run(async (user) => {
     const data = z.object({ planningId: id, version: intNumber, revision: intNumber, content: z.record(z.string(), z.unknown()) }).parse(input);
@@ -125,8 +115,6 @@ export async function setDuaCollaborators(input: { planningId: string; userIds: 
   });
 }
 
-// ------------------------------------------------------------------ sugestões
-
 export async function requestDuaSuggestion(input: { planningId: string; purpose: "opcoes" | "apoio_individual"; supportId?: string; profileFields?: string[]; requestId: string }): Promise<DuaResult<{ id: string }>> {
   return run(async (user) => {
     const data = z.object({ planningId: id, purpose: z.enum(["opcoes", "apoio_individual"]), supportId: id.optional(), profileFields: z.array(z.string().max(80)).max(40).optional(), requestId: id }).parse(input);
@@ -148,8 +136,6 @@ export async function decideDuaBlock(input: { planningId: string; suggestionId: 
     return undefined;
   });
 }
-
-// ------------------------------------------------------------------ apoios individuais
 
 const supportFields = {
   barrierDescription: text(600), barrierStatus: z.string().max(20).default("prevista"), support: text(1200), purpose: text(600), usageContext: text(300),
@@ -208,8 +194,6 @@ export async function removeDuaStudentVoice(input: { planningId: string; student
   });
 }
 
-// Entrada pelo estudante (RF01): escolher uma atividade existente ou começar uma nova.
-// As duas levam ao MESMO planejamento, nos apoios individuais, com o estudante escolhido.
 export async function startStudentParticipation(input: { studentId: string; planningId?: string; title?: string }): Promise<DuaResult<{ planningId: string }>> {
   return run(async (user) => {
     const data = z.object({ studentId: id, planningId: id.optional(), title: text(160).optional() }).parse(input);
@@ -223,8 +207,6 @@ export async function startStudentParticipation(input: { studentId: string; plan
     return { planningId };
   });
 }
-
-// ------------------------------------------------------------------ aplicação e evidências
 
 export async function createDuaApplication(input: { planningId: string; versionNumber: number; context: string; date: string; className?: string; participantIds: string[]; resources?: string; organization?: string; notes?: string }): Promise<DuaResult<{ id: string }>> {
   return run(async (user) => {
@@ -259,8 +241,6 @@ export async function registerDuaEvidence(input: { planningId: string; applicati
   });
 }
 
-// ------------------------------------------------------------------ materiais
-
 export async function createDuaMaterial(input: { planningId: string; versionNumber: number; format: string; purpose: string; scope: string; supportId?: string; resourceId?: string }): Promise<DuaResult<{ id: string }>> {
   return run(async (user) => {
     const data = z.object({ planningId: id, versionNumber: intNumber, format: z.string().max(40), purpose: text(600), scope: z.enum(["coletivo", "individual"]), supportId: z.string().max(64).default(""), resourceId: z.string().max(64).default("") }).parse(input);
@@ -278,8 +258,6 @@ export async function validateDuaMaterial(input: { planningId: string; materialI
     return undefined;
   });
 }
-
-// ------------------------------------------------------------------ frequência do AEE
 
 export async function saveAeeSessionAction(input: { studentId: string; date: string; status: string; reason?: string; note?: string }): Promise<DuaResult> {
   return run(async (user) => {

@@ -1,16 +1,12 @@
 import type { FunctionalProfile } from "@prisma/client";
 import { parseJson } from "./format";
 
-// Motor de regras determinísticas (item 17.3, Etapa A).
-// Regras versionadas, auditáveis e visíveis ao professor:
-// cada adaptação gerada aponta para a regra que a originou.
-
 export const RULES_VERSION = "1.0.0";
 
 export interface AdaptationRule {
   id: string;
-  when: string; // condição legível
-  then: string; // exigência aplicada a toda atividade
+  when: string;
+  then: string;
 }
 
 interface SensoryProfile {

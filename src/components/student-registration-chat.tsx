@@ -38,9 +38,7 @@ type Step = {
   placeholder?: string;
   required?: boolean;
   options?: Option[];
-  // Opções que dependem de respostas anteriores (ex.: anos da etapa escolhida).
   optionsFor?: (answers: Answers, schools: SchoolOption[]) => Option[];
-  // "Outro": permite digitar uma resposta fora da lista.
   allowOther?: boolean;
   optionalLabel?: string;
   visible?: (answers: Answers) => boolean;
@@ -116,7 +114,6 @@ function buildSteps(schools: SchoolOption[]): Step[] {
       question: "Qual é a turma?",
       hint: "Escolha uma turma cadastrada na escola ou escreva o nome em Outro.",
       kind: "options",
-      // Só as turmas da escola no banco; sem nenhuma, o nome vai em Outro.
       optionsFor: (answers, schoolList) => toOptions((schoolList.find((school) => school.value === answers.schoolId)?.classes ?? []).map((item) => item.name)),
       allowOther: true,
       placeholder: "Ex.: Turma Girassol",
@@ -240,7 +237,6 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
       delete nextAnswers.gradeYear;
       delete nextAnswers.shift;
     }
-    // Turma cadastrada: já sugere o turno dela na próxima pergunta.
     const schoolClass = registeredClasses.find((item) => item.name === cleanValue);
     if (step.field === "className" && schoolClass?.shift && !nextAnswers.shift) {
       nextAnswers.shift = schoolClass.shift;
@@ -291,8 +287,6 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
     focusInputSoon();
   }
 
-  // Ao voltar ou editar: itens conhecidos ficam marcados e o restante vai
-  // para o campo "Outro".
   function loadDrafts(step: Step | undefined) {
     const value = step ? answers[step.field] ?? "" : "";
     const options = step ? stepOptions(step, answers, schools) : [];
@@ -470,7 +464,6 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
               {otherInput("Enviar resposta")}
             </form>
           ) : null}
-          {/* Pergunta opcional com opções (a frequência do atendimento): dá para seguir sem responder. */}
           {step.optionalLabel ? (
             <button
               type="button"
@@ -560,7 +553,6 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
                 Uma pergunta por vez. Você revisa tudo antes de salvar.
               </p>
             </div>
-            {/* O andamento também em texto, inclusive no celular: a barra abaixo só repete. */}
             <span className="shrink-0 text-xs tabular-nums text-ink-soft">
               {done ? "Resumo" : `${currentPosition + 1} de ${visibleSteps.length}`}
             </span>

@@ -1,4 +1,3 @@
-// Testes dos jogos educativos: node --test src/lib/games/games-core.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -6,7 +5,6 @@ import {
   emotionRounds, gameNote, memoryDeck, photoLevel, quantityRounds, routineSteps, sessionNote, shuffle, suggestedLevel, suggestedRecord, themeFromInterests, themePics, wordRounds,
 } from "./games-core.ts";
 
-// Sorteio repetível (mulberry32).
 function seeded(seed) {
   let a = seed;
   return () => {

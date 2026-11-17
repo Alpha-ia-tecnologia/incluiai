@@ -12,7 +12,6 @@ import { ReportView } from "@/components/reports/report-view";
 
 export const dynamic = "force-dynamic";
 
-// O relatório validado, no portal da família (devolutiva do período).
 export default async function FamilyReportPage({ params }: { params: Promise<{ id: string; reportId: string }> }) {
   const prisma = await db();
   const { id, reportId } = await params;

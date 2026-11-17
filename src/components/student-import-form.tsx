@@ -8,8 +8,6 @@ import { hintCls, inputCls, labelCls, linkCls, primaryButtonCls, quietButtonCls 
 
 const SHOWN = 50;
 
-// Planilha em duas fases: conferir (nada é gravado) e importar as linhas prontas.
-// "Escolher outro arquivo" e "Importar outra planilha" montam o formulário de novo.
 export function StudentImportForm({ schools, fixedSchool }: { schools: { id: string; name: string }[]; fixedSchool: boolean }) {
   const [round, setRound] = useState(0);
   return <ImportSteps key={round} schools={schools} fixedSchool={fixedSchool} onRestart={() => setRound((value) => value + 1)} />;

@@ -16,7 +16,6 @@ type CharacterProps = {
   preload?: boolean;
 };
 
-// Decorative companions: nearby headings carry the meaning for assistive technology.
 export function Character({ variant, className = "w-32", preload = false }: CharacterProps) {
   return (
     <span aria-hidden="true" className={`pointer-events-none block shrink-0 select-none print:hidden ${className}`}>

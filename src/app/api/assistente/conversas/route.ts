@@ -4,7 +4,6 @@ import { unavailableResponse } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
-// Lista as conversas da pessoa; com ?ultima=1, devolve a mais recente completa.
 export async function GET(request: Request) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;

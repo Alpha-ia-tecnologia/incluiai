@@ -173,7 +173,6 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
   const prisma = await db();
   const { id } = await params;
   const viewer = await requireStudentPage(id, "Atividades");
-  // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.
   if (!canEditStudentRecord(viewer.role)) redirect(`/estudantes/${id}`);
   const [profile, objectives, activities] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id } }),
@@ -184,13 +183,11 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
     prisma.activity.findMany({
       where: { studentId: id },
       orderBy: { createdAt: "desc" },
-      // Só os metadados da imagem: o arquivo vem pela rota /api/atividades/[id]/imagem.
       include: { image: { select: { altText: true, kind: true, createdAt: true } } },
     }),
   ]);
 
   const generate = generateActivities.bind(null, id);
-  // IA e imagens só com a autorização da família; o aviso explica quando falta.
   const [aiOn, imagesOn, adapted] = await Promise.all([
     aiAllowedFor(id),
     imagesAllowedFor(id),
@@ -199,7 +196,6 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
   const consentMissing = isAIEnabled() && !aiOn;
   const suggested = activities.filter((a) => a.status === "sugerida");
   const others = activities.filter((a) => a.status !== "sugerida");
-  // Resumo das atividades já listadas abaixo: situação e onde acontecem.
   const statusSplit = withSegmentColors((["sugerida", "aceita", "aplicada", "rejeitada"] as const).map((key) => ({
     key, label: STATUS_PLURAL[key], value: activities.filter((a) => a.status === key).length,
   })));

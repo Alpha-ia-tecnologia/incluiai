@@ -28,8 +28,6 @@ function Undo({ importId, personKey }: { importId: string; personKey: string }) 
   return <form action={undoCensusDecision.bind(null, importId, personKey)}><button type="submit" className={quietButtonCls}>Desfazer a decisão</button></form>;
 }
 
-// Prévia da importação: o que o arquivo traz, o que muda no cadastro e o que
-// pede revisão. Nada é gravado até "Aplicar".
 export default async function CensusImportPage({ params }: { params: Promise<{ importId: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

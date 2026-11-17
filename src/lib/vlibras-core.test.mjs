@@ -1,4 +1,3 @@
-// Testes do VLibras com anonimização: node --test src/lib/vlibras-core.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { requestKind, tidyForLibras, translationBody, translationText, VLIBRAS_ROOT } from "./vlibras-core.ts";
@@ -12,7 +11,6 @@ test("cada pedido: tradução, bloqueado, estatística ou outro (fechado por pad
   assert.equal(requestKind("https://traducao2.vlibras.gov.br/translate", "GET", here), "bloqueado");
   assert.equal(requestKind("https://us.i.posthog.com/e/?ip=1", "POST", here), "analytics");
   assert.equal(requestKind("https://dicionario2.vlibras.gov.br/2018.3.1/WEBGL/CASA", "GET", here), "outro");
-  // Envio de dados a outro site que não seja o tradutor: bloqueado, mesmo de um endereço novo.
   assert.equal(requestKind("https://novo-tradutor.vlibras.gov.br/api", "POST", here), "bloqueado");
   assert.equal(requestKind("https://exemplo.com/coleta", "PUT", here), "bloqueado");
   assert.equal(requestKind("/api/libras/anonimizar", "POST", here), "outro");
@@ -38,6 +36,5 @@ test("o que vai para o tradutor do governo: sem nomes, documentos, datas e conta
   assert.match(sent, /\(informação omitida\)/);
   assert.ok(!sent.includes("["), "sem colchetes para o avatar soletrar");
   assert.equal(tidyForLibras("Ele da uma olhada da a escola."), "Ele da uma olhada da escola.");
-  // Sem nomes conhecidos (tela de entrada): só documentos, datas e contatos.
   assert.equal(naturalizePlaceholders(createAnonymizer({ student: "" }).applyNatural("Dante, 12/03/2019")), "Dante, (informação omitida)");
 });

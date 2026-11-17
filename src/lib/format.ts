@@ -2,8 +2,6 @@ export function formatDate(d: Date | string): string {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// Primeiro nome para saudações, sem títulos e observações entre parênteses:
-// "Prof.ª Beatriz (AEE)" → "Beatriz"; "Carla (mãe de Dante)" → "Carla".
 export function firstName(name: string): string {
   return name.replace(/\([^)]*\)/g, " ").split(/\s+/).find((part) => part.length > 1 && !part.includes(".")) ?? name;
 }

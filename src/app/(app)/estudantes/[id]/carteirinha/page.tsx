@@ -20,7 +20,6 @@ export default async function StudentCardPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const user = await requireStudentPage(id, "Carteirinha");
   const student = await prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true, schoolId: true } });
-  // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.
   if (!canManageCard(user, student.schoolId, id)) redirect(`/estudantes/${id}`);
   const view = await loadCardView(id);
   const firstName = student.name.split(" ")[0];

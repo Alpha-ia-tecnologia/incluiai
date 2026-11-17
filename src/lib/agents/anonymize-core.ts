@@ -1,28 +1,14 @@
 import type { AgentModel } from "./types";
 
-// Parte pura (sem banco): também usada pelos testes com node --test.
-
-// Anonimização (LGPD) de tudo o que é enviado a provedores de IA: Claude,
-// DeepSeek e OpenAI. O contexto já não leva nome, nascimento, responsável,
-// escola nem dados clínicos; esta camada cobre os textos livres escritos pela
-// equipe (estudo de caso, pontos fortes, registros), que podem citar pessoas
-// ou trazer contatos.
-//
-// Pessoas viram papéis: [ESTUDANTE], [COLEGA], [FAMILIAR], [PROFISSIONAL] e
-// [ESCOLA]. Contatos e documentos viram marcadores. Limite: nomes que não
-// estão cadastrados na plataforma (ex.: "a vizinha Neide") não são reconhecidos.
-
 type Category = "estudante" | "colega" | "familiar" | "profissional" | "escola";
 
 const TOKENS: Record<Category, string> = {
   estudante: "[ESTUDANTE]", colega: "[COLEGA]", familiar: "[FAMILIAR]", profissional: "[PROFISSIONAL]", escola: "[ESCOLA]",
 };
-// Versão em linguagem natural, para pedidos de imagem (que não devem ter texto).
 export const NATURAL: Record<Category, string> = {
   estudante: "o estudante", colega: "um colega", familiar: "um familiar", profissional: "um profissional", escola: "a escola",
 };
 
-// Palavras que aparecem em nomes de usuários e cadastros mas não identificam ninguém.
 const NOT_NAMES = new Set([
   "secretaria", "educação", "educacao", "coordenadora", "coordenador", "coordenação", "professor", "professora", "prof",
   "dra", "dr", "família", "familia", "escola", "emef", "emei", "turma", "mãe", "mae", "pai", "avó", "avô", "tia", "tio",
@@ -43,7 +29,6 @@ export const PATTERNS: { label: string; regex: RegExp; replacement: string }[] =
 export const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 export const isYearRange = (text: string) => /^(19|20)\d{2}[\s-](19|20)\d{2}$/.test(text.trim());
 
-// "Prof.ª Beatriz (AEE)" → ["Beatriz"]; "Carla Oliveira" → ["Carla", "Oliveira"]
 export function nameTokens(name: string): string[] {
   return name
     .replace(/\([^)]*\)/g, " ")
@@ -53,7 +38,6 @@ export function nameTokens(name: string): string[] {
 
 export type AnonymizationTerms = {
   student: string;
-  // Outros estudantes que também viram "o estudante" (ex.: a tradução para Libras, sem um estudante em foco).
   students?: string[];
   classmates?: string[];
   family?: string[];
@@ -68,9 +52,6 @@ export type Anonymizer = {
 };
 
 export function createAnonymizer(terms: AnonymizationTerms): Anonymizer {
-  // [termo, categoria, sensível a maiúsculas]: nomes completos em qualquer
-  // grafia; nomes soltos só com inicial maiúscula ou tudo em maiúsculas
-  // (evita trocar palavras comuns como "rosa" e "luz").
   const entries: [string, Category, boolean][] = [];
   const addPerson = (name: string, category: Category, allParts: boolean) => {
     const tokens = nameTokens(name);
@@ -84,7 +65,6 @@ export function createAnonymizer(terms: AnonymizationTerms): Anonymizer {
   for (const name of terms.professionals ?? []) addPerson(name, "profissional", false);
   for (const school of terms.schools ?? []) entries.push([school.trim(), "escola", false]);
 
-  // Termos mais longos primeiro; o mesmo termo fica com a primeira categoria (o estudante vence).
   const seen = new Set<string>();
   const rules = entries
     .filter(([term]) => term.length >= 3)
@@ -127,7 +107,6 @@ export function createAnonymizer(terms: AnonymizationTerms): Anonymizer {
   };
 }
 
-// Se algum marcador voltar na resposta, vira linguagem natural para o professor.
 const BACK_TO_TEXT: [RegExp, string][] = [
   ...Object.entries(TOKENS).map(([category, token]): [RegExp, string] => [new RegExp(escape(token), "g"), NATURAL[category as Category]]),
   [/\[(E-MAIL|LINK|DOCUMENTO|CEP|DATA|TELEFONE)\]/g, "(informação omitida)"],
@@ -142,7 +121,6 @@ export function naturalizePlaceholders<T>(value: T): T {
   return value;
 }
 
-// Envolve um modelo: todo pedido sai anonimizado e toda resposta volta sem marcadores.
 export function withAnonymization(model: AgentModel, anonymizer: Anonymizer): AgentModel {
   return async (request) => naturalizePlaceholders(await model({ ...request, prompt: anonymizer.apply(request.prompt) }));
 }

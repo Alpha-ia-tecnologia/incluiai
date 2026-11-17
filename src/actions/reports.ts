@@ -6,9 +6,6 @@ import { requireStudentTeam } from "@/lib/auth";
 import { createReport, deleteDraft, refreshReport, saveOpinion, validateReport } from "@/lib/reports";
 import { periodProblem } from "@/lib/period-report";
 
-// Relatório do período: a equipe abre o rascunho, o AEE escreve o parecer e
-// valida (o AEE ou a coordenação). Regras em src/lib/reports.ts.
-
 export type ReportState = { error?: string; saved?: boolean };
 
 const base = (studentId: string) => `/estudantes/${studentId}/relatorios`;
@@ -24,7 +21,6 @@ export async function newReport(studentId: string, _previous: ReportState, formD
   redirect(`${base(studentId)}/${report.id}`);
 }
 
-// Salvar o parecer ou, com intent=validar, salvar e validar de uma vez.
 export async function saveReport(studentId: string, reportId: string, _previous: ReportState, formData: FormData): Promise<ReportState> {
   const user = await requireStudentTeam(studentId);
   await saveOpinion(user, studentId, reportId, String(formData.get("opinion") ?? ""));

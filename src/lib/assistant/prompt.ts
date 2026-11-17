@@ -1,8 +1,7 @@
 import { canSeePedagogicalDetail, isNetworkRole, isStaffOrNetwork } from "../auth";
 
-// Instruções do assistente. O texto é estável dentro de uma conversa (sem
-// data, sem nomes, sem estado), para o cache de prompt e para os blocos de
-// raciocínio do modelo continuarem válidos ao longo da conversa.
+// O texto é estável dentro de uma conversa, para o cache de prompt e para os
+// blocos de raciocínio do modelo continuarem válidos ao longo da conversa.
 
 const IDENTITY = `Você é o Assistente da IncluiEdu, plataforma municipal de acompanhamento do Atendimento Educacional Especializado (AEE). Você conversa com professoras, coordenação, Secretaria de Educação, famílias e terapeutas. Escreva em português do Brasil, com frases curtas e concretas, como uma colega experiente em educação inclusiva: acolhedora, direta, sem jargão desnecessário.`;
 

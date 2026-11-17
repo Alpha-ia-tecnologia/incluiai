@@ -6,20 +6,10 @@ import { LoaderCircle } from "lucide-react";
 import { GardenWait, type InlineScene } from "@/components/garden-wait/garden-wait";
 import { inlineCaption } from "@/lib/assistant/garden-scenes";
 
-// Botão de envio que mostra o andamento de ações demoradas (ex.: agentes de IA).
-// Com `wait`, a espera vira o canteiro (sem spinner). O status fica sempre
-// montado e é escrito por referência: começa com pendingText e o tempo
-// habitual (o mesmo do cartão) e depois só recebe o aviso de demora.
-//
-// O canteiro fica na mesma árvore do formulário. O App Router usa o React que
-// vem com o Next (next/dist/compiled/react-dom), em que atualizações de estado
-// dentro de um <form> pendente não reiniciam o useFormStatus; o e2e (seção 7)
-// confere que o botão continua ocupado enquanto o canteiro se mexe.
+// O App Router usa o React que vem com o Next (next/dist/compiled/react-dom), em que atualizações de estado
+// dentro de um <form> pendente não reiniciam o useFormStatus.
 
-// Cartão de espera. Ao sair (a ação terminou), anota se o foco de teclado
-// estava nele: a limpeza do efeito de layout roda antes de o cartão deixar o
-// documento. Foco por clique não conta, para o Espaço seguinte não reenviar a
-// ação sem querer.
+// A limpeza do efeito de layout roda antes de o cartão deixar o documento.
 function WaitCard({ keyboardFocus, children }: { keyboardFocus: RefObject<boolean>; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -29,7 +19,6 @@ function WaitCard({ keyboardFocus, children }: { keyboardFocus: RefObject<boolea
       keyboardFocus.current = Boolean(card && active instanceof HTMLElement && card.contains(active) && active.matches(":focus-visible"));
     };
   }, [keyboardFocus]);
-  // basis-full: dentro de formulários em linha (flex), o cartão ocupa uma linha só dele.
   return <div ref={ref} className="basis-full">{children}</div>;
 }
 
@@ -52,8 +41,6 @@ export function PendingButton({ children, pendingText, className = "", disabled 
     if (!wait || !statusRef.current) return;
     statusRef.current.textContent = pending ? `${pendingText} ${inlineCaption(wait, 0, withImages).time}` : "";
   }, [pending, pendingText, wait, withImages]);
-  // O cartão some quando a ação termina: quem estava nele pelo teclado (regar,
-  // pausar) volta ao botão, já liberado, em vez de cair no início da página.
   useEffect(() => {
     if (pending || !focusInCard.current) return;
     focusInCard.current = false;

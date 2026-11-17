@@ -9,7 +9,6 @@ import { Assurances } from "@/components/explain";
 
 type Action = (previous: NoticeState, formData: FormData) => Promise<NoticeState>;
 
-// Preferências dos avisos: e-mail (se houver na instalação) e pergunta da semana (família).
 export function NoticePrefsForm({ action, notifyByEmail, weeklyCheckIn, emailOn, family }: { action: Action; notifyByEmail: boolean; weeklyCheckIn: boolean; emailOn: boolean; family: boolean }) {
   const [state, submit, pending] = useActionState(action, {});
   return (
@@ -37,8 +36,6 @@ export function NoticePrefsForm({ action, notifyByEmail, weeklyCheckIn, emailOn,
   );
 }
 
-// Pergunta da semana à família: opções e um campo livre. Depois de responder,
-// a resposta fica resumida e pode ser mudada até domingo.
 export function CheckInForm({ action, firstName, previous }: { action: Action; firstName: string; previous: { answers: string[]; note: string } | null }) {
   const [state, submit, pending] = useActionState(action, {});
   if (state.saved) return <p role="status" className="flex items-center gap-2 text-sm font-medium text-green"><Check size={16} aria-hidden /> Obrigado! A escola vai ver a sua resposta no próximo registro de aula.</p>;

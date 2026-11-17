@@ -19,8 +19,6 @@ import { Assurances, HowToRead, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
 
-// O texto acompanha a cor: "sem oportunidade" e "não registrado" ficam neutros,
-// porque não são análise da aprendizagem.
 const CRITERION_TONE: Record<CriterionStatus, "green" | "amber" | "coral" | "neutral"> = {
   demonstrado: "green",
   parcial: "amber",
@@ -35,14 +33,11 @@ const RESULT_TEXT: Record<"sim" | "parcial" | "nao", string> = {
   nao: "Ainda não demonstrou os critérios observados.",
 };
 
-// Aba "Atividades com DUA" (RF01, segunda entrada): planejar a participação do
-// estudante e ver apoios, evidências e próximos passos de todas as atividades.
 export default async function StudentDuaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await requireStudentPage(id, "Atividades com DUA");
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  // Família e terapeuta não acessam o DUA. O layout já conferiu o acesso ao estudante.
   if (!canSeePedagogicalDetail(user.role) || !canPlanDua(user)) redirect(`/estudantes/${id}`);
 
   let data;
@@ -244,17 +239,12 @@ const RESULT_LEGEND: { tone: Tone; label: string }[] = [
 const CONTEXT_SHORT: Record<string, string> = { sala_comum: "Sala comum", aee: "AEE" };
 const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 
-// Resumo das evidências do estudante, a partir da mesma lista mostrada abaixo.
-// Só critério observado entra na barra; "sem oportunidade" e "não registrado"
-// ficam à parte e não contam como progresso nem como dificuldade.
 function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidenceView> }) {
-  // Sem evidência, o resumo não aparece: a lista de evidências já mostra o vazio.
   if (!evidence.length) return null;
   const criteria = evidence.flatMap((item) => item.criteria);
   const count = (status: CriterionStatus) => criteria.filter((criterion) => criterion.status === status).length;
   const observed = withSegmentColors((["demonstrado", "parcial", "ainda_nao_demonstrado"] as const).map((status) => ({ key: status, label: CRITERION_STATUS_LABEL[status], value: count(status) })));
   const notObserved = (["sem_oportunidade", "nao_registrado"] as const).map((status) => ({ status, label: CRITERION_STATUS_LABEL[status], value: count(status) }));
-  // Do registro mais antigo ao mais recente; os 30 últimos cabem sem rolagem.
   const ordered = [...evidence].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(-30);
   const results = { sim: 0, parcial: 0, nao: 0, none: 0 };
   for (const item of ordered) results[item.result ?? "none"] += 1;

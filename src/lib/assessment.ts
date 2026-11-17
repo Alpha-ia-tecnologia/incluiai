@@ -1,9 +1,3 @@
-// Sondagem com linha de base e reavaliação (item 3 do plano), pura para teste
-// com node --test (src/lib/assessment.test.mjs). Cada item é observável e
-// recebe o nível de apoio da escala única da plataforma (0 independente a 5
-// apoio físico total); avanço continua sendo precisar de menos apoio.
-// A sondagem não classifica por diagnóstico: o AEE é pedagógico.
-//
 // Versão 1 do instrumento: rascunho da plataforma para a equipe pedagógica
 // revisar. Itens próprios (nenhum copiado de instrumento com direitos autorais).
 
@@ -82,9 +76,8 @@ export const ITEMS: AssessmentItem[] = [
   { id: "mot-06", area: "motor", text: "Fica na atividade pelo tempo combinado." },
 ];
 
-const LEVEL_MAX_FOR_YEAR = 2; // até instrução verbal ou pista visual
+const LEVEL_MAX_FOR_YEAR = 2;
 
-// Respostas válidas: só itens do instrumento e níveis de 0 a 5 (null = não observado).
 export function cleanAnswers(raw: Record<string, unknown>): Answers {
   const answers: Answers = {};
   for (const item of ITEMS) {
@@ -97,7 +90,6 @@ export function cleanAnswers(raw: Record<string, unknown>): Answers {
 
 export const observed = (answers: Answers, area?: AreaKey) => ITEMS.filter((item) => (!area || item.area === area) && answers[item.id] !== null && answers[item.id] !== undefined);
 
-// Por área: quantos itens observados, o apoio médio e quantos já sem apoio (0 ou 1).
 export function areaSummary(answers: Answers, area: AreaKey): { observed: number; average: number | null; independent: number } {
   const items = observed(answers, area);
   if (!items.length) return { observed: 0, average: null, independent: 0 };
@@ -105,9 +97,6 @@ export function areaSummary(answers: Answers, area: AreaKey): { observed: number
   return { observed: items.length, average: Math.round((levels.reduce((sum, level) => sum + level, 0) / levels.length) * 10) / 10, independent: levels.filter((level) => level <= 1).length };
 }
 
-// Ano de referência na BNCC (leitura e escrita, matemática): o maior ano em que
-// todos os itens observados até ele saem com apoio até instrução verbal.
-// 0 = ainda antes das habilidades do 1º ano; null = área não observada.
 export function referenceYear(answers: Answers, area: AreaKey): number | null {
   const items = observed(answers, area).filter((item) => item.year);
   if (!items.length) return null;
@@ -122,7 +111,6 @@ export function referenceYear(answers: Answers, area: AreaKey): number | null {
 
 export const referenceLabel = (year: number | null) => (year === null ? null : year === 0 ? "ainda antes das habilidades do 1º ano" : `habilidades do ${year}º ano`);
 
-// Evolução por área entre duas aplicações (positivo = precisa de menos apoio).
 export function compareAreas(baseline: Answers, latest: Answers): { area: AreaKey; label: string; start: number | null; end: number | null; change: number | null }[] {
   return AREAS.map(({ key, label }) => {
     const start = areaSummary(baseline, key).average;
@@ -131,7 +119,6 @@ export function compareAreas(baseline: Answers, latest: Answers): { area: AreaKe
   });
 }
 
-// Itens com muito apoio (modelo ou mais) viram sugestões de objetivo para o plano.
 export function objectiveSuggestions(answers: Answers, limit = 6): AssessmentItem[] {
   return observed(answers)
     .filter((item) => (answers[item.id] as number) >= 3)
@@ -139,9 +126,7 @@ export function objectiveSuggestions(answers: Answers, limit = 6): AssessmentIte
     .slice(0, limit);
 }
 
-// Reavaliação: a cada 12 semanas, junto com a revisão do plano.
 export const REASSESS_DAYS = 84;
 export const reassessmentDue = (lastAppliedAt: Date | null, now: Date = new Date()) => !lastAppliedAt || now.getTime() - lastAppliedAt.getTime() > REASSESS_DAYS * 86_400_000;
 
-// Números pequenos nos indicadores: abaixo de 5, mostra "menos de 5".
 export const smallNumber = (count: number) => (count > 0 && count < 5 ? "menos de 5" : String(count));

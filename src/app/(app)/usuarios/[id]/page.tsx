@@ -23,7 +23,6 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   const [{ id }, user] = await Promise.all([params, getCurrentUser()]);
   if (!user) redirect("/login");
   if (!isAccountManager(user.role)) redirect("/");
-  // Fora do escopo de quem gerencia, a conta não existe para ela.
   const account = await managedAccount(user, id);
   if (!account) notFound();
   const [schools, students, events] = await Promise.all([

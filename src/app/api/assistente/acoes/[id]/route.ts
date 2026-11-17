@@ -4,7 +4,6 @@ import { unavailableResponse } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
-// A pessoa confirma ou cancela uma ação preparada pelo assistente.
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;

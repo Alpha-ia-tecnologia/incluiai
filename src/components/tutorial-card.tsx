@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Play } from "lucide-react";
 import { formatDuration, type Tutorial } from "@/lib/tutorials-core";
 
-// Cartão de um vídeo tutorial: capa, duração e título. Leva à página do vídeo.
 export function TutorialCard({ tutorial }: { tutorial: Tutorial }) {
   return (
     <Link href={`/ajuda/videos/${tutorial.id}`} className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-paper-raised transition-colors hover:border-brand">

@@ -1,8 +1,3 @@
-// Pictograma de reserva dos cartões de material: quando o cartão ainda não tem
-// imagem desenhada, um ícone escolhido pelas palavras do cartão (legenda e
-// rótulo) mostra o assunto em vez de uma caixa vazia. Puro (sem React nem
-// banco), para ser testado com node --test (src/lib/pictograms.test.mjs).
-
 export const PICTOGRAM_KEYS = [
   "calendario", "professora", "fone", "prancha", "lanche", "agua", "banheiro", "maos",
   "pausa", "brincar", "ler", "escrever", "desenhar", "casa", "escola", "amigos",
@@ -11,14 +6,6 @@ export const PICTOGRAM_KEYS = [
 
 export type PictogramKey = (typeof PICTOGRAM_KEYS)[number];
 
-// Palavras inteiras, já sem acento e em minúsculas; as flexões entram uma a uma
-// para "jogar o lixo" não virar brincadeira nem "às vezes" virar fila.
-//
-// A ordem é a prioridade: ganha a primeira regra que casar. Coisas e lugares
-// concretos vêm antes do que é genérico (pessoas, o dia, sentimentos), para
-// "Pedir para ir ao banheiro" virar banheiro, "Comer com calma" virar lanche e
-// "Ir para casa. Terminei!" virar casa. Pausa vem antes de prancha ("peço uma
-// pausa") e prancha antes de professora ("Mostrar com: apontar o cartão").
 export const PICTOGRAM_RULES: readonly (readonly [Exclude<PictogramKey, "estrela">, readonly string[]])[] = [
   ["banheiro", ["banheiro", "banheiros", "vaso", "descarga", "xixi"]],
   ["maos", ["lavar", "lavo", "lava", "lavando", "mao", "maos", "sabonete", "torneira", "enxaguar"]],
@@ -46,8 +33,6 @@ export const PICTOGRAM_RULES: readonly (readonly [Exclude<PictogramKey, "estrela
   ["sentimentos", ["sentir", "sinto", "sente", "sentimento", "sentimentos", "desconfortavel", "incomodado", "incomodada", "triste", "bravo", "brava", "raiva", "medo", "nervoso", "nervosa"]],
 ];
 
-// " beber agua " : sem acento, minúsculas, só letras e números, com espaço nas
-// pontas para casar palavras (e expressões) inteiras.
 export function pictogramWords(text: string): string {
   const words = text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   return ` ${words} `;
@@ -61,5 +46,4 @@ export function pictogramFor(text: string): PictogramKey {
   return "estrela";
 }
 
-// O texto do cartão que decide o pictograma: rótulo e legenda.
 export const cardPictogram = (card: { label: string; caption?: string | null }) => pictogramFor(`${card.label} ${card.caption ?? ""}`);

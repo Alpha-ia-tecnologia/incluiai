@@ -1,7 +1,3 @@
-// Carregando: o formato da tela que vai abrir aparece na hora, em cinza, com um
-// pulso lento (parado para quem pede menos movimento). Nada de números inventados.
-// Leitores de tela ouvem só "Carregando…".
-
 export function SkeletonLine({ className = "w-full" }: { className?: string }) {
   return <span className={`skeleton-line skeleton-pulse ${className}`} />;
 }
@@ -16,7 +12,6 @@ export function SkeletonCard({ lines = 3, tall = false, className = "" }: { line
   );
 }
 
-// Quadro cinza com cartões claros, como os quadros de dados da plataforma.
 export function SkeletonBoard({ cards = 3, className = "" }: { cards?: number; className?: string }) {
   return (
     <div className={`grid gap-3 rounded-3xl bg-surface-muted p-3.5 sm:grid-cols-2 xl:grid-cols-3 ${className}`}>
@@ -25,8 +20,6 @@ export function SkeletonBoard({ cards = 3, className = "" }: { cards?: number; c
   );
 }
 
-// Tela inteira carregando. kind = o formato da área: "page" (título e quadro),
-// "hero" (faixa em marinho, quadro) ou "tab" (só o conteúdo de uma aba).
 export function LoadingScreen({ label = "Carregando a página", kind = "page" }: { label?: string; kind?: "page" | "hero" | "tab" }) {
   return (
     <div role="status" aria-live="polite">

@@ -5,12 +5,6 @@ import { parseJson } from "../format";
 import { NO_BASE_TEXT, ratio, type AiBlock, type DuaIndicator } from "./domain";
 import { canSeeDuaIndicators } from "./access";
 
-// Indicadores de acompanhamento do DUA (seção 9): medidas de USO e DOCUMENTAÇÃO,
-// cada uma com período, escopo, unidade e denominador. Denominador zero = "sem
-// base para cálculo", nunca 0%. Não há nota, selo nem "conformidade DUA", e nada
-// aqui infere melhoria da aprendizagem pela quantidade de registros.
-// Só agregados: nenhum nome de estudante sai daqui.
-
 const PLANNER_ROLES = ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"];
 
 export type DuaIndicatorsResult = {
@@ -41,7 +35,6 @@ export async function duaIndicators(user: SessionUser, scope: { start: Date | nu
     prisma.duaSuggestion.findMany({ where: { planning: planningScope, createdAt: range }, select: { blocks: true } }),
   ]);
 
-  // Adoção: profissionais habilitados que trabalharam num planejamento no período.
   const enabledIds = enabled.map((item) => item.id);
   const [auditActors, editors] = await Promise.all([
     prisma.duaAuditEvent.findMany({ where: { actorId: { in: enabledIds }, createdAt: range, planning: planningScope }, distinct: ["actorId"], select: { actorId: true } }),
@@ -49,12 +42,9 @@ export async function duaIndicators(user: SessionUser, scope: { start: Date | nu
   ]);
   const adopters = new Set([...auditActors.map((item) => item.actorId), ...editors.map((item) => item.updatedById)]);
 
-  // Conclusão e utilização: coorte de planejamentos iniciados no período.
   const validatedByCut = cohort.filter((planning) => planning.versions.some((version) => version.validatedAt && version.validatedAt <= now));
   const usedValidated = validatedByCut.filter((planning) => planning.applications.some((application) => application.createdAt <= now));
 
-  // Documentação individual: participação de um estudante numa aplicação concluída
-  // no período, com evidência vinculada (observada ou "sem oportunidade" registrada).
   let pairs = 0;
   let documented = 0;
   for (const application of applications) {
@@ -63,7 +53,6 @@ export async function duaIndicators(user: SessionUser, scope: { start: Date | nu
     documented += participants.filter((id) => application.evidences.some((evidence) => evidence.studentId === id && evidence.observation !== "nao_registrado")).length;
   }
 
-  // Revisão das sugestões: distribuição das decisões por bloco revisado.
   const decided = suggestions.flatMap((row) => parseJson<AiBlock[]>(row.blocks, [])).filter((block) => block.decision !== "pendente");
   const decisions = {
     aceito: decided.filter((block) => block.decision === "aceito").length,

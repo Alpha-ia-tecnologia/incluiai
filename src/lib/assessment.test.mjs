@@ -1,4 +1,3 @@
-// Testes da sondagem: node --test src/lib/assessment.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

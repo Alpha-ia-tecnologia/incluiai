@@ -8,8 +8,6 @@ import { recordAccountEvent } from "@/lib/accounts";
 import { passwordProblem } from "@/lib/user-admin";
 import { homeAfterLogin } from "@/lib/tenant";
 
-// A própria conta (seção 14): criar a senha no primeiro acesso e trocar a senha.
-
 export type PasswordState = { error?: string; saved?: boolean };
 
 function readPasswords(formData: FormData) {
@@ -24,8 +22,6 @@ function newPasswordProblem(password: string, confirm: string, user: { email: st
   return null;
 }
 
-// Primeiro acesso com a senha temporária: a pessoa cria a dela e segue para a
-// segunda etapa, se houver; senão, a sessão vira completa.
 export async function setPasswordAtLogin(_previous: PasswordState, formData: FormData): Promise<PasswordState> {
   const prisma = await db();
   const pending = await getPendingLogin();
@@ -43,8 +39,6 @@ export async function setPasswordAtLogin(_previous: PasswordState, formData: For
   redirect(await homeAfterLogin());
 }
 
-// Trocar a senha: confere a atual (com o mesmo limite de tentativas do login)
-// e encerra as outras sessões da conta.
 export async function changeOwnPassword(_previous: PasswordState, formData: FormData): Promise<PasswordState> {
   const prisma = await db();
   const session = await getCurrentUser();

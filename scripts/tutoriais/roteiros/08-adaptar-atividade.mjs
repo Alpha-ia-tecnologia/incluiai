@@ -1,4 +1,3 @@
-// Adaptar a atividade ou a prova da turma: enviar, adaptar, revisar lado a lado e imprimir.
 const TEXTO = [
   "1) Leia o texto e circule os animais que vivem na fazenda.",
   "2) Ligue cada animal ao lugar onde ele vive.",

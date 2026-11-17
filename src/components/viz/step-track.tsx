@@ -1,11 +1,5 @@
 import { SIGNAL } from "@/components/charts";
 
-// Linha compacta de etapas (ex.: as 5 etapas do acompanhamento do estudante).
-// Etapa feita = cheia e listrada, no azul da marca (o mesmo das etapas em
-// Estudantes, na ficha e no Painel); etapa atual = contorno escuro; as demais =
-// trilho. A textura e o contorno separam os estados além da cor, e o texto
-// "Etapa N de 5" diz a posição sem depender do desenho.
-
 export type StepItem = { label: string; done: boolean };
 
 export function StepTrack({ steps, current, note }: { steps: ReadonlyArray<StepItem>; current: number; note?: string }) {

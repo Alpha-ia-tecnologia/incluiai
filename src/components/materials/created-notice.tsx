@@ -3,10 +3,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { CircleCheck } from "lucide-react";
 
-// Aviso de que deu certo depois de um redirect: material recém-criado (a pessoa
-// chega à página do material e o botão que tinha o foco ficou na galeria) ou
-// perfil salvo em "Como aprende". O foco vem para o aviso, para quem usa teclado
-// ou leitor de tela saber que deu certo.
 export function CreatedNotice({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {

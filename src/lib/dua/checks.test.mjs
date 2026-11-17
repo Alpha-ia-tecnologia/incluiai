@@ -1,4 +1,3 @@
-// Testes da preparação e da conferência das sugestões do DUA: node --test src/lib/dua/checks.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkBlocks, prepareContext, remainingIdentifiers, rulesBlocks } from "./checks.ts";
@@ -24,7 +23,6 @@ const context = (extra = {}) => ({
   ...extra,
 });
 
-// Bloco como chega do modelo (6.2), já dentro das regras.
 const raw = (extra = {}) => ({
   objectiveConsidered: OBJECTIVE,
   barrierId: "b1",
@@ -42,8 +40,6 @@ const raw = (extra = {}) => ({
 const check = (blocks, ctx = context()) => checkBlocks({ blocks }, ctx, PEOPLE, SCHOOLS);
 const passed = (checks, name) => checks.find((item) => item.name === name)?.passed;
 
-// ------------------------------------------------------------- identificadores
-
 test("identificadores: e-mail, CPF, nome completo em minúsculas e parte do nome", () => {
   assert.deepEqual(remainingIdentifiers("Combinar com carla.moreira@email.com", PEOPLE, SCHOOLS), ["contatos"]);
   assert.deepEqual(remainingIdentifiers("Documento 123.456.789-00 na ficha", PEOPLE, SCHOOLS), ["documentos"]);
@@ -57,13 +53,11 @@ test("identificadores: e-mail, CPF, nome completo em minúsculas e parte do nome
 test("identificadores: texto pedagógico comum passa", () => {
   const text = "Apresentar a instrução em etapas curtas, com cartões visuais. Avaliar em 4 de 5 tentativas, ao longo de 6 semanas. EF15LP03.";
   assert.deepEqual(remainingIdentifiers(text, PEOPLE, SCHOOLS), []);
-  // Parte de nome em minúsculas é palavra comum (evita barrar "rosa", "luz"...).
   assert.deepEqual(remainingIdentifiers("o personagem dante aparece no livro", PEOPLE, SCHOOLS), []);
 });
 
 test("preparação: bloqueia quando sobra identificador e passa depois da troca", () => {
   const withNames = context({ organization: "Dante senta perto da professora; Carla Moreira traz o livro de casa." });
-  // Anonimizador sem a responsável: o nome dela sobra e a consulta não acontece.
   const partial = createAnonymizer({ student: "Dante Moreira", schools: SCHOOLS });
   const blocked = prepareContext(withNames, partial, PEOPLE, SCHOOLS);
   assert.equal(blocked.ok, false);
@@ -84,15 +78,10 @@ test("preparação: contexto sem dados pessoais passa sem trocas", () => {
   assert.deepEqual(JSON.parse(prepared.prompt), context());
 });
 
-// Bug conhecido: o anonimizador mantém intervalos de ano (isYearRange), mas a
-// conferência os lê como telefone e barra o contexto. Correção sugerida: em
-// remainingIdentifiers, ignorar o padrão [TELEFONE] quando isYearRange(match).
 test("preparação: intervalo de ano letivo não é telefone", () => {
   const prepared = prepareContext(context({ organization: "Ano letivo 2025-2026, segundo bimestre." }), createAnonymizer({ student: "Dante Moreira" }), PEOPLE, SCHOOLS);
   assert.equal(prepared.ok, true);
 });
-
-// ------------------------------------------------------------- verificações (6.3)
 
 test("bloco dentro das regras: aceito para revisão, sem problemas", () => {
   const { blocks, checks } = check([raw()]);
@@ -112,7 +101,6 @@ test("barreira que não existe vira hipótese a verificar", () => {
   assert.equal(block.flags.blocked, false);
   assert.match(block.flags.problems[0], /hipótese a verificar/);
   assert.equal(passed(checks, "Referências a informações inexistentes"), false);
-  // Hipótese própria do bloco é mantida.
   assert.equal(check([raw({ barrierId: "inventada", hypothesis: "Ruído no corredor" })]).blocks[0].barrierConsidered.hypothesis, "Ruído no corredor");
 });
 
@@ -151,7 +139,6 @@ test("mudança de objetivo e critério novo são apontados, sem barrar", () => {
   assert.deepEqual([blocks[1].flags.changesObjective, blocks[1].flags.changesCriterion, blocks[1].flags.blocked], [false, true, false]);
   assert.equal(blocks[1].criterionProposal, "Ordena três cenas com cartões.");
   assert.equal(passed(checks, "Compatibilidade com o objetivo e os critérios"), false);
-  // Só diferença de maiúsculas, acentos ou espaços não é mudança de objetivo.
   assert.equal(check([raw({ objectiveConsidered: `  ${OBJECTIVE.toUpperCase()} ` })]).blocks[0].flags.changesObjective, false);
 });
 
@@ -173,12 +160,6 @@ test("estrutura: bloco sem estratégia é descartado, princípio inválido sai e
   assert.equal(passed(check([]).checks, "Estrutura da resposta"), false);
 });
 
-// Bug conhecido: a expressão de diagnóstico casa com palavras comuns (cid → "cidade",
-// "cidadania"; medica → "medição"; "tratamento da informação", unidade da BNCC). Como o
-// objetivo do professor entra no texto conferido, TODOS os blocos — inclusive os das
-// regras — ficam barrados. Correção sugerida: limites de palavra (\bcid\b|\bcid[- ]?\d,
-// \bmedicament\w*|\bmedicacao\b), tirar "tratamento" solto e não conferir o objetivo
-// quando ele é igual ao do professor.
 test("objetivo com 'cidade', 'cidadania', 'medição' ou 'tratamento da informação' não barra as regras", () => {
   for (const learning of ["Ler o mapa da cidade e localizar a escola.", "Discutir cidadania e direitos das crianças.", "Comparar medições de comprimento com régua.", "Tratamento da informação: ler tabelas simples."]) {
     const ctx = context({ objective: { learning, curriculum: "" } });
@@ -186,8 +167,6 @@ test("objetivo com 'cidade', 'cidadania', 'medição' ou 'tratamento da informa�
     assert.ok(blocks.every((block) => !block.flags.blocked), learning);
   }
 });
-
-// ------------------------------------------------------------- sugestões por regras (sem IA)
 
 test("regras: um bloco por tipo de barreira, com princípios válidos", () => {
   const ctx = context({
@@ -212,13 +191,11 @@ test("regras: um bloco por tipo de barreira, com princípios válidos", () => {
 test("regras: todo tipo de barreira tem regra e passa pelas verificações", () => {
   const ctx = context({ barriers: BARRIER_CATEGORIES.map((category, index) => ({ id: `b${index}`, description: `Barreira ${index}`, category, status: "prevista" })) });
   const { blocks: rules } = rulesBlocks(ctx);
-  // A resposta tem de 1 a 5 blocos (6.2): os primeiros cinco tipos entram.
   assert.deepEqual(rules.map((block) => block.barrierId), ["b0", "b1", "b2", "b3", "b4"]);
   const { blocks, checks } = checkBlocks({ blocks: rules }, ctx, PEOPLE, SCHOOLS);
   assert.equal(blocks.length, 5);
   assert.ok(blocks.every((block) => !block.flags.blocked && !block.flags.problems.length), JSON.stringify(blocks.map((block) => block.flags)));
   assert.ok(checks.every((item) => item.passed), JSON.stringify(checks));
-  // Os tipos que ficaram de fora também têm regra própria.
   const rest = rulesBlocks(context({ barriers: [{ id: "x", description: "", category: "tempo", status: "prevista" }, { id: "y", description: "", category: "outra", status: "prevista" }] })).blocks;
   assert.deepEqual(rest.map((block) => block.barrierId), ["x", "y"]);
   assert.notEqual(rest[0].strategy, rest[1].strategy);

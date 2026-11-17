@@ -5,10 +5,6 @@ import {
 } from "lucide-react";
 import type { PictogramKey } from "@/lib/pictograms";
 
-// Pictograma de reserva do cartão sem imagem desenhada (a escolha da chave fica
-// em src/lib/pictograms.ts). É decorativo: quem chama põe a descrição do cartão
-// em texto para o leitor de tela.
-
 const ICONS: Record<PictogramKey, LucideIcon> = {
   calendario: CalendarDays,
   professora: GraduationCap,

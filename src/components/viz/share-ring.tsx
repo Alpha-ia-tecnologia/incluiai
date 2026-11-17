@@ -2,11 +2,6 @@ import { RingStat } from "@/components/data-viz";
 import { SIGNAL } from "@/components/charts";
 import { percentOf } from "@/lib/series";
 
-// Anel pequeno para "x de y", com a frase ao lado. Sem base (y = 0) o anel
-// fica vazio e o texto diz que não há base, nunca 0%. O percentual do centro
-// já está no rótulo do anel, por isso fica oculto para o leitor de tela.
-// Azul-claro por padrão: é informação, não avaliação.
-
 export function ShareRing({ id, part, whole, label, caption, color = SIGNAL.brand, size = 56 }: {
   id: string;
   part: number;

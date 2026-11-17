@@ -67,8 +67,6 @@ export async function upsertProfile(studentId: string, formData: FormData) {
     throw new Error("Os níveis de apoio devem estar entre 0 e 5.");
   }
 
-  // Pergunta sensorial sem resposta (opcional na conversa) fica como típica:
-  // nenhuma particularidade registrada.
   const sensoryValue = (area: string) =>
     String(formData.get(`sens_${area}`) ?? "").trim() || "tipica";
   const sensory = JSON.stringify({
@@ -123,7 +121,6 @@ export async function upsertProfile(studentId: string, formData: FormData) {
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");
-  // "salvo" leva a hora do salvamento: a tela confirma cada vez que o perfil é gravado.
   redirect(`/estudantes/${studentId}/perfil?salvo=${Date.now()}`);
 }
 

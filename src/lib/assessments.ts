@@ -4,8 +4,6 @@ import type { SessionUser } from "./auth";
 import { recordChange } from "./access-log";
 import { INSTRUMENT_VERSION, cleanAnswers, observed, type Answers } from "./assessment";
 
-// Sondagem: gravar a aplicação e ler a linha de base e a última. Regras puras em assessment.ts.
-
 export const answersOf = (stored: string): Answers => cleanAnswers(JSON.parse(stored) as Record<string, unknown>);
 
 export async function saveAssessment(user: SessionUser, studentId: string, raw: Record<string, unknown>, notes: string): Promise<string | { error: string }> {
@@ -22,7 +20,6 @@ export async function saveAssessment(user: SessionUser, studentId: string, raw: 
   return assessment.id;
 }
 
-// Linha de base (a primeira) e a mais recente.
 export async function baselineAndLatest(studentId: string) {
   const prisma = await db();
   const [baseline, latest] = await Promise.all([

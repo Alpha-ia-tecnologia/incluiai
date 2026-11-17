@@ -9,11 +9,6 @@ import {
 import { planningAccess } from "./access";
 import { DuaError, audit, canWorkWithStudent, clip, contentOf, dateFromInput, loadPlanningFor, studentInReach, studentLog } from "./shared";
 
-// Aplicação da atividade (RF07): versão usada, turma ou grupo, contexto (sala
-// comum ou AEE), data, participantes e situação de execução — separada da
-// revisão pedagógica. Concluir uma aplicação NÃO cria presença, atendimento de
-// AEE nem conclusão sobre aprendizagem (CA10).
-
 type Person = { id: string; name: string };
 
 export type ApplicationInput = {
@@ -78,7 +73,6 @@ async function loadApplicationFor(user: SessionUser, applicationId: string) {
   return { application, access, canManage: access.edit || responsible };
 }
 
-// Situação de execução e participantes. Quem não vê um participante não o remove.
 export async function updateApplication(user: SessionUser, applicationId: string, revision: number, input: { state: string; notes?: string; addParticipantIds: string[]; removeParticipantIds: string[] }) {
   const prisma = await db();
   const { application, canManage } = await loadApplicationFor(user, applicationId);
@@ -90,7 +84,6 @@ export async function updateApplication(user: SessionUser, applicationId: string
   const next = [...new Set([...current.filter((id) => !removable.includes(id)), ...added])];
   const updated = await prisma.duaApplication.updateMany({
     where: { id: applicationId, revision },
-    // Observações só mudam quando vierem na chamada (omitidas, ficam como estão).
     data: { state: input.state, ...(input.notes !== undefined ? { notes: clip(input.notes, 2000) || null } : {}), participantIds: JSON.stringify(next), revision: { increment: 1 } },
   });
   if (!updated.count) throw new DuaError("Outro profissional alterou esta aplicação agora há pouco. Atualize a página.", "conflito");
@@ -109,9 +102,6 @@ export type EvidenceInput = {
   nextStep: string;
 };
 
-// Registro rápido depois da atividade. Um registro por estudante e aplicação:
-// registrar de novo atualiza (tentativas repetidas não duplicam). Fica na
-// memória educacional do estudante, sem criar diário, presença nem atendimento.
 export async function registerEvidence(user: SessionUser, applicationId: string, studentId: string, input: EvidenceInput) {
   const prisma = await db();
   const { application } = await loadApplicationFor(user, applicationId);
@@ -160,7 +150,6 @@ export type EvidenceView = {
   versionNumber: number;
   criteria: Array<{ criterionId: string; description: string; status: CriterionStatus }>;
   optionsOffered: string[];
-  // Ids das opções oferecidas (para preencher o formulário sem depender do texto).
   optionIds: string[];
   participationForm: string;
   studentChoice: string;
@@ -217,7 +206,6 @@ export type ApplicationView = {
   canManage: boolean;
 };
 
-// Aplicações do planejamento: participantes e evidências só dentro do recorte de quem lê.
 export async function listApplications(user: SessionUser, planningId: string): Promise<ApplicationView[]> {
   const prisma = await db();
   const { access } = await loadPlanningFor(user, planningId, "read");
@@ -256,7 +244,6 @@ export async function listApplications(user: SessionUser, planningId: string): P
 
 export type StudentEvidenceView = EvidenceView & { planningId: string; planningTitle: string; canOpenPlanning: boolean };
 
-// Evidências do estudante em todas as atividades com DUA (memória educacional).
 export async function listStudentEvidence(user: SessionUser, studentId: string): Promise<StudentEvidenceView[]> {
   const prisma = await db();
   await studentInReach(user, studentId);
@@ -274,8 +261,6 @@ export async function listStudentEvidence(user: SessionUser, studentId: string):
   }));
 }
 
-// Próximos passos (RF08) a partir das evidências e dos apoios planejados.
-// Recomendações para revisão: a decisão e o resultado observado ficam com a equipe.
 export async function studentFollowUp(user: SessionUser, studentId: string): Promise<FollowUpSuggestion[]> {
   const prisma = await db();
   const [evidence, supports] = await Promise.all([

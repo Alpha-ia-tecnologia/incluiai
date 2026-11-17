@@ -13,20 +13,15 @@ type Defaults = { name: string; email: string; role: string; schoolId: string | 
 
 const LINKED = new Set(["familia", "terapeuta"]);
 
-// Dados da conta: nome, e-mail, perfil e, conforme o perfil, a escola (equipe)
-// ou os estudantes vinculados (família e terapeuta). Na criação, a senha
-// temporária aparece uma vez para a gestão entregar à pessoa.
 export function AccountForm({ action, roles, schools, fixedSchool, students, defaults, mode }: {
   action: (previous: AccountFormState, formData: FormData) => Promise<AccountFormState>;
   roles: Option[];
   schools: { id: string; name: string }[];
-  // Quem gerencia é de uma escola: a conta nova é dessa escola.
   fixedSchool: boolean;
   students: StudentOption[];
   defaults?: Defaults;
   mode: "create" | "edit";
 }) {
-  // Depois de criar, "Criar outra conta" monta o formulário de novo, vazio.
   const [round, setRound] = useState(0);
   return <AccountFormBody key={round} {...{ action, roles, schools, fixedSchool, students, defaults, mode }} onAnother={() => setRound((value) => value + 1)} />;
 }
@@ -41,7 +36,6 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
 
   const linked = LINKED.has(role);
   const needsSchool = !linked && role !== "secretaria";
-  // Coordenação e gestão criadas pela rede podem acompanhar a rede inteira.
   const networkRole = role === "coordenacao" || role === "gestao";
   const shown = students.filter((student) => !filter.trim() || student.name.toLowerCase().includes(filter.trim().toLowerCase()));
   return (
@@ -94,7 +88,6 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
           {students.length ? (
             <ul className="grid min-w-0 gap-2 sm:grid-cols-2">
               {students.map((student) => (
-                // Fora do filtro, o estudante só some da vista: a marcação continua valendo.
                 <li key={student.id} className={`min-w-0 ${shown.includes(student) ? "" : "hidden"}`}>
                   <label className={choiceCls}>
                     <input type="checkbox" name="studentIds" value={student.id} defaultChecked={values?.studentIds.includes(student.id)} className="size-5 shrink-0 accent-[var(--brand)]" />

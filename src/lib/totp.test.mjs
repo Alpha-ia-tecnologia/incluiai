@@ -1,4 +1,3 @@
-// Testes do código de duas etapas: node --test src/lib/totp.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { base32Decode, base32Encode, groupSecret, hashRecoveryCode, matchTotpStep, newRecoveryCodes, newTotpSecret, otpauthUri, totpAt, totpStep, verifyTotp } from "./totp.ts";

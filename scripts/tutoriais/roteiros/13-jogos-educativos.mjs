@@ -1,7 +1,5 @@
-// Jogos educativos: escolher o estudante e o nível, jogar a memória e registrar a aula.
 const MEMORY_CARDS = "section[aria-label^='Partida'] button[aria-label^='Carta ']";
 
-// Lê as cartas enquanto a pista as mostra: [{ index, label }].
 async function readCards(t) {
   return t.page.$$eval(MEMORY_CARDS, (cards) => cards.map((card, index) => ({ index, label: card.getAttribute("aria-label").replace(/^Carta \d+, /, "").replace(/, par encontrado$/, "") })));
 }

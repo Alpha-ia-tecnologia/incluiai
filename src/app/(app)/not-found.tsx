@@ -3,7 +3,6 @@ import { ArrowLeft, Users } from "lucide-react";
 import { StatusPage } from "@/components/status-page";
 import { primaryOnNavyCls, quietButtonCls } from "@/components/form-styles";
 
-// Registro que não existe ou saiu do alcance (estudante, material, planejamento).
 export default function NotFound() {
   return (
     <StatusPage

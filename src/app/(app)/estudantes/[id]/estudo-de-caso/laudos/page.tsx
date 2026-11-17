@@ -28,8 +28,6 @@ export default async function HealthReportsPage({
   const prisma = await db();
   const { id } = await params;
   const user = await requireStudentPage(id);
-  // Laudo é dado clínico: só o AEE e a coordenação. A leitura só vai para o
-  // histórico depois da permissão, para não registrar quem foi redirecionado.
   if (!canSeeClinicalDetail(user.role)) redirect(`/estudantes/${id}/estudo-de-caso`);
   await recordView(user, id, "Laudos do estudo de caso");
   const { excluido } = await searchParams;
@@ -45,7 +43,6 @@ export default async function HealthReportsPage({
   ]);
   const firstName = student.name.split(" ")[0];
   const upload = uploadHealthReport.bind(null, id);
-  // Só o Claude lê laudos: sem a chave dele, ou sem a autorização da família, o laudo fica guardado sem leitura.
   const consentMissing = hasApiKey("ANTHROPIC_API_KEY") && !consent.aiUse;
 
   return (

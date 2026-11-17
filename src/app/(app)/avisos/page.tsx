@@ -11,7 +11,6 @@ import { NoticePrefsForm } from "@/components/notice-forms";
 
 export const dynamic = "force-dynamic";
 
-// Avisos da pessoa (item 6): abrir a página marca os novos como lidos.
 export default async function NoticesPage() {
   const prisma = await db();
   const user = await getCurrentUser();

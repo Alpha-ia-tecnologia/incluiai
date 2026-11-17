@@ -13,9 +13,6 @@ import type { PlanningAccess } from "@/lib/dua/access";
 import { Field, OriginBadge, ResultMessage, ReviewBadge, buttonCls, linkCls, secondaryCls, textareaCls } from "./dua-ui";
 import type { StepProps } from "./step-objective";
 
-// Etapa 4: síntese editável e as decisões, cada uma separada e registrada:
-// enviar para revisão, validar para aplicação (autoria, data e versão) e,
-// depois, compartilhar com a equipe.
 const STEP_OF_FIELD = (field: string) => (field.startsWith("strategies") ? 2 : field.startsWith("barriers") ? 1 : 0);
 
 export function StepReview({ content, update, readOnly, planningId, access, version, state, sharing, hasValidated, ownerName, flush, revision, goTo }: StepProps & {

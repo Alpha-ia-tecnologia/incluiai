@@ -1,4 +1,3 @@
-// Testes das cenas da espera dos agentes: node --test src/lib/assistant/garden-scenes.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -97,7 +96,6 @@ test("plano: só o degrau do agente real acende; ajustes e regras", () => {
     ["Revisor pedagógico", "start"], ["Revisor pedagógico", "end"], ["Planejador do PPI", "start"]) })], false);
   assert.equal(again.long?.stage, "ajustes");
   assert.equal(again.label, "Os agentes ajustam a proposta…");
-  // PAEE, PEI e objetivos em paralelo: o degrau do meio só se completa com os três.
   const writing = deriveGarden([step("propor_plano", undefined, { progress: progress(
     ["Analista do caso", "start"], ["Analista do caso", "end"], ["Agente do PAEE", "start"], ["Agente do PEI", "start"], ["Planejador do PPI", "start"], ["Agente do PAEE", "end"]) })], false);
   assert.equal(writing.long?.stage, "planejador");
@@ -177,7 +175,6 @@ test("atividades com imagens: 4 minutos de tempo habitual, sabidos desde o iníc
   assert.equal(plain.long?.images, false);
   assert.equal(longBudget(plain), 180);
   assert.equal(chatCaption(plain, 0, 0, "popup", true).status, "Três agentes escrevem ao mesmo tempo. Costuma levar de 1 a 3 minutos.");
-  // Antes do primeiro evento não se sabe se haverá imagens: nenhuma estimativa anunciada.
   const unknown = deriveGarden([step("gerar_atividades")], false);
   assert.equal(chatCaption(unknown, 0, 0, "popup", true).status, "Criando 3 sugestões de atividade.");
   assert.equal(chatCaption(unknown, 0, 20, "popup", true).status, "Criando 3 sugestões de atividade. Pode fechar o painel: a resposta fica salva.");

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusPage } from "@/components/status-page";
 
-// Avisos da leitura do QR da carteirinha. Não dizem de quem é a carteirinha.
 const NOTICES = {
   inativa: {
     title: "Esta carteirinha não vale mais",

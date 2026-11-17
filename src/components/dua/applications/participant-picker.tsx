@@ -7,9 +7,6 @@ export type StudentOption = { id: string; name: string; className: string; grade
 
 const normalize = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-// Escolha de participantes por caixas de seleção (sem arrastar). Começa pela
-// turma informada; quem já foi marcado continua visível ao trocar o filtro,
-// para nada ser enviado sem estar à vista.
 export function ParticipantPicker({ idPrefix, legend, hint, students, className, selected, onChange, exclude = [] }: {
   idPrefix: string;
   legend: string;

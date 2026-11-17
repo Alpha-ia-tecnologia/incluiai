@@ -1,10 +1,5 @@
-// Contato ativo com a família (item 6 do plano), puro para teste com node --test
-// (src/lib/family-contact.test.mjs): avisos no portal, e-mail opcional sem dado
-// do estudante e a pergunta da semana sobre a rotina em casa.
-
 export type NoticeKind = "material_aprovado" | "relatorio_validado" | "plano_revisado" | "checkin_respondido" | "terapeuta_relatorio";
 
-// Título do aviso no portal (atrás do login: pode ter o primeiro nome do estudante).
 export function noticeTitle(kind: NoticeKind, firstName: string): string {
   switch (kind) {
     case "material_aprovado": return `Novo material de apoio para usar em casa com ${firstName}`;
@@ -15,7 +10,6 @@ export function noticeTitle(kind: NoticeKind, firstName: string): string {
   }
 }
 
-// E-mail: nunca leva nome, escola ou assunto do estudante; só avisa e leva o link.
 export function noticeEmail(appUrl: string): { subject: string; text: string } {
   const base = appUrl.replace(/\/$/, "");
   return {
@@ -31,11 +25,10 @@ export function noticeEmail(appUrl: string): { subject: string; text: string } {
   };
 }
 
-// Semana de referência da pergunta: a segunda-feira (AAAA-MM-DD), no horário de Brasília.
 export function weekStart(date: Date = new Date()): string {
   const iso = date.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
   const day = new Date(`${iso}T12:00:00Z`);
-  const back = (day.getUTCDay() + 6) % 7; // segunda = 0
+  const back = (day.getUTCDay() + 6) % 7;
   day.setUTCDate(day.getUTCDate() - back);
   return day.toISOString().slice(0, 10);
 }

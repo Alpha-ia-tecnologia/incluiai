@@ -5,8 +5,6 @@ import type { SessionUser } from "./auth";
 import { emailConfigured, sendEmail } from "./email";
 import { cleanCheckIn, noticeEmail, noticeTitle, weekStart, type NoticeKind } from "./family-contact";
 
-// Avisos no portal e pergunta da semana (item 6). Regras puras em family-contact.ts.
-
 const appUrl = async () => {
   const tenant = await currentTenant();
   return tenant.kind === "municipio" ? addressOf(tenant.slug) : process.env.APP_URL?.trim() || "http://localhost:3000";
@@ -29,14 +27,12 @@ async function deliver(users: { id: string; email: string; notifyByEmail: boolea
 
 const userFields = { id: true, email: true, notifyByEmail: true, deactivatedAt: true } as const;
 
-// Família (contas vinculadas ao estudante).
 export async function notifyFamily(studentId: string, kind: NoticeKind, href: string) {
   const prisma = await db();
   const users = await prisma.user.findMany({ where: { role: "familia", studentLinks: { some: { studentId } } }, select: userFields });
   await deliver(users, studentId, kind, href);
 }
 
-// Equipe que acompanha o estudante: AEE e coordenação da escola dele.
 export async function notifyTeam(studentId: string, kind: NoticeKind, href: string) {
   const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
@@ -45,7 +41,6 @@ export async function notifyTeam(studentId: string, kind: NoticeKind, href: stri
   await deliver(users, studentId, kind, href);
 }
 
-// Para o sino: quantos avisos novos e o mais recente deles.
 export async function unreadNotices(userId: string): Promise<{ unread: number; latest: string | null }> {
   const prisma = await db();
   const where = { userId, readAt: null };
@@ -61,7 +56,6 @@ export async function saveCheckIn(user: SessionUser, studentId: string, answers:
   const week = weekStart();
   const key = { studentId_weekStart: { studentId, weekStart: week } };
   const fields = { userId: user.id, authorName: user.name, answers: JSON.stringify(clean.answers), note: clean.note };
-  // Mudar a resposta da semana só atualiza: a linha do tempo e o aviso à equipe ficam com a primeira.
   if (await prisma.familyCheckIn.findUnique({ where: key, select: { id: true } })) {
     await prisma.familyCheckIn.update({ where: key, data: fields });
     return null;
@@ -72,7 +66,6 @@ export async function saveCheckIn(user: SessionUser, studentId: string, answers:
   return null;
 }
 
-// A resposta mais recente desta semana ou da anterior (a da sexta ainda serve na segunda).
 export const recentCheckIn = async (studentId: string) => {
   const prisma = await db();
   return prisma.familyCheckIn.findFirst({ where: { studentId, weekStart: { gte: weekStart(new Date(Date.now() - 7 * 86_400_000)) } }, orderBy: { createdAt: "desc" } });

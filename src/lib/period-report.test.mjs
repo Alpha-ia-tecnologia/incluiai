@@ -1,4 +1,3 @@
-// Testes do relatório do período: node --test src/lib/period-report.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { currentSemester, draftOpinion, lessSupport, opinionProblem, periodProblem, supportAt, topItems } from "./period-report.ts";

@@ -5,10 +5,7 @@ import { normalizeMaterialContent, type MaterialCard, type MaterialKind } from "
 import { STYLE } from "./activity-image";
 import { ImageGenerationError, generateImage } from "./openai-images";
 
-// Pictogramas dos cartões do material, um por cartão, pela OpenAI. O pedido leva
-// só a descrição visual do cartão, o estilo e o tema de interesse — nada de nome
-// ou dado pessoal (o anonimizador ainda passa por cima). Fica fora dos arquivos
-// "use server": quem chama confere a permissão antes.
+// Fica fora dos arquivos "use server" para não virar uma ação pública.
 
 export const MAX_MATERIAL_IMAGES = 12;
 const CONCURRENCY = 3;
@@ -34,7 +31,6 @@ async function inBatches<T>(items: T[], size: number, work: (item: T) => Promise
   for (let index = 0; index < items.length; index += size) await Promise.all(items.slice(index, index + size).map(work));
 }
 
-// Gera as imagens que faltam (ou as indicadas) e devolve quantas saíram e os erros.
 export async function generateMaterialImages(materialId: string, user: { name: string; role: string }, only?: number[]) {
   const prisma = await db();
   const material = await prisma.material.findUniqueOrThrow({

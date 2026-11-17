@@ -17,26 +17,21 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<AeeSessionStatus, "green" | "amber" | "neutral"> = { realizado: "green", falta: "amber", cancelamento: "neutral" };
 
-// Data local do servidor no formato do <input type="date">.
 function todayInput() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-// Atendimentos AEE (seção 5, CA10): frequência separada da aprendizagem. Toda a
-// equipe pedagógica vê; registram o professor do AEE e a coordenação.
 export default async function AeeSessionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await requireStudentPage(id, "Atendimentos AEE");
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  // Família e terapeuta voltam ao resumo. O layout já conferiu o acesso ao estudante.
   if (!canSeePedagogicalDetail(user.role) || !isStaffOrNetwork(user.role)) redirect(`/estudantes/${id}`);
 
   const { sessions, summary } = await listAeeSessions(user, id);
   const canRecord = canRecordAeeSession(user);
   const total = AEE_SESSION_STATUSES.reduce((sum, status) => sum + summary[status], 0);
-  // Cores neutras do painel: realizado não é "bom" em aprendizagem, só diz que o encontro aconteceu.
   const series = AEE_SESSION_STATUSES.map((status) => ({ key: status, label: AEE_SESSION_STATUS_LABEL[status], color: SEGMENT_COLORS[status] }));
   const months = sessionsByMonth(sessions, 6).map((month) => ({ label: month.label, title: month.title, counts: { realizado: month.realizado, falta: month.falta, cancelamento: month.cancelamento } }));
 

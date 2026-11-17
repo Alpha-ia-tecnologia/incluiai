@@ -9,19 +9,12 @@ import { recordAccountEvent } from "@/lib/accounts";
 import { homeAfterLogin } from "@/lib/tenant";
 import { newTotpSecret } from "@/lib/totp";
 
-// Verificação em duas etapas (seção 14): entrar com o código, ligar, gerar
-// novos códigos de recuperação e desligar. Cada código errado conta no mesmo
-// limite do login (5 erros em 15 minutos), com a chave "mfa:" + e-mail.
-
 export type CodeState = { error?: string; codes?: string[] };
 
 const BLOCKED = "Muitas tentativas com código errado. Aguarde 15 minutos e entre de novo.";
 const WRONG = "Código inválido ou já usado. Confira o aplicativo e tente de novo.";
 const codeFrom = (formData: FormData) => String(formData.get("code") ?? "").trim().slice(0, 20);
 
-// Quem pode ligar agora: a sessão completa, ou a sessão pendente de quem
-// precisa ligar para entrar (REQUIRE_2FA). Quem já tem as duas etapas e está
-// na sessão pendente só confere o código: não troca o segredo por aqui.
 async function setupUser(): Promise<{ id: string; name: string; role: string; pendingSessionId: string | null } | null> {
   const user = await getCurrentUser();
   if (user) return { id: user.id, name: user.name, role: user.role, pendingSessionId: null };
@@ -40,7 +33,6 @@ async function checkCode(user: { id: string; email: string; totpSecret: string |
   return kind ? ({ kind } as const) : ({ error: WRONG } as const);
 }
 
-// Segunda etapa do login: o código do aplicativo ou um código de recuperação.
 export async function verifySecondStep(_previous: CodeState, formData: FormData): Promise<CodeState> {
   const pending = await getPendingLogin();
   if (!pending) redirect("/login");
@@ -52,7 +44,6 @@ export async function verifySecondStep(_previous: CodeState, formData: FormData)
   if ("error" in result) return { error: result.error };
   if (result.kind === "recuperacao") await recordAccountEvent(pending.user.id, pending.user, "entrou com um código de recuperação");
   await upgradeSession(pending.sessionId, pending.user.id);
-  // Com código de recuperação, a tela de segurança mostra quantos ainda restam.
   const home = await homeAfterLogin();
   redirect(result.kind === "recuperacao" && home === "/" ? "/conta/seguranca?aviso=recuperacao" : home);
 }
@@ -75,8 +66,6 @@ export async function cancelTwoFactorSetup(): Promise<void> {
   revalidatePath("/conta/seguranca");
 }
 
-// Liga com o primeiro código do aplicativo e devolve os códigos de recuperação.
-// Sem revalidar: a tela mostra os códigos até a pessoa tocar em Concluir.
 export async function confirmTwoFactorSetup(_previous: CodeState, formData: FormData): Promise<CodeState> {
   const prisma = await db();
   const user = await setupUser();
@@ -86,7 +75,6 @@ export async function confirmTwoFactorSetup(_previous: CodeState, formData: Form
   const codes = await confirmTwoFactor(user.id, code);
   if (!codes) return { error: "O código não bateu. Confira se o aplicativo leu o QR code desta tela e digite o código atual." };
   await recordAccountEvent(user.id, user, "ligou as duas etapas");
-  // Ligar as duas etapas encerra as outras sessões abertas desta conta.
   if (!user.pendingSessionId) {
     const keep = await currentSessionId();
     await prisma.session.deleteMany({ where: { userId: user.id, ...(keep ? { id: { not: keep } } : {}) } });
@@ -94,8 +82,6 @@ export async function confirmTwoFactorSetup(_previous: CodeState, formData: Form
   return { codes };
 }
 
-// Depois de ligar na sessão pendente (REQUIRE_2FA): a sessão vira completa só
-// se as duas etapas foram ligadas nesta mesma sessão.
 export async function finishSecondStepSetup(): Promise<void> {
   const pending = await getPendingLogin();
   if (!pending) redirect("/login");
@@ -136,7 +122,6 @@ export async function disableTwoFactor(_previous: CodeState, formData: FormData)
   return {};
 }
 
-// Computador da escola esquecido aberto: encerra as outras sessões desta conta.
 export async function endOtherSessions(): Promise<void> {
   const prisma = await db();
   const user = await getCurrentUser();

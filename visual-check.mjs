@@ -1,9 +1,3 @@
-// Verificação visual de todas as telas: acessibilidade (axe, WCAG 2.2 AA), sem
-// rolagem horizontal a 320 px, um único h1 e sem erro de cliente.
-// Uso: BASE=http://127.0.0.1:3214 node visual-check.mjs [pasta para capturas]
-//   TEXT_SCALE=3   todas as telas com o texto no tamanho maior
-//   CHROME_PATH=…  caminho do Chrome (padrão: o do sistema)
-// Os endereços com id (estudante, material, planejamento) são achados nas próprias telas.
 import puppeteer from "puppeteer-core";
 import { createRequire } from "node:module";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -14,7 +8,6 @@ const BASE = process.env.BASE ?? "http://localhost:3213";
 const OUT = process.argv[2] ?? null;
 const SCALE = process.env.TEXT_SCALE ?? null;
 const AXE = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
-// Vídeos tutoriais: só quando já foram gravados (public/tutoriais/tutoriais.json).
 const TUTORIALS = existsSync("public/tutoriais/tutoriais.json") ? JSON.parse(readFileSync("public/tutoriais/tutoriais.json", "utf8")) : [];
 const tutorialFor = (role) => TUTORIALS.find((item) => item.roles?.includes(role))?.id ?? null;
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -44,7 +37,6 @@ async function login(page, email) {
   await page.waitForFunction(() => !location.pathname.startsWith("/login"), { timeout: 30000 });
 }
 
-// Primeiro link da página atual que casa com o seletor (e, se dado, com o texto).
 async function firstLink(page, path, selector, text) {
   await page.goto(`${BASE}${path}`, { waitUntil: "networkidle2" });
   return page.evaluate((sel, words) => [...document.querySelectorAll(sel)].find((link) => !words || link.textContent.includes(words))?.getAttribute("href") ?? null, selector, text);
@@ -70,7 +62,6 @@ async function check(wide, narrow, label, path) {
   const errors = [...wide.errors, ...narrow.errors];
   wide.errors.length = 0;
   narrow.errors.length = 0;
-  // As páginas de "não encontrado" respondem 404 de propósito.
   const expected404 = /nao-?existe/.test(path);
   const bad = violations.length || overflow || (status >= 400 && !expected404) || errors.length || h1 !== 1;
   if (bad) problems += 1;
@@ -129,13 +120,11 @@ await account("professor@escola.edu.br", "professor", async (page) => {
 
 await account("coordenacao@escola.edu.br", "coordenacao", async (page) => {
   const accountLink = await firstLink(page, "/usuarios", 'a[href^="/usuarios/c"]');
-  // Censo: a escola e uma prévia do arquivo de exemplo (fica aberta até a próxima importação).
   const censusSchool = await firstLink(page, "/censo", 'main a[href^="/censo/escolas/"]');
   let censusPreview = null;
   if (censusSchool) {
     await page.goto(`${BASE}${censusSchool}`, { waitUntil: "networkidle2" });
     const sample = join(mkdtempSync(join(tmpdir(), "censo-")), "migracao.txt");
-    // O arquivo precisa ter o código INEP que a escola já tem (o E2E grava um).
     const code = (await page.$eval("#escola-inep", (input) => input.value).catch(() => "")) || "12345678";
     writeFileSync(sample, (await import("./src/lib/educacenso.fixture.mjs")).sampleFile(2025).replaceAll("|12345678|", `|${code}|`), "latin1");
     await (await page.$('input[type="file"][name="file"]'))?.uploadFile(sample);

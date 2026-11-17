@@ -13,8 +13,6 @@ import { FederalGuidance } from "@/components/federal-guidance";
 
 export const dynamic = "force-dynamic";
 
-// Dossiê de evidências (item 8 do plano): cada exigência das normas, se o
-// registro está na plataforma e onde, para a equipe se preparar e a rede conferir.
 export default async function DossierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireStudentPage(id, "Dossiê de evidências");

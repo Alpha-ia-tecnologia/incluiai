@@ -1,4 +1,3 @@
-// Testes da importação por planilha: node --test src/lib/student-import.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { IMPORT_TEMPLATE, dateOf, mapHeader, parseCsv, readStudentSheet, shiftOf, stageOf, studentKey } from "./student-import.ts";
@@ -40,7 +39,6 @@ test("o modelo para baixar: formato certo, mas os exemplos não viram estudantes
     [null, ["linha de exemplo do modelo: apague antes de importar"]],
     [null, ["linha de exemplo do modelo: apague antes de importar"]],
   ]);
-  // Com nomes de verdade, as mesmas linhas passam inteiras.
   const { rows, problem } = readStudentSheet(IMPORT_TEMPLATE.replaceAll("Exemplo Estudante", "Estudante"), today);
   assert.equal(problem, null);
   assert.equal(rows.length, 2);
@@ -61,7 +59,6 @@ test("cada linha diz o que falta, e repetidos são apontados", () => {
   ].join("\n");
   const { rows } = readStudentSheet(sheet, today);
   assert.deepEqual(rows.map((row) => row.line), [2, 3, 4, 5]);
-  // Todo estudante cadastrado é atendido: a coluna "aee" é ignorada e a frequência é opcional.
   assert.deepEqual(rows[0].errors, ["nascimento no futuro"]);
   assert.ok(rows[1].errors.includes("nascimento inválido (use DD/MM/AAAA)"));
   assert.ok(rows[1].errors.includes("turma em branco"));

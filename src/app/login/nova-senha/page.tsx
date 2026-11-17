@@ -7,8 +7,6 @@ import { PasswordForm } from "@/components/password-form";
 
 export const dynamic = "force-dynamic";
 
-// Primeiro acesso (ou senha redefinida pela gestão): a senha temporária já foi
-// conferida; a pessoa cria a própria antes de entrar.
 export default async function NewPasswordPage() {
   if (await getCurrentUser()) redirect("/");
   const pending = await getPendingLogin();

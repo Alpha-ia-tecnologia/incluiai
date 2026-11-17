@@ -7,9 +7,6 @@ import { saveAeeSessionAction } from "@/actions/dua";
 import { AEE_SESSION_STATUSES, AEE_SESSION_STATUS_LABEL, type AeeSessionStatus } from "@/lib/dua/domain";
 import { Field, ResultMessage, buttonCls, inputCls, labelCls, textareaCls } from "@/components/dua/dua-ui";
 
-// Frequência do AEE (seção 5, CA10): realizado, falta ou cancelamento. Falta e
-// cancelamento pedem o motivo. Registrar de novo na mesma data corrige o registro.
-
 type Outcome = { ok: boolean; message?: string; problems?: { field: string; message: string }[] };
 
 const STATUS_HINT: Record<AeeSessionStatus, string> = {

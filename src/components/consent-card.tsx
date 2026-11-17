@@ -6,17 +6,12 @@ import { Badge, Card, SectionTitle } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
 import { Assurances } from "@/components/explain";
 
-// Autorizações no portal da família (seções 12 e 14): linguagem simples, o que
-// muda com cada escolha e a possibilidade de voltar atrás a qualquer momento.
-// Cada item em linhas curtas com ícone: o que a autorização permite (azul), o que
-// nunca acontece (verde) e, por último, o que vale sem ela ou ao retirá-la.
 type Line = { icon: LucideIcon; text: string; guarantee?: boolean };
 type Item = {
   field: "aiUse" | "therapistLink" | "card";
   icon: LucideIcon;
   title: string;
   lines: Line[];
-  // off: enquanto não autorizado; withdraw: quando autorizado, o que retirar faz.
   off: string;
   withdraw: { icon: LucideIcon; text: string };
 };

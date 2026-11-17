@@ -3,9 +3,6 @@ import { parseJson } from "../format";
 import { CONTEXTS } from "../scale";
 import type { ImageSize } from "./openai-images";
 
-// Monta o pedido de imagem de apoio de uma atividade. Só entram o conteúdo
-// da atividade e os interesses do estudante: nenhum nome ou dado pessoal.
-
 export const IMAGE_KINDS = [
   { value: "sequencia", label: "Sequência visual dos passos" },
   { value: "ilustracao", label: "Ilustração da atividade" },
@@ -19,7 +16,6 @@ export const STYLE = [
   "Pessoas genéricas e diversas, desenhadas de forma simples, sem retratar alguém real.",
 ].join(" ");
 
-// `clean` anonimiza cada texto (nomes viram "o estudante", "um colega"...).
 export function buildActivityImagePrompt(activity: Activity, profile: FunctionalProfile | null, kind: string, clean: (text: string) => string) {
   const steps = parseJson<string[]>(activity.steps, []).slice(0, 6).map(clean);
   const materials = parseJson<string[]>(activity.materials, []).map(clean);
@@ -49,7 +45,6 @@ export function buildActivityImagePrompt(activity: Activity, profile: Functional
     content = `Crie uma ilustração única que mostre a atividade "${title}" acontecendo. Materiais: ${materials.join(", ") || "os da atividade"}.`;
     altText = `Ilustração da atividade "${title}".`;
   } else {
-    // "Outro": descrição livre do professor.
     size = "1024x1024";
     content = `Crie a seguinte imagem de apoio para a atividade "${title}": ${kind}`;
     altText = `Imagem de apoio da atividade "${title}": ${kind}`;

@@ -45,7 +45,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const prisma = await db();
   const { id } = await params;
   const viewer = await requireStudentPage(id, "Plano de ensino");
-  // Quem só lê a ficha (Secretaria com motivo) vê o plano sem os formulários.
   const editable = canEditStudentRecord(viewer.role);
   const plans = await prisma.plan.findMany({
     where: { studentId: id },
@@ -53,7 +52,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     orderBy: { createdAt: "desc" },
   });
   const plan = plans.find((p) => p.status === "ativo");
-  // Planos encerrados continuam à vista: o acompanhamento não recomeça do zero.
   const pastPlans = plans.filter((p) => p.status === "encerrado");
   const overdue = plan && new Date(plan.reviewDate).getTime() < new Date().getTime();
 
@@ -72,7 +70,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       prisma.planDraft.findUnique({ where: { studentId: id } }),
       prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true, profile: { select: { id: true } }, caseStudy: { select: { id: true, status: true, content: true } } } }),
     ]);
-    // Plano de ensino só com estudo de caso concluído (CA02): o servidor também barra.
     if (!isCaseStudyConcluded(student.caseStudy)) {
       return (
         <>
@@ -91,11 +88,9 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       );
     }
     const hasData = Boolean(student.profile || student.caseStudy);
-    // IA só com a autorização da família; o aviso explica quando falta.
     const aiOn = await aiAllowedFor(id);
     const consentMissing = isAIEnabled() && !aiOn;
     const generate = generatePlanDraft.bind(null, id);
-    // O PAEE já parte do que o estudo de caso registrou; a equipe confere antes de salvar.
     const caseDefaults = planDefaultsFromCaseStudy(parseCaseStudy(student.caseStudy?.content), viewer.role === "professor_aee" ? viewer.name : null);
     const manualForm = (
         <Card className="max-w-2xl">
@@ -172,7 +167,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                   { icon: UserCheck, label: "Você decide e ativa" },
                 ]}
           />
-          {/* Sem autorização da família, o ConsentNote acima já explica; esta linha é só para a IA sem chave. */}
           {!aiOn && !consentMissing ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">IA desligada nesta instalação: falta a chave ANTHROPIC_API_KEY no servidor.</p> : null}
           {hasData ? (
             <form action={generate} className="mt-4">
@@ -199,22 +193,18 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   // Conteúdo mínimo e autoria do PAEE e do PEI (Portaria, arts. 10 e 11; INEP).
   const missing = missingPlanItems(plan);
   const missingTotal = missingCount(plan);
-  // O que o último arquivo do Censo declarou e o que o estudo de caso sugere para completar o plano.
   const studentRecord = await prisma.student.findUniqueOrThrow({ where: { id }, select: { census: true, caseStudy: { select: { content: true } } } });
   const differences = censusDifferences(plan, censusMetaOf(studentRecord.census));
   const suggested = planDefaultsFromCaseStudy(parseCaseStudy(studentRecord.caseStudy?.content));
   const reviews = reviewSummary(plan.reviews);
   const hasActiveObjectives = plan.objectives.some((objective) => objective.status === "ativo");
-  // Apoios de atividades com DUA ligados aos objetivos deste plano, agrupados por objetivo.
   const dua = await linkedDuaSupports(id);
   const duaByObjective = plan.objectives
     .map((objective) => ({ objective, supports: dua.supports.filter((support) => (support.data.planLinks ?? []).some((link) => link.planId === plan.id && link.objectiveId === objective.id)) }))
     .filter((group) => group.supports.length);
   const latestSupport = await latestSupportByObjective(id, plan.objectives.map((objective) => objective.id));
-  // A explicação da escala só aparece quando algum objetivo já mostra a escala.
   const hasScale = plan.objectives.some((objective) => latestSupport?.has(objective.id));
 
-  // Prazo do plano: quanto do tempo entre a criação e a revisão já passou.
   const today = new Date();
   const elapsed = percentOf(today.getTime() - plan.createdAt.getTime(), new Date(plan.reviewDate).getTime() - plan.createdAt.getTime());
   const elapsedPct = elapsed === null ? null : Math.min(100, Math.max(0, elapsed));
@@ -237,8 +227,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       />
       <FederalGuidance rules={PLAN_RULES} summary="Quem elabora o PAEE e o PEI" className="mb-6 max-w-3xl" />
 
-      {/* O próximo passo segue a regra da jornada (botão no cabeçalho da ficha). Só
-          quando o passo é aqui mesmo (plano sem objetivo ativo) o cartão leva ao formulário. */}
       {editable && !hasActiveObjectives ? (
         <Card className="mb-6 border-brand/30 bg-brand-soft/50">
           <SectionTitle>Próximo passo: definir um objetivo</SectionTitle>
@@ -281,7 +269,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         </DataCard>
       </DataBoard>
 
-      {/* Revisão com a equipe: aberta quando a data está perto ou já passou. */}
       <Card id="revisao" className="mb-6 max-w-3xl scroll-mt-6">
         <SectionTitle>Revisão do plano</SectionTitle>
         <p className="mb-4 text-sm leading-relaxed text-ink-soft">
@@ -361,7 +348,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
                 <Badge>{DIMENSIONS[obj.dimension] ?? obj.dimension}</Badge>
                 {obj.bnccCode ? <BnccTag code={obj.bnccCode} detail /> : null}
-                {/* Com registro de aula, a escala abaixo mostra início, último registro e meta. */}
                 {latest ? null : (
                   <>
                     <span>Apoio atual:</span> <SupportPill level={obj.currentSupport} />
@@ -476,7 +462,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   );
 }
 
-// Só quem tem o recorte pedagógico do estudante vê os apoios (família e terapeuta não).
 async function linkedDuaSupports(studentId: string): Promise<{ supports: SupportView[]; canPlan: boolean }> {
   const user = await getCurrentUser();
   if (!user || !canSeePedagogicalDetail(user.role)) return { supports: [], canPlan: false };
@@ -488,9 +473,6 @@ async function linkedDuaSupports(studentId: string): Promise<{ supports: Support
   }
 }
 
-// Último nível de apoio do diário em cada objetivo do plano. Só para a equipe
-// pedagógica: hoje esta página não mostra o diário, e família e terapeuta
-// continuam vendo o plano como antes (null = sem esse recorte).
 async function latestSupportByObjective(studentId: string, objectiveIds: string[]): Promise<Map<string, { level: number; date: Date; count: number }> | null> {
   const prisma = await db();
   const user = await getCurrentUser();
@@ -509,7 +491,6 @@ async function latestSupportByObjective(studentId: string, objectiveIds: string[
   return latest;
 }
 
-// Dias de calendário de hoje até a data (negativo quando já passou).
 function daysUntil(date: Date, today: Date) {
   const start = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
   return Math.round((start(date) - start(today)) / 86_400_000);
@@ -530,8 +511,6 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
   source: string;
   createdBy: string;
   createdAt: Date;
-  // A nova proposta usa a IA se ela estiver ligada agora, qualquer que tenha
-  // sido a origem da proposta anterior.
   aiOn: boolean;
   documentDefaults: Partial<PlanDocuments>;
 }) {
@@ -572,7 +551,6 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
         <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} defaultValue={proposal.initialSituation} required {...multiStyle} />
         <PlanDocumentFields
           idPrefix="proposta"
-          // O que o estudo de caso registrou e o que a proposta trouxe, campo a campo: a equipe confere tudo antes de ativar.
           defaults={mergeProposalDefaults(documentDefaults, proposal)}
         />
         <div>
@@ -617,11 +595,8 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
   );
 }
 
-// Só a inicial: siglas como AEE e CAA continuam em maiúsculas.
 const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 
-// PAEE ou PEI do plano: quem elaborou e o conteúdo mínimo registrado. O que
-// falta aparece numa linha só, para quem pode completar.
 function PlanDocumentCard({ id, title, norm, teacherLabel, teacher, participants, items, plan, missing, alsoMissing = [], showMissing, differences = [] }: {
   id: string;
   title: string;
@@ -659,7 +634,6 @@ function PlanDocumentCard({ id, title, norm, teacherLabel, teacher, participants
           Para conferir: sem os atendimentos do AEE no plano, a escola fica sem referência para o tipo de atendimento, que o Educacenso exige no vínculo do AEE.
         </p>
       ) : null}
-      {/* O Censo declara o que o plano registra: a diferença aparece para quem confere o Educacenso. */}
       {differences.length ? (
         <div className="mt-3 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber">
           <p className="font-medium">Diferente do último arquivo do Censo</p>
@@ -672,7 +646,6 @@ function PlanDocumentCard({ id, title, norm, teacherLabel, teacher, participants
   );
 }
 
-// Planos encerrados: período, motivo, objetivos alcançados e revisões no prazo.
 function PastPlans({ plans }: { plans: { id: string; createdAt: Date; closedAt: Date | null; closedReason: string | null; objectives: { status: string }[]; reviews: { onTime: boolean }[] }[] }) {
   if (!plans.length) return null;
   return (

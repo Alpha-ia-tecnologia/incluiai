@@ -4,12 +4,7 @@ import Script from "next/script";
 import { useEffect } from "react";
 import { requestKind, translationBody, translationText, VLIBRAS_ROOT } from "@/lib/vlibras-core";
 
-// VLibras: o botão de Libras do governo federal em todas as telas. Antes de o
-// texto sair para o tradutor, a plataforma troca os dados pessoais
-// (/api/libras/anonimizar); se a troca falhar, nada é enviado. Qualquer outro
-// envio de dados para fora da plataforma é bloqueado, inclusive a estatística de
-// uso do widget (PostHog, nos Estados Unidos).
-// NEXT_PUBLIC_VLIBRAS=0 desliga (instalação sem internet).
+// A estatística de uso do widget (PostHog) é enviada para os Estados Unidos.
 
 declare global {
   interface Window {

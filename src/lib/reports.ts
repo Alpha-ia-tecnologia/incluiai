@@ -11,9 +11,6 @@ import { brDate, draftOpinion, opinionProblem, supportAt, topItems, type ReportD
 import { compareAreas } from "./assessment";
 import { answersOf } from "./assessments";
 
-// Relatório do período: a fotografia dos registros (sem dados clínicos do
-// estudo de caso), o parecer do AEE e a validação. Regras puras em period-report.ts.
-
 const dayStart = (iso: string) => new Date(`${iso}T00:00:00-03:00`);
 const dayEnd = (iso: string) => new Date(`${iso}T23:59:59-03:00`);
 
@@ -36,7 +33,6 @@ export async function collectReportData(studentId: string, start: string, end: s
       assessments: { where: { appliedAt: { lte: to } }, orderBy: { appliedAt: "asc" }, select: { appliedAt: true, answers: true } },
     },
   });
-  // Sondagem: a última antes do período (ou a primeira dentro dele) contra a última do período.
   const inside = student.assessments.filter((item) => item.appliedAt >= from);
   const before = student.assessments.filter((item) => item.appliedAt < from).at(-1) ?? inside[0];
   const assessment = inside.length && before
@@ -61,7 +57,6 @@ export async function collectReportData(studentId: string, start: string, end: s
     version: 1,
     period: { start, end },
     student: { name: student.name, gradeYear: student.gradeYear, className: student.className, school: student.school.name },
-    // Só a parte pedagógica do estudo de caso: diagnóstico, saúde e família ficam de fora.
     caseStudy: { concluded: student.caseStudy?.status === "concluido", synthesis: caseStudy.sintese?.trim() || null, needs: splitItems(caseStudy.necessidades) },
     objectives,
     aee: {
@@ -73,7 +68,6 @@ export async function collectReportData(studentId: string, start: string, end: s
     activities: [...new Set(inPeriod.flatMap((entry) => (entry.activity ? [entry.activity.title] : [])))].slice(0, 12),
     materials: [...new Set(student.materials.map((material) => material.title))].slice(0, 12),
     familyNotes: student.familyNotes.length,
-    // Relatórios do terapeuta só contam com a conexão autorizada pela família.
     therapistReports: student.consent?.therapistLink ? student.intersectorReports.length : 0,
     assessment,
   };
@@ -82,7 +76,6 @@ export async function collectReportData(studentId: string, start: string, end: s
 export const reportData = (stored: string): ReportData => JSON.parse(stored) as ReportData;
 export const periodLabel = (data: Pick<ReportData, "period">) => `${brDate(data.period.start)} a ${brDate(data.period.end)}`;
 
-// Quem valida o relatório: o AEE e a coordenação.
 export const canValidateReport = (role: string) => role === "professor_aee" || role === "coordenacao";
 
 export async function createReport(user: SessionUser, studentId: string, start: string, end: string) {
@@ -110,7 +103,6 @@ export async function saveOpinion(user: SessionUser, studentId: string, reportId
   await prisma.studentReport.update({ where: { id: reportId }, data: { opinion: opinion.slice(0, 8000), updatedByName: user.name } });
 }
 
-// Atualiza a fotografia com registros feitos depois do rascunho (o parecer fica).
 export async function refreshReport(user: SessionUser, studentId: string, reportId: string) {
   const prisma = await db();
   const report = await draftFor(studentId, reportId);

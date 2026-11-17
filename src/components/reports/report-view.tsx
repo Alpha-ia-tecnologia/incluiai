@@ -4,9 +4,6 @@ import { formatDate } from "@/lib/format";
 import { brDate, lessSupport, type ReportData, type ReportObjective } from "@/lib/period-report";
 import { supportInfo } from "@/lib/scale";
 
-// O relatório do período como a família e a equipe leem (tela e impressão).
-// O parecer entra por `opinion` (validado) ou fica a cargo do editor (rascunho).
-
 const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 const STATUS_LABEL: Record<string, string> = { ativo: "Em andamento", alcancado: "Alcançado", em_revisao: "Em revisão" };
 

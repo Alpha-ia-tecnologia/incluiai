@@ -1,5 +1,3 @@
-// Perguntas para reunião (item 9) — aponta o que a equipe precisa discutir,
-// sem conclusões automáticas. Determinístico e auditável.
 export function meetingQuestions(input: {
   alerts: { message: string }[];
   stalledObjectives: string[];
@@ -25,6 +23,4 @@ export function meetingQuestions(input: {
   return q;
 }
 
-// Materiais de apoio (item 17.10): tipos, conteúdo e regras em material-content.ts;
-// geração (IA ou regras) em material-generate.ts.
 export { MATERIAL_KINDS, type MaterialContent, type MaterialKind } from "./material-content";

@@ -17,7 +17,6 @@ async function requireActivity(studentId: string, activityId: string) {
   return user;
 }
 
-// Gera (ou troca) a imagem de apoio de uma atividade, sob pedido do professor.
 export async function generateActivityImage(studentId: string, activityId: string, _previous: ImageActionState, formData: FormData): Promise<ImageActionState> {
   const user = await requireActivity(studentId, activityId);
   if (!isImageGenerationEnabled()) return { status: "erro", message: "A geração de imagens não está configurada (falta OPENAI_API_KEY)." };

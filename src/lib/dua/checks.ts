@@ -1,6 +1,3 @@
-// Regras puras das sugestões do DUA (seção 6): preparação e conferência do
-// contexto, sugestões por regras (sem IA) e verificações automáticas da resposta.
-// Sem banco e sem servidor, para rodar com node --test (src/lib/dua/checks.test.mjs).
 import { randomUUID } from "node:crypto";
 import { PATTERNS, escape, isYearRange, nameTokens, type Anonymizer } from "../agents/anonymize-core.ts";
 import {
@@ -21,7 +18,6 @@ export type DuaAiContext = {
   individual: null | { barrier: string; support: string; purpose: string; profile: Array<{ label: string; value: string }> };
 };
 
-// Formato esperado da resposta (6.2); o esquema zod equivalente fica em suggestions.ts.
 export type RawBlock = {
   objectiveConsidered: string;
   barrierId: string | null;
@@ -33,19 +29,14 @@ export type RawBlock = {
   suggestedEvidence: string;
   pendingInformation: string[];
   criterionProposal: string | null;
-  // Pontos que o revisor dos agentes ainda apontou depois da correção (suggestion-agents.ts).
-  // Não fazem parte da resposta do modelo: acompanham o bloco para o professor conferir.
   reviewerNotes?: string[];
 };
 export type RawBlocks = { blocks: RawBlock[] };
 
-// Conferência independente depois da troca: nome completo (qualquer grafia), parte
-// de nome com inicial maiúscula, e-mail, documento, telefone ou data.
 export function remainingIdentifiers(text: string, people: string[], schools: string[]): string[] {
   const found = new Set<string>();
   for (const pattern of PATTERNS) {
     const matches = text.match(new RegExp(pattern.regex.source, pattern.regex.flags)) ?? [];
-    // Mesma exceção do anonimizador: "2025-2026" (ano letivo) não é telefone.
     if (matches.some((match) => pattern.replacement !== "[TELEFONE]" || (match.replace(/\D/g, "").length >= 8 && !isYearRange(match)))) found.add(pattern.label);
   }
   for (const name of [...people, ...schools]) {
@@ -68,8 +59,6 @@ export function prepareContext(context: DuaAiContext, anonymizer: Anonymizer, pe
   const removed = summary ? Number((summary.match(/\d+/g) ?? []).reduce((total, value) => total + Number(value), 0)) : 0;
   return { ok: true, prompt, removed, summary };
 }
-
-// ------------------------------------------------------------- regras (sem IA)
 
 const RULES: Record<BarrierCategory, { strategy: string; principles: DuaPrinciple[]; resources: string[]; evidence: string }> = {
   instrucoes: { strategy: "Apresentar a instrução em etapas curtas, uma por vez, com um cartão visual para cada etapa e checagem rápida antes de seguir.", principles: ["representacao", "engajamento"], resources: ["Cartões de etapas", "Quadro com a sequência"], evidence: "Inicia cada etapa depois da instrução correspondente." },
@@ -102,10 +91,7 @@ export function rulesBlocks(context: DuaAiContext): RawBlocks {
   return { blocks };
 }
 
-// ------------------------------------------------------------- 6.3 verificações automáticas
-
 const normalize = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-// Palavras inteiras: "cidade", "cidadania", "medição" ou "tratamento da informação" não são diagnóstico.
 const DIAGNOSIS = /\b(diagnos\w*|laudo\w*|cid\b|cid[- ]?\d{1,2}\b|cid[- ]?[a-z]\d|tea\b|tdah\b|autis\w*|sindrome\w*|transtorno\w*|deficiencia intelectual|medicament\w*|medicacao|medicad[oa]s?\b|terapia\w*)/;
 const REDUCTION = /\b(simplifi\w*|reduzi\w*|diminui\w*|facilit\w*)\b[^.]{0,60}\b(por causa|devido|em razao|por ser|por ter)\b[^.]{0,40}\b(deficien\w*|condic\w*|diagnost\w*|transtorno)/;
 const INVENTED = /\b(o estudante|a estudante|o aluno|a aluna|a turma)\s+(demonstrou|apresentou|conseguiu|realizou|respondeu|disse|falou|mostrou)\b|\bobservou-se\b|\bfoi observad\w*|\bna ultima aula\b|\bno ultimo atendimento\b/;
@@ -127,7 +113,6 @@ export function checkBlocks(raw: RawBlocks, context: DuaAiContext, people: strin
     let blocked = false;
     let barrierId = item.barrierId || null;
     let hypothesis = item.hypothesis?.trim() || null;
-    // Barreira que não existe no planejamento vira hipótese a verificar, nunca observação.
     if (barrierId && !barrierIds.has(barrierId)) {
       counts.references += 1;
       problems.push("Citava uma barreira que não está no planejamento; ficou como hipótese a verificar.");
@@ -135,7 +120,6 @@ export function checkBlocks(raw: RawBlocks, context: DuaAiContext, people: strin
       hypothesis = hypothesis || "Barreira citada pela sugestão, ainda não registrada no planejamento.";
     }
     const changesObjective = Boolean(item.objectiveConsidered?.trim()) && normalize(item.objectiveConsidered) !== objective;
-    // O objetivo repetido é texto do professor, não da sugestão: as regras de conteúdo olham só o que a sugestão trouxe.
     const text = normalize(blockText(changesObjective ? item : { ...item, objectiveConsidered: "" }));
     if (remainingIdentifiers(blockText(item), people, schools).length) {
       counts.identifiers += 1;

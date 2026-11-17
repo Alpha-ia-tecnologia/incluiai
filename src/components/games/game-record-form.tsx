@@ -7,8 +7,6 @@ import { SUPPORT_LEVELS } from "@/lib/scale";
 import { suggestedRecord, type GameResult } from "@/lib/games/games-core";
 import { recordGameSession } from "@/actions/games";
 
-// Registro da aula no fim de um jogo, com a sugestão vinda das dicas e das
-// tentativas. Serve aos jogos em tela cheia e aos jogos de fotografias.
 export function GameRecordForm({ student, result, note, actions }: {
   student: { id: string; firstName: string };
   result: GameResult;

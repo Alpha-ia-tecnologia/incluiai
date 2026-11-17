@@ -1,14 +1,8 @@
-// Cenas do "canteiro vivo", a espera dos agentes. A planta só muda com os
-// eventos reais do turno (ferramentas e agentes); o tempo aparece apenas no
-// relógio de sol e nas frases com "costuma". Puro TypeScript, sem importações
-// em tempo de execução: os testes rodam com `node --test`.
 import type { AgentProgress, ToolStep } from "./types";
 
 export type GardenFamily = "raizes" | "trelica" | "botoes" | "folha" | "vasinho";
 export type GardenScene = "broto" | GardenFamily;
 export type GardenPhase = "pensando" | "ferramenta" | "organizando" | "escrevendo";
-// interrompida: a conexão caiu depois que o turno começou; no servidor ele
-// continua e fica salvo, então não é falha.
 export type GardenOutcome = "pronto" | "erro" | "interrompida";
 export type LongKind = "plano" | "atividades";
 export type InlineScene = LongKind | "imagem" | "material";
@@ -34,7 +28,6 @@ export type Garden = {
   buds: null | { states: Trio<BudState>; review: boolean };
   side: "folha" | "vasinho" | null;
   crown: boolean;
-  // images: as atividades terão imagens de apoio (o tempo habitual passa a 4 minutos).
   long: null | { id: string; kind: LongKind; stage: LongStage; images: boolean };
   handoff: LongKind | null;
   failed: boolean;
@@ -56,20 +49,14 @@ export type ArtState = {
   sun: number | null;
 };
 
-// keep: a linha 2 traz tempo, falha, entrega ou ajuste; na faixa compacta só
-// essas aparecem (as dicas fixas de cada ferramenta ficam só na faixa inteira).
 export type Caption = { label: string; hint: string; status: string; keep: boolean };
 export type InlineCaption = { title: string; explain: string; time: string; late: string };
 
-// Segundos em que a legenda muda (faixas de tempo).
 export const TURN_THRESHOLDS = [4, 10, 20, 60] as const;
-// Uma lista só (não troca durante o turno, para o relógio não recomeçar); 240
-// só faz diferença quando há imagens.
 export const LONG_THRESHOLDS = [20, 60, 120, 180, 240] as const;
 const INLINE_IMAGE_THRESHOLDS = [20, 60] as const;
 const INLINE_LONG_THRESHOLDS = [20, 60, 120, 180] as const;
 const INLINE_LONG_IMAGES_THRESHOLDS = [20, 60, 120, 180, 240] as const;
-// Turnos mais curtos que isso terminam sem a flor (sem cerimônia).
 export const FINALE_MIN_SECONDS = 20;
 
 export const TOOL_FAMILY: Readonly<Record<string, GardenFamily>> = {
@@ -110,7 +97,6 @@ export const TOOL_HINTS: Readonly<Record<string, string>> = {
   buscar_recursos: "Práticas já usadas na rede, com resultados.",
   indicadores: "Números do painel, sem nomes.",
   datas_inclusivas: "Datas com ideias para a turma toda.",
-  // Próximos passos são recomendações: a decisão e o resultado ficam com a equipe.
   proximos_passos_dua: "Recomendações para a equipe revisar.",
   criar_material: "Fica em Materiais de apoio para revisar e aprovar.",
   registrar_aula: SAVE_GATE, decidir_atividade: SAVE_GATE, marcar_objetivo: SAVE_GATE,
@@ -121,9 +107,7 @@ export const PEBBLE: Readonly<Record<string, Palette>> = {
   buscar_recursos: "sage", indicadores: "lime", datas_inclusivas: "rose", proximos_passos_dua: "sage",
 };
 
-// Nomes exatos dos agentes (plan-graph.ts, activity-graph.ts, generate.ts e tools.ts).
 export const PLAN_AGENTS = ["Analista do caso", "Planejador do PPI", "Revisor pedagógico"] as const;
-// Os três que escrevem ao mesmo tempo, depois do analista: o degrau do meio da treliça.
 export const PLAN_WRITERS = ["Agente do PAEE", "Agente do PEI", "Planejador do PPI"] as const;
 export const ACTIVITY_AGENTS = ["Agente da sala comum", "Agente do AEE", "Agente da família"] as const;
 export const ACTIVITY_REVIEWER = "Revisor das atividades";
@@ -181,7 +165,6 @@ export const TIP_POOLS: Readonly<Record<TipPool, readonly string[]>> = {
 const sentence = (label: string) => label.replace(/…$/, ".");
 const familyOf = (name: string): GardenFamily => TOOL_FAMILY[name] ?? "raizes";
 
-// Valores estáveis: o desenho (GardenArt) é memoizado e compara por referência.
 const NO_ROOTS: RootMark[] = [];
 const IDLE_RUNGS: Trio<RungState> = ["espera", "espera", "espera"];
 const DONE_RUNGS: Trio<RungState> = ["feito", "feito", "feito"];
@@ -197,13 +180,10 @@ export function planState(step: ToolStep): { stage: LongStage; rungs: Trio<RungS
   const progress = step.progress ?? [];
   if (progress.some((item) => item.agent === RULES_ENGINE)) return { stage: "regras", rungs: IDLE_RUNGS };
   if (step.ok === true) return { stage: "revisor", rungs: DONE_RUNGS };
-  // PAEE, PEI e objetivos são escritos em paralelo: o degrau do meio fica ativo
-  // enquanto algum deles trabalha e só se completa quando os três terminam.
   const writing: RungState = PLAN_WRITERS.some((agent) => latest(progress, agent) === "start") ? "ativo"
     : PLAN_WRITERS.every((agent) => latest(progress, agent) === "end") ? "feito" : "espera";
   const rungs: Trio<RungState> = [rungOf(latest(progress, PLAN_AGENTS[0])), writing, rungOf(latest(progress, PLAN_AGENTS[2]))];
   const lastStart = progress.findLast((item) => item.phase === "start")?.agent;
-  // Quem escreve de novo depois de uma revisão está ajustando o que o revisor devolveu.
   const reviewed = progress.some((item) => item.agent === PLAN_AGENTS[2] && item.phase === "end");
   const stage: LongStage = lastStart === PLAN_AGENTS[0] ? "analista"
     : (PLAN_WRITERS as readonly string[]).includes(lastStart ?? "") ? (reviewed ? "ajustes" : "planejador")
@@ -223,7 +203,6 @@ export function activityState(step: ToolStep): { stage: LongStage; buds: Trio<Bu
   const reviewed = progress.findLastIndex((item) => item.agent === ACTIVITY_REVIEWER && item.phase === "end");
   const adjusting = reviewed < 0 ? 0 : ACTIVITY_AGENTS.filter((agent) =>
     latest(progress, agent) === "start" && progress.slice(reviewed + 1).some((item) => item.agent === agent && item.phase === "start")).length;
-  // "queued" (imagens depois) só avisa o que vem; não é um agente trabalhando.
   const stage: LongStage = latest(progress, ILLUSTRATION) === "start" ? "imagens"
     : latest(progress, ACTIVITY_REVIEWER) === "start" ? "revisor"
     : adjusting > 0 ? "ajustes"
@@ -255,7 +234,6 @@ function longLabel(kind: LongKind, step: ToolStep): { stage: LongStage; label: s
   return { stage, label };
 }
 
-// O que a planta e a legenda mostram agora, só a partir dos passos reais.
 export function deriveGarden(steps: readonly ToolStep[], writing: boolean): Garden {
   let focus: ToolStep | null = null;
   for (const step of steps) {
@@ -282,7 +260,6 @@ export function deriveGarden(steps: readonly ToolStep[], writing: boolean): Gard
     const runningLookups = steps.filter((step) => step.ok === undefined && familyOf(step.name) === "raizes").length;
     if (kind) {
       const info = longLabel(kind, focus);
-      // "Ilustração" chega como "queued" logo no início quando haverá imagens.
       const images = kind === "atividades" && (focus.progress ?? []).some((item) => item.agent === ILLUSTRATION);
       long = { id: focus.id, kind, stage: info.stage, images };
       label = info.label;
@@ -317,7 +294,6 @@ export function deriveGarden(steps: readonly ToolStep[], writing: boolean): Gard
   };
 }
 
-// Tempo habitual da ferramenta longa: 3 minutos, ou 4 com as imagens de apoio.
 export function longBudget(garden: Garden): number {
   return garden.long?.images ? 240 : 180;
 }
@@ -333,7 +309,6 @@ function longTimeLine(kind: LongKind, bucket: number, leave: string, images: boo
   return kind === "plano" ? "Analista, três agentes juntos e um revisor." : "Sala comum, AEE e casa. Depois, um revisor.";
 }
 
-// Legenda da faixa do chat (linha 1, linha 2) e o texto do anúncio (status).
 export function chatCaption(garden: Garden, turnBucket: number, longBucket: number, layout: "popup" | "page", invite: boolean): Caption {
   const leave = LEAVE_LINE[layout];
   if (garden.phase === "pensando") {
@@ -361,8 +336,6 @@ export function chatCaption(garden: Garden, turnBucket: number, longBucket: numb
     const budget = longBudget(garden);
     const override = LONG_OVERRIDE[garden.long.stage] ?? "";
     const time = longTimeLine(garden.long.kind, longBucket, leave, garden.long.images);
-    // Atividades: antes do primeiro evento ainda não se sabe se haverá imagens
-    // (1 a 3 ou 1 a 4 minutos); a estimativa vem com ele, sem anunciar uma errada.
     const unknown = garden.long.kind === "atividades" && garden.long.stage === "inicio" && !garden.long.images;
     const suffix = longBucket >= budget ? "Está levando mais que o normal; a resposta fica salva."
       : longBucket >= 20 ? leave
@@ -384,8 +357,6 @@ export function chatCaption(garden: Garden, turnBucket: number, longBucket: numb
   };
 }
 
-// Erro e interrupção não são anunciados pela faixa: a mensagem na conversa
-// (região polite) é o único anúncio.
 export function endingCaption(outcome: GardenOutcome, awaiting: number): Caption {
   if (outcome === "erro") return { label: "Não deu certo desta vez.", hint: "", status: "", keep: false };
   if (outcome === "interrompida") return { label: "A conexão caiu.", hint: "A resposta continua sendo preparada.", status: "", keep: true };
@@ -404,8 +375,6 @@ export function inlineTypical(scene: InlineScene, withImages: boolean): number {
   return scene === "imagem" ? 60 : scene === "atividades" && withImages ? 240 : 180;
 }
 
-// Legenda do cartão dos formulários (PendingButton). `late` é o único texto
-// anunciado depois do pendingText inicial.
 export function inlineCaption(scene: InlineScene, bucket: number, withImages: boolean): InlineCaption {
   const late = "Está levando mais que o normal. Mantenha esta página aberta.";
   if (scene === "imagem") {
@@ -417,8 +386,6 @@ export function inlineCaption(scene: InlineScene, bucket: number, withImages: bo
     };
   }
   if (scene === "material") {
-    // Criador, três atividades em paralelo e revisor (material-agent.ts): o
-    // mesmo ritmo das atividades do plano, mais os pictogramas quando pedidos.
     const lateAt = withImages ? 240 : 180;
     return {
       title: "Criando o material de apoio…",
@@ -453,7 +420,6 @@ export function inlineCaption(scene: InlineScene, bucket: number, withImages: bo
   };
 }
 
-// Relógio de sol: -60° no início, +60° no tempo habitual. Só mede o tempo.
 export function sunAngle(bucket: number, typicalSeconds: number): number {
   return Math.round(-60 + 120 * Math.min(bucket / typicalSeconds, 1));
 }

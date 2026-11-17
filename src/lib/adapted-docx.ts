@@ -2,9 +2,6 @@ import "server-only";
 import { Document, HeadingLevel, Packer, PageBreak, Paragraph, TextRun } from "docx";
 import { ANSWER_FORMAT_LABEL, highlightParts, printPages, type AdaptedContent } from "./task-adaptation";
 
-// Word (.docx) da atividade adaptada, para o professor ajustar no editor de
-// texto da escola. Sem o apoio do professor (só o que vai para o estudante).
-
 export async function adaptedDocx(content: AdaptedContent, settings: { largeText: boolean; itemsPerPage: number | null; highlight: boolean; icons: boolean }): Promise<Buffer> {
   const size = settings.largeText ? 36 : 28; // meios-pontos: 18 pt ou 14 pt
   const children: Paragraph[] = [

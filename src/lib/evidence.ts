@@ -1,8 +1,5 @@
-// Dossiê de evidências (item 8 do plano), puro para teste com node --test
-// (src/lib/evidence.test.mjs). Para cada exigência do Decreto nº 12.686/2025
-// (com a redação do 12.773/2025), da Portaria MEC nº 421/2026 e da orientação
-// do INEP para o Censo Escolar, diz se o registro está na plataforma e onde.
-// Aponta o registro; não é parecer jurídico.
+// Exigências do Decreto nº 12.686/2025 (com a redação do 12.773/2025), da Portaria
+// MEC nº 421/2026 e da orientação do INEP para o Censo Escolar. Não é parecer jurídico.
 import { AEE_TEACHER, REGULAR_TEACHER, censusReference, specialEducationAnswer } from "./federal-guidance.ts";
 import { censusDifferences, missingPlanItems, type CensusDeclared, type PlanDocuments } from "./plan-documents.ts";
 
@@ -13,15 +10,13 @@ export type EvidenceGroup = { title: string; items: EvidenceItem[] };
 export type EvidenceInput = {
   now: Date;
   caseStudy: { status: string; concludedAt: Date | null; content: Record<string, string> } | null;
-  // Os campos do PAEE e do PEI são opcionais: planos anteriores não os têm.
   plan: ({ createdAt: Date; reviewedAt: Date | null; reviewDate: Date; objectives: number } & Partial<PlanDocuments>) | null;
-  approvedAdaptations: number; // atividades e provas adaptadas aprovadas
-  diaryRecent: number; // registros de aula nos últimos 60 dias
-  aee: { done: number; absences: number; cancelled: number }; // últimos 30 dias
-  lastReportAt: Date | null; // último relatório do período validado
-  assessmentAt: Date | null; // última sondagem
+  approvedAdaptations: number;
+  diaryRecent: number;
+  aee: { done: number; absences: number; cancelled: number };
+  lastReportAt: Date | null;
+  assessmentAt: Date | null;
   consent: { aiUse: boolean; therapistLink: boolean; decidedAt: Date | null } | null;
-  // O que o último arquivo do Censo aplicado declarou (tipos de AEE e recursos).
   census?: (CensusDeclared & { syncedAt?: string }) | null;
 };
 
@@ -29,13 +24,12 @@ export const STATUS_LABEL: Record<EvidenceStatus, string> = { ok: "Em dia", conf
 
 const DAY = 86_400_000;
 const YEAR_DAYS = 365;
-const REPORT_DAYS = 200; // um semestre e a margem para validar
-const REASSESS_DAYS = 84; // o mesmo prazo da sondagem
+const REPORT_DAYS = 200;
+const REASSESS_DAYS = 84;
 const day = (date: Date) => date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 const daysSince = (date: Date, now: Date) => (now.getTime() - date.getTime()) / DAY;
 const list = (value: string | undefined) => (value ?? "").split(/[;\n]/).map((item) => item.trim()).filter(Boolean);
 const filled = (value: string | null | undefined) => Boolean(value?.trim());
-// Só a inicial: siglas como AEE e INEP continuam em maiúsculas.
 const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
@@ -92,7 +86,6 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
   const tea = [...needs, ...resources].filter((entry) => /tecnologia assistiva|comunicação alternativa|prancha/i.test(entry));
   const staff = resources.filter((entry) => /profissional de apoio|intérprete|guia-intérprete/i.test(entry));
   const authorship = plan ? missingPlanItems(plan).authorship : [];
-  // O que o plano registra vem antes; sem ele, o que o estudo de caso indicou.
   const fromPlanOrCase = (value: string | null | undefined, fromCase: string[], missing: string): { status: EvidenceStatus; detail: string } =>
     filled(value) ? { status: "ok", detail: `No plano: ${list(value ?? "").join(", ")}.` } : fromCase.length ? { status: "ok", detail: `Indicado no estudo de caso: ${fromCase.join(", ")}.` } : { status: "conferir", detail: missing };
   const ta = fromPlanOrCase(plan?.assistiveTech, tea, "Registre no PAEE a avaliação de tecnologia assistiva e CAA, mesmo que não haja necessidade.");
@@ -139,7 +132,7 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
   ];
 
   // Orientação do INEP: para declarar o estudante no Censo, basta um registro de
-  // referência (estudo de caso ou PAEE já bastam). Não é obrigatório, por isso "conferir".
+  // referência (estudo de caso ou PAEE já bastam). Não é obrigatório.
   const reference = censusReference({ caseStudyConcluded: concluded, hasActivePlan: Boolean(plan), specialEducation: specialEducationAnswer(content.publicoAlvo) });
   // O Censo declara o que o PEI registra: atendimentos do AEE (registro 60) e recursos (registro 30).
   const census = input.census ?? null;
@@ -186,8 +179,6 @@ export function evidenceSummary(groups: EvidenceGroup[]): { ok: number; conferir
   return { ok: count("ok"), conferir: count("conferir"), pendente: count("pendente"), total: items.length };
 }
 
-// Visão da escola ou da rede: por item, quantos estudantes têm pendência ou algo
-// a conferir, do mais frequente ao menos (só os itens com algum estudante).
 export function itemTotals(students: { groups: EvidenceGroup[] }[]): { id: string; short: string; label: string; pendente: number; conferir: number }[] {
   const totals = new Map<string, { id: string; short: string; label: string; pendente: number; conferir: number }>();
   for (const entry of students.flatMap((student) => student.groups.flatMap((group) => group.items))) {

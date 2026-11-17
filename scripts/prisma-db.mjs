@@ -36,7 +36,7 @@ const SQLITE_SCHEMA = "prisma/schema.prisma";
 const POSTGRES_DIR = "prisma/postgresql";
 const POSTGRES_SCHEMA = `${POSTGRES_DIR}/schema.prisma`;
 const MIGRATIONS = `${POSTGRES_DIR}/migrations`;
-const SNAPSHOT = "schema.snapshot.prisma"; // schema de cada migração, para a próxima comparar sem banco
+const SNAPSHOT = "schema.snapshot.prisma";
 const ENV_FILE = ".env";
 const PRISMA_CLI = createRequire(import.meta.url).resolve("prisma/build/index.js");
 
@@ -50,7 +50,6 @@ const option = (args, flag) => {
   return index >= 0 ? (args[index + 1] ?? "").trim() : "";
 };
 
-// .env sem sobrescrever o que veio da linha de comando.
 function loadEnv() {
   if (!existsSync(ENV_FILE)) return;
   for (const [key, value] of Object.entries(parseEnv(readFileSync(ENV_FILE, "utf8")))) if (process.env[key] === undefined) process.env[key] = value;
@@ -88,7 +87,6 @@ function tables() {
   else prisma(["db", "push", "--skip-generate", "--schema", SQLITE_SCHEMA]);
 }
 
-// Endereço do PostgreSQL a partir dos campos do .env, com usuário, senha e banco codificados.
 function postgresUrl() {
   const get = (key) => (process.env[key] ?? "").trim();
   const missing = ["POSTGRES_HOST", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"].filter((key) => !get(key) || get(key).startsWith("preencha"));
@@ -100,7 +98,6 @@ function postgresUrl() {
   return `postgresql://${enc(get("POSTGRES_USER"))}:${enc(get("POSTGRES_PASSWORD"))}@${get("POSTGRES_HOST")}:${port}/${enc(get("POSTGRES_DB"))}?schema=${enc(schema)}${ssl ? "&sslmode=require" : ""}`;
 }
 
-// Troca o DATABASE_URL ativo do .env pelo do PostgreSQL; o do SQLite fica comentado para voltar.
 function writeDatabaseUrl(url) {
   const lines = readFileSync(ENV_FILE, "utf8").split("\n");
   const index = lines.findIndex((line) => /^DATABASE_URL=/.test(line));
@@ -111,7 +108,6 @@ function writeDatabaseUrl(url) {
   writeFileSync(ENV_FILE, lines.join("\n"));
 }
 
-// Sem criptografia até um servidor de fora, os dados dos estudantes trafegam abertos.
 function warnIfPlainText(url) {
   const { hostname, searchParams } = new URL(url);
   if (searchParams.get("sslmode") === "disable" && !["localhost", "127.0.0.1", "::1", "[::1]"].includes(hostname)) {
@@ -120,7 +116,6 @@ function warnIfPlainText(url) {
 }
 
 function configure() {
-  // Quem já colou o endereço completo no DATABASE_URL não precisa dos campos POSTGRES_*.
   const pasted = isPostgres() && !(process.env.POSTGRES_HOST ?? "").trim();
   const url = pasted ? process.env.DATABASE_URL : postgresUrl();
   process.env.DATABASE_URL = url;
@@ -147,7 +142,7 @@ function configure() {
 function migration(name) {
   if (!name) fail('Dê um nome: npm run db:migracao -- nome-da-mudanca');
   writePostgresSchema();
-  // A comparação é só entre schemas (sem conectar), mas o Prisma confere o formato do endereço.
+  // O Prisma confere o formato do endereço.
   if (!isPostgres()) process.env.DATABASE_URL = "postgresql://usuario:senha@localhost:5432/incluiedu";
   const done = existsSync(MIGRATIONS) ? readdirSync(MIGRATIONS, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort() : [];
   const last = done.at(-1);
@@ -163,13 +158,11 @@ function migration(name) {
   console.log(`✓ Migração criada em ${dir}. Aplique com: npm run db:tabelas`);
 }
 
-// Senha temporária legível (sem 0/O, 1/l).
 function temporaryPassword() {
   const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   return [...randomBytes(14)].map((byte) => alphabet[byte % alphabet.length]).join("");
 }
 
-// Mesmo formato do login (src/lib/auth.ts): scrypt com sal.
 function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
   return `${salt}:${scryptSync(password, salt, 32).toString("hex")}`;
@@ -184,7 +177,6 @@ async function admin(args, { role = "secretaria", label = "Secretaria", script =
   const db = new PrismaClient();
   try {
     if (await db.user.findUnique({ where: { email }, select: { id: true } })) fail(`Já existe uma conta com ${email}.`);
-    // Troca obrigatória da senha no primeiro acesso.
     const password = temporaryPassword();
     const user = await db.user.create({
       data: { name, email, role, passwordHash: hashPassword(password), mustChangePassword: true },
@@ -236,7 +228,7 @@ async function municipalityTables() {
   else console.log(`\n✓ ${municipalities.length} município(s) com as tabelas em dia.`);
 }
 
-// Contas de teste num domínio reservado (RFC 2606): nenhum e-mail sai daqui.
+// Domínio reservado (RFC 2606).
 const TEST_DOMAIN = "incluiedu.test";
 const TEST_SCHOOL = "Escola de Teste (apagar antes do uso real)";
 const SCHOOL_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]);
@@ -244,7 +236,6 @@ const SCHOOL_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coord
 async function removeTestAccounts(db) {
   const users = await db.user.deleteMany({ where: { email: { endsWith: `@${TEST_DOMAIN}` } } });
   const school = await db.school.findFirst({ where: { name: TEST_SCHOOL }, select: { id: true } });
-  // Os estudantes da escola de teste levam junto tudo o que foi registrado para eles.
   const students = school ? await db.student.deleteMany({ where: { schoolId: school.id } }) : { count: 0 };
   if (school) await db.school.delete({ where: { id: school.id } });
   console.log(`✓ Apagados: ${users.count} contas de teste, ${students.count} estudante(s) e ${school ? "a escola de teste" : "nenhuma escola"}.`);
@@ -264,7 +255,6 @@ async function testAccounts(args) {
       ?? (await db.student.create({
         data: { name: "Estudante de Teste", birthDate: new Date("2017-03-15T12:00:00Z"), stage: "anos_iniciais", gradeYear: "3º ano", className: "Turma Teste", shift: "manha", schoolId: school.id, hasAEE: true, aeeFrequency: "2x por semana", guardianName: "Responsável de Teste" },
       }));
-    // Uma senha para todas, sem troca no primeiro acesso: são contas só para testar.
     const password = temporaryPassword();
     const created = [];
     for (const [role, label] of Object.entries(ROLES).filter(([role]) => role !== "plataforma")) {

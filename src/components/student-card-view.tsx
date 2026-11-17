@@ -3,10 +3,6 @@ import { Sprout } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import type { CardView } from "@/lib/student-card";
 
-// Carteirinha no tamanho de um cartão (85,6 × 54 mm), igual na tela e no papel.
-// Frente e verso ficam lado a lado: impressas, recorta-se pela borda e dobra-se
-// na linha do meio. Sem diagnóstico: só identificação, o que a família escolheu
-// mostrar e o QR, que pede login para abrir qualquer coisa.
 function Front({ view }: { view: CardView }) {
   return (
     <div className="id-card relative flex flex-col overflow-hidden rounded-xl border border-line bg-paper-raised text-ink">
@@ -54,7 +50,6 @@ function Back({ view }: { view: CardView }) {
         <p className={`${emergency ? "" : "mt-auto "}pt-0.5 text-xs text-ink-soft`}>Emitida em {formatDate(view.issuedAt)}</p>
       </div>
       <div className="flex w-[23mm] shrink-0 flex-col items-center">
-        {/* SVG gerado no servidor pela biblioteca qrcode, a partir do endereço da plataforma. */}
         <div aria-hidden data-qr-path={view.qrPath} className="size-[23mm] [&>svg]:size-full" dangerouslySetInnerHTML={{ __html: view.qrSvg }} />
         <p className="mt-1 text-center text-xs leading-tight text-ink-soft">Leia e entre na plataforma</p>
       </div>

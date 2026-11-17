@@ -1,4 +1,3 @@
-// Testes do arquivo de migração do Educacenso: node --test src/lib/educacenso.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { detectEdition, identityKeys, normalizeName, parseEducacensoFile, parseInterval, schedulesOverlap, specialEdPersons, titleCase, toIsoDate } from "./educacenso.ts";
@@ -16,7 +15,7 @@ test("datas, nomes, horários e chaves de identidade", () => {
   assert.deepEqual(parseInterval(""), [0, 0]);
   const week = (day, interval) => Array.from({ length: 7 }, (_, index) => (index === day ? parseInterval(interval) : [0, 0]));
   assert.equal(schedulesOverlap(week(1, "07:00-11:00"), week(1, "10:00-12:00")), true);
-  assert.equal(schedulesOverlap(week(1, "07:00-11:00"), week(1, "11:00-12:00")), false); // encostar não é coincidir
+  assert.equal(schedulesOverlap(week(1, "07:00-11:00"), week(1, "11:00-12:00")), false);
   assert.equal(schedulesOverlap(week(1, "07:00-11:00"), week(2, "08:00-09:00")), false);
 });
 
@@ -26,7 +25,6 @@ test("a edição sai do número de campos (com ou sem | no fim) ou do tipo de tu
   const withTrailingPipe = sampleFile(2026).split("\r\n").map((row) => `${row}|`).join("\n");
   assert.equal(parseEducacensoFile(withTrailingPipe).edition, 2026);
   assert.equal(detectEdition([["20", "1", "T", "", "X", "", "", "", "", "", "", "", "", "5"]]), 2026);
-  // BOM gravado em ISO-8859-1 e lido como Windows-1252 antes do registro 00.
   const latin = new TextDecoder("windows-1252").decode(Buffer.from(sampleFile(2025), "latin1"));
   assert.equal(parseEducacensoFile(latin).school?.code, "12345678");
   assert.equal(detectEdition([["20", "1", "T", "", "X", "", "", "", "", "", "", "", "", "1"]]), 2025);
@@ -39,7 +37,7 @@ for (const edition of [2025, 2026]) {
     assert.equal(parsed.classes.length, 6);
     assert.equal(parsed.persons.length, 9);
     assert.deepEqual(parsed.stats.parsed, { "00": 1, "20": 6, "30": 10, "60": 18, "99": 1 });
-    assert.equal(parsed.stats.skipped.length, 2); // registro 30 sem nome e matrícula de pessoa ausente
+    assert.equal(parsed.stats.skipped.length, 2);
     const byName = Object.fromEntries(parsed.persons.map((person) => [person.name, person]));
     const dante = byName["DANTE RIBEIRO"];
     assert.deepEqual([dante.special, dante.hasAee, dante.hasRegular, dante.stageGroup, dante.regularClassName], [true, true, true, "302", "2º ANO A"]);
@@ -59,7 +57,6 @@ for (const edition of [2025, 2026]) {
     const remote = byName["ALUNO A DISTANCIA"];
     assert.deepEqual([remote.hasRegular, remote.regularRemote, remote.stageGroup], [false, true, "302"]);
     assert.equal(byName["ALUNO DE MUITOS VINCULOS"].activityLinks, 5);
-    // Gestora com a marcação, mas sem matrícula de aluno: fica de fora.
     assert.equal(byName["GESTORA COM DEFICIENCIA"].enrolled, false);
     assert.deepEqual(specialEdPersons(parsed).map((person) => person.name), ["DANTE RIBEIRO", "NOVA ALUNA DA SILVA", "SO NO AEE", "ALUNA DA CLASSE ESPECIAL", "MENINO DA PRE", "ALUNO A DISTANCIA", "ALUNO DE MUITOS VINCULOS"]);
   });

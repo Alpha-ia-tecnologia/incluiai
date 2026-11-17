@@ -12,7 +12,6 @@ const TABS = [
   { slug: "historico", label: "Versões e histórico" },
 ];
 
-// Seções do planejamento com DUA, no mesmo padrão das abas do estudante.
 export function PlanningTabs({ planningId }: { planningId: string }) {
   const pathname = usePathname();
   const base = `/planejamento/${planningId}`;

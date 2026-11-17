@@ -1,11 +1,8 @@
-// Leitura em voz alta (materiais e portal da família), pura para teste com
-// node --test (src/lib/speech-text.test.mjs): a escolha da voz e o texto em
-// trechos curtos (o Chrome corta falas longas no meio).
+// O Chrome corta falas longas no meio.
 
 export type VoiceInfo = { name: string; lang: string; localService: boolean; default?: boolean };
 
-// Voz em português que roda no aparelho, de preferência pt-BR. remote = só há voz
-// pela internet: o navegador envia o texto ao serviço dele (no Chrome, o Google).
+// remote = só há voz pela internet: o navegador envia o texto ao serviço dele (no Chrome, o Google).
 export function pickVoice<V extends VoiceInfo>(voices: readonly V[]): { voice: V | null; remote: boolean } {
   const portuguese = voices.filter((voice) => voice.lang.toLowerCase().replace("_", "-").startsWith("pt"));
   const brazilian = (voice: V) => /^pt-br$/i.test(voice.lang.replace("_", "-"));
@@ -16,8 +13,6 @@ export function pickVoice<V extends VoiceInfo>(voices: readonly V[]): { voice: V
   return online.length ? { voice: online[0], remote: true } : { voice: null, remote: false };
 }
 
-// Trechos de até `max` caracteres, quebrando em fim de frase, depois em vírgula
-// e, em último caso, em espaço. Linhas em branco viram pausa (trecho novo).
 export function speechChunks(text: string, max = 180): string[] {
   const chunks: string[] = [];
   for (const paragraph of text.split(/\n+/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean)) {
@@ -36,14 +31,12 @@ export function speechChunks(text: string, max = 180): string[] {
   return chunks;
 }
 
-// Velocidades oferecidas (taxa da fala).
 export const SPEECH_RATES = [
   { value: 0.8, label: "Devagar" },
   { value: 1, label: "Normal" },
   { value: 1.2, label: "Rápido" },
 ] as const;
 
-// Tamanho do texto da tela e da impressão: 1 = padrão, 2 = 112,5%, 3 = 125%.
 export const TEXT_SCALES = ["1", "2", "3"] as const;
 export type TextScale = (typeof TEXT_SCALES)[number];
 export const isTextScale = (value: unknown): value is TextScale => TEXT_SCALES.includes(value as TextScale);

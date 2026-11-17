@@ -1,4 +1,3 @@
-// Testes da base da BNCC: node --test src/lib/bncc-core.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

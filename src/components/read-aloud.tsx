@@ -5,10 +5,6 @@ import { Square, Volume2 } from "lucide-react";
 import { SPEECH_RATES, pickVoice, speechChunks } from "@/lib/speech-text";
 import { inputCls, quietButtonCls } from "@/components/form-styles";
 
-// Ler em voz alta um trecho da página (material, portal da família) com a voz
-// do próprio navegador. Prefere uma voz que roda no aparelho; se só houver voz
-// pela internet, avisa antes, como no ditado (o texto pode ter o nome do estudante).
-
 const NO_VOICES: SpeechSynthesisVoice[] = [];
 let voices = NO_VOICES;
 const voiceStore = {
@@ -29,7 +25,6 @@ const voiceStore = {
 const supported = () => typeof window !== "undefined" && "speechSynthesis" in window;
 const noop = () => () => {};
 
-// Texto visível do trecho, sem botões, campos, ícones e textos só para leitor de tela.
 function readableText(root: HTMLElement): string {
   const parts: string[] = [];
   const walk = (node: Node) => {
@@ -50,7 +45,6 @@ function readableText(root: HTMLElement): string {
 }
 
 type Status = "parado" | "lendo" | "confirmar" | "sem-voz";
-// O seletor de velocidade fica do tamanho do texto, não da largura toda.
 const selectCls = inputCls.replace("w-full ", "w-auto ");
 
 export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; label?: string }) {
@@ -61,7 +55,6 @@ export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; lab
   const [remoteOk, setRemoteOk] = useState(false);
   const id = useId();
 
-  // Sair da página para a leitura.
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
 
   if (!available) return null;

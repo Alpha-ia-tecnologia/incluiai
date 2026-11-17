@@ -8,10 +8,6 @@ import { isEssentialTab, visibleTabs } from "@/lib/student-tab-list";
 
 type Fade = "start" | "end" | "both" | undefined;
 
-// Quem vê cada aba: visibleTabs (src/lib/student-tab-list.ts).
-// As abas ficam numa linha que rola de lado (computador e celular); a aberta fica à vista.
-// Para a equipe pedagógica, a linha traz as abas do caminho essencial e o menu
-// "Mais" guarda as outras; nenhuma seção deixa de existir.
 export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy, readOnly = false }: { studentId: string; showCaseStudy: boolean; showDua?: boolean; readOnly?: boolean }) {
   const pathname = usePathname();
   const stripRef = useRef<HTMLDivElement>(null);
@@ -25,12 +21,10 @@ export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy,
   const activeHref = allTabs.find((tab) => tab.slug
     ? pathname === tab.href || pathname.startsWith(`${tab.href}/`)
     : pathname === base)?.href ?? base;
-  // Quem vê poucas abas (família, terapeuta, leitura da Secretaria) continua com todas na linha.
   const split = showCaseStudy && !readOnly;
   const tabs = split ? allTabs.filter((tab) => isEssentialTab(tab.slug) || tab.href === activeHref) : allTabs;
   const moreTabs = split ? allTabs.filter((tab) => !isEssentialTab(tab.slug)) : [];
 
-  // Menu "Mais": guarda em que página foi aberto, e assim fecha sozinho ao navegar.
   const menuId = useId();
   const moreRef = useRef<HTMLDivElement>(null);
   const [openAt, setOpenAt] = useState<string | null>(null);
@@ -53,7 +47,6 @@ export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy,
     };
   }, [menuOpen]);
 
-  // Quais bordas têm mais abas escondidas: esmaece aquele lado e mostra a seta.
   const measure = useCallback(() => {
     const strip = stripRef.current;
     if (!strip) return;
@@ -62,8 +55,6 @@ export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy,
     setFade(start && end ? "both" : start ? "start" : end ? "end" : undefined);
   }, []);
 
-  // A aba aberta fica à vista, sem rolar a página: a linha só se move quando
-  // a aba está fora da área visível (assim as primeiras não somem à toa).
   useEffect(() => {
     const strip = stripRef.current;
     const active = activeRef.current;

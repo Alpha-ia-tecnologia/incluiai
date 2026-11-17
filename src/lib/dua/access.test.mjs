@@ -1,4 +1,3 @@
-// Testes das permissões do planejamento com DUA: node --test src/lib/dua/access.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { canPlanDua, canSeeDuaIndicators, collaboratorIds, planningAccess, readablePlanningsWhere } from "./access.ts";
@@ -20,9 +19,7 @@ test("coordenação e gestão da escola editam, validam e compartilham", () => {
   for (const role of ["coordenacao", "gestao"]) {
     assert.deepEqual(planningAccess(user("ana", role), planning()), { read: true, edit: true, validate: true, share: true, owner: false }, role);
   }
-  // Sem escola vinculada, a gestão atua na rede.
   assert.equal(planningAccess(user("rede", "gestao", null), planning()).edit, true);
-  // Coordenação de outra escola não lê o planejamento privado.
   assert.deepEqual(planningAccess(user("outra", "coordenacao", "escola-2"), planning()), NONE);
 });
 
@@ -31,7 +28,6 @@ test("compartilhado: a equipe da mesma escola lê, sem editar", () => {
   for (const role of ["professor_sala", "professor_aee", "apoio"]) {
     assert.deepEqual(planningAccess(user("colega", role), shared), { read: true, edit: false, validate: false, share: false, owner: false }, role);
   }
-  // Privado, a mesma colega não lê.
   assert.deepEqual(planningAccess(user("colega", "professor_sala"), planning()), NONE);
 });
 
@@ -42,7 +38,6 @@ test("compartilhado: outra escola não lê", () => {
 test("família, terapeuta e secretaria não planejam nem leem planejamentos", () => {
   for (const role of ["familia", "terapeuta", "secretaria"]) {
     assert.equal(canPlanDua({ role }), false, role);
-    // Nem como responsável ou colaborador gravado antes (perfil mudou: vale na hora).
     const own = planning({ ownerId: "x", sharing: "compartilhado", collaborators: JSON.stringify([{ id: "x" }]) });
     assert.deepEqual(planningAccess(user("x", role), own), NONE, role);
   }

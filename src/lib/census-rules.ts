@@ -1,16 +1,9 @@
-// Regras do Censo Escolar, puras para teste com node --test
-// (src/lib/census-rules.test.mjs): a conciliação do arquivo do Educacenso com
-// o cadastro, a verificação dos estudantes do AEE contra a referência de cada
-// escola (dupla matrícula), as contagens e a janela do monitor. Portado do
-// IncluiAI e adaptado ao cadastro do IncluiEdu.
 import { digitsOnly, identityKeys, normalizeName, titleCase, type CensusPerson, type Dependency } from "./educacenso.ts";
 
 export type PlatformStudent = { id: string; name: string; birthDate: string; inepId: string | null; cpf: string | null; hasAEE: boolean };
 export type MatchBy = "inep" | "cpf" | "nome_nascimento" | "nome" | "manual";
 export const MATCH_LABEL: Record<MatchBy, string> = { inep: "ID INEP", cpf: "CPF", nome_nascimento: "nome e nascimento", nome: "nome", manual: "vínculo manual" };
 
-// Referência guardada por escola: só o público da educação especial, sem o arquivo.
-// Os campos opcionais vieram depois: referências antigas não os têm.
 export type SnapshotPerson = {
   key: string; name: string; inepId: string; cpf: string; birthDate: string;
   special: boolean; aee: boolean; regular: boolean; stage: string;
@@ -46,11 +39,10 @@ function findMatch<T extends Identified>(person: Identified, list: readonly T[])
   return { sameName };
 }
 
-// --- Etapa estimada pela idade (corte etário de 31 de março) ---
+// Corte etário de 31 de março.
 
 export function stageFromAge(birthDate: string, now: Date): string {
   const [year, month] = birthDate.split("-").map(Number);
-  // Idade em 31 de março do ano corrente: quem faz aniversário depois ainda não completou.
   const age = now.getUTCFullYear() - year - (month > 3 ? 1 : 0);
   if (age <= 5) return "educacao_infantil";
   if (age <= 10) return "anos_iniciais";
@@ -58,8 +50,6 @@ export function stageFromAge(birthDate: string, now: Date): string {
   if (age <= 17) return "ensino_medio";
   return "eja";
 }
-
-// --- Plano de conciliação do arquivo com o cadastro da escola ---
 
 export type ReviewDecision = { personKey: string; decision: "link" | "create" | "ignore"; studentId?: string | null; reason?: string | null };
 export type FieldDiff = { field: "name" | "birthDate" | "inepId" | "cpf" | "hasAEE"; label: string; from: string; to: string };
@@ -75,7 +65,7 @@ export type PlanItem = {
   warnings: string[];
   person: Pick<CensusPerson, "special" | "hasAee" | "hasRegular" | "aeeClassName" | "regularClassName" | "stageGroup" | "aeeServices">;
   candidates?: { id: string; name: string; birthDate: string }[];
-  elsewhere?: boolean; // há alguém igual em outra escola da rede (transferência?)
+  elsewhere?: boolean;
   decision?: ReviewDecision["decision"];
   create?: NewStudent;
 };
@@ -112,7 +102,6 @@ function diffsFor(person: CensusPerson, student: PlatformStudent): FieldDiff[] {
   if (person.birthDate && student.birthDate !== person.birthDate) diffs.push({ field: "birthDate", label: "Data de nascimento", from: student.birthDate, to: person.birthDate });
   if (person.inepId && digitsOnly(student.inepId ?? "") !== person.inepId) diffs.push({ field: "inepId", label: "ID INEP", from: student.inepId ?? "", to: person.inepId });
   if (person.cpf.length === 11 && digitsOnly(student.cpf ?? "") !== person.cpf) diffs.push({ field: "cpf", label: "CPF", from: student.cpf ?? "", to: person.cpf });
-  // O Censo confirma o AEE; tirar o atendimento é decisão da equipe, nunca automática.
   if (person.hasAee && !student.hasAEE) diffs.push({ field: "hasAEE", label: "Recebe AEE", from: yesNo(false), to: yesNo(true) });
   return diffs;
 }
@@ -179,8 +168,6 @@ export function buildSyncPlan(persons: CensusPerson[], students: PlatformStudent
   };
 }
 
-// --- Verificação: cada estudante do AEE da escola na referência do Censo ---
-
 export type CoverageStatus = "dupla" | "sem_aee" | "sem_comum" | "sem_marcacao" | "ausente";
 export const COVERAGE_LABEL: Record<CoverageStatus, string> = {
   dupla: "Dupla matrícula no Censo: classe comum e AEE",
@@ -195,8 +182,7 @@ export const COVERAGE_HINT: Record<Exclude<CoverageStatus, "dupla">, string> = {
   sem_marcacao: "Confira no registro da pessoa a marcação de público da educação especial.",
   ausente: "Confira nome, nascimento, CPF ou ID INEP no cadastro, ou importe um arquivo mais recente.",
 };
-// Problemas do vínculo que a verificação aponta junto da situação. Os bloqueantes
-// fazem o Educacenso recusar o arquivo ou não importar a pessoa: o AEE não chega ao Fundeb.
+// Os bloqueantes fazem o Educacenso recusar o arquivo ou não importar a pessoa: o AEE não chega ao Fundeb.
 export type CoverageIssue = "sem_tipo_aee" | "vinculos_demais" | "comum_nao_presencial" | "horario_coincidente" | "aee_duplicado";
 export const ISSUE_LABEL: Record<CoverageIssue, string> = {
   sem_tipo_aee: "Vínculo no AEE sem tipo de atendimento: o Educacenso recusa o arquivo da escola",
@@ -220,10 +206,7 @@ export function issuesOf(person: SnapshotPerson): CoverageIssue[] {
 export type CoverageRow = { id: string; name: string; status: CoverageStatus; matchedBy?: MatchBy; issues: CoverageIssue[]; regularAt?: string };
 export type Coverage = { rows: CoverageRow[]; confirmed: number; pending: number; percent: number | null };
 
-// `regularOnly`: estudantes do cadastro que, na importação, estavam no arquivo fora do
-// público da educação especial (a referência não guarda as demais pessoas do arquivo).
-// `regularElsewhere`: escola pública da rede em cujo arquivo a pessoa tem classe comum
-// presencial (a dupla matrícula vale entre escolas e redes).
+// A dupla matrícula vale entre escolas e redes.
 export function verifyCoverage(
   students: readonly PlatformStudent[],
   persons: readonly SnapshotPerson[],
@@ -245,15 +228,12 @@ export function verifyCoverage(
   return { rows, confirmed, pending: rows.length - confirmed, percent: rows.length ? Math.round((confirmed / rows.length) * 100) : null };
 }
 
-// Na importação: estudantes do cadastro que aparecem no arquivo, mas fora do público da educação especial.
 export function regularOnlyIds(students: readonly PlatformStudent[], allPersons: readonly CensusPerson[]): string[] {
   const outside = allPersons.filter((person) => person.enrolled && !person.special && !person.hasAee);
   return students.filter((student) => findMatch(student, outside).found).map((student) => student.id);
 }
 
-// --- Contagens do arquivo e comparação com o FNDE ---
-
-// duplaByStage: AEE com classe comum por etapa agregada (301 infantil, 302 fundamental...).
+// Etapa agregada do Censo: 301 infantil, 302 fundamental...
 export type CensusCounts = { especial: number; aee: number; dupla: number; aeeSemComum: number; especialSemAee: number; duplaByStage: Record<string, number> };
 export function censusCounts(persons: readonly SnapshotPerson[]): CensusCounts {
   const dupla = persons.filter((person) => person.aee && person.regular);
@@ -276,8 +256,6 @@ export function sumCounts(list: readonly CensusCounts[]): CensusCounts {
   }
   return total;
 }
-
-// --- Fundeb: a escola e a estimativa do AEE considerado na rede ---
 
 export type SchoolInfo = { dependency: Dependency; privateCategory: string; municipalPartnership: boolean };
 const PUBLIC: ReadonlySet<Dependency> = new Set(["municipal", "estadual"]);
@@ -307,12 +285,9 @@ export type AeeEstimate = {
   partner: number; // AEE em instituição conveniada: depende da atuação exclusiva
 };
 
-// Estimativa pelas regras do FNDE, a partir dos arquivos aplicados: aluno do
-// público da educação especial, vínculo de AEE aceito pelo Educacenso em escola
-// municipal e classe comum presencial em escola pública (no mesmo arquivo ou em
-// outro da rede), contado uma vez por aluno. É estimativa: a rede não vê os
-// arquivos do estado nem de outros municípios. `countOnly` conta só o AEE de uma
-// escola, mas procura a classe comum em toda a rede.
+// Estimativa pelas regras do FNDE: aluno do público da educação especial, vínculo de AEE
+// aceito pelo Educacenso em escola municipal e classe comum presencial em escola pública,
+// contado uma vez por aluno. A rede não vê os arquivos do estado nem de outros municípios.
 export function networkAeeEstimate(schools: readonly NetworkSchool[], countOnly?: string): AeeEstimate {
   const regular = new Map<string, string>();
   for (const school of schools.filter((item) => PUBLIC.has(item.info.dependency))) {
@@ -320,7 +295,7 @@ export function networkAeeEstimate(schools: readonly NetworkSchool[], countOnly?
   }
   const estimate: AeeEstimate = { considered: 0, byStage: {}, notVerifiable: 0, blocked: 0, repeated: 0, otherNetwork: 0, partner: 0 };
   const seen = new Set<string>();
-  // Escolas municipais primeiro: o AEE conta para a rede que o oferece.
+  // O AEE conta para a rede que o oferece.
   const ordered = [...schools].sort((a, b) => Number(b.info.dependency === "municipal") - Number(a.info.dependency === "municipal"));
   for (const school of ordered.filter((item) => !countOnly || item.id === countOnly)) {
     for (const person of school.persons.filter((item) => item.aee)) {
@@ -349,7 +324,7 @@ export function fundebComparison(estimate: number, fnde: number | null): { diffe
   return { difference, text: `O FNDE considerou ${-difference} ${difference === -1 ? "matrícula" : "matrículas"} de AEE a mais do que a estimativa dos arquivos. Falta o arquivo de alguma escola, a referência está desatualizada ou a classe comum está em outra rede.` };
 }
 
-// --- Janela do Censo e monitor (horário de Brasília, sem horário de verão desde 2019) ---
+// Horário de Brasília, sem horário de verão desde 2019.
 
 export type MonitorConfig = { enabled: boolean; periodStart: string; periodEnd: string; times: string[] };
 export type MonitorStatus = "ativo" | "aguardando" | "fora" | "desligado";
@@ -374,7 +349,6 @@ export function cleanMonitorConfig(raw: { enabled: boolean; periodStart: string;
   return { enabled: raw.enabled, periodStart: raw.periodStart, periodEnd: raw.periodEnd, times };
 }
 
-// Próximo horário da janela depois de `now`; null fora da janela ou com o monitor desligado.
 export function nextRun(config: MonitorConfig, now: Date): Date | null {
   if (!config.enabled || !validDay(config.periodStart) || !validDay(config.periodEnd)) return null;
   const times = [...new Set(config.times.filter((time) => TIME_PATTERN.test(time)))].sort();

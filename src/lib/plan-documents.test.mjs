@@ -1,4 +1,3 @@
-// Testes do PAEE e do PEI no plano e da orientação do INEP: node --test src/lib/plan-documents.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AEE_SERVICE_OPTIONS, ASSESSMENT_ACCESSIBILITY_OPTIONS, PLAN_DOCUMENT_KEYS, censusDifferences, missingCount, missingPlanItems, planDefaultsFromCaseStudy, planDocumentsFromForm } from "./plan-documents.ts";
@@ -37,7 +36,6 @@ test("sugestões a partir do estudo de caso", () => {
   assert.equal(defaults.assistiveTech, "Prancha de comunicação");
   assert.equal(defaults.networkDemands, "Rede de saúde; Conselho Tutelar");
   assert.equal(defaults.participants, "Família; O próprio estudante");
-  // Necessidades viram os tipos de AEE do Educacenso, na ordem do leiaute; o que não tem tipo fica de fora.
   assert.equal(defaults.aeeServices, "Desenvolvimento de vida autônoma; Ensino do cálculo no Soroban; Comunicação alternativa e aumentativa (CAA)");
   assert.equal(defaults.assessmentAccessibility, "Tradutor-intérprete de Libras");
   assert.deepEqual(planDefaultsFromCaseStudy({}), { aeeTeacher: null, participants: null, assistiveTech: null, supportStaff: null, networkDemands: null, aeeServices: null, assessmentAccessibility: null });
@@ -47,7 +45,6 @@ test("Censo: um registro de referência basta, e o laudo não entra", () => {
   assert.deepEqual(censusReference({ caseStudyConcluded: false, hasActivePlan: false }), { backed: false, records: [], pending: null });
   assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: false }), { backed: true, records: ["Estudo de caso"], pending: null });
   assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: true }), { backed: true, records: ["Estudo de caso", "PAEE", "PEI"], pending: null });
-  // O estudo só respalda quando conclui que o estudante é público da educação especial.
   assert.equal(specialEducationAnswer("Sim: estudante com deficiência"), "sim");
   assert.equal(specialEducationAnswer("Em avaliação pela equipe"), "em_avaliacao");
   assert.equal(specialEducationAnswer("Não é público do AEE: acompanhar na sala comum"), "nao");
@@ -59,7 +56,6 @@ test("Censo: um registro de referência basta, e o laudo não entra", () => {
   const notPublic = censusReference({ caseStudyConcluded: true, hasActivePlan: false, specialEducation: "nao" });
   assert.deepEqual([notPublic.backed, notPublic.records], [false, []]);
   assert.match(notPublic.pending, /não é público/);
-  // Com plano ativo, o PAEE e o PEI respaldam mesmo assim.
   assert.deepEqual(censusReference({ caseStudyConcluded: true, hasActivePlan: true, specialEducation: "em_avaliacao" }).records, ["PAEE", "PEI"]);
   assert.match(INEP_CENSUS_GUIDANCE.url, /^https:\/\/www\.gov\.br\/inep\//);
   assert.match(FEDERAL_SOURCE_LINE, /INEP\/MEC.*Decreto nº 12\.686\/2025.*Portaria MEC nº 421\/2026/);
@@ -80,9 +76,7 @@ test("plano e Censo: aponta só a diferença que dá para conferir", () => {
   const other = censusDifferences(plan, { aee: true, services: ["Desenvolvimento de funções cognitivas"], resources: [] });
   assert.deepEqual(other.map((item) => [item.key, item.census]), [["aeeServices", ["Desenvolvimento de funções cognitivas"]], ["assessmentAccessibility", []]]);
   assert.deepEqual(other[1].plan, ["Auxílio ledor", "Tempo adicional"]);
-  // "Nenhum recurso" no plano e nenhum no arquivo: iguais.
   assert.deepEqual(censusDifferences({ assessmentAccessibility: "Nenhum recurso" }, { aee: true, services: [], resources: [] }), []);
-  // Sem arquivo, sem AEE no arquivo, arquivo antigo (sem recursos) ou plano sem o campo: nada a comparar.
   assert.deepEqual(censusDifferences(plan, null), []);
   assert.deepEqual(censusDifferences(plan, { aee: false, services: [] }), []);
   assert.deepEqual(censusDifferences({}, same), []);

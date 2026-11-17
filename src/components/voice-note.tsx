@@ -3,8 +3,6 @@
 import { useRef, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
 
-// Ditado pelo reconhecimento de fala do navegador — item 5. O professor
-// revisa e edita antes de salvar (a gravação nunca salva sozinha).
 type Recognition = {
   lang: string;
   continuous: boolean;

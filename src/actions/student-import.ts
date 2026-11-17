@@ -7,17 +7,12 @@ import { getCurrentUser, type SessionUser } from "@/lib/auth";
 import { isAccountManager } from "@/lib/user-admin";
 import { IMPORT_MAX_BYTES, normalize, readStudentSheet, studentKey, type StudentImport } from "@/lib/student-import";
 
-// Importação de estudantes por planilha (seção 7, cadastro da rede): primeiro
-// confere e mostra o que entra, o que já está cadastrado e o que tem problema;
-// só grava ao confirmar, lendo e conferindo a planilha de novo no servidor.
-
 type Line = { line: number; name: string };
 export type ImportState = {
   problem?: string;
   csv?: string;
   schoolId?: string;
   schoolName?: string;
-  // similar: já existe alguém com o mesmo nome na escola, com outro nascimento (homônimo ou erro de digitação).
   ready?: (Line & { detail: string; similar: boolean })[];
   existing?: Line[];
   invalid?: (Line & { errors: string[] })[];
@@ -90,7 +85,6 @@ export async function importStudents(_previous: ImportState, formData: FormData)
     };
   }
 
-  // Confirmado: só as linhas prontas entram; o resto fica para corrigir.
   await prisma.$transaction(result.ready.map(({ values }) => prisma.student.create({
     data: {
       name: values.name, birthDate: new Date(`${values.birthDate}T12:00:00`), stage: values.stage, gradeYear: values.gradeYear,

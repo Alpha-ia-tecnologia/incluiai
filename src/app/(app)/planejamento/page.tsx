@@ -43,8 +43,6 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
   ]);
   const reusable = all.map((item) => ({ value: item.id, label: `${item.title}${item.validatedVersion ? ` (versão ${item.validatedVersion} validada)` : " (rascunho)"}` }));
 
-  // Resumo de uso, a partir da lista já carregada (todos os que a pessoa pode
-  // abrir, sem o filtro da busca). Conta uso e revisão; não avalia ninguém.
   const reviewStates = withSegmentColors(REVIEW_ORDER.map((state) => ({ key: state, label: REVIEW_STATE_LABEL[state], value: all.filter((item) => item.state === state).length })));
   const totalApplications = all.reduce((sum, item) => sum + item.applications, 0);
   const applied = all.filter((item) => item.applications > 0).length;

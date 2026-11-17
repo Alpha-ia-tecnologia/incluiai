@@ -7,11 +7,6 @@ import { PENDING_CARD_COOKIE } from "@/lib/student-card";
 import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
 import { unavailableResponse } from "@/lib/tenant";
 
-// Endereço do QR da carteirinha. Não mostra nada por si: sem login, guarda o
-// código por 10 minutos e manda para a entrada (o Início volta para cá depois).
-// Com login, leva cada perfil ao que ele já pode ver; as regras de sempre
-// (motivo da Secretaria, dados clínicos só para o AEE e a coordenação) seguem
-// valendo na página de destino. Quem não tem acesso não descobre de quem é.
 export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
   const unavailable = await unavailableResponse();
   if (unavailable) return unavailable;

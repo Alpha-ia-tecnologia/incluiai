@@ -6,10 +6,6 @@ import { decideActivity, saveDiaryEntry, saveFamilyNote, saveIntersectorReport, 
 import { parseJson } from "../format";
 import type { ActionView, ConversationDetail, ConversationView, MessageView, ToolStep } from "./types";
 
-// Conversas do assistente: leitura para a tela e execução das ações que a
-// pessoa confirmou. O histórico enviado ao modelo só recebe acréscimos; quando
-// fica longo demais, a pessoa começa outra conversa.
-
 export const MAX_HISTORY_MESSAGES = 80;
 
 export function toConversationView(conversation: Pick<AssistantConversation, "id" | "title" | "updatedAt">): ConversationView {
@@ -79,7 +75,6 @@ export async function deleteConversation(user: SessionUser, id: string): Promise
   return result.count > 0;
 }
 
-// Ações decididas depois do último turno, para o modelo saber o que aconteceu.
 export async function decidedSinceLastTurn(conversation: Pick<AssistantConversation, "id" | "updatedAt">): Promise<AssistantAction[]> {
   const prisma = await db();
   return prisma.assistantAction.findMany({
@@ -90,8 +85,6 @@ export async function decidedSinceLastTurn(conversation: Pick<AssistantConversat
 
 type ActionArgs = Record<string, unknown> & { studentId: string };
 
-// Executa o que a pessoa confirmou. As permissões são conferidas de novo
-// aqui, com a pessoa que confirma: o cartão não é um passe livre.
 export async function executeAction(user: SessionUser, actionId: string, decision: "confirmar" | "cancelar"): Promise<{ action: ActionView; error?: string }> {
   const prisma = await db();
   const action = await prisma.assistantAction.findFirst({ where: { id: actionId, conversation: { userId: user.id } } });
@@ -106,7 +99,6 @@ export async function executeAction(user: SessionUser, actionId: string, decisio
   const args = parseJson<ActionArgs>(action.args, { studentId: "" });
   try {
     const result = await perform(user, action.kind, args);
-    // O cartão guarda o resultado; o modelo fica sabendo no próximo turno (decidedSinceLastTurn).
     const confirmed = await prisma.assistantAction.update({ where: { id: action.id }, data: { status: "confirmada", decidedAt: new Date(), result } });
     return { action: toActionView(confirmed) };
   } catch (error) {

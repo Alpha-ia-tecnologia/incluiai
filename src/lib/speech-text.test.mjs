@@ -1,4 +1,3 @@
-// Testes da leitura em voz alta: node --test src/lib/speech-text.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { isTextScale, pickVoice, speechChunks } from "./speech-text.ts";

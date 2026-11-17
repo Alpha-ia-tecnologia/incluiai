@@ -1,6 +1,3 @@
-// Segurança da conta: trocar a senha e ligar a verificação em duas etapas.
-// O aplicativo autenticador da gravação: o código da janela seguinte, que o servidor
-// aceita agora e daqui a 30 segundos (a digitação pode cruzar a virada da janela).
 // Importado só aqui: carregar o .ts tem um aviso do Node que não precisa aparecer nos outros vídeos.
 async function authenticatorCode(secret) {
   const { totpAt } = await import("../../../src/lib/totp.ts");

@@ -19,8 +19,6 @@ import { percentOf } from "@/lib/series";
 
 export const dynamic = "force-dynamic";
 
-// Uma cor por tipo de recurso, como no restante da plataforma; a fotografia de
-// cada recurso (src/lib/resource-bank.ts) mostra os materiais da proposta.
 const TYPE_COLORS: Record<string, string> = {
   plano_de_aula: "bg-sage-soft",
   atividade: "bg-teal-soft",
@@ -60,7 +58,6 @@ export default async function ResourcesPage({
     include: { _count: { select: { activities: true } } },
     orderBy: [{ timesUsed: "desc" }, { title: "asc" }],
   });
-  // A barra de uso compara cada recurso com o mais aplicado da lista filtrada.
   const mostUsed = resources.reduce((max, resource) => Math.max(max, resource.timesUsed), 0);
 
   return (
@@ -129,7 +126,6 @@ export default async function ResourcesPage({
               const photo = resourcePresentation(r);
               return (
                 <Link key={r.id} href={`/recursos/${r.id}`} className={`group flex h-full flex-col overflow-hidden rounded-3xl text-ink transition duration-200 hover:-translate-y-1 hover:shadow-e2 ${TYPE_COLORS[r.resourceType] ?? "bg-surface-muted"}`}>
-                  {/* A foto é ilustrativa e o título já nomeia o link: fica fora da leitura. */}
                   <Image src={photo.image} alt="" width={1000} height={750} sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw" className="aspect-[3/2] w-full bg-surface-muted object-cover" />
                   <div className="flex flex-1 flex-col p-6">
                     <span className="mb-2 text-xs font-medium">{RESOURCE_TYPES[r.resourceType] ?? r.resourceType}</span>
@@ -142,7 +138,6 @@ export default async function ResourcesPage({
                       <Badge>{COMPLEXITY_LABELS[r.complexity] ?? r.complexity}</Badge>
                     </div>
                     <div className="mt-5 flex items-center gap-3 border-t border-ink/10 pt-4">
-                      {/* O anel repete o percentual escrito ao lado: fica fora do nome do link. */}
                       <div aria-hidden className="shrink-0 rounded-full bg-white/80 p-1">
                         <RingStat id={`boa-resposta-${r.id}`} value={successRate} label="Boa resposta" size={52} color={SIGNAL.lime}>
                           <span aria-hidden className="text-xs font-medium tabular-nums text-ink">{successRate === null ? "—" : `${successRate}%`}</span>

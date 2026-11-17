@@ -14,10 +14,6 @@ import { StepReview } from "./step-review";
 import { buttonCls, secondaryCls } from "./dua-ui";
 import { Character } from "@/components/character";
 
-// Formulário em quatro etapas (RF02) com salvamento automático. As gravações saem
-// uma de cada vez (o Next despacha ações em série) e sempre com a revisão
-// conhecida: se outro profissional salvou antes, a tela avisa ANTES de sobrescrever.
-
 export const STEPS = [
   { key: "objetivo", label: "Objetivo e evidência" },
   { key: "barreiras", label: "Contexto e barreiras" },
@@ -60,7 +56,6 @@ export function DuaEditor(props: EditorProps) {
 
   const readOnly = !props.access.edit || props.state === "validado";
 
-  // Uma gravação por vez; o que mudar durante ela sai na seguinte.
   const save = useCallback(async () => {
     if (saving.current) await saving.current;
     if (!dirty.current) return;
@@ -105,9 +100,6 @@ export function DuaEditor(props: EditorProps) {
     timer.current = setTimeout(() => { void save(); }, 1200);
   }, [readOnly, save]);
 
-  // Depois de uma decisão (sugestão aceita, envio para revisão, validação) a página
-  // é atualizada com uma revisão mais nova do servidor: o editor passa a usá-la.
-  // As ações gravam o pendente antes (flush), então não há edição local a perder.
   useEffect(() => {
     if (props.revision > revision.current && !dirty.current) {
       revision.current = props.revision;
@@ -117,14 +109,12 @@ export function DuaEditor(props: EditorProps) {
     }
   }, [props.revision, props.content, props.updatedAt]);
 
-  // Ao sair da página com alteração pendente, o navegador avisa.
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (dirty.current) event.preventDefault(); };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, []);
 
-  // Trocar de etapa leva o foco ao título dela (leitor de tela e teclado).
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
     headingRef.current?.focus();
@@ -162,7 +152,6 @@ export function DuaEditor(props: EditorProps) {
   return (
     <div className="min-w-0">
       {props.state === "validado" ? (
-        // Planejamento validado é um momento de conclusão: a prancheta acompanha o aviso.
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-green/20 bg-green-soft/60 p-4">
           <Character variant="planning" className="hidden w-14 sm:block" />
           <p className="min-w-0 max-w-xl flex-1 text-sm leading-relaxed text-ink">
@@ -244,7 +233,6 @@ function SaveIndicator({ status, readOnly, onKeepMine, onUseTheirs, onRetry }: {
     );
   }
   const text = status.kind === "salvando" ? "Salvando…" : status.kind === "alterado" ? "Alterações ainda não salvas" : "Tudo salvo";
-  // O broto entra a cada gravação concluída (e ao abrir, já salvo) e cresce uma vez.
   return (
     <p role="status" aria-live="polite" className="mb-4 inline-flex items-center gap-2 text-xs text-ink-soft">
       {status.kind === "salvo" ? <Sprout size={16} aria-hidden className="sprout-mark text-green" /> : <CloudUpload size={14} aria-hidden />} {text}

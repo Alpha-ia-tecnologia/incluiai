@@ -1,10 +1,7 @@
-// Coordenação: criar uma conta (senha temporária) e importar estudantes por planilha.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-// Planilha fictícia no formato do modelo; a terceira linha fica sem nascimento,
-// para a conferência mostrar uma linha com problema.
 const CSV = "﻿" + [
   "nome;nascimento;etapa;ano;turma;turno;responsavel;telefone;aee;frequencia_aee;profissional_de_apoio",
   "Helena Duarte Lima;12/05/2019;Anos iniciais;2º ano;Turma B;Manhã;Sônia Duarte;(98) 90000-1111;sim;2x por semana;não",

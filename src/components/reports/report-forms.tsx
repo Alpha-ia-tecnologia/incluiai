@@ -7,7 +7,6 @@ import { hintCls, inputCls, labelCls, primaryButtonCls, secondaryButtonCls, text
 
 type Action = (previous: ReportState, formData: FormData) => Promise<ReportState>;
 
-// Novo relatório: o período (semestre atual por padrão).
 export function NewReportForm({ action, start, end }: { action: Action; start: string; end: string }) {
   const [state, submit, pending] = useActionState(action, {});
   return (
@@ -30,7 +29,6 @@ export function NewReportForm({ action, start, end }: { action: Action; start: s
   );
 }
 
-// Parecer: salvar o rascunho ou validar e publicar para a família.
 export function OpinionEditor({ action, opinion, canValidate }: { action: Action; opinion: string; canValidate: boolean }) {
   const [state, submit, pending] = useActionState(action, {});
   return (

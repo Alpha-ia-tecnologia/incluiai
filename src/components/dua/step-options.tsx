@@ -9,9 +9,6 @@ import { Field, OriginBadge, hintCls, inputCls, labelCls, linesToList, linkCls, 
 import { newId, type StepProps } from "./step-objective";
 import { SuggestionReview } from "./suggestion-review";
 
-// Etapa 3 (3.3, RF03): cada opção diz a que barreira responde, o princípio, os
-// recursos, o contexto de uso e o critério que ajuda a observar. Planejamento
-// intencional: não é preciso cobrir todos os formatos nem todas as diretrizes.
 export function StepOptions({ content, update, readOnly, planningId, access, suggestions, aiOn, flush, supportsCount }: StepProps & { planningId: string; access: PlanningAccess; suggestions: SuggestionView[]; aiOn: boolean; flush: () => Promise<void>; supportsCount: number }) {
   const setStrategy = (id: string, patch: Partial<DuaStrategy>) => update({ ...content, strategies: content.strategies.map((item) => (item.id === id ? { ...item, ...patch } : item)) });
   const addStrategy = (principle?: DuaPrinciple, description = "") => update({

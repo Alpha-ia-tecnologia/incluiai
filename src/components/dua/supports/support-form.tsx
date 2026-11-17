@@ -7,11 +7,6 @@ import { createDuaSupport, updateDuaSupport } from "@/actions/dua";
 import { BARRIER_STATUSES, BARRIER_STATUS_LABEL, type DuaSupportData } from "@/lib/dua/domain";
 import { Field, ResultMessage, buttonCls, hintCls, inputCls, labelCls, textareaCls } from "../dua-ui";
 
-// Formulário do apoio individual (RF04), para criar e para editar. As opções de
-// perfil e de objetivos chegam já filtradas pelo servidor no recorte do estudante;
-// a ação recebe só identificadores e confere tudo de novo ao gravar.
-
-// Item do perfil que pode embasar o apoio. A data vem formatada do servidor.
 export type ProfileOption = { field: string; label: string; value: string; source: string; dateLabel: string; version: string };
 export type ObjectiveOption = { id: string; description: string; status: string };
 
@@ -24,15 +19,12 @@ type Props = {
   student: { id: string; name: string };
   profileOptions: ProfileOption[];
   objectives: ObjectiveOption[];
-  // Sem `existing`, o formulário cria um apoio novo.
   existing?: { id: string; revision: number; state: "rascunho" | "validado"; data: DuaSupportData };
 };
 
 export function SupportForm(props: Props) {
   const [result, setResult] = useState<Outcome | null>(null);
   const [round, setRound] = useState(0);
-  // Na edição, o formulário recomeça a cada revisão salva no servidor: mostra o
-  // texto atual (inclusive sugestões aceitas) e não grava por cima de mudanças.
   const formKey = props.existing ? `revisao-${props.existing.revision}` : `novo-${round}`;
   return (
     <div className="min-w-0">
@@ -59,7 +51,6 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
 
   const chosenRefs = new Map((data?.profileRefs ?? []).map((ref) => [ref.field, ref]));
   const linked = new Set((data?.planLinks ?? []).map((link) => link.objectiveId));
-  // Referências que sumiram do perfil ou objetivos fora do plano ativo saem ao salvar.
   const goneRefs = (data?.profileRefs ?? []).filter((ref) => !profileOptions.some((option) => option.field === ref.field));
   const goneLinks = (data?.planLinks ?? []).filter((link) => !objectives.some((objective) => objective.id === link.objectiveId));
   const hasIndividual = individualText.trim().length > 0;
@@ -71,8 +62,6 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
     const text = (name: string) => String(form.get(name) ?? "");
     const justification = hasIndividual ? text("individualObjectiveJustification") : "";
     const individualObjectiveId = hasIndividual ? text("individualObjectiveId") : "";
-    // Objetivo individual: explícito, justificado e ligado ao plano. Conferido aqui
-    // para orientar logo; o servidor confere de novo ao validar.
     if (hasIndividual && (!justification.trim() || !individualObjectiveId)) {
       setShowIndividual(true);
       onResult({
@@ -85,7 +74,6 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
       });
       return;
     }
-    // O objetivo do plano escolhido para o objetivo individual também fica vinculado ao apoio.
     const objectiveIds = [...new Set([...form.getAll("objectiveIds").map(String), individualObjectiveId].filter(Boolean))];
     const fields = {
       barrierDescription: text("barrierDescription"),

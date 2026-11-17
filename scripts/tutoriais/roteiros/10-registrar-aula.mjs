@@ -1,4 +1,3 @@
-// Registrar como foi a aula (em três partes) e a frequência do AEE.
 const NOTA = "Identificou o nome entre três opções, com pista visual. O tema dos dinossauros ajudou a manter o interesse.";
 
 export default {

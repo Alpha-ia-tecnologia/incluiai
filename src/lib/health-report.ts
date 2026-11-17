@@ -1,9 +1,5 @@
-// Laudos e relatórios de saúde anexados ao estudo de caso. São opcionais: o
-// AEE é pedagógico e não depende de laudo (Nota Técnica MEC/SECADI/DPEE nº
-// 04/2014). São dado clínico: só o AEE e a coordenação os veem
-// (canSeeClinicalDetail). Aqui ficam as regras que não dependem da IA: os
-// arquivos aceitos, os campos que a leitura pode sugerir e como o que a equipe
-// aceita se junta ao estudo de caso. A leitura fica em agents/health-report-reader.ts.
+// O AEE é pedagógico e não depende de laudo (Nota Técnica MEC/SECADI/DPEE nº
+// 04/2014).
 
 import { CASE_STUDY_FIELDS, type CaseStudyContent, type CaseStudyField } from "./case-study";
 import { splitItems, type ChoiceOption } from "./form-options";
@@ -13,8 +9,6 @@ export const MAX_REPORT_BYTES = MAX_REPORT_MB * 1024 * 1024;
 
 export type ReportMimeType = "application/pdf" | "image/jpeg" | "image/png";
 
-// O tipo é conferido pelos primeiros bytes do arquivo, não pela extensão nem
-// pelo que o navegador declara.
 export function sniffReportType(bytes: Uint8Array): ReportMimeType | null {
   const starts = (...signature: number[]) => signature.every((byte, index) => bytes[index] === byte);
   if (starts(0x25, 0x50, 0x44, 0x46, 0x2d)) return "application/pdf"; // %PDF-
@@ -25,8 +19,6 @@ export function sniffReportType(bytes: Uint8Array): ReportMimeType | null {
 
 const EXTENSIONS: Record<ReportMimeType, string> = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png" };
 
-// Nome mostrado na tela e no download: sem caminho, sem caracteres de controle
-// e com a extensão do tipo real.
 export function cleanReportFileName(name: string, mimeType: ReportMimeType): string {
   const base = (name.split(/[\\/]/).pop() ?? "")
     .replace(/[\p{Cc}"<>|*?:]/gu, "")
@@ -36,9 +28,6 @@ export function cleanReportFileName(name: string, mimeType: ReportMimeType): str
   return `${base || "laudo"}.${EXTENSIONS[mimeType]}`;
 }
 
-// Campos do estudo de caso que um laudo pode informar. A escuta da família e
-// do estudante, a observação e a avaliação pedagógica ficam de fora: isso a
-// escola levanta, e o laudo não substitui.
 export const REPORT_FIELD_KEYS = ["diagnostico", "saude", "acompanhamentos", "publicoAlvo", "necessidades", "recursos", "encaminhamentos"] as const;
 export type ReportFieldKey = (typeof REPORT_FIELD_KEYS)[number];
 
@@ -51,7 +40,6 @@ export const REPORT_FIELDS: (CaseStudyField & { key: ReportFieldKey })[] = REPOR
 const optionValue = (option: ChoiceOption) => (typeof option === "string" ? option : option.value);
 export const fieldOptions = (field: CaseStudyField) => (field.options ?? []).map(optionValue);
 
-// sem_autorizacao: a família ainda não autorizou o uso de IA para o estudante.
 export type ReportStatus = "lendo" | "lido" | "sem_texto" | "falhou" | "ia_desligada" | "sem_autorizacao";
 
 export const STATUS_TEXT: Record<ReportStatus, string> = {
@@ -63,8 +51,6 @@ export const STATUS_TEXT: Record<ReportStatus, string> = {
   sem_autorizacao: "Guardado, sem autorização para IA",
 };
 
-// Situações em que vale pedir a leitura de novo: a IA foi ligada, a família
-// autorizou ou a leitura anterior caiu no meio.
 export const RETRY_STATUSES: ReadonlySet<string> = new Set(["falhou", "ia_desligada", "sem_autorizacao", "lendo"]);
 
 export function reportStatus(status: string, reviewedAt: Date | null): { label: string; needsReview: boolean } {
@@ -73,8 +59,6 @@ export function reportStatus(status: string, reviewedAt: Date | null): { label: 
   return { label: known ?? status, needsReview: status === "lido" };
 }
 
-// Leitura que ficou em "lendo" por mais de 3 minutos foi interrompida (o
-// servidor reiniciou no meio, por exemplo) e pode ser tentada de novo.
 export function isReadingStalled(status: string, createdAt: Date): boolean {
   return status === "lendo" && Date.now() - createdAt.getTime() > 3 * 60_000;
 }
@@ -90,7 +74,6 @@ export type ReportReading = {
 };
 export type ReportAccepted = { guidance: string[]; fields: Partial<Record<ReportFieldKey, string[]>> };
 
-// O que a IA devolve, já sem marcadores de anonimização.
 export type RawReading = {
   tipoDocumento: "laudo" | "relatorio" | "outro";
   resumo: string;
@@ -106,9 +89,6 @@ const clip = (text: string, size: number) => {
 };
 const normalizeKey = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-// Confere a resposta da IA: só ficam valores que existem nas opções do campo
-// (com a grafia da opção), um valor por campo de escolha única e orientações
-// curtas, sem repetição.
 export function normalizeReading(raw: RawReading): ReportReading {
   const suggestions: ReportSuggestion[] = [];
   for (const field of REPORT_FIELDS) {
@@ -145,18 +125,13 @@ function parse<T>(value: string | null | undefined, fallback: T): T {
 export const parseReading = (value: string | null | undefined) => parse<ReportReading | null>(value, null);
 export const parseAccepted = (value: string | null | undefined) => parse<ReportAccepted>(value, { guidance: [], fields: {} });
 
-// Respostas que dizem "nada" ("Nenhuma", "Sem diagnóstico", "Em investigação")
-// saem do campo quando a equipe junta uma informação concreta do laudo.
 const PLACEHOLDERS = new Set(["Nenhuma", "Nenhum", "Sem diagnóstico", "Em investigação"]);
 
 export type ReviewRow = {
   field: CaseStudyField & { key: ReportFieldKey };
   current: string[];
-  // Valores sugeridos que ainda não estão no estudo de caso.
   fresh: string[];
-  // Valores sugeridos que já estão registrados.
   known: string[];
-  // Respostas que deixam o campo se a equipe aceitar algo novo.
   replaces: string[];
   excerpt: string;
 };
@@ -176,8 +151,6 @@ export function reviewRows(reading: ReportReading, content: CaseStudyContent): R
   });
 }
 
-// Junta ao estudo de caso o que a equipe aceitou. Em campos de várias
-// respostas, soma ao que já existe; em campos de uma resposta, troca.
 export function mergeIntoCaseStudy(content: CaseStudyContent, fields: ReportAccepted["fields"]): CaseStudyContent {
   const next: CaseStudyContent = { ...content };
   for (const field of REPORT_FIELDS) {
@@ -194,8 +167,6 @@ export function mergeIntoCaseStudy(content: CaseStudyContent, fields: ReportAcce
   return next;
 }
 
-// Termos clínicos que não seguem para os agentes do plano, mesmo dentro de
-// uma orientação aceita (o contexto do plano é pedagógico).
 export const CLINICAL_TERMS = /(?<![\p{L}])(diagn[óo]stic\p{L}*|laudo|cid[- ]?\d|f\d{2}(?:\.\d)?|medica(?:ç|c)\p{L}*|rem[ée]dio|dose|patologia|transtorno|s[íi]ndrome|tea|tdah|autis\p{L}*|epileps\p{L}*|d[ée]ficit)(?![\p{L}])/iu;
 
 export function guidanceForPlan(accepted: ReportAccepted[]): string[] {

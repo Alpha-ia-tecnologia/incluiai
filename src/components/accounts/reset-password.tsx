@@ -5,7 +5,6 @@ import { KeyRound } from "lucide-react";
 import type { ResetState } from "@/actions/users";
 import { secondaryButtonCls } from "@/components/form-styles";
 
-// Redefinir a senha: a temporária aparece uma vez, para a gestão entregar.
 export function ResetPassword({ action }: { action: (previous: ResetState) => Promise<ResetState> }) {
   const [state, submit, pending] = useActionState(action, {});
   if (state.password) {

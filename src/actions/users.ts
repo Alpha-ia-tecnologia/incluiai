@@ -8,11 +8,6 @@ import { linkableStudents, managedAccount, recordAccountEvent, schoolsFor, type 
 import { EMAIL_RE, accountSchoolProblem, assignableRoles, isAccountManager, isLinked, mergeLinks, temporaryPassword } from "@/lib/user-admin";
 import { ROLES } from "@/lib/scale";
 
-// Pessoas e acessos (seções 7 e 14): a gestão cria e altera contas, redefine a
-// senha, desliga as duas etapas de quem perdeu o celular e desativa contas.
-// Cada passo confere o escopo no servidor e fica no histórico da conta.
-
-// values: o que foi enviado, para o formulário não se apagar quando há erro.
 export type AccountFormState = { error?: string; saved?: boolean; created?: { id: string; name: string; email: string; password: string }; values?: AccountInput };
 export type ResetState = { error?: string; password?: string };
 
@@ -41,8 +36,6 @@ function readAccount(formData: FormData): AccountInput {
   };
 }
 
-// Confere os dados contra o escopo de quem gerencia e devolve os estudantes
-// escolhidos (com a escola, para o recorte dos vínculos).
 async function checkAccount(manager: SessionUser, input: AccountInput, selfId?: string) {
   const prisma = await db();
   if (input.name.length < 3 || input.name.length > 120) return { error: "Escreva o nome da pessoa (de 3 a 120 caracteres)." } as const;
@@ -92,7 +85,6 @@ export async function updateAccount(id: string, _previous: AccountFormState, for
   const checked = await checkAccount(manager, input, id);
   if ("error" in checked) return { error: checked.error, values: input };
   const linked = isLinked(input.role);
-  // Quem gerencia na escola só mexe nos vínculos da própria escola.
   const studentIds = linked ? mergeLinks(manager, isLinked(account.role) ? account.links : [], checked.chosen) : [];
   if (linked && !studentIds.length) return { error: "Mantenha pelo menos um estudante vinculado. Para tirar o acesso, desative a conta.", values: input };
 
@@ -114,7 +106,6 @@ export async function updateAccount(id: string, _previous: AccountFormState, for
     prisma.studentLink.deleteMany({ where: { userId: id, studentId: { notIn: studentIds } } }),
     ...studentIds.map((studentId) => prisma.studentLink.upsert({ where: { userId_studentId: { userId: id, studentId } }, create: { userId: id, studentId }, update: {} })),
   ]);
-  // Perfil, escola ou vínculos mudaram: a pessoa entra de novo com o acesso novo.
   const accessChanged = input.role !== account.role || checked.schoolId !== account.schoolId || linksChanged || input.email !== account.email;
   if (accessChanged) await prisma.session.deleteMany({ where: { userId: id } });
   await recordAccountEvent(id, manager, "alterou a conta", changes.join("; "));
@@ -123,7 +114,6 @@ export async function updateAccount(id: string, _previous: AccountFormState, for
   return { saved: true };
 }
 
-// Senha esquecida: a gestão gera uma temporária, que a pessoa troca no próximo acesso.
 export async function resetAccountPassword(id: string, _previous: ResetState): Promise<ResetState> {
   const prisma = await db();
   const manager = await requireManager();
@@ -137,8 +127,6 @@ export async function resetAccountPassword(id: string, _previous: ResetState): P
   return { password };
 }
 
-// Celular perdido e sem códigos de recuperação: a gestão desliga as duas etapas,
-// e a pessoa liga de novo no próximo acesso (obrigatório com REQUIRE_2FA).
 export async function resetAccountTwoFactor(id: string): Promise<void> {
   const prisma = await db();
   const manager = await requireManager();

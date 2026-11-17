@@ -4,10 +4,6 @@ import type { AgentModel } from "./types";
 import { hasApiKey, isDeepSeekEnabled } from "../env";
 import { withAnonymization, type Anonymizer } from "./anonymize";
 
-// Cadeia de provedores dos agentes: Claude → DeepSeek (se configurado) →
-// erro, que leva as ações ao motor de regras. Os grafos recebem um
-// AgentModel por parâmetro, o que permite testá-los sem chamar a API.
-
 export { AGENT_MODEL, claudeAgentModel } from "./claude";
 export { DEEPSEEK_MODEL, deepseekAgentModel } from "./deepseek";
 export { AgentOutputError, type AgentModel, type AgentRequest } from "./types";
@@ -20,8 +16,6 @@ export { isDeepSeekEnabled };
 
 type Provider = { name: "Claude" | "DeepSeek"; call: AgentModel };
 
-// Cria o modelo de uma execução e registra quais provedores responderam,
-// para a trilha da proposta e o histórico de acessos.
 export function createAgentModel(anonymizer: Anonymizer) {
   const providers: Provider[] = [];
   if (hasApiKey("ANTHROPIC_API_KEY")) providers.push({ name: "Claude", call: claudeAgentModel });
@@ -48,9 +42,7 @@ export function createAgentModel(anonymizer: Anonymizer) {
   };
 
   return {
-    // Todo pedido sai anonimizado, qualquer que seja o provedor.
     model: withAnonymization(model, anonymizer),
-    // Agentes atendidos pelo DeepSeek nesta execução (por fallback ou por ser o único provedor).
     deepseekAgents: () => [...usedBy].filter(([, name]) => name === "DeepSeek").map(([agent]) => agent),
   };
 }

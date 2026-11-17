@@ -5,8 +5,6 @@ import { BARRIER_CATEGORIES, BARRIER_CATEGORY_LABEL, BARRIER_STATUSES, BARRIER_S
 import { Field, OriginBadge, hintCls, inputCls, labelCls, linesToList, listToLines, secondaryCls, textareaCls } from "./dua-ui";
 import { newId, type StepProps } from "./step-objective";
 
-// Etapa 2 (3.2): barreiras da TAREFA e do CONTEXTO, nunca do estudante. Prevista,
-// observada e hipótese ficam separadas: uma sugestão nunca vira "observada" sozinha.
 export function StepBarriers({ content, update, readOnly }: StepProps) {
   const setContext = (patch: Partial<typeof content.context>) => update({ ...content, context: { ...content.context, ...patch } });
   const setBarrier = (id: string, patch: Partial<DuaBarrier>) => update({ ...content, barriers: content.barriers.map((item) => (item.id === id ? { ...item, ...patch } : item)) });
