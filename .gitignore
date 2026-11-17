@@ -45,6 +45,7 @@ next-env.d.ts
 /prisma/*.db-journal
 /prisma/*.db-wal
 /prisma/*.db-shm
+/prisma/municipios/
 *.log
 
 # python (scripts dos vídeos tutoriais)

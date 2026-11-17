@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, ClipboardList, EyeOff, FileUp, ListChecks, LockKeyhole, ShieldAlert, ShieldCheck, Sparkles, Sprout, UserCheck } from "lucide-react";
 import { Assurances, Steps } from "@/components/explain";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canSeeClinicalDetail, requireStudentPage } from "@/lib/auth";
 import { recordView } from "@/lib/access-log";
 import { studentConsent } from "@/lib/consent";
@@ -25,6 +25,7 @@ export default async function HealthReportsPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ excluido?: string }>;
 }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await requireStudentPage(id);
   // Laudo é dado clínico: só o AEE e a coordenação. A leitura só vai para o

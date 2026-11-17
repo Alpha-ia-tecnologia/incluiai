@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, History, RotateCcw, ShieldCheck, UserCheck, UserX } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, twoFactorRequired } from "@/lib/auth";
 import { linkableStudents, managedAccount, schoolsFor } from "@/lib/accounts";
 import { assignableRoles, isAccountManager } from "@/lib/user-admin";
@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
 const when = (date: Date) => date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const [{ id }, user] = await Promise.all([params, getCurrentUser()]);
   if (!user) redirect("/login");
   if (!isAccountManager(user.role)) redirect("/");

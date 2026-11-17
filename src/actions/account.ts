@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { currentSessionId, getCurrentUser, getPendingLogin, hashPassword, loginAllowed, loginStep, recordLoginAttempt, upgradeSession, verifyPassword } from "@/lib/auth";
 import { recordAccountEvent } from "@/lib/accounts";
 import { passwordProblem } from "@/lib/user-admin";
+import { homeAfterLogin } from "@/lib/tenant";
 
 // A própria conta (seção 14): criar a senha no primeiro acesso e trocar a senha.
 
@@ -26,6 +27,7 @@ function newPasswordProblem(password: string, confirm: string, user: { email: st
 // Primeiro acesso com a senha temporária: a pessoa cria a dela e segue para a
 // segunda etapa, se houver; senão, a sessão vira completa.
 export async function setPasswordAtLogin(_previous: PasswordState, formData: FormData): Promise<PasswordState> {
+  const prisma = await db();
   const pending = await getPendingLogin();
   if (!pending) redirect("/login");
   const { user } = pending;
@@ -38,12 +40,13 @@ export async function setPasswordAtLogin(_previous: PasswordState, formData: For
   const next = loginStep({ ...user, mustChangePassword: false });
   if (next) redirect(`/login/${next}`);
   await upgradeSession(pending.sessionId, user.id);
-  redirect("/");
+  redirect(await homeAfterLogin());
 }
 
 // Trocar a senha: confere a atual (com o mesmo limite de tentativas do login)
 // e encerra as outras sessões da conta.
 export async function changeOwnPassword(_previous: PasswordState, formData: FormData): Promise<PasswordState> {
+  const prisma = await db();
   const session = await getCurrentUser();
   if (!session) redirect("/login");
   const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id } });

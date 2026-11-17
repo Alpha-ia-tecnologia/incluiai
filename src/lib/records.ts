@@ -1,5 +1,5 @@
 import { notifyFamily, notifyTeam } from "./notifications";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import { canAccessStudent, canEditStudentRecord, type SessionUser } from "./auth";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
@@ -9,6 +9,7 @@ import { recordChange } from "./access-log";
 // Cada uma confere a permissão de quem grava; nada aqui é ação pública.
 
 export async function assertStudentTeam(user: SessionUser, studentId: string) {
+  const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true, name: true } });
   if (!student || !canEditStudentRecord(user.role) || !canAccessStudent(user, student.schoolId, student.id)) {
     throw new Error("Você não tem permissão para esta ação com este estudante.");
@@ -19,6 +20,7 @@ export async function assertStudentTeam(user: SessionUser, studentId: string) {
 // Plano de ensino só com estudo de caso concluído (CA02), em toda criação de plano:
 // manual, a partir de proposta e na própria proposta da IA ou das regras.
 export async function assertCaseStudyConcluded(studentId: string) {
+  const prisma = await db();
   const caseStudy = await prisma.caseStudy.findUnique({ where: { studentId }, select: { status: true } });
   if (!isCaseStudyConcluded(caseStudy)) throw new Error(CASE_STUDY_REQUIRED_MESSAGE);
 }
@@ -38,6 +40,7 @@ export type DiaryEntryInput = {
 // Registro em 3 toques. Ao registrar sobre uma atividade aceita, ela passa a
 // "aplicada", fechando o ciclo sugerir → decidir → aplicar → registrar.
 export async function saveDiaryEntry(user: SessionUser, studentId: string, input: DiaryEntryInput) {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   const objectiveId = input.objectiveId || null;
   const activityId = input.activityId || null;
@@ -77,6 +80,7 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
 }
 
 export async function saveFamilyNote(user: SessionUser, studentId: string, note: string, author: string) {
+  const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });
   if (!student || !canAccessStudent(user, student.schoolId, student.id) || user.role === "terapeuta") {
     throw new Error("Você não tem permissão para registrar observações deste estudante.");
@@ -97,6 +101,7 @@ export type IntersectorReportInput = {
 };
 
 export async function saveIntersectorReport(user: SessionUser, studentId: string, input: IntersectorReportInput) {
+  const prisma = await db();
   if (user.role !== "terapeuta" || !user.studentIds.includes(studentId)) {
     throw new Error("Só o terapeuta vinculado ao estudante pode enviar orientações.");
   }
@@ -116,6 +121,7 @@ export async function saveIntersectorReport(user: SessionUser, studentId: string
 }
 
 export async function setObjectiveStatus(user: SessionUser, studentId: string, objectiveId: string, status: "ativo" | "alcancado" | "em_revisao") {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   const objective = await prisma.objective.findFirst({ where: { id: objectiveId, plan: { studentId } } });
   if (!objective) throw new Error("Objetivo não encontrado para este estudante.");
@@ -128,6 +134,7 @@ export async function setObjectiveStatus(user: SessionUser, studentId: string, o
 }
 
 export async function decideActivity(user: SessionUser, studentId: string, activityId: string, decision: "aceita" | "rejeitada", reason?: string | null) {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   const activity = await prisma.activity.findFirst({ where: { id: activityId, studentId } });
   if (!activity) throw new Error("Atividade não encontrada para este estudante.");
@@ -145,6 +152,7 @@ export async function decideActivity(user: SessionUser, studentId: string, activ
 // motivo) e o histórico fica guardado.
 export const ACTIVE_PLAN_EXISTS_MESSAGE = "Já existe um plano ativo para este estudante. Revise ou encerre o plano atual antes de criar outro.";
 export async function assertNoActivePlan(studentId: string) {
+  const prisma = await db();
   const active = await prisma.plan.findFirst({ where: { studentId, status: "ativo" }, select: { id: true } });
   if (active) throw new Error(ACTIVE_PLAN_EXISTS_MESSAGE);
 }
@@ -152,6 +160,7 @@ export async function assertNoActivePlan(studentId: string) {
 // Revisão do plano: guarda a decisão da equipe, a data que estava marcada e se
 // saiu no prazo; a data de revisão do plano passa a ser a próxima.
 export async function reviewStudentPlan(user: SessionUser, studentId: string, planId: string, input: { summary: string; nextReviewDate: Date }) {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   const plan = await prisma.plan.findFirst({ where: { id: planId, studentId, status: "ativo" }, select: { id: true, reviewDate: true } });
   if (!plan) throw new Error("Plano ativo não encontrado para este estudante.");
@@ -173,6 +182,7 @@ export async function reviewStudentPlan(user: SessionUser, studentId: string, pl
 // Encerrar o plano: o plano e as revisões ficam no histórico; os objetivos
 // ainda ativos saem do acompanhamento junto com ele.
 export async function closeStudentPlan(user: SessionUser, studentId: string, planId: string, reason: string) {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   const text = reason.trim();
   if (!text) throw new Error("Diga por que o plano está sendo encerrado.");

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, hashPassword, type SessionUser } from "@/lib/auth";
 import { linkableStudents, managedAccount, recordAccountEvent, schoolsFor, type AccountRow } from "@/lib/accounts";
 import { EMAIL_RE, accountSchoolProblem, assignableRoles, isAccountManager, isLinked, mergeLinks, temporaryPassword } from "@/lib/user-admin";
@@ -44,6 +44,7 @@ function readAccount(formData: FormData): AccountInput {
 // Confere os dados contra o escopo de quem gerencia e devolve os estudantes
 // escolhidos (com a escola, para o recorte dos vínculos).
 async function checkAccount(manager: SessionUser, input: AccountInput, selfId?: string) {
+  const prisma = await db();
   if (input.name.length < 3 || input.name.length > 120) return { error: "Escreva o nome da pessoa (de 3 a 120 caracteres)." } as const;
   if (!EMAIL_RE.test(input.email) || input.email.length > 160) return { error: "Confira o e-mail." } as const;
   if (!assignableRoles(manager).includes(input.role)) return { error: "Escolha um perfil que você pode atribuir." } as const;
@@ -63,6 +64,7 @@ async function checkAccount(manager: SessionUser, input: AccountInput, selfId?: 
 const firstNames = (names: string[]) => names.map((name) => name.split(" ")[0]).join(", ");
 
 export async function createAccount(_previous: AccountFormState, formData: FormData): Promise<AccountFormState> {
+  const prisma = await db();
   const manager = await requireManager();
   const input = readAccount(formData);
   const checked = await checkAccount(manager, input);
@@ -83,6 +85,7 @@ export async function createAccount(_previous: AccountFormState, formData: FormD
 }
 
 export async function updateAccount(id: string, _previous: AccountFormState, formData: FormData): Promise<AccountFormState> {
+  const prisma = await db();
   const manager = await requireManager();
   const account = await requireAccount(manager, id);
   const input = readAccount(formData);
@@ -122,6 +125,7 @@ export async function updateAccount(id: string, _previous: AccountFormState, for
 
 // Senha esquecida: a gestão gera uma temporária, que a pessoa troca no próximo acesso.
 export async function resetAccountPassword(id: string, _previous: ResetState): Promise<ResetState> {
+  const prisma = await db();
   const manager = await requireManager();
   const account = await requireAccount(manager, id);
   if (account.deactivatedAt) return { error: "Reative a conta antes de redefinir a senha." };
@@ -136,6 +140,7 @@ export async function resetAccountPassword(id: string, _previous: ResetState): P
 // Celular perdido e sem códigos de recuperação: a gestão desliga as duas etapas,
 // e a pessoa liga de novo no próximo acesso (obrigatório com REQUIRE_2FA).
 export async function resetAccountTwoFactor(id: string): Promise<void> {
+  const prisma = await db();
   const manager = await requireManager();
   const account = await requireAccount(manager, id);
   if (!account.totpEnabledAt) return;
@@ -146,6 +151,7 @@ export async function resetAccountTwoFactor(id: string): Promise<void> {
 }
 
 export async function setAccountActive(id: string, active: boolean): Promise<void> {
+  const prisma = await db();
   const manager = await requireManager();
   const account = await requireAccount(manager, id);
   if (active === !account.deactivatedAt) return;

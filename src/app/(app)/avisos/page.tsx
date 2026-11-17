@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bell } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { emailConfigured } from "@/lib/email";
 import { formatDate } from "@/lib/format";
@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 // Avisos da pessoa (item 6): abrir a página marca os novos como lidos.
 export default async function NoticesPage() {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const [notices, prefs] = await Promise.all([

@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod/v4";
 import { extractText, getDocumentProxy } from "unpdf";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { recordChange } from "../access-log";
 import { studentConsent } from "../consent";
@@ -134,6 +134,7 @@ function withoutMarkers<T>(value: T): T {
 // está guardado, e a tela mostra o que aconteceu: aqui nada é lançado para a ação.
 // O envio ao Claude fica no histórico de acessos em nome de quem pediu a leitura.
 export async function processHealthReport(reportId: string, user: SessionUser) {
+  const prisma = await db();
   const report = await prisma.healthReport.findUniqueOrThrow({ where: { id: reportId }, select: { studentId: true, mimeType: true, data: true } });
   const save = (data: { status: string; reading?: string; privacyNote?: string; failure?: string | null }) =>
     prisma.healthReport.update({ where: { id: reportId }, data: { failure: null, ...data } });

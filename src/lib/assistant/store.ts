@@ -1,6 +1,6 @@
 import type { AssistantAction, AssistantConversation, AssistantMessage } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { decideActivity, saveDiaryEntry, saveFamilyNote, saveIntersectorReport, setObjectiveStatus, type DiaryEntryInput, type IntersectorReportInput } from "../records";
 import { parseJson } from "../format";
@@ -42,6 +42,7 @@ export function historyLength(conversation: Pick<AssistantConversation, "history
 }
 
 export async function listConversations(userId: string): Promise<ConversationView[]> {
+  const prisma = await db();
   const conversations = await prisma.assistantConversation.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
@@ -52,6 +53,7 @@ export async function listConversations(userId: string): Promise<ConversationVie
 }
 
 export async function getConversation(user: SessionUser, id: string): Promise<ConversationDetail | null> {
+  const prisma = await db();
   const conversation = await prisma.assistantConversation.findFirst({
     where: { id, userId: user.id },
     include: { messages: { orderBy: { createdAt: "asc" } }, actions: { orderBy: { createdAt: "asc" } } },
@@ -66,17 +68,20 @@ export async function getConversation(user: SessionUser, id: string): Promise<Co
 }
 
 export async function latestConversation(user: SessionUser): Promise<ConversationDetail | null> {
+  const prisma = await db();
   const latest = await prisma.assistantConversation.findFirst({ where: { userId: user.id }, orderBy: { updatedAt: "desc" }, select: { id: true } });
   return latest ? getConversation(user, latest.id) : null;
 }
 
 export async function deleteConversation(user: SessionUser, id: string): Promise<boolean> {
+  const prisma = await db();
   const result = await prisma.assistantConversation.deleteMany({ where: { id, userId: user.id } });
   return result.count > 0;
 }
 
 // Ações decididas depois do último turno, para o modelo saber o que aconteceu.
 export async function decidedSinceLastTurn(conversation: Pick<AssistantConversation, "id" | "updatedAt">): Promise<AssistantAction[]> {
+  const prisma = await db();
   return prisma.assistantAction.findMany({
     where: { conversationId: conversation.id, status: { in: ["confirmada", "cancelada"] }, decidedAt: { gt: conversation.updatedAt } },
     orderBy: { decidedAt: "asc" },
@@ -88,6 +93,7 @@ type ActionArgs = Record<string, unknown> & { studentId: string };
 // Executa o que a pessoa confirmou. As permissões são conferidas de novo
 // aqui, com a pessoa que confirma: o cartão não é um passe livre.
 export async function executeAction(user: SessionUser, actionId: string, decision: "confirmar" | "cancelar"): Promise<{ action: ActionView; error?: string }> {
+  const prisma = await db();
   const action = await prisma.assistantAction.findFirst({ where: { id: actionId, conversation: { userId: user.id } } });
   if (!action) throw new Error("Ação não encontrada.");
   if (action.status !== "pendente") return { action: toActionView(action) };

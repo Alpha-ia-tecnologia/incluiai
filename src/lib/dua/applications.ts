@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { formatDate, parseJson } from "../format";
 import {
@@ -28,6 +28,7 @@ export type ApplicationInput = {
 };
 
 async function participantsInReach(user: SessionUser, ids: string[]) {
+  const prisma = await db();
   const unique = [...new Set(ids.filter(Boolean))].slice(0, 60);
   const students = await prisma.student.findMany({ where: { id: { in: unique } }, select: { id: true, name: true, schoolId: true } });
   if (students.length !== unique.length || students.some((student) => !canWorkWithStudent(user, student))) {
@@ -37,6 +38,7 @@ async function participantsInReach(user: SessionUser, ids: string[]) {
 }
 
 export async function createApplication(user: SessionUser, planningId: string, input: ApplicationInput) {
+  const prisma = await db();
   const { planning } = await loadPlanningFor(user, planningId, "read");
   const version = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version: input.versionNumber } } });
   if (!version) throw new DuaError("Versão não encontrada.", "nao_encontrado");
@@ -67,6 +69,7 @@ export async function createApplication(user: SessionUser, planningId: string, i
 }
 
 async function loadApplicationFor(user: SessionUser, applicationId: string) {
+  const prisma = await db();
   const application = await prisma.duaApplication.findUnique({ where: { id: applicationId }, include: { planning: true, version: true } });
   if (!application) throw new DuaError("Aplicação não encontrada.", "nao_encontrado");
   const access = planningAccess(user, application.planning);
@@ -77,6 +80,7 @@ async function loadApplicationFor(user: SessionUser, applicationId: string) {
 
 // Situação de execução e participantes. Quem não vê um participante não o remove.
 export async function updateApplication(user: SessionUser, applicationId: string, revision: number, input: { state: string; notes?: string; addParticipantIds: string[]; removeParticipantIds: string[] }) {
+  const prisma = await db();
   const { application, canManage } = await loadApplicationFor(user, applicationId);
   if (!canManage) throw new DuaError("Só quem responde pela aplicação ou edita o planejamento altera a aplicação.", "sem_permissao");
   if (!EXECUTION_STATES.includes(input.state as ExecutionState)) throw new DuaError("Situação de execução inválida.");
@@ -109,6 +113,7 @@ export type EvidenceInput = {
 // registrar de novo atualiza (tentativas repetidas não duplicam). Fica na
 // memória educacional do estudante, sem criar diário, presença nem atendimento.
 export async function registerEvidence(user: SessionUser, applicationId: string, studentId: string, input: EvidenceInput) {
+  const prisma = await db();
   const { application } = await loadApplicationFor(user, applicationId);
   const student = await studentInReach(user, studentId);
   if (!parseJson<string[]>(application.participantIds, []).includes(studentId)) throw new DuaError("Este estudante não está entre os participantes da aplicação.");
@@ -214,6 +219,7 @@ export type ApplicationView = {
 
 // Aplicações do planejamento: participantes e evidências só dentro do recorte de quem lê.
 export async function listApplications(user: SessionUser, planningId: string): Promise<ApplicationView[]> {
+  const prisma = await db();
   const { access } = await loadPlanningFor(user, planningId, "read");
   const rows = await prisma.duaApplication.findMany({
     where: { planningId },
@@ -252,6 +258,7 @@ export type StudentEvidenceView = EvidenceView & { planningId: string; planningT
 
 // Evidências do estudante em todas as atividades com DUA (memória educacional).
 export async function listStudentEvidence(user: SessionUser, studentId: string): Promise<StudentEvidenceView[]> {
+  const prisma = await db();
   await studentInReach(user, studentId);
   const rows = await prisma.duaEvidence.findMany({
     where: { studentId },
@@ -270,6 +277,7 @@ export async function listStudentEvidence(user: SessionUser, studentId: string):
 // Próximos passos (RF08) a partir das evidências e dos apoios planejados.
 // Recomendações para revisão: a decisão e o resultado observado ficam com a equipe.
 export async function studentFollowUp(user: SessionUser, studentId: string): Promise<FollowUpSuggestion[]> {
+  const prisma = await db();
   const [evidence, supports] = await Promise.all([
     listStudentEvidence(user, studentId),
     prisma.duaSupport.findMany({ where: { studentId }, select: { data: true } }),

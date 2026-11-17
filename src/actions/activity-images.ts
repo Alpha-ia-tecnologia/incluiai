@@ -2,7 +2,7 @@
 
 import { imagesAllowedFor } from "@/lib/consent";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { requireStudentTeam } from "@/lib/auth";
 import { createActivityImage } from "@/lib/images/save";
 import { ImageGenerationError, isImageGenerationEnabled } from "@/lib/images/openai-images";
@@ -10,6 +10,7 @@ import { ImageGenerationError, isImageGenerationEnabled } from "@/lib/images/ope
 export type ImageActionState = { status: "idle" | "ok" | "erro"; message?: string };
 
 async function requireActivity(studentId: string, activityId: string) {
+  const prisma = await db();
   const user = await requireStudentTeam(studentId);
   const activity = await prisma.activity.findFirst({ where: { id: activityId, studentId }, select: { id: true } });
   if (!activity) throw new Error("Atividade não encontrada.");
@@ -33,6 +34,7 @@ export async function generateActivityImage(studentId: string, activityId: strin
 }
 
 export async function removeActivityImage(studentId: string, activityId: string) {
+  const prisma = await db();
   await requireActivity(studentId, activityId);
   await prisma.activityImage.deleteMany({ where: { activityId } });
   revalidatePath(`/estudantes/${studentId}/atividades`);

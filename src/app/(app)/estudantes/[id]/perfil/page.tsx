@@ -1,5 +1,5 @@
 ﻿import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { requireStudentPage, canEditStudentRecord } from "@/lib/auth";
 import { upsertProfile } from "@/actions/profile";
 import { parseJson } from "@/lib/format";
@@ -39,6 +39,7 @@ export default async function ProfilePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ modo?: string; salvo?: string | string[] }>;
 }) {
+  const prisma = await db();
   const { id } = await params;
   const viewer = await requireStudentPage(id, "Como aprende");
   // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.

@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { NOMINAL_ACCESS_HOURS, canAccessStudent, getCurrentUser, needsNominalJustification } from "@/lib/auth";
 import { recordChange } from "@/lib/access-log";
 
@@ -10,6 +10,7 @@ export type NominalAccessState = { error?: string };
 // Acesso nominal da Secretaria (seções 10 e 14): motivo obrigatório; vale 8 horas
 // e entra no histórico de acessos que a família consulta.
 export async function requestNominalAccess(studentId: string, _previous: NominalAccessState, formData: FormData): Promise<NominalAccessState> {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });

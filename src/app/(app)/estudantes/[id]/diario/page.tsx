@@ -1,6 +1,6 @@
 import { recentCheckIn } from "@/lib/notifications";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { requireStudentPage, canEditStudentRecord } from "@/lib/auth";
 import { createDiaryEntry } from "@/actions/diary";
 import { formatDate, parseJson } from "@/lib/format";
@@ -17,6 +17,7 @@ const PARTICIPATION_TONES = { total: "green", parcial: "amber", recusou: "coral"
 const CRITERION_TONES = { sim: "green", parcial: "amber", nao: "coral" } as const;
 
 export default async function DiaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ activityId?: string | string[] }> }) {
+  const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const viewer = await requireStudentPage(id, "Registrar aula (histórico)");
   // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.

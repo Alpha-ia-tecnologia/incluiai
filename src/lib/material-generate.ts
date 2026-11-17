@@ -1,7 +1,7 @@
 import { notifyFamily } from "./notifications";
 import type { FunctionalProfile, Student } from "@prisma/client";
 import { aiAllowedFor, imagesAllowedFor } from "./consent";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { assertStudentTeam } from "./records";
 import { parseJson } from "./format";
@@ -55,6 +55,7 @@ export function profileFacts(student: Pick<Student, "name">, profile: Functional
 const CONTEXTS: MaterialContext[] = ["sala_comum", "aee", "casa"];
 
 export async function createStudentMaterial(user: SessionUser, studentId: string, request: MaterialRequest, report?: AgentReport) {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   if (!isMaterialKind(request.kind)) throw new Error("Escolha o tipo de material.");
   const kind = request.kind;
@@ -125,6 +126,7 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
 }
 
 async function loadOwnMaterial(user: SessionUser, studentId: string, materialId: string) {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   const material = await prisma.material.findFirst({ where: { id: materialId, studentId } });
   if (!material) throw new Error("Material não encontrado para este estudante.");
@@ -133,6 +135,7 @@ async function loadOwnMaterial(user: SessionUser, studentId: string, materialId:
 
 // Aprovar para uso: decisão do profissional, registrada com autoria e data.
 export async function approveStudentMaterial(user: SessionUser, studentId: string, materialId: string) {
+  const prisma = await db();
   const material = await loadOwnMaterial(user, studentId, materialId);
   await prisma.material.update({ where: { id: material.id }, data: { status: "aprovado", approvedBy: user.name, approvedAt: new Date() } });
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "editou", detail: `Material de apoio aprovado para uso: ${material.title}` } });
@@ -149,6 +152,7 @@ export async function addMaterialImages(user: SessionUser, studentId: string, ma
 // Leva uma atividade do material para as Atividades do estudante, como sugerida:
 // segue o fluxo de sempre (aceitar → aplicar → registrar aula).
 export async function saveMaterialActivity(user: SessionUser, studentId: string, materialId: string, index: number) {
+  const prisma = await db();
   const material = await loadOwnMaterial(user, studentId, materialId);
   const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
   const activity = content.activities[index];

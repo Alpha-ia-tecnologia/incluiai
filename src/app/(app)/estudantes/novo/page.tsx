@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { PageHeader } from "@/components/ui";
 import { StudentRegistrationChat } from "@/components/student-registration-chat";
@@ -7,6 +7,7 @@ import { StudentRegistrationChat } from "@/components/student-registration-chat"
 export const dynamic = "force-dynamic";
 
 export default async function NewStudentPage() {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!isStaffOrNetwork(user.role)) redirect("/");

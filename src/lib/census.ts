@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { parseJson } from "./format";
 import { digitsOnly, identityKeys, parseEducacensoFile, specialEdPersons, type CensusPerson, type ParseStats } from "./educacenso";
@@ -43,6 +43,7 @@ export function decodeCensusFile(bytes: Uint8Array): string {
 }
 
 export async function analyzeCensusFile(user: SessionUser, schoolId: string, content: string): Promise<{ importId: string } | { error: string }> {
+  const prisma = await db();
   if (!canOpenSchool(user, schoolId)) return { error: "Você importa o arquivo só da sua escola." };
   const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { id: true, name: true, inepCode: true } });
   if (!school) return { error: "Escola não encontrada." };
@@ -72,12 +73,14 @@ export async function analyzeCensusFile(user: SessionUser, schoolId: string, con
 
 // Estudantes de outras escolas da rede, só como chaves de identidade (para avisar de transferência).
 async function elsewhereCheck(schoolId: string): Promise<(keys: string[]) => boolean> {
+  const prisma = await db();
   const others = await prisma.student.findMany({ where: { NOT: { schoolId } }, select: { name: true, birthDate: true, inepId: true, cpf: true } });
   const keys = new Set(others.flatMap((student) => identityKeys({ ...student, birthDate: isoDay(student.birthDate) })));
   return (candidate) => candidate.some((key) => keys.has(key));
 }
 
 export async function loadImport(user: SessionUser, importId: string) {
+  const prisma = await db();
   const censusImport = await prisma.censusImport.findUnique({ where: { id: importId }, include: { school: { select: { id: true, name: true, inepCode: true } } } });
   if (!censusImport || !canOpenSchool(user, censusImport.schoolId)) return null;
   const persons = parseJson<CensusPerson[]>(censusImport.persons, []);
@@ -89,6 +92,7 @@ export async function loadImport(user: SessionUser, importId: string) {
 }
 
 export async function saveDecision(user: SessionUser, importId: string, decision: ReviewDecision): Promise<string | null> {
+  const prisma = await db();
   const loaded = await loadImport(user, importId);
   if (!loaded || loaded.censusImport.status !== "previa") return "Esta prévia não está mais aberta.";
   const person = loaded.persons.find((item) => item.key === decision.personKey);
@@ -102,12 +106,14 @@ export async function saveDecision(user: SessionUser, importId: string, decision
 }
 
 export async function undoDecision(user: SessionUser, importId: string, personKey: string) {
+  const prisma = await db();
   const loaded = await loadImport(user, importId);
   if (!loaded || loaded.censusImport.status !== "previa") return;
   await prisma.censusImport.update({ where: { id: importId }, data: { decisions: JSON.stringify(loaded.decisions.filter((item) => item.personKey !== personKey)) } });
 }
 
 export async function discardImport(user: SessionUser, importId: string) {
+  const prisma = await db();
   const censusImport = await prisma.censusImport.findUnique({ where: { id: importId }, select: { schoolId: true, status: true } });
   if (!censusImport || censusImport.status !== "previa" || !canOpenSchool(user, censusImport.schoolId)) return;
   await prisma.censusImport.update({ where: { id: importId }, data: { status: "descartada", persons: "[]", regularOnly: "[]" } });
@@ -123,6 +129,7 @@ export const maskCpf = (cpf: string) => (cpf.length === 11 ? `***.${cpf.slice(3,
 
 // Aplica a prévia numa transação: cadastra, atualiza, guarda a referência e o código INEP da escola.
 export async function applyImport(user: SessionUser, importId: string): Promise<{ error: string } | { created: number; updated: number }> {
+  const prisma = await db();
   const loaded = await loadImport(user, importId);
   if (!loaded?.plan) return { error: "Esta prévia não está mais aberta." };
   const { censusImport, persons, plan } = loaded;
@@ -178,6 +185,7 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
 
 // Ligar à mão o ID INEP de um estudante que a verificação não encontrou.
 export async function setStudentInep(user: SessionUser, studentId: string, inepId: string): Promise<string | null> {
+  const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
   if (!student || !canOpenSchool(user, student.schoolId)) return "Você não pode alterar este estudante.";
   const digits = digitsOnly(inepId);
@@ -212,6 +220,7 @@ const REFERENCED = { OR: [{ caseStudy: { is: STUDY_BACKS } }, { plans: { some: {
 
 export type ReferenceRow = { id: string; name: string; backed: boolean; records: CensusReferenceRecord[]; pending: string | null };
 export async function schoolReferences(schoolId: string): Promise<ReferenceRow[]> {
+  const prisma = await db();
   const students = await prisma.student.findMany({
     where: { schoolId, status: "ativo" },
     orderBy: { name: "asc" },
@@ -229,6 +238,7 @@ export async function schoolReferences(schoolId: string): Promise<ReferenceRow[]
 // Visão do Censo: por escola, as contagens do último arquivo, a dupla matrícula dos
 // estudantes do AEE e o que a plataforma registra. A Secretaria recebe só os números.
 export async function censusOverview(user: SessionUser) {
+  const prisma = await db();
   const access = censusAccess(user);
   if (!access) return null;
   const since = new Date(Date.now() - 60 * 86_400_000);

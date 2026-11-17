@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";
 import { recordChange } from "@/lib/access-log";
 import { canManageCard, canViewCard, rotateCardToken } from "@/lib/student-card";
@@ -15,6 +15,7 @@ import { FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
 export type CardFormState = { error?: string; saved?: boolean };
 
 async function loadCardStudent(studentId: string) {
+  const prisma = await db();
   const user = await getCurrentUser();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true, consent: { select: { card: true } }, card: { select: { id: true } } } });
   if (!user || !student) throw new Error("Estudante não encontrado.");
@@ -34,6 +35,7 @@ function refresh(studentId: string) {
 }
 
 export async function uploadCardPhoto(studentId: string, _state: CardFormState, formData: FormData): Promise<CardFormState> {
+  const prisma = await db();
   const user = await requireCardManager(studentId);
   const file = formData.get("foto");
   if (!(file instanceof File) || file.size === 0) return { error: "Escolha a foto." };
@@ -51,6 +53,7 @@ export async function uploadCardPhoto(studentId: string, _state: CardFormState, 
 }
 
 export async function removeCardPhoto(studentId: string) {
+  const prisma = await db();
   const user = await requireCardManager(studentId);
   await prisma.studentCard.update({ where: { studentId }, data: { photo: null, photoMime: null, photoUpdatedAt: null } });
   await recordChange(user, studentId, "excluiu", "Foto da carteirinha");
@@ -68,6 +71,7 @@ export async function rotateStudentCard(studentId: string) {
 
 // Só a família escolhe o verso e o contato que aparecem na carteirinha.
 export async function saveCardPreferences(studentId: string, _state: CardFormState, formData: FormData): Promise<CardFormState> {
+  const prisma = await db();
   const { user } = await loadCardStudent(studentId);
   if (user.role !== "familia" || !user.studentIds.includes(studentId)) throw new Error("Só a família escolhe o que aparece na carteirinha.");
   const showHelp = formData.get("mostrarComoAjudar") === "on";

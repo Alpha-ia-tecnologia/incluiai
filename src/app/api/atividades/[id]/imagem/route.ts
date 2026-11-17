@@ -1,9 +1,13 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser } from "@/lib/auth";
+import { unavailableResponse } from "@/lib/tenant";
 
 // Entrega a imagem de apoio de uma atividade a quem tem acesso ao estudante
 // (equipe escolar e família, para as atividades de casa).
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
+  const prisma = await db();
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) return new Response("Não autenticado", { status: 401 });

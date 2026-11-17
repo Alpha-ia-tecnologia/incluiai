@@ -1,7 +1,7 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { buildObjectiveDescription } from "@/lib/objective";
 import { validBnccCode } from "@/lib/bncc";
 import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
@@ -10,6 +10,7 @@ import { planDocumentsFromForm } from "@/lib/plan-documents";
 
 // Plano de ensino: equipe com acesso ao estudante e estudo de caso concluído (CA02).
 export async function createPlan(studentId: string, formData: FormData) {
+  const prisma = await db();
   const user = await requireStudentTeam(studentId);
   await assertCaseStudyConcluded(studentId);
   await assertNoActivePlan(studentId);
@@ -35,6 +36,7 @@ export async function createPlan(studentId: string, formData: FormData) {
 }
 
 export async function createObjective(studentId: string, planId: string, formData: FormData) {
+  const prisma = await db();
   await requireStudentTeam(studentId);
   // O objetivo entra no plano DESTE estudante: nada de vínculo entre pessoas diferentes.
   const plan = await prisma.plan.findFirst({ where: { id: planId, studentId }, select: { id: true } });
@@ -100,6 +102,7 @@ export async function reviewPlan(studentId: string, planId: string, formData: Fo
 // Completar ou atualizar o PAEE e o PEI do plano ativo (planos anteriores à
 // orientação do INEP não tinham autoria nem todo o conteúdo mínimo).
 export async function updatePlanDocuments(studentId: string, planId: string, formData: FormData) {
+  const prisma = await db();
   const user = await requireStudentTeam(studentId);
   const plan = await prisma.plan.findFirst({ where: { id: planId, studentId, status: "ativo" }, select: { id: true } });
   if (!plan) throw new Error("Plano ativo não encontrado para este estudante.");

@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { createAnonymizer, naturalizePlaceholders, type Anonymizer } from "./agents/anonymize-core";
 import { tidyForLibras } from "./vlibras-core";
@@ -13,6 +13,7 @@ const CACHE_MS = 5 * 60_000;
 const cache = new Map<string, { at: number; anonymizer: Anonymizer }>();
 
 async function namesFor(user: SessionUser | null) {
+  const prisma = await db();
   if (!user) return null;
   const linked = user.role === "familia" || user.role === "terapeuta";
   // Família e terapeuta: os estudantes vinculados. Equipe com escola: a escola. Rede: tudo.

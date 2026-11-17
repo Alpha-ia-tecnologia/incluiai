@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { canManageAccount, isLinked, type ManagedAccount } from "./user-admin";
 
@@ -9,6 +9,7 @@ import { canManageAccount, isLinked, type ManagedAccount } from "./user-admin";
 type Actor = Pick<SessionUser, "id" | "name" | "role">;
 
 export async function recordAccountEvent(userId: string, actor: Actor, action: string, detail?: string): Promise<void> {
+  const prisma = await db();
   await prisma.accountEvent.create({ data: { userId, actorId: actor.id, actorName: actor.name, actorRole: actor.role, action, detail: detail?.slice(0, 300) ?? null } });
 }
 
@@ -20,6 +21,7 @@ const accountSelect = {
 
 // A conta vista pela gestão, com os vínculos (o campo antigo conta até o primeiro acesso).
 export async function findAccounts(where: object = {}) {
+  const prisma = await db();
   const [rows, schools] = await Promise.all([
     prisma.user.findMany({ where, select: accountSelect, orderBy: { name: "asc" } }),
     prisma.school.findMany({ select: { id: true, name: true } }),
@@ -50,12 +52,14 @@ export async function managedAccount(manager: SessionUser, id: string): Promise<
 
 // Escolas em que quem gerencia cria contas: a própria, ou a rede inteira.
 export async function schoolsFor(manager: SessionUser) {
+  const prisma = await db();
   return prisma.school.findMany({ where: manager.schoolId ? { id: manager.schoolId } : {}, select: { id: true, name: true }, orderBy: { name: "asc" } });
 }
 
 // Estudantes que podem ser vinculados a família ou terapeuta: os ativos da
 // escola de quem gerencia (a Secretaria não vincula: não vê nomes).
 export async function linkableStudents(manager: SessionUser) {
+  const prisma = await db();
   if (manager.role === "secretaria") return [];
   return prisma.student.findMany({
     where: { status: "ativo", ...(manager.schoolId ? { schoolId: manager.schoolId } : {}) },

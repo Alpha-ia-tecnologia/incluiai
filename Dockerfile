@@ -19,5 +19,6 @@ FROM base AS app
 ENV NODE_ENV=production
 COPY --from=build /app ./
 EXPOSE 3000
-# A cada implantação, aplica as migrações pendentes antes de subir.
-CMD ["sh", "-c", "node scripts/prisma-db.mjs tabelas && npm start"]
+# A cada implantação, aplica as migrações pendentes antes de subir (com vários
+# municípios, também no banco de cada um; com um só, o segundo passo nada faz).
+CMD ["sh", "-c", "node scripts/prisma-db.mjs tabelas && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/prisma-db.mjs tabelas-municipios && npm start"]

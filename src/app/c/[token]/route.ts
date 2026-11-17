@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { recordView } from "@/lib/access-log";
 import { PENDING_CARD_COOKIE } from "@/lib/student-card";
 import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
+import { unavailableResponse } from "@/lib/tenant";
 
 // Endereço do QR da carteirinha. Não mostra nada por si: sem login, guarda o
 // código por 10 minutos e manda para a entrada (o Início volta para cá depois).
@@ -12,6 +13,9 @@ import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
 // (motivo da Secretaria, dados clínicos só para o AEE e a coordenação) seguem
 // valendo na página de destino. Quem não tem acesso não descobre de quem é.
 export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
+  const prisma = await db();
   const { token } = await params;
   const jar = await cookies();
   const user = await getCurrentUser();

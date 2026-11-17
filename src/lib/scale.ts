@@ -122,6 +122,7 @@ export const ROLES: Record<string, string> = {
   secretaria: "Secretaria de Educação",
   familia: "Família",
   terapeuta: "Terapeuta (rede de saúde)",
+  plataforma: "Administração da plataforma",
 };
 
 export const AI_DISCLAIMER =

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/auth";
 import { taskContent } from "@/lib/adapted-tasks";
 import { printSettings } from "@/lib/task-adaptation";
@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 // Folha para o estudante: sem o apoio do professor, com a letra e as páginas pedidas.
 export default async function PrintAdaptedTaskPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
+  const prisma = await db();
   const { id, taskId } = await params;
   await requireStudentPage(id, "Impressão de atividade adaptada");
   const task = await prisma.adaptedTask.findFirst({ where: { id: taskId, studentId: id } });

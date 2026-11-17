@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { studentConsent } from "@/lib/consent";
 import { SUMMARY_VIEW_DETAILS } from "@/lib/access-log";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { createIntersectorReport } from "@/actions/intersector";
 import { loadJourney, recordJourneyMark } from "@/lib/user-journey";
@@ -26,6 +26,7 @@ export const dynamic = "force-dynamic";
 const fieldStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
 export default async function TherapistPage({ searchParams }: { searchParams: Promise<{ estudante?: string | string[] }> }) {
+  const prisma = await db();
   const [user, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!user) redirect("/login");
   if (user.role !== "terapeuta" || !user.studentIds.length) redirect("/");

@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { assertStudentTeam } from "./records";
 import { AEE_SESSION_STATUSES, type AeeSessionStatus } from "./dua/domain";
@@ -15,6 +15,7 @@ const SESSION_ROLES = new Set(["professor_aee", "coordenacao", "gestao"]);
 export const canRecordAeeSession = (user: Pick<SessionUser, "role">) => SESSION_ROLES.has(user.role);
 
 export async function saveAeeSession(user: SessionUser, studentId: string, input: AeeSessionInput) {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   if (!canRecordAeeSession(user)) throw new Error("A frequência do AEE é registrada pelo professor do AEE ou pela coordenação.");
   if (!AEE_SESSION_STATUSES.includes(input.status as AeeSessionStatus)) throw new Error("Escolha: realizado, falta ou cancelamento.");
@@ -31,6 +32,7 @@ export async function saveAeeSession(user: SessionUser, studentId: string, input
 }
 
 export async function listAeeSessions(user: SessionUser, studentId: string) {
+  const prisma = await db();
   await assertStudentTeam(user, studentId);
   const sessions = await prisma.aeeSession.findMany({ where: { studentId }, orderBy: { date: "desc" }, take: 120 });
   const summary = Object.fromEntries(AEE_SESSION_STATUSES.map((status) => [status, sessions.filter((session) => session.status === status).length])) as Record<AeeSessionStatus, number>;

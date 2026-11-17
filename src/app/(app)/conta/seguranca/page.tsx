@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { KeyRound, LogIn, LogOut, ShieldAlert, ShieldCheck, ShieldOff, Smartphone, UserLock } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { currentSessionId, getCurrentUser, twoFactorRequired } from "@/lib/auth";
 import { recoveryCodesLeft } from "@/lib/two-factor";
 import { formatDate } from "@/lib/format";
@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 // Segurança da conta (seção 14): verificação em duas etapas e sessões abertas.
 export default async function AccountSecurityPage({ searchParams }: { searchParams: Promise<{ aviso?: string | string[] }> }) {
+  const prisma = await db();
   const [session, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!session) redirect("/login");
   const now = new Date();

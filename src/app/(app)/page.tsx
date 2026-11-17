@@ -5,7 +5,7 @@ import { PENDING_CARD_COOKIE, cardPath } from "@/lib/student-card";
 import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
 import { Character } from "@/components/character";
 import { EmptyState } from "@/components/ui";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, isSchoolStaff } from "@/lib/auth";
 import { studentAlerts } from "@/lib/insights";
 import { getStudentNextStep } from "@/lib/student-journey";
@@ -20,6 +20,7 @@ import { ArrowRight, BookOpen, CalendarDays, ClipboardList, Plus, School, Users 
 export const dynamic = "force-dynamic";
 
 export default async function SchoolDashboard() {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   // Leitura do QR da carteirinha antes do login: volta para o código, que decide o destino.

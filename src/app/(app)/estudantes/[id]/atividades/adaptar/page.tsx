@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, FilePen, FileUp, Wand2 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
 import { aiAllowedFor } from "@/lib/consent";
 import { hasApiKey } from "@/lib/env";
@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 // Adaptar a atividade ou a prova da turma para o estudante (item 1 do plano).
 export default async function AdaptTaskPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await requireStudentPage(id, "Adaptar atividade da turma");
   if (!canEditStudentRecord(user.role)) redirect(`/estudantes/${id}`);

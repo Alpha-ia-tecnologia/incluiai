@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { PageHero, Card } from "@/components/ui";
 import { ArrowRight } from "lucide-react";
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 // Família com mais de um filho vinculado escolhe aqui; a equipe confere como a
 // família vê o portal, só com os estudantes que já acompanha (a própria escola).
 export default async function FamilyPortalIndex() {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const family = user.role === "familia";

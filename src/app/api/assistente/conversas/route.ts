@@ -1,10 +1,13 @@
 import { getCurrentUser } from "@/lib/auth";
 import { latestConversation, listConversations } from "@/lib/assistant/store";
+import { unavailableResponse } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
 // Lista as conversas da pessoa; com ?ultima=1, devolve a mais recente completa.
 export async function GET(request: Request) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Faça login." }, { status: 401 });
   const url = new URL(request.url);

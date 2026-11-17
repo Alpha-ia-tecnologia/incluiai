@@ -17,9 +17,13 @@
     "db:migracao": "node scripts/prisma-db.mjs migracao",
     "db:admin": "node scripts/prisma-db.mjs admin",
     "db:contas-teste": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/prisma-db.mjs contas-teste",
+    "db:plataforma": "node scripts/prisma-db.mjs tabelas && node prisma/seed-plataforma.mjs",
+    "db:plataforma-admin": "node scripts/prisma-db.mjs plataforma-admin",
+    "db:tabelas-municipios": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/prisma-db.mjs tabelas-municipios",
     "test:e2e": "node e2e-test.mjs",
     "test:unit": "node --test \"src/lib/**/*.test.mjs\"",
-    "test:e2e:playwright": "playwright test"
+    "test:e2e:playwright": "playwright test",
+    "test:e2e:municipios": "node e2e-multimunicipio.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",
@@ -35,6 +39,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "server-only": "^0.0.1",
+    "sharp": "^0.34.5",
     "unpdf": "1.8.1",
     "zod": "^4.4.3"
   },

@@ -1,12 +1,19 @@
 import { getCurrentUser } from "@/lib/auth";
 import { runAssistantTurn } from "@/lib/assistant/agent";
 import type { AssistantEvent } from "@/lib/assistant/types";
+import { unavailableResponse } from "@/lib/tenant";
+import { currentTenant, withMunicipality } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 // Um turno do assistente, transmitido por eventos (SSE). Se a pessoa fechar
 // a tela no meio, o turno continua até o fim: o histórico precisa ficar completo.
 export async function POST(request: Request) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
+  // O turno segue depois da resposta aberta: o município fica preso ao turno, sem
+  // depender de ler o pedido de novo no meio da transmissão.
+  const tenant = await currentTenant();
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Faça login para usar o assistente." }, { status: 401 });
   const body = await request.json().catch(() => ({})) as { text?: unknown; conversationId?: unknown; studentId?: unknown };
@@ -30,7 +37,8 @@ export async function POST(request: Request) {
       // Comentário SSE a cada 15 s: proxies não cortam a conexão parada durante
       // as ferramentas longas (1 a 4 minutos). O navegador ignora a linha.
       const heartbeat = setInterval(() => write(": ping\n\n"), 15_000);
-      runAssistantTurn({ user, conversationId, text, studentId, emit })
+      const turn = () => runAssistantTurn({ user, conversationId, text, studentId, emit });
+      (tenant.kind === "municipio" ? withMunicipality(tenant.slug, turn) : turn())
         .catch((error) => {
           console.error("[assistente] erro inesperado:", error);
           emit({ type: "error", message: "Erro inesperado no assistente." });

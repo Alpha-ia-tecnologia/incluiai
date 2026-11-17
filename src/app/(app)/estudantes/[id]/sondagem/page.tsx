@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClipboardCheck, Lightbulb, RotateCcw, ShieldCheck, TrendingUp } from "lucide-react";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canEditStudentRecord, canSeePedagogicalDetail, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
 import { answersOf } from "@/lib/assessments";
 import { ITEMS, compareAreas, objectiveSuggestions, observed, reassessmentDue, referenceLabel, referenceYear, AREA_LABEL } from "@/lib/assessment";
@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
 // Sondagem (item 3 do plano): linha de base, reavaliação a cada 12 semanas,
 // evolução por área, referência na BNCC e sugestões de objetivo para o plano.
 export default async function AssessmentPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await requireStudentPage(id, "Sondagem");
   if (!canSeePedagogicalDetail(user.role) || !isStaffOrNetwork(user.role)) redirect(`/estudantes/${id}`);

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Check, CircleCheck, Eye, FileDown, TriangleAlert, Upload } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canOpenSchool, schoolReferences } from "@/lib/census";
 import { schoolCoverage } from "@/lib/census-core";
@@ -32,6 +32,7 @@ const IMPORT_STATUS: Record<string, string> = { previa: "Prévia aberta", aplica
 // O Censo de uma escola: código INEP, importação do arquivo e a dupla matrícula
 // de cada estudante do AEE. Só a coordenação e a gestão da escola (com nomes).
 export default async function CensusSchoolPage({ params, searchParams }: { params: Promise<{ schoolId: string }>; searchParams: Promise<{ aplicado?: string }> }) {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { schoolId } = await params;

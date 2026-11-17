@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, isSchoolStaff, isStaffOrNetwork } from "@/lib/auth";
 import { getStudentNextStep } from "@/lib/student-journey";
 import { generateBatchForClass } from "@/actions/activities";
@@ -23,6 +23,7 @@ const first = (value: string | string[] | undefined) => typeof value === "string
 const normalized = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim();
 
 export default async function StudentsPage({ searchParams }: { searchParams: Promise<Query> }) {
+  const prisma = await db();
   const params = await searchParams;
   const query = first(params.q).trim();
   const selectedClass = first(params.turma);

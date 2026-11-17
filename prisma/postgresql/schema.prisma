@@ -1103,3 +1103,39 @@ model StudentCard {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
+
+// Vários municípios (PLATFORM_DOMAIN): o cadastro fica no banco da plataforma;
+// nos bancos dos municípios estas duas tabelas ficam vazias.
+model Municipality {
+  id              String              @id @default(cuid())
+  slug            String              @unique // subdomínio, fixo depois de criado
+  name            String
+  uf              String
+  networkName     String
+  dbName          String              @unique // só o nome; o endereço vem de MUNICIPIO_DATABASE_URL
+  status          String              @default("provisionando") // provisionando | ativo | suspenso | falhou
+  provisionError  String?
+  logo            Bytes?
+  logoType        String?
+  primaryColor    String
+  menuColor       String
+  colorSource     String              @default("regras") // ia | regras | manual
+  firstAdminName  String?
+  firstAdminEmail String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  events          MunicipalityEvent[]
+}
+
+model MunicipalityEvent {
+  id             String       @id @default(cuid())
+  municipalityId String
+  municipality   Municipality @relation(fields: [municipalityId], references: [id], onDelete: Cascade)
+  actorId        String?
+  actorName      String
+  action         String
+  detail         String?
+  createdAt      DateTime     @default(now())
+
+  @@index([municipalityId, createdAt])
+}

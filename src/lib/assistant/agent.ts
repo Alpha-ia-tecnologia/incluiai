@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import { hasApiKey } from "../env";
 import type { SessionUser } from "../auth";
 import { describeAgentError } from "../agents/generate";
@@ -63,6 +63,7 @@ export async function runAssistantTurn(input: {
   studentId?: string | null;
   emit: (event: AssistantEvent) => void;
 }): Promise<void> {
+  const prisma = await db();
   const { user, emit } = input;
   const text = input.text.trim().slice(0, 4000);
   if (!text) {

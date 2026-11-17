@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser, hasNominalAccess } from "@/lib/auth";
 import { recordView } from "@/lib/access-log";
 import { reportData } from "@/lib/reports";
@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 // O relatório validado, no portal da família (devolutiva do período).
 export default async function FamilyReportPage({ params }: { params: Promise<{ id: string; reportId: string }> }) {
+  const prisma = await db();
   const { id, reportId } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");

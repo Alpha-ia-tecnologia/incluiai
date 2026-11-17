@@ -1,6 +1,6 @@
 import "server-only";
 import { notifyFamily } from "./notifications";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { recordChange } from "./access-log";
 import { bnccSkill } from "./bncc";
@@ -18,6 +18,7 @@ const dayStart = (iso: string) => new Date(`${iso}T00:00:00-03:00`);
 const dayEnd = (iso: string) => new Date(`${iso}T23:59:59-03:00`);
 
 export async function collectReportData(studentId: string, start: string, end: string): Promise<ReportData> {
+  const prisma = await db();
   const from = dayStart(start);
   const to = dayEnd(end);
   const student = await prisma.student.findUniqueOrThrow({
@@ -85,6 +86,7 @@ export const periodLabel = (data: Pick<ReportData, "period">) => `${brDate(data.
 export const canValidateReport = (role: string) => role === "professor_aee" || role === "coordenacao";
 
 export async function createReport(user: SessionUser, studentId: string, start: string, end: string) {
+  const prisma = await db();
   const data = await collectReportData(studentId, start, end);
   return prisma.studentReport.create({
     data: {
@@ -95,6 +97,7 @@ export async function createReport(user: SessionUser, studentId: string, start: 
 }
 
 async function draftFor(studentId: string, reportId: string) {
+  const prisma = await db();
   const report = await prisma.studentReport.findFirst({ where: { id: reportId, studentId } });
   if (!report) throw new Error("Relatório não encontrado.");
   if (report.status === "validado") throw new Error("Relatório validado não muda mais.");
@@ -102,12 +105,14 @@ async function draftFor(studentId: string, reportId: string) {
 }
 
 export async function saveOpinion(user: SessionUser, studentId: string, reportId: string, opinion: string) {
+  const prisma = await db();
   await draftFor(studentId, reportId);
   await prisma.studentReport.update({ where: { id: reportId }, data: { opinion: opinion.slice(0, 8000), updatedByName: user.name } });
 }
 
 // Atualiza a fotografia com registros feitos depois do rascunho (o parecer fica).
 export async function refreshReport(user: SessionUser, studentId: string, reportId: string) {
+  const prisma = await db();
   const report = await draftFor(studentId, reportId);
   const current = reportData(report.data);
   const data = await collectReportData(studentId, current.period.start, current.period.end);
@@ -115,6 +120,7 @@ export async function refreshReport(user: SessionUser, studentId: string, report
 }
 
 export async function validateReport(user: SessionUser, studentId: string, reportId: string): Promise<string | null> {
+  const prisma = await db();
   if (!canValidateReport(user.role)) return "Quem valida o relatório é o professor do AEE ou a coordenação.";
   const report = await draftFor(studentId, reportId);
   const problem = opinionProblem(report.opinion);
@@ -130,6 +136,7 @@ export async function validateReport(user: SessionUser, studentId: string, repor
 }
 
 export async function deleteDraft(studentId: string, reportId: string) {
+  const prisma = await db();
   await draftFor(studentId, reportId);
   await prisma.studentReport.delete({ where: { id: reportId } });
 }

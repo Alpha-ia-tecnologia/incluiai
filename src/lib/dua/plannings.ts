@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { parseJson } from "../format";
 import {
@@ -43,6 +43,7 @@ function matches(content: DuaContent, query: string) {
 }
 
 export async function listPlannings(user: SessionUser, filters: { query?: string; mine?: boolean } = {}): Promise<PlanningSummary[]> {
+  const prisma = await db();
   if (!canPlanDua(user)) return [];
   const rows = await prisma.duaPlanning.findMany({
     where: readablePlanningsWhere(user),
@@ -74,11 +75,13 @@ export async function listPlannings(user: SessionUser, filters: { query?: string
 
 // Turmas da escola de quem planeja (vínculo por nome, como no cadastro de estudantes).
 export async function classOptions(user: SessionUser) {
+  const prisma = await db();
   const classes = await prisma.schoolClass.findMany({ where: user.schoolId ? { schoolId: user.schoolId } : {}, select: { name: true, gradeYear: true, school: { select: { name: true } } }, orderBy: { name: "asc" } });
   return classes.map((item) => ({ value: item.name, label: user.schoolId ? `${item.name}${item.gradeYear ? ` · ${item.gradeYear}` : ""}` : `${item.name} · ${item.school.name}` }));
 }
 
 async function checkedClassName(user: SessionUser, className: string) {
+  const prisma = await db();
   if (!className) return null;
   const known = await prisma.schoolClass.findFirst({ where: { name: className, ...(user.schoolId ? { schoolId: user.schoolId } : {}) }, select: { id: true } });
   if (!known) throw new DuaError("Escolha uma turma cadastrada na sua escola.");
@@ -86,6 +89,7 @@ async function checkedClassName(user: SessionUser, className: string) {
 }
 
 export async function createPlanning(user: SessionUser, input: { title: string; className?: string; reuseFromId?: string }) {
+  const prisma = await db();
   if (!canPlanDua(user)) throw new DuaError("Seu perfil não planeja atividades com DUA.", "sem_permissao");
   const title = clip(input.title, 160);
   if (title.length < 3) throw new DuaError("Dê um título à atividade (ao menos 3 letras).");
@@ -117,6 +121,7 @@ export async function createPlanning(user: SessionUser, input: { title: string; 
 }
 
 export async function loadPlanning(user: SessionUser, planningId: string) {
+  const prisma = await db();
   const { planning, access } = await loadPlanningFor(user, planningId, "read");
   const versions = await prisma.duaPlanningVersion.findMany({ where: { planningId }, orderBy: { version: "desc" } });
   const current = versions[0];
@@ -189,6 +194,7 @@ export type SaveResult =
   | { ok: false; reason: "validado"; message: string };
 
 export async function saveDraft(user: SessionUser, planningId: string, input: { version: number; revision: number; content: Partial<DuaContent> }): Promise<SaveResult> {
+  const prisma = await db();
   const { planning, access } = await loadPlanningFor(user, planningId, "edit");
   if (JSON.stringify(input.content ?? {}).length > MAX_CONTENT) throw new DuaError("O planejamento ficou grande demais para salvar. Divida em duas atividades.");
   const current = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version: input.version } } });
@@ -212,6 +218,7 @@ export async function saveDraft(user: SessionUser, planningId: string, input: { 
 // ----------------------------------------------------------------- revisão, validação e versões
 
 async function transition(user: SessionUser, planningId: string, version: number, revision: number, from: ReviewState[], data: Record<string, unknown>) {
+  const prisma = await db();
   const current = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version } } });
   if (!current) throw new DuaError(NOT_FOUND, "nao_encontrado");
   const latest = await latestVersion(planningId);
@@ -237,6 +244,7 @@ export async function returnToDraft(user: SessionUser, planningId: string, versi
 // "Validar para aplicação" (RF05): decisão pedagógica registrada com autoria, data
 // e versão. Não altera matrícula, classificação nem dados censitários (CA12).
 export async function validateVersion(user: SessionUser, planningId: string, version: number, revision: number) {
+  const prisma = await db();
   await loadPlanningFor(user, planningId, "validate");
   const current = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version } } });
   if (!current) throw new DuaError(NOT_FOUND, "nao_encontrado");
@@ -248,6 +256,7 @@ export async function validateVersion(user: SessionUser, planningId: string, ver
 
 // Editar depois de validar abre a versão seguinte; as aplicações continuam presas à versão usada (CA07).
 export async function openNewVersion(user: SessionUser, planningId: string) {
+  const prisma = await db();
   await loadPlanningFor(user, planningId, "edit");
   const latest = await latestVersion(planningId);
   if (latest.state !== "validado") return latest.version;
@@ -265,6 +274,7 @@ export async function openNewVersion(user: SessionUser, planningId: string) {
 
 // Compartilhar é decisão separada da validação e exige uma versão validada.
 export async function setSharing(user: SessionUser, planningId: string, sharing: Sharing) {
+  const prisma = await db();
   await loadPlanningFor(user, planningId, "share");
   if (sharing === "compartilhado") {
     const validated = await prisma.duaPlanningVersion.count({ where: { planningId, state: "validado" } });
@@ -276,6 +286,7 @@ export async function setSharing(user: SessionUser, planningId: string, sharing:
 
 // Colaboradores: profissionais que planejam, da mesma escola do planejamento.
 export async function collaboratorOptions(user: SessionUser, planningId: string) {
+  const prisma = await db();
   const { planning } = await loadPlanningFor(user, planningId, "read");
   const users = await prisma.user.findMany({
     where: { role: { in: ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"] }, id: { not: planning.ownerId }, ...(planning.schoolId ? { OR: [{ schoolId: planning.schoolId }, { schoolId: null }] } : {}) },
@@ -286,6 +297,7 @@ export async function collaboratorOptions(user: SessionUser, planningId: string)
 }
 
 export async function setCollaborators(user: SessionUser, planningId: string, userIds: string[]) {
+  const prisma = await db();
   await loadPlanningFor(user, planningId, "share");
   const allowed = new Map((await collaboratorOptions(user, planningId)).map((item) => [item.id, item]));
   const chosen = [...new Set(userIds)].filter((id) => allowed.has(id)).map((id) => ({ id, name: allowed.get(id)!.name }));
@@ -294,6 +306,7 @@ export async function setCollaborators(user: SessionUser, planningId: string, us
 }
 
 export async function planningHistory(user: SessionUser, planningId: string) {
+  const prisma = await db();
   await loadPlanningFor(user, planningId, "read");
   const [versions, events] = await Promise.all([
     prisma.duaPlanningVersion.findMany({ where: { planningId }, orderBy: { version: "desc" } }),

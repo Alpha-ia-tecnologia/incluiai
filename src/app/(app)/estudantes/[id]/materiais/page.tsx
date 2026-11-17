@@ -2,7 +2,7 @@
 import { ConsentNote } from "@/components/consent-note";
 import { aiAllowedFor, imagesAllowedFor } from "@/lib/consent";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { isAIEnabled } from "@/lib/agents/model";
 import { MATERIAL_KINDS, isMaterialKind } from "@/lib/material-content";
@@ -28,6 +28,7 @@ const one = (value: string | string[] | undefined) => (Array.isArray(value) ? va
 // aplicar — que fica como sugestão até a equipe aprovar. Aqui fica a galeria;
 // cada material abre na página própria (materiais/[materialId]).
 export default async function MaterialsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
+  const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   await requireStudentPage(id, "Materiais de apoio");
   const user = await getCurrentUser();

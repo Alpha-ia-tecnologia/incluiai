@@ -1,6 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import { parseCaseStudy } from "./case-study";
 import { censusMetaOf } from "./census";
 import { evidenceGroups, evidenceSummary, type EvidenceGroup } from "./evidence";
@@ -13,6 +13,7 @@ const DAY = 86_400_000;
 export type StudentEvidence = { id: string; name: string; className: string; schoolId: string; school: string; groups: EvidenceGroup[]; summary: ReturnType<typeof evidenceSummary> };
 
 export async function loadEvidence(where: Prisma.StudentWhereInput, now: Date = new Date()): Promise<StudentEvidence[]> {
+  const prisma = await db();
   const students = await prisma.student.findMany({
     where,
     orderBy: { name: "asc" },

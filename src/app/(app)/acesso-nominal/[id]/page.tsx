@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { NOMINAL_ACCESS_HOURS, canAccessStudent, getCurrentUser, hasNominalAccess, needsNominalJustification } from "@/lib/auth";
 import { requestNominalAccess } from "@/actions/access";
 import { Card, PageHeader } from "@/components/ui";
@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 // A Secretaria acompanha a rede pelos números do Painel. Abrir a ficha de um
 // estudante com nome pede o motivo, que fica registrado e a família vê.
 export default async function NominalAccessPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarRange, CircleCheck, FilePen, ShieldCheck, Users, Wand2 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
 import { newReport } from "@/actions/reports";
 import { currentSemester } from "@/lib/period-report";
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 // Relatórios do período (devolutiva à família): a plataforma junta os registros,
 // a equipe escreve o parecer e valida. Quem só lê (Secretaria com motivo) vê os validados.
 export default async function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await requireStudentPage(id, "Relatórios do período");
   const team = canEditStudentRecord(user.role);

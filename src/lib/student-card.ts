@@ -1,7 +1,8 @@
 import "server-only";
 import { headers } from "next/headers";
 import QRCode from "qrcode";
-import { prisma } from "./prisma";
+import { db, platformDomain } from "./prisma";
+import { requestHost } from "./tenancy-core";
 import { canAccessStudent, canEditStudentRecord, type SessionUser } from "./auth";
 import { CHANNELS, SHIFTS } from "./scale";
 import { parseJson } from "./format";
@@ -23,12 +24,13 @@ export function canViewCard(user: SessionUser, schoolId: string, studentId: stri
   return (user.role === "familia" && user.studentIds.includes(studentId)) || canManageCard(user, schoolId, studentId);
 }
 
-// Endereço público da plataforma, para o QR: APP_URL em produção; sem ele, o do pedido.
+// Endereço público da plataforma, para o QR: APP_URL em produção; sem ele, o do
+// pedido. Com vários municípios, sempre o do pedido (o endereço do município).
 async function publicBaseUrl(): Promise<string> {
-  const configured = process.env.APP_URL?.trim().replace(/\/+$/, "");
+  const configured = platformDomain() ? null : process.env.APP_URL?.trim().replace(/\/+$/, "");
   if (configured) return configured;
   const list = await headers();
-  const host = list.get("x-forwarded-host") ?? list.get("host") ?? "localhost:3000";
+  const host = requestHost((name) => list.get(name)) ?? "localhost:3000";
   const local = /^(localhost|127\.|\[::1\])/.test(host);
   return `${list.get("x-forwarded-proto") ?? (local ? "http" : "https")}://${host}`;
 }
@@ -51,6 +53,7 @@ export type CardView = {
 };
 
 export async function loadCardView(studentId: string): Promise<CardView | null> {
+  const prisma = await db();
   const student = await prisma.student.findUnique({
     where: { id: studentId },
     select: {
@@ -103,5 +106,6 @@ export async function loadCardView(studentId: string): Promise<CardView | null> 
 
 // Novo código: a carteirinha impressa antes deixa de abrir qualquer coisa.
 export async function rotateCardToken(studentId: string): Promise<void> {
+  const prisma = await db();
   await prisma.studentCard.update({ where: { studentId }, data: { token: newCardToken(), issuedAt: new Date() } });
 }

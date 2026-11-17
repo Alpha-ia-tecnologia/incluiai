@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser } from "@/lib/auth";
 import { recordView } from "@/lib/access-log";
 import { parseJson } from "@/lib/format";
@@ -20,6 +20,7 @@ type Query = { estudante?: string; nivel?: string; tema?: string; rotina?: strin
 // "Jogar de novo" pede um sorteio novo. O estudante é opcional: sem ele, o
 // jogo funciona igual, só não há registro da aula no fim.
 export default async function PlayPage({ params, searchParams }: { params: Promise<{ jogo: string }>; searchParams: Promise<Query> }) {
+  const prisma = await db();
   const [{ jogo }, query] = await Promise.all([params, searchParams]);
   if (!isGameKey(jogo)) notFound();
   const user = await getCurrentUser();

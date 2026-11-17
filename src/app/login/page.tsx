@@ -1,11 +1,14 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, BookOpen, Building2, GraduationCap, Heart, IdCard, School, ShieldCheck, Sparkles, Sprout, Users } from "lucide-react";
 import { PENDING_CARD_COOKIE } from "@/lib/student-card";
-import { getCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getCurrentUser, getPlatformUser } from "@/lib/auth";
+import { db, isPlatformArea } from "@/lib/prisma";
+import { currentBrand } from "@/lib/tenant";
 import { LoginForm } from "@/components/login-form";
+import { PlatformLogin } from "@/components/plataforma/platform-login";
 import { Character } from "@/components/character";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +25,14 @@ const PROFILES = [
 ];
 
 export default async function LoginPage() {
+  const prisma = await db();
+  if (await isPlatformArea()) {
+    if (await getPlatformUser()) redirect("/plataforma");
+    return <PlatformLogin />;
+  }
   const user = await getCurrentUser();
   if (user) redirect("/");
+  const brand = await currentBrand();
   const demoAccounts = await prisma.user.findMany({ where: { demo: true, deactivatedAt: null }, select: { email: true, role: true } });
   const demo = demoAccounts.length > 0;
   // Quem chegou pelo QR de uma carteirinha: depois de entrar, a plataforma abre o estudante.
@@ -38,12 +47,23 @@ export default async function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-canvas p-3 sm:p-6 lg:p-8">
       <div className="grid w-full max-w-[1320px] overflow-hidden rounded-3xl bg-paper p-2 shadow-frame sm:rounded-3xl sm:p-3 lg:grid-cols-[1fr_1fr]">
         <section className="flex flex-col px-5 py-6 sm:px-10 sm:py-9 xl:px-16">
-          <Link href="/login" className="inline-flex w-fit items-center gap-3 text-ink">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-brand text-paper">
-              <Sprout size={23} strokeWidth={1.7} aria-hidden="true" />
-            </span>
-            <span className="font-display text-2xl font-semibold tracking-tight">IncluiEdu<span className="text-ink-soft">.</span></span>
-          </Link>
+          {brand ? (
+            <Link href="/login" className="inline-flex w-fit min-w-0 items-center gap-3 text-ink">
+              {brand.logoUrl ? (
+                <Image src={brand.logoUrl} alt="" width={48} height={48} unoptimized className="size-12 shrink-0 rounded-2xl border border-line bg-white object-contain p-1" />
+              ) : (
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-paper"><Sprout size={23} strokeWidth={1.7} aria-hidden="true" /></span>
+              )}
+              <span className="min-w-0"><span className="block font-display text-xl font-semibold leading-tight tracking-tight">{brand.name}</span><span className="block text-sm text-ink-soft">IncluiEdu</span></span>
+            </Link>
+          ) : (
+            <Link href="/login" className="inline-flex w-fit items-center gap-3 text-ink">
+              <span className="flex size-11 items-center justify-center rounded-2xl bg-brand text-paper">
+                <Sprout size={23} strokeWidth={1.7} aria-hidden="true" />
+              </span>
+              <span className="font-display text-2xl font-semibold tracking-tight">IncluiEdu<span className="text-ink-soft">.</span></span>
+            </Link>
+          )}
 
           <div className="mx-auto w-full max-w-[400px] py-12 sm:py-16 lg:py-20">
             <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-surface-muted px-3.5 py-2 text-xs text-ink">

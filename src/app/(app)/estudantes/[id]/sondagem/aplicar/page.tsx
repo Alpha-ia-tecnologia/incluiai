@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
 import { answersOf } from "@/lib/assessments";
 import { applyAssessment } from "@/actions/assessments";
@@ -12,6 +12,7 @@ import { linkCls } from "@/components/form-styles";
 export const dynamic = "force-dynamic";
 
 export default async function ApplyAssessmentPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await requireStudentPage(id, "Aplicar sondagem");
   if (!canEditStudentRecord(user.role)) redirect(`/estudantes/${id}/sondagem`);

@@ -1,4 +1,4 @@
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import { createAnonymizer, type Anonymizer } from "./anonymize-core";
 
 // Anonimização (LGPD): regras puras em anonymize-core.ts; aqui, a carga dos nomes
@@ -7,6 +7,7 @@ export * from "./anonymize-core";
 
 // Reúne os nomes conhecidos pela plataforma que podem aparecer nos textos livres.
 export async function loadAnonymizer(studentId: string): Promise<Anonymizer> {
+  const prisma = await db();
   const student = await prisma.student.findUniqueOrThrow({
     where: { id: studentId },
     select: { name: true, guardianName: true, schoolId: true, familyNotes: { select: { author: true } }, intersectorReports: { select: { authorName: true } } },

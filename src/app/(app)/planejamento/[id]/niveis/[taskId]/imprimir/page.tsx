@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { DuaError, loadPlanningFor } from "@/lib/dua/shared";
 import { taskContent } from "@/lib/adapted-tasks";
@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 // Folha de um nível, para o estudante: sem o nome do nível e sem o apoio do professor.
 export default async function PrintLevelPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
+  const prisma = await db();
   const { id, taskId } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");

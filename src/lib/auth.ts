@@ -3,9 +3,10 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import { prisma } from "./prisma";
+import { db, isPlatformArea } from "./prisma";
 import { recordView } from "./access-log";
 import { LOGIN_WINDOW_MS, MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
+import { PLATFORM_ROLE } from "./tenancy-core";
 
 // Autenticação — item 7 (perfis de acesso) e 14 (LGPD). Senha com scrypt + sal.
 // A sessão fica no servidor (tabela Session): o cookie leva só um código
@@ -44,18 +45,21 @@ export function verifyPasswordOrDummy(password: string, stored: string | null): 
 
 // Limite de tentativas por e-mail (seção 14). Tentativas com mais de um dia são descartadas.
 export async function loginAllowed(email: string): Promise<boolean> {
+  const prisma = await db();
   const since = new Date(Date.now() - LOGIN_WINDOW_MS);
   const attempts = await prisma.loginAttempt.findMany({ where: { email, createdAt: { gte: since } }, select: { success: true, createdAt: true } });
   return !loginBlocked(attempts);
 }
 
 export async function recordLoginAttempt(email: string, success: boolean): Promise<void> {
+  const prisma = await db();
   await prisma.loginAttempt.create({ data: { email, success } });
   await prisma.loginAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
 }
 
 // pending = senha certa, falta a segunda etapa: a sessão só abre /login/duas-etapas.
 export async function createSession(userId: string, { pending = false }: { pending?: boolean } = {}): Promise<void> {
+  const prisma = await db();
   const token = newSessionToken();
   const expiresAt = new Date(Date.now() + (pending ? MFA_PENDING_MS : SESSION_MAX_AGE_MS));
   await prisma.session.create({ data: { tokenHash: hashSessionToken(token), userId, expiresAt, mfaPending: pending } });
@@ -76,11 +80,13 @@ export async function createSession(userId: string, { pending = false }: { pendi
 // Segunda etapa concluída: a sessão pendente sai e entra uma nova, com outro
 // código (quem viu o código da etapa anterior não ganha a sessão completa).
 export async function upgradeSession(pendingSessionId: string, userId: string): Promise<void> {
+  const prisma = await db();
   await prisma.session.deleteMany({ where: { id: pendingSessionId, mfaPending: true } });
   await createSession(userId);
 }
 
 async function sessionFromCookie() {
+  const prisma = await db();
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -114,11 +120,12 @@ export function loginStep(user: { role: string; mustChangePassword: boolean; tot
 // REQUIRE_2FA=1 (produção): a equipe da escola e a da rede só entram com a
 // segunda etapa. Família e terapeuta podem ligar, sem obrigação.
 export function twoFactorRequired(role: string): boolean {
-  return process.env.REQUIRE_2FA === "1" && isStaffOrNetwork(role);
+  return process.env.REQUIRE_2FA === "1" && (role === PLATFORM_ROLE || isStaffOrNetwork(role));
 }
 
 // Sair apaga a sessão no banco: o mesmo cookie, se copiado, não vale mais.
 export async function destroySession(): Promise<void> {
+  const prisma = await db();
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (token) await prisma.session.deleteMany({ where: { tokenHash: hashSessionToken(token) } });
@@ -136,7 +143,8 @@ export type SessionUser = {
 };
 
 // Uma consulta por requisição, mesmo com layout, página e ação pedindo o usuário.
-export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
+const sessionUser = cache(async (): Promise<SessionUser | null> => {
+  const prisma = await db();
   const session = await sessionFromCookie();
   if (!session) return null;
   const now = new Date();
@@ -170,10 +178,28 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   };
 });
 
+export async function getCurrentUser(): Promise<SessionUser | null> {
+  const user = await sessionUser();
+  return user?.role === PLATFORM_ROLE ? null : user;
+}
+
+export async function getPlatformUser(): Promise<SessionUser | null> {
+  const user = await sessionUser();
+  return user?.role === PLATFORM_ROLE ? user : null;
+}
+
+export async function requirePlatformUser(): Promise<SessionUser> {
+  if (!(await isPlatformArea())) notFound();
+  const user = await getPlatformUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
 // Cada página da ficha confere, perto dos dados, quem está abrindo (o layout
 // sozinho não basta: em navegação parcial ele não roda de novo). A ficha é da
 // equipe; família e terapeuta vão para os portais deles.
 export async function requireStudentPage(studentId: string, section?: string): Promise<SessionUser> {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
@@ -206,6 +232,7 @@ export function needsNominalJustification(role: string): boolean {
   return role === "secretaria";
 }
 export async function hasNominalAccess(user: SessionUser, studentId: string): Promise<boolean> {
+  const prisma = await db();
   if (!needsNominalJustification(user.role)) return true;
   const grant = await prisma.accessGrant.findFirst({ where: { userId: user.id, studentId, expiresAt: { gt: new Date() } }, select: { id: true } });
   return Boolean(grant);
@@ -246,12 +273,13 @@ export function isStaffOrNetwork(role: string): boolean {
 // Necessidade de saber (item 7): o terapeuta não acessa notas, diário
 // pedagógico completo ou dados administrativos.
 export function canSeePedagogicalDetail(role: string): boolean {
-  return role !== "terapeuta" && role !== "familia";
+  return role !== "terapeuta" && role !== "familia" && role !== PLATFORM_ROLE;
 }
 
 // Equipe pedagógica com acesso ao estudante: exigido nas ações que alteram o
 // acompanhamento ou disparam IA paga.
 export async function requireStudentTeam(studentId: string): Promise<SessionUser> {
+  const prisma = await db();
   const user = await getCurrentUser();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });
   if (!user || !student || !canEditStudentRecord(user.role) || !canAccessStudent(user, student.schoolId, student.id)) {

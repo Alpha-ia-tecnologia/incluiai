@@ -1,3 +1,5 @@
+import { PLATFORM_ROLE } from "./tenancy-core.ts";
+
 export type NavigationItem = {
   href: string;
   label: string;
@@ -10,6 +12,7 @@ export type NavigationItem = {
 const PLANNER_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]);
 
 export function getNavigation(role: string, studentIds: string[] = []): NavigationItem[] {
+  if (role === PLATFORM_ROLE) return [];
   const help: NavigationItem = { href: "/ajuda", label: "Ajuda e primeiros passos", shortLabel: "Ajuda", icon: "help", section: "help" };
   const calendar: NavigationItem = { href: "/calendario", label: "Calendário inclusivo", shortLabel: "Calendário", icon: "calendar", section: "routine" };
   const journey: NavigationItem = { href: "/jornada", label: "Minha jornada", shortLabel: "Jornada", icon: "journey", section: "routine" };

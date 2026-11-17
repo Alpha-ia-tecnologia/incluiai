@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, isNetworkRole } from "@/lib/auth";
 
 // Cadastros da rede (escolas e turmas) — apenas perfis de gestão.
@@ -14,6 +14,7 @@ async function requireNetworkUser() {
 }
 
 export async function createSchool(formData: FormData) {
+  const prisma = await db();
   await requireNetworkUser();
   const name = String(formData.get("name") ?? "").trim();
   const region = String(formData.get("region") ?? "").trim();
@@ -23,6 +24,7 @@ export async function createSchool(formData: FormData) {
 }
 
 export async function createClass(formData: FormData) {
+  const prisma = await db();
   await requireNetworkUser();
   const schoolId = String(formData.get("schoolId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -45,6 +47,7 @@ export async function createClass(formData: FormData) {
 }
 
 export async function deleteClass(classId: string) {
+  const prisma = await db();
   await requireNetworkUser();
   await prisma.schoolClass.delete({ where: { id: classId } });
   revalidatePath("/cadastros");

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { registerResourceUse } from "@/actions/resources";
 import { CONTEXTS, STAGES } from "@/lib/scale";
@@ -27,6 +27,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function ResourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -40,7 +41,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   // Fotografia, preparação, modelo e níveis de apoio de cada recurso (src/lib/resource-bank.ts).
   const guide = resourcePresentation(resource);
-  const network = networkName();
+  const network = await networkName();
   const resourceType = RESOURCE_TYPES[resource.resourceType] ?? resource.resourceType;
   const successRate = percentOf(resource.positiveOutcomes, resource.timesUsed);
   // "Precisa de ajuste" em amarelo, não laranja: é sinal para adaptar, não fracasso.

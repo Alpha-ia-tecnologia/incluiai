@@ -2,7 +2,7 @@
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, canAccessStudent, canEditStudentRecord, canSeePedagogicalDetail, hasNominalAccess, needsNominalJustification } from "@/lib/auth";
 import { ageFrom } from "@/lib/format";
 import { STAGES, SHIFTS } from "@/lib/scale";
@@ -19,6 +19,7 @@ export default async function StudentLayout({
   children: ReactNode;
   params: Promise<{ id: string }>;
 }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");

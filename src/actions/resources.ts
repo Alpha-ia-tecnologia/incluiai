@@ -1,12 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 
 // Ciclo do banco de recursos (item 13): o professor seleciona, aplica e
 // registra o resultado — assim o município descobre o que funciona.
 export async function registerResourceUse(resourceId: string, activityId: string, formData: FormData) {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user || !isStaffOrNetwork(user.role)) {
     throw new Error("Apenas a equipe escolar pode registrar aplicações.");

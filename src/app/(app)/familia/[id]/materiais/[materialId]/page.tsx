@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser } from "@/lib/auth";
 import { MaterialView } from "@/components/materials/material-view";
 import { PrintButton } from "@/components/print-button";
@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 // para casa, sem as ações da equipe. Só material aprovado pela equipe chega
 // aqui (a IA propõe; a equipe revisa antes de a família usar).
 export default async function FamilyMaterialPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
+  const prisma = await db();
   const { id, materialId } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");

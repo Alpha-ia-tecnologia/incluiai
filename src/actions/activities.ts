@@ -3,7 +3,7 @@
 import { imagesAllowedFor } from "@/lib/consent";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentTeam } from "@/lib/auth";
 import { decideActivity } from "@/lib/records";
 import { buildActivityCards, saveSuggestedActivities } from "@/lib/agents/generate";
@@ -12,6 +12,7 @@ import { createActivityImage } from "@/lib/images/save";
 // Gera 3 cartões (sala comum / AEE / casa) e salva como "sugerida".
 // A IA nunca fecha o ciclo: cartões nascem pendentes de decisão do professor.
 export async function generateActivities(studentId: string, formData: FormData) {
+  const prisma = await db();
   const user = await requireStudentTeam(studentId);
   const objectiveId = String(formData.get("objectiveId") ?? "");
   const lessonTopic = String(formData.get("lessonTopic") ?? "").trim();
@@ -63,6 +64,7 @@ export async function rejectActivity(studentId: string, activityId: string, form
 // da turma que tenha perfil e ao menos um objetivo ativo, usando um mesmo
 // conteúdo de aula. Nada é aplicado sem decisão — tudo entra como "sugerida".
 export async function generateBatchForClass(formData: FormData) {
+  const prisma = await db();
   const [schoolId, className] = String(formData.get("turma") ?? "").split("|");
   const lessonTopic = String(formData.get("lessonTopic") ?? "").trim();
   if (!schoolId || !className) throw new Error("Selecione a turma.");

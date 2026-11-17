@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser } from "@/lib/auth";
 import { loadPlanningFor } from "@/lib/dua/shared";
 import { taskContent } from "@/lib/adapted-tasks";
 import { adaptedDocx } from "@/lib/adapted-docx";
 import { printSettings } from "@/lib/task-adaptation";
 import { parseJson } from "@/lib/format";
+import { unavailableResponse } from "@/lib/tenant";
 
 // Word da atividade adaptada (estudante ou nível do DUA), só para a equipe com acesso.
 export async function GET(_request: Request, { params }: { params: Promise<{ taskId: string }> }) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
+  const prisma = await db();
   const { taskId } = await params;
   const user = await getCurrentUser();
   if (!user || !canEditStudentRecord(user.role)) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { Home, Users, Layers, Route, Sparkles, BarChart3, Library, Heart, ShieldCheck, Stethoscope, LogOut, School, Sprout, ChevronDown, CircleHelp, CalendarDays, UserCog, FolderCheck, ClipboardList, Shapes } from "lucide-react";
@@ -8,6 +9,7 @@ import { logout } from "@/actions/auth";
 import { ROLES } from "@/lib/scale";
 import { firstName } from "@/lib/format";
 import type { SessionUser } from "@/lib/auth";
+import type { MunicipalityBrand } from "@/lib/tenant";
 import { hasApiKey } from "@/lib/env";
 import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantPopup } from "./assistant/assistant-popup";
@@ -17,7 +19,7 @@ import { NoticeBell } from "./notice-bell";
 
 const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, accounts: UserCog, family: Heart, care: Stethoscope, help: CircleHelp, evidence: FolderCheck, census: ClipboardList, games: Shapes };
 
-export function Shell({ user, notices = { unread: 0, latest: null }, children }: { user: SessionUser; notices?: { unread: number; latest: string | null }; children: ReactNode }) {
+export function Shell({ user, notices = { unread: 0, latest: null }, brand = null, children }: { user: SessionUser; notices?: { unread: number; latest: string | null }; brand?: MunicipalityBrand | null; children: ReactNode }) {
   // Iniciais sem títulos e observações entre parênteses: "Carla (mãe de Dante)" → "C".
   const initials = user.name.replace(/\([^)]*\)/g, " ").split(/\s+/).filter((part) => /^\p{L}/u.test(part) && !part.includes(".")).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || user.name[0];
   const links = getNavigation(user.role, user.studentIds);
@@ -27,9 +29,16 @@ export function Shell({ user, notices = { unread: 0, latest: null }, children }:
       <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
       <Suspense fallback={null}><NavigationProgress /></Suspense>
       <aside className="nav-rail" aria-label="Menu lateral">
-        <Link href={home} aria-label="IncluiEdu — início" className="mb-8 flex items-center gap-3 px-2.5 text-on-navy">
-          <Sprout size={32} className="text-accent-sky" aria-hidden /><span className="text-2xl font-semibold tracking-tight">IncluiEdu</span>
-        </Link>
+        {brand ? (
+          <Link href={home} aria-label={`${brand.name} — início`} className="mb-8 flex items-center gap-3 px-2.5 text-on-navy">
+            {brand.logoUrl ? <Image src={brand.logoUrl} alt="" width={44} height={44} unoptimized className="size-11 shrink-0 rounded-xl bg-white object-contain p-1" /> : <Sprout size={32} className="shrink-0 text-accent-sky" aria-hidden />}
+            <span className="min-w-0"><span className="block text-lg font-semibold leading-tight tracking-tight">{brand.name}</span><span className="block text-sm text-on-navy-soft">IncluiEdu</span></span>
+          </Link>
+        ) : (
+          <Link href={home} aria-label="IncluiEdu — início" className="mb-8 flex items-center gap-3 px-2.5 text-on-navy">
+            <Sprout size={32} className="text-accent-sky" aria-hidden /><span className="text-2xl font-semibold tracking-tight">IncluiEdu</span>
+          </Link>
+        )}
         <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1.5">
           {links.map((link, index) => {
             const Icon = ICONS[link.icon];
@@ -49,9 +58,9 @@ export function Shell({ user, notices = { unread: 0, latest: null }, children }:
       </aside>
       <div className="app-content">
         <header className="shell-header mb-7 flex min-h-12 items-center justify-between gap-2">
-          <Link href={home} className="flex items-center gap-2">
-            <Sprout size={22} className="text-brand lg:hidden" aria-hidden />
-            <span className="font-semibold lg:hidden">IncluiEdu</span>
+          <Link href={home} className={`flex items-center gap-2${brand ? " min-w-0" : ""}`}>
+            {brand?.logoUrl ? <Image src={brand.logoUrl} alt="" width={28} height={28} unoptimized className="size-8 shrink-0 rounded-lg bg-white object-contain p-0.5 lg:hidden" /> : <Sprout size={22} className="text-brand lg:hidden" aria-hidden />}
+            <span className={`font-semibold lg:hidden${brand ? " truncate" : ""}`}>{brand ? brand.name : "IncluiEdu"}</span>
             <span className="hidden text-sm text-ink-soft lg:inline">Cada pessoa, uma possibilidade.</span>
           </Link>
           <div className="flex items-center gap-2">

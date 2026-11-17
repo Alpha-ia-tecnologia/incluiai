@@ -1,9 +1,12 @@
 import { getCurrentUser } from "@/lib/auth";
 import { deleteConversation, getConversation } from "@/lib/assistant/store";
+import { unavailableResponse } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Faça login." }, { status: 401 });
   const { id } = await params;
@@ -13,6 +16,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Faça login." }, { status: 401 });
   const { id } = await params;

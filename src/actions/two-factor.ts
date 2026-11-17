@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { currentSessionId, getCurrentUser, getPendingLogin, loginAllowed, recordLoginAttempt, twoFactorRequired, upgradeSession } from "@/lib/auth";
 import { confirmTwoFactor, consumeSecondFactor, newRecoveryCodesFor } from "@/lib/two-factor";
 import { recordAccountEvent } from "@/lib/accounts";
+import { homeAfterLogin } from "@/lib/tenant";
 import { newTotpSecret } from "@/lib/totp";
 
 // Verificação em duas etapas (seção 14): entrar com o código, ligar, gerar
@@ -52,10 +53,12 @@ export async function verifySecondStep(_previous: CodeState, formData: FormData)
   if (result.kind === "recuperacao") await recordAccountEvent(pending.user.id, pending.user, "entrou com um código de recuperação");
   await upgradeSession(pending.sessionId, pending.user.id);
   // Com código de recuperação, a tela de segurança mostra quantos ainda restam.
-  redirect(result.kind === "recuperacao" ? "/conta/seguranca?aviso=recuperacao" : "/");
+  const home = await homeAfterLogin();
+  redirect(result.kind === "recuperacao" && home === "/" ? "/conta/seguranca?aviso=recuperacao" : home);
 }
 
 export async function startTwoFactorSetup(): Promise<void> {
+  const prisma = await db();
   const user = await setupUser();
   if (!user) redirect("/login");
   const current = await prisma.user.findUnique({ where: { id: user.id }, select: { totpEnabledAt: true } });
@@ -65,6 +68,7 @@ export async function startTwoFactorSetup(): Promise<void> {
 }
 
 export async function cancelTwoFactorSetup(): Promise<void> {
+  const prisma = await db();
   const user = await setupUser();
   if (!user) redirect("/login");
   await prisma.user.update({ where: { id: user.id }, data: { totpPendingSecret: null } });
@@ -74,6 +78,7 @@ export async function cancelTwoFactorSetup(): Promise<void> {
 // Liga com o primeiro código do aplicativo e devolve os códigos de recuperação.
 // Sem revalidar: a tela mostra os códigos até a pessoa tocar em Concluir.
 export async function confirmTwoFactorSetup(_previous: CodeState, formData: FormData): Promise<CodeState> {
+  const prisma = await db();
   const user = await setupUser();
   if (!user) redirect("/login");
   const code = codeFrom(formData);
@@ -97,10 +102,11 @@ export async function finishSecondStepSetup(): Promise<void> {
   if (pending.user.mustChangePassword) redirect("/login/nova-senha");
   if (!pending.user.totpEnabledAt || pending.user.totpEnabledAt < pending.startedAt) redirect("/login/duas-etapas");
   await upgradeSession(pending.sessionId, pending.user.id);
-  redirect("/");
+  redirect(await homeAfterLogin());
 }
 
 export async function regenerateRecoveryCodes(_previous: CodeState, formData: FormData): Promise<CodeState> {
+  const prisma = await db();
   const session = await getCurrentUser();
   if (!session) redirect("/login");
   const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id } });
@@ -113,6 +119,7 @@ export async function regenerateRecoveryCodes(_previous: CodeState, formData: Fo
 }
 
 export async function disableTwoFactor(_previous: CodeState, formData: FormData): Promise<CodeState> {
+  const prisma = await db();
   const session = await getCurrentUser();
   if (!session) redirect("/login");
   if (twoFactorRequired(session.role)) return { error: "Na sua rede, a verificação em duas etapas é obrigatória para a equipe." };
@@ -131,6 +138,7 @@ export async function disableTwoFactor(_previous: CodeState, formData: FormData)
 
 // Computador da escola esquecido aberto: encerra as outras sessões desta conta.
 export async function endOtherSessions(): Promise<void> {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const keep = await currentSessionId();

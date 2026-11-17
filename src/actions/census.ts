@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";
 import { CENSUS_MAX_BYTES, analyzeCensusFile, applyImport, canOpenSchool, censusAccess, decodeCensusFile, discardImport, saveDecision, setStudentInep, undoDecision } from "@/lib/census";
 import { runVerification, saveMonitorConfig } from "@/lib/census-core";
@@ -50,6 +50,7 @@ export async function undoCensusDecision(importId: string, personKey: string) {
 }
 
 export async function applyCensusImport(importId: string, _previous: CensusState): Promise<CensusState> {
+  const prisma = await db();
   const user = await requireCensus();
   const censusImport = await prisma.censusImport.findUnique({ where: { id: importId }, select: { schoolId: true } });
   const result = await applyImport(user, importId);
@@ -60,6 +61,7 @@ export async function applyCensusImport(importId: string, _previous: CensusState
 }
 
 export async function discardCensusImport(importId: string) {
+  const prisma = await db();
   const user = await requireCensus();
   const censusImport = await prisma.censusImport.findUnique({ where: { id: importId }, select: { schoolId: true } });
   await discardImport(user, importId);
@@ -91,6 +93,7 @@ export async function saveCensusWindow(_previous: CensusState, formData: FormDat
 
 // Matrículas de AEE que o FNDE considerou no Fundeb (vazio apaga).
 export async function saveFndeCount(_previous: CensusState, formData: FormData): Promise<CensusState> {
+  const prisma = await db();
   const user = await requireCensus();
   if (!censusAccess(user)?.canConfigure) return { error: "Só a Secretaria informa o número do FNDE." };
   const raw = String(formData.get("fndeAee") ?? "").trim();
@@ -104,6 +107,7 @@ export async function saveFndeCount(_previous: CensusState, formData: FormData):
 }
 
 export async function saveSchoolInep(schoolId: string, _previous: CensusState, formData: FormData): Promise<CensusState> {
+  const prisma = await db();
   const user = await requireCensus();
   if (!canOpenSchool(user, schoolId)) return { error: "Você altera só a sua escola." };
   const code = digitsOnly(String(formData.get("inepCode") ?? ""));

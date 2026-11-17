@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { requireStudentTeam } from "@/lib/auth";
 import { addMaterialImages, approveStudentMaterial, createStudentMaterial, saveMaterialActivity } from "@/lib/material-generate";
 
@@ -92,6 +92,7 @@ export async function sendMaterialActivity(studentId: string, materialId: string
 
 // Excluir sai da página do material (que deixa de existir) e volta à galeria.
 export async function deleteMaterial(studentId: string, materialId: string) {
+  const prisma = await db();
   await requireStudentTeam(studentId);
   // Só apaga material DESTE estudante (o id sozinho não basta).
   const removed = await prisma.material.deleteMany({ where: { id: materialId, studentId } });

@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, canSeePedagogicalDetail, requireStudentPage } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { TIMELINE_TYPES } from "@/lib/scale";
@@ -86,6 +86,7 @@ async function withinReach<T>(work: () => Promise<T>, fallback: T): Promise<T> {
 }
 
 export default async function TimelinePage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   await requireStudentPage(id, "Evolução");
   const user = await getCurrentUser();

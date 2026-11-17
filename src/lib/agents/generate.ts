@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { aiAllowedFor } from "../consent";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import { assertCaseStudyConcluded } from "../records";
 import type { SessionUser } from "../auth";
 import { generateActivityCards, type ActivityCard, type EngineInput } from "../activity-engine";
@@ -52,6 +52,7 @@ export function describeAgentError(error: unknown) {
 
 // Prepara uma proposta de PPI e a guarda como rascunho em PlanDraft.
 export async function createPlanDraft(studentId: string, user: SessionUser, report?: AgentReport) {
+  const prisma = await db();
   // A proposta de plano (IA ou regras) também exige o estudo de caso concluído (CA02).
   await assertCaseStudyConcluded(studentId);
   const { student, text, hasEnoughData } = await loadPlanContext(studentId);
@@ -104,6 +105,7 @@ export async function createPlanDraft(studentId: string, user: SessionUser, repo
 
 // Os 3 cartões (sala comum / AEE / casa) para um objetivo.
 export async function buildActivityCards(input: EngineInput, report?: AgentReport): Promise<ActivityCard[]> {
+  const prisma = await db();
   if (await aiAllowedFor(input.student.id)) {
     const anonymizer = await loadAnonymizer(input.student.id);
     const agents = createAgentModel(anonymizer);
@@ -129,6 +131,7 @@ export async function buildActivityCards(input: EngineInput, report?: AgentRepor
 
 // Guarda os cartões como "sugerida": a decisão continua com o professor.
 export async function saveSuggestedActivities(studentId: string, objectiveId: string, cards: ActivityCard[]) {
+  const prisma = await db();
   return prisma.activity.createManyAndReturn({
     select: { id: true, title: true, context: true },
     data: cards.map((c) => ({

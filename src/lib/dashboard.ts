@@ -1,4 +1,4 @@
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import { bnccSkill } from "./bncc";
 import { componentLabel } from "./bncc-core";
 import { AREAS, compareAreas, reassessmentDue } from "./assessment";
@@ -165,6 +165,7 @@ function topItems(values: string[], limit: number) {
 }
 
 export async function loadDashboard(user: SessionUser, options: { period: DashboardPeriod; school?: unknown; now?: Date }) {
+  const prisma = await db();
   const now = options.now ?? new Date();
   const period = options.period;
   const start = periodStart(period, now);

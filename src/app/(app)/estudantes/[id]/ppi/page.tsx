@@ -1,7 +1,7 @@
 ﻿import Link from "next/link";
 import { ConsentNote } from "@/components/consent-note";
 import { aiAllowedFor } from "@/lib/consent";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { createPlan, createObjective, markObjectiveStatus, reviewPlan, closePlan, updatePlanDocuments } from "@/actions/plan";
 import { activatePlanDraft, discardPlanDraft, generatePlanDraft } from "@/actions/plan-ai";
 import { formatDate } from "@/lib/format";
@@ -42,6 +42,7 @@ const fieldStyle = { labelClassName: labelCls, inputClassName: inputCls };
 const multiStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const viewer = await requireStudentPage(id, "Plano de ensino");
   // Quem só lê a ficha (Secretaria com motivo) vê o plano sem os formulários.
@@ -491,6 +492,7 @@ async function linkedDuaSupports(studentId: string): Promise<{ supports: Support
 // pedagógica: hoje esta página não mostra o diário, e família e terapeuta
 // continuam vendo o plano como antes (null = sem esse recorte).
 async function latestSupportByObjective(studentId: string, objectiveIds: string[]): Promise<Map<string, { level: number; date: Date; count: number }> | null> {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user || !canSeePedagogicalDetail(user.role)) return null;
   const latest = new Map<string, { level: number; date: Date; count: number }>();

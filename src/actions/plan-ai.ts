@@ -3,7 +3,7 @@
 import { validBnccCode } from "@/lib/bncc";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { requireStudentTeam } from "@/lib/auth";
 import { buildObjectiveDescription } from "@/lib/objective";
 import { createPlanDraft } from "@/lib/agents/generate";
@@ -24,6 +24,7 @@ export async function generatePlanDraft(studentId: string) {
 
 // O professor revisa a proposta, escolhe os objetivos e ativa o plano.
 export async function activatePlanDraft(studentId: string, formData: FormData) {
+  const prisma = await db();
   const user = await requireTeam(studentId);
   await assertCaseStudyConcluded(studentId);
   await assertNoActivePlan(studentId);
@@ -85,6 +86,7 @@ export async function activatePlanDraft(studentId: string, formData: FormData) {
 }
 
 export async function discardPlanDraft(studentId: string) {
+  const prisma = await db();
   const user = await requireTeam(studentId);
   await prisma.planDraft.deleteMany({ where: { studentId } });
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "editou", detail: "Proposta de plano descartada" } });

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { textContains } from "@/lib/db-text";
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { labelCls, primaryButtonCls } from "@/components/form-styles";
@@ -35,6 +35,7 @@ export default async function ResourcesPage({
 }: {
   searchParams: Promise<{ q?: string; etapa?: string; tipo?: string }>;
 }) {
+  const prisma = await db();
   const filters = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");

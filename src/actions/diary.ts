@@ -1,7 +1,7 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { homeActivityNote } from "@/lib/user-journey";
 import { saveDiaryEntry, saveFamilyNote } from "@/lib/records";
@@ -33,6 +33,7 @@ export async function createDiaryEntry(studentId: string, formData: FormData) {
 // A família avisa que fez em casa uma atividade enviada pela escola. Vira uma
 // observação da família, que a equipe vê no resumo do estudante.
 export async function markHomeActivityDone(activityId: string) {
+  const prisma = await db();
   const user = await getCurrentUser();
   const activity = await prisma.activity.findUnique({ where: { id: activityId }, select: { studentId: true, title: true, context: true, status: true } });
   if (!user || !activity || user.role !== "familia" || !user.studentIds.includes(activity.studentId) || activity.context !== "casa" || !["aceita", "aplicada"].includes(activity.status)) {

@@ -1,21 +1,29 @@
 import "server-only";
-import { prisma } from "./prisma";
+import { currentTenant, db } from "./prisma";
+import { addressOf } from "./tenant";
 import type { SessionUser } from "./auth";
 import { emailConfigured, sendEmail } from "./email";
 import { cleanCheckIn, noticeEmail, noticeTitle, weekStart, type NoticeKind } from "./family-contact";
 
 // Avisos no portal e pergunta da semana (item 6). Regras puras em family-contact.ts.
 
-const appUrl = () => process.env.APP_URL?.trim() || "http://localhost:3000";
-const firstNameOf = async (studentId: string) => (await prisma.student.findUnique({ where: { id: studentId }, select: { name: true } }))?.name.split(" ")[0] ?? "o estudante";
+const appUrl = async () => {
+  const tenant = await currentTenant();
+  return tenant.kind === "municipio" ? addressOf(tenant.slug) : process.env.APP_URL?.trim() || "http://localhost:3000";
+};
+const firstNameOf = async (studentId: string) => {
+  const prisma = await db();
+  return (await prisma.student.findUnique({ where: { id: studentId }, select: { name: true } }))?.name.split(" ")[0] ?? "o estudante";
+};
 
 async function deliver(users: { id: string; email: string; notifyByEmail: boolean; deactivatedAt: Date | null }[], studentId: string, kind: NoticeKind, href: string) {
+  const prisma = await db();
   const active = users.filter((user) => !user.deactivatedAt);
   if (!active.length) return;
   const title = noticeTitle(kind, await firstNameOf(studentId));
   await prisma.notification.createMany({ data: active.map((user) => ({ userId: user.id, studentId, kind, title, href })) });
   if (!emailConfigured()) return;
-  const { subject, text } = noticeEmail(appUrl());
+  const { subject, text } = noticeEmail(await appUrl());
   await Promise.all(active.filter((user) => user.notifyByEmail).map((user) => sendEmail(user.email, subject, text)));
 }
 
@@ -23,12 +31,14 @@ const userFields = { id: true, email: true, notifyByEmail: true, deactivatedAt: 
 
 // Família (contas vinculadas ao estudante).
 export async function notifyFamily(studentId: string, kind: NoticeKind, href: string) {
+  const prisma = await db();
   const users = await prisma.user.findMany({ where: { role: "familia", studentLinks: { some: { studentId } } }, select: userFields });
   await deliver(users, studentId, kind, href);
 }
 
 // Equipe que acompanha o estudante: AEE e coordenação da escola dele.
 export async function notifyTeam(studentId: string, kind: NoticeKind, href: string) {
+  const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
   if (!student) return;
   const users = await prisma.user.findMany({ where: { role: { in: ["professor_aee", "coordenacao"] }, schoolId: student.schoolId }, select: userFields });
@@ -37,12 +47,14 @@ export async function notifyTeam(studentId: string, kind: NoticeKind, href: stri
 
 // Para o sino: quantos avisos novos e o mais recente deles.
 export async function unreadNotices(userId: string): Promise<{ unread: number; latest: string | null }> {
+  const prisma = await db();
   const where = { userId, readAt: null };
   const [unread, latest] = await Promise.all([prisma.notification.count({ where }), prisma.notification.findFirst({ where, orderBy: { createdAt: "desc" }, select: { id: true } })]);
   return { unread, latest: latest?.id ?? null };
 }
 
 export async function saveCheckIn(user: SessionUser, studentId: string, answers: string[], note: string): Promise<string | null> {
+  const prisma = await db();
   if (user.role !== "familia" || !user.studentIds.includes(studentId)) return "Só a família do estudante responde a pergunta da semana.";
   const clean = cleanCheckIn(answers, note);
   if ("error" in clean) return clean.error;
@@ -61,5 +73,7 @@ export async function saveCheckIn(user: SessionUser, studentId: string, answers:
 }
 
 // A resposta mais recente desta semana ou da anterior (a da sexta ainda serve na segunda).
-export const recentCheckIn = (studentId: string) =>
-  prisma.familyCheckIn.findFirst({ where: { studentId, weekStart: { gte: weekStart(new Date(Date.now() - 7 * 86_400_000)) } }, orderBy: { createdAt: "desc" } });
+export const recentCheckIn = async (studentId: string) => {
+  const prisma = await db();
+  return prisma.familyCheckIn.findFirst({ where: { studentId, weekStart: { gte: weekStart(new Date(Date.now() - 7 * 86_400_000)) } }, orderBy: { createdAt: "desc" } });
+};

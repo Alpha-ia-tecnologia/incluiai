@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
 import { BNCC, bnccSkill } from "@/lib/bncc";
 import { scopeFor, searchSkills, suggestSkills, type BnccScope, type BnccSkill } from "@/lib/bncc-core";
+import { unavailableResponse } from "@/lib/tenant";
 
 // Busca na BNCC para o campo de habilidade (objetivo do plano e planejamento com DUA):
 //   ?q=EF01LP ou ?q=palavras  → busca
@@ -13,6 +14,9 @@ import { scopeFor, searchSkills, suggestSkills, type BnccScope, type BnccSkill }
 const view = ({ code, component, years, description }: BnccSkill) => ({ code, component, years, description });
 
 export async function GET(request: NextRequest) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user || !isStaffOrNetwork(user.role)) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   const params = request.nextUrl.searchParams;

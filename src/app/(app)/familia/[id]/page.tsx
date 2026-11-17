@@ -7,7 +7,7 @@ import { ReadAloud } from "@/components/read-aloud";
 import { TextSizeControl } from "@/components/text-size-control";
 import { studentConsent } from "@/lib/consent";
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, canAccessStudent, hasNominalAccess } from "@/lib/auth";
 import { createFamilyNote, markHomeActivityDone } from "@/actions/diary";
 import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-journey";
@@ -38,6 +38,7 @@ import { labelCls as familyLabelCls, inputCls as familyInputCls, quietButtonCls 
 export const dynamic = "force-dynamic";
 
 export default async function FamilyStudentPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");

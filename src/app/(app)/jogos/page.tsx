@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser, isSchoolStaff } from "@/lib/auth";
 import { parseJson } from "@/lib/format";
 import { suggestedLevel, themeFromInterests } from "@/lib/games/games-core";
@@ -14,6 +14,7 @@ export const metadata: Metadata = { title: "Jogos educativos · IncluiEdu" };
 // escolhido, o nível vem do "Como aprende" e o professor pode registrar a aula
 // no fim de qualquer jogo.
 export default async function GamesPage({ searchParams }: { searchParams: Promise<{ estudante?: string }> }) {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!canEditStudentRecord(user.role)) redirect("/");

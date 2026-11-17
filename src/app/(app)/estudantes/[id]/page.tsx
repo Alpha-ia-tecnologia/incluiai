@@ -1,6 +1,6 @@
 ﻿import { BnccTag } from "@/components/bncc-tag";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insights";
 import { meetingQuestions } from "@/lib/materials";
 import { parseJson, formatDate } from "@/lib/format";
@@ -39,6 +39,7 @@ const PROFILE_SUPPORT = [
 const NARROW_BARS = "lg:[&_li]:grid-cols-[minmax(0,1fr)_auto] lg:[&_li>span:nth-child(2)]:col-span-2 lg:[&_li>span:nth-child(2)]:row-start-2";
 
 export default async function StudentOverview({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   await requireStudentPage(id, "Resumo");
   const student = await prisma.student.findUniqueOrThrow({

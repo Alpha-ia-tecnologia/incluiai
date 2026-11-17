@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canSeeClinicalDetail, canEditStudentRecord } from "@/lib/auth";
 import { saveCaseStudy } from "@/actions/case-study";
 import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, ESSENTIAL_GROUPS, parseCaseStudy, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
@@ -60,6 +60,7 @@ export default async function CaseStudyPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ editar?: string; salvo?: string; faltaAee?: string; concluido?: string }>;
 }) {
+  const prisma = await db();
   const { id } = await params;
   await requireStudentPage(id, "Estudo de caso");
   const { editar, salvo, faltaAee, concluido } = await searchParams;

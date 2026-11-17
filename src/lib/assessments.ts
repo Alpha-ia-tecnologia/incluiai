@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { recordChange } from "./access-log";
 import { INSTRUMENT_VERSION, cleanAnswers, observed, type Answers } from "./assessment";
@@ -9,6 +9,7 @@ import { INSTRUMENT_VERSION, cleanAnswers, observed, type Answers } from "./asse
 export const answersOf = (stored: string): Answers => cleanAnswers(JSON.parse(stored) as Record<string, unknown>);
 
 export async function saveAssessment(user: SessionUser, studentId: string, raw: Record<string, unknown>, notes: string): Promise<string | { error: string }> {
+  const prisma = await db();
   const answers = cleanAnswers(raw);
   if (observed(answers).length < 5) return { error: "Observe pelo menos 5 itens antes de salvar (os outros podem ficar como não observados)." };
   const previous = await prisma.assessment.count({ where: { studentId } });
@@ -23,6 +24,7 @@ export async function saveAssessment(user: SessionUser, studentId: string, raw: 
 
 // Linha de base (a primeira) e a mais recente.
 export async function baselineAndLatest(studentId: string) {
+  const prisma = await db();
   const [baseline, latest] = await Promise.all([
     prisma.assessment.findFirst({ where: { studentId }, orderBy: { appliedAt: "asc" } }),
     prisma.assessment.findFirst({ where: { studentId }, orderBy: { appliedAt: "desc" } }),

@@ -1,10 +1,14 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canViewCard } from "@/lib/student-card";
+import { unavailableResponse } from "@/lib/tenant";
 
 // Foto da carteirinha: só para a família e a equipe que faz a carteirinha, e só
 // enquanto a família autoriza. Para os demais, "não encontrada".
 export async function GET(_request: Request, { params }: { params: Promise<{ studentId: string }> }) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
+  const prisma = await db();
   const { studentId } = await params;
   const user = await getCurrentUser();
   if (!user) return new Response("Não autenticado.", { status: 401 });

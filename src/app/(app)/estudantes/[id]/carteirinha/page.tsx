@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { History, LockKeyhole, RefreshCw, ShieldAlert, Trash2, Users } from "lucide-react";
 import { Assurances } from "@/components/explain";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/auth";
 import { canManageCard, loadCardView } from "@/lib/student-card";
 import { formatDate } from "@/lib/format";
@@ -16,6 +16,7 @@ import { dangerButtonCls, quietButtonCls } from "@/components/form-styles";
 export const dynamic = "force-dynamic";
 
 export default async function StudentCardPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const user = await requireStudentPage(id, "Carteirinha");
   const student = await prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true, schoolId: true } });

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, canSeeClinicalDetail, getCurrentUser } from "@/lib/auth";
 import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, RETIRED_CASE_FIELDS, conductedByAee, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
 
@@ -11,6 +11,7 @@ const MAX_LENGTH = 3000;
 // Salva o estudo de caso como rascunho ou o conclui. A equipe pode preencher
 // em várias conversas; só a conclusão exige os campos essenciais.
 export async function saveCaseStudy(studentId: string, formData: FormData) {
+  const prisma = await db();
   const user = await getCurrentUser();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });
   if (

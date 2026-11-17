@@ -2,7 +2,7 @@ import Link from "next/link";
 import { imagesAllowedFor } from "@/lib/consent";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentPage } from "@/lib/auth";
 import { MaterialView } from "@/components/materials/material-view";
 import { CreatedNotice } from "@/components/materials/created-notice";
@@ -17,6 +17,7 @@ const one = (value: string | string[] | undefined) => (Array.isArray(value) ? va
 // desenhar imagens, levar atividade, imprimir e excluir). Mesma regra da
 // galeria: a equipe pedagógica edita; família e terapeuta só leem.
 export default async function MaterialPage({ params, searchParams }: { params: Promise<{ id: string; materialId: string }>; searchParams: Promise<Query> }) {
+  const prisma = await db();
   const [{ id, materialId }, query] = await Promise.all([params, searchParams]);
   await requireStudentPage(id, "Material de apoio");
   const user = await getCurrentUser();

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import {
   canAccessStudent,
   getCurrentUser,
@@ -33,6 +33,7 @@ function csvToJson(value: FormDataEntryValue | null): string {
 }
 
 export async function upsertProfile(studentId: string, formData: FormData) {
+  const prisma = await db();
   const user = await getCurrentUser();
   const student = await prisma.student.findUnique({
     where: { id: studentId },

@@ -3,7 +3,7 @@ import { textContains } from "@/lib/db-text";
 import type { BetaRunnableTool } from "@anthropic-ai/sdk/lib/tools/BetaRunnableTool";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import { canSeePedagogicalDetail, isNetworkRole, isStaffOrNetwork, type SessionUser } from "../auth";
 import { loadPlanContext, profileText } from "../agents/context";
 import { buildActivityCards, createPlanDraft, saveSuggestedActivities } from "../agents/generate";
@@ -74,6 +74,7 @@ function define<Schema extends z.ZodType>(ctx: ToolContext, name: string, descri
 // O modelo se refere ao estudante pelo marcador ([ESTUDANTE 1]) ou pelo id;
 // um nome escrito por engano ainda é aceito se for único no escopo.
 async function resolveStudentId(ctx: ToolContext, ref: string): Promise<string> {
+  const prisma = await db();
   const label = ref.match(/ESTUDANTE\s*(\d+)/i);
   if (label) {
     const number = Number(label[1]);
@@ -91,10 +92,12 @@ async function resolveStudentId(ctx: ToolContext, ref: string): Promise<string> 
 }
 
 async function logAccess(ctx: ToolContext, studentId: string, detail: string) {
+  const prisma = await db();
   await prisma.accessLog.create({ data: { studentId, actor: ctx.user.name, role: ctx.user.role, action: "visualizou", detail } });
 }
 
 async function propose(ctx: ToolContext, kind: string, summary: string, args: Record<string, unknown>): Promise<string> {
+  const prisma = await db();
   const action = await prisma.assistantAction.create({ data: { conversationId: ctx.conversationId, kind, summary, args: JSON.stringify(args) } });
   ctx.emit({ type: "action", action: toActionView(action) });
   return `Cartão de confirmação preparado (ação ${kind}). Nada foi gravado ainda: a pessoa precisa confirmar no cartão que apareceu na tela. Diga isso em uma frase e não chame esta ferramenta de novo para o mesmo pedido.`;
@@ -130,6 +133,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       turma: z.string().optional().describe("Parte do nome da turma, como 'Turma B'"),
     }),
     async (args) => {
+      const prisma = await db();
       const students = await prisma.student.findMany({
         where: { id: { in: ctx.studentIds }, ...(args.turma ? { className: textContains(args.turma) } : {}) },
         orderBy: { name: "asc" },
@@ -159,6 +163,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
     "Resumo completo de um estudante: jornada e próximo passo, avisos, plano e objetivos (com ids e tendência), como aprende, registros de aula, atividades, família e orientações da saúde. Consulte antes de responder sobre um estudante.",
     z.object({ estudante: studentRef }),
     async (args) => {
+      const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       const s = await prisma.student.findUniqueOrThrow({
         where: { id },
@@ -212,6 +217,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       limite: z.number().int().min(1).max(20).optional(),
     }),
     async (args) => {
+      const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       const activities = await prisma.activity.findMany({
         where: { studentId: id, ...(args.situacao && args.situacao !== "todas" ? { status: args.situacao } : {}) },
@@ -287,6 +293,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       comImagens: z.boolean().optional().describe("Gerar também imagens de apoio (pictogramas) para cada atividade"),
     }),
     async (args, report) => {
+      const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const student = await prisma.student.findUniqueOrThrow({ where: { id } });
@@ -364,6 +371,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       proximoPasso: z.string().optional().describe("O que tentar no próximo encontro"),
     }),
     async (args) => {
+      const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const student = await prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true } });
@@ -391,6 +399,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       motivo: z.string().optional().describe("Motivo da rejeição, em poucas palavras"),
     }),
     async (args) => {
+      const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const activity = await prisma.activity.findFirst({ where: { id: args.atividadeId, studentId: id }, select: { id: true, title: true, status: true } });
@@ -403,6 +412,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
     "Prepara a mudança de situação de um objetivo (alcançado, em revisão ou ativo). Não grava: abre um cartão para a pessoa confirmar. Só sugira 'alcançado' quando os registros mostrarem.",
     z.object({ estudante: studentRef, objetivoId: z.string(), situacao: z.enum(["alcancado", "em_revisao", "ativo"]) }),
     async (args) => {
+      const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const objective = await prisma.objective.findFirst({ where: { id: args.objetivoId, plan: { studentId: id } }, select: { id: true, description: true } });
@@ -419,6 +429,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       tipo: z.string().optional().describe("Tipo do recurso, como 'caa' ou 'atividade'"),
     }),
     async (args) => {
+      const prisma = await db();
       const resources = await prisma.resource.findMany({
         where: {
           ...(args.busca ? { OR: [{ title: textContains(args.busca) }, { description: textContains(args.busca) }, { skillArea: textContains(args.busca) }] } : {}),
@@ -487,6 +498,7 @@ function familyTools(ctx: ToolContext): BetaRunnableTool[] {
     "O que a escola está trabalhando com o estudante, as atividades para fazer em casa (com o passo a passo), as conquistas registradas pela escola e o que a família já contou.",
     z.object({}),
     async () => {
+      const prisma = await db();
       if (!studentId) return "O acesso ainda não está vinculado a um estudante. Peça à escola para conferir o cadastro.";
       const s = await prisma.student.findUniqueOrThrow({
         where: { id: studentId },
@@ -529,6 +541,7 @@ function therapistTools(ctx: ToolContext): BetaRunnableTool[] {
     "Comunicação, interesses e apoios registrados pela escola (perfil funcional) e os relatórios de articulação já enviados. Sem notas, diário ou dados administrativos.",
     z.object({}),
     async () => {
+      const prisma = await db();
       if (!studentId) return "O acesso ainda não está vinculado a um estudante. Peça à escola para conferir o cadastro.";
       const s = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { profile: true, intersectorReports: { orderBy: { createdAt: "desc" }, take: 3 } } });
       return [

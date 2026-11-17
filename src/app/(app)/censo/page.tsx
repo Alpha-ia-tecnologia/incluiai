@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, CalendarClock, EyeOff, FileDown, GitCompareArrows, ShieldCheck, Upload, UserLock } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { censusOverview } from "@/lib/census";
 import { getMonitor } from "@/lib/census-core";
@@ -25,6 +25,7 @@ const STATUS_TONE = { ativo: "green", aguardando: "brand", fora: "amber", deslig
 // migração; a plataforma lê, concilia com o cadastro e confere, nos horários da
 // janela do Censo, a dupla matrícula dos estudantes do AEE.
 export default async function CensusPage() {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const overview = await censusOverview(user);

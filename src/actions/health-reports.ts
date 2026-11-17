@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canSeeClinicalDetail, requireStudentTeam, type SessionUser } from "@/lib/auth";
 import { recordChange } from "@/lib/access-log";
 import { parseCaseStudy } from "@/lib/case-study";
@@ -25,6 +25,7 @@ async function requireReportTeam(studentId: string): Promise<SessionUser> {
 }
 
 async function loadReport(reportId: string) {
+  const prisma = await db();
   const report = await prisma.healthReport.findUnique({
     where: { id: reportId },
     select: { id: true, studentId: true, status: true, reading: true, reviewedAt: true },
@@ -42,6 +43,7 @@ function refresh() {
 // quando a leitura não acontece (foto, PDF escaneado, IA desligada, sem
 // autorização da família ou erro).
 export async function uploadHealthReport(studentId: string, _state: UploadState, formData: FormData): Promise<UploadState> {
+  const prisma = await db();
   const user = await requireReportTeam(studentId);
   const file = formData.get("arquivo");
   if (!(file instanceof File) || file.size === 0) return { error: "Escolha o arquivo do laudo." };
@@ -68,6 +70,7 @@ export async function uploadHealthReport(studentId: string, _state: UploadState,
 
 // Nova tentativa de leitura, quando a anterior não aconteceu ou não terminou.
 export async function retryHealthReport(reportId: string) {
+  const prisma = await db();
   const { report, user } = await loadReport(reportId);
   if (!report.reviewedAt && RETRY_STATUSES.has(report.status)) {
     await prisma.healthReport.update({ where: { id: reportId }, data: { status: "lendo" } });
@@ -80,6 +83,7 @@ export async function retryHealthReport(reportId: string) {
 // Revisão da equipe: só o que foi marcado entra no estudo de caso. Os valores
 // chegam do formulário, mas só valem os que a leitura sugeriu.
 export async function reviewHealthReport(reportId: string, formData: FormData) {
+  const prisma = await db();
   const { report, user } = await loadReport(reportId);
   const reading = parseReading(report.reading);
   if (report.status !== "lido" || report.reviewedAt || !reading) redirect(reportPath(report.studentId, reportId));
@@ -128,6 +132,7 @@ export async function reviewHealthReport(reportId: string, formData: FormData) {
 
 // Exclui o arquivo e a leitura. O que já foi juntado ao estudo de caso fica.
 export async function deleteHealthReport(reportId: string) {
+  const prisma = await db();
   const { report, user } = await loadReport(reportId);
   await prisma.healthReport.delete({ where: { id: reportId } });
   await recordChange(user, report.studentId, "excluiu", "Laudo do estudo de caso");

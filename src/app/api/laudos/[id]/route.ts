@@ -1,11 +1,15 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canAccessStudent, canEditStudentRecord, canSeeClinicalDetail, getCurrentUser } from "@/lib/auth";
 import { recordView } from "@/lib/access-log";
+import { unavailableResponse } from "@/lib/tenant";
 
 // Arquivo de um laudo, só para o AEE e a coordenação com acesso ao estudante
 // (dado clínico). Para os demais a resposta é "não encontrado", sem dizer se o
 // laudo existe. A abertura vai para o histórico de acessos que a família vê.
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unavailable = await unavailableResponse();
+  if (unavailable) return unavailable;
+  const prisma = await db();
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) return new Response("Não autenticado.", { status: 401 });

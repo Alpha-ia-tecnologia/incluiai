@@ -4,7 +4,7 @@ import { aiAllowedFor, imagesAllowedFor } from "@/lib/consent";
 import Image from "next/image";
 import type { Activity } from "@prisma/client";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { requireStudentPage, canEditStudentRecord } from "@/lib/auth";
 import { generateActivities, acceptActivity, rejectActivity } from "@/actions/activities";
 import { parseJson, formatDate } from "@/lib/format";
@@ -170,6 +170,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
 }
 
 export default async function ActivitiesPage({ params }: { params: Promise<{ id: string }> }) {
+  const prisma = await db();
   const { id } = await params;
   const viewer = await requireStudentPage(id, "Atividades");
   // Aba de trabalho: quem só lê a ficha (Secretaria com motivo) fica no resumo.

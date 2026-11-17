@@ -1,4 +1,4 @@
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import { canAccessStudent, type SessionUser } from "../auth";
 import { PATTERNS, escape, isYearRange, nameTokens, naturalizePlaceholders } from "../agents/anonymize";
 
@@ -135,6 +135,7 @@ export function createPseudonymizer(input: {
 // Monta o pseudonimizador com o que a pessoa pode ver: os estudantes do seu
 // escopo (escola, ou o estudante vinculado), as escolas e os nomes cadastrados.
 export async function loadPseudonymizer(user: SessionUser, map: PseudonymMap): Promise<Pseudonymizer & { studentIds: string[] }> {
+  const prisma = await db();
   const [candidates, schools, users] = await Promise.all([
     prisma.student.findMany({
       where: user.role === "familia" || user.role === "terapeuta"

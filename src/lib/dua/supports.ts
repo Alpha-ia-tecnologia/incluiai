@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { parseJson } from "../format";
 import { BARRIERS, CHANNELS, supportInfo } from "../scale";
@@ -27,6 +27,7 @@ const list = (value: string | null | undefined) => parseJson<string[]>(value, []
 
 // Itens que o profissional pode escolher como referência, sempre com origem, data e versão.
 export async function profileReferences(user: SessionUser, studentId: string): Promise<ProfileRef[]> {
+  const prisma = await db();
   await studentInReach(user, studentId);
   const [profile, caseStudy] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId } }),
@@ -71,6 +72,7 @@ export async function profileReferences(user: SessionUser, studentId: string): P
 
 // Objetivos do Plano de ensino ativo do estudante, para vincular o apoio.
 export async function planObjectives(user: SessionUser, studentId: string) {
+  const prisma = await db();
   await studentInReach(user, studentId);
   const objectives = await prisma.objective.findMany({
     where: { plan: { studentId, status: "ativo" } },
@@ -117,6 +119,7 @@ async function buildSupportData(user: SessionUser, studentId: string, input: Sup
 }
 
 export async function createSupport(user: SessionUser, planningId: string, studentId: string, input: SupportInput) {
+  const prisma = await db();
   // Quem lê o planejamento (inclusive compartilhado) planeja o apoio dos SEUS estudantes.
   const { planning, access } = await loadPlanningFor(user, planningId, "read");
   const student = await studentInReach(user, studentId);
@@ -134,6 +137,7 @@ export async function createSupport(user: SessionUser, planningId: string, stude
 // Quem pode mexer num apoio: quem edita o planejamento ou o responsável pelo apoio,
 // sempre dentro do recorte do estudante.
 async function loadSupportFor(user: SessionUser, supportId: string, need: "edit" | "validate") {
+  const prisma = await db();
   const support = await prisma.duaSupport.findUnique({ where: { id: supportId }, include: { planning: true, student: { select: { id: true, schoolId: true, name: true } } } });
   if (!support) throw new DuaError("Apoio não encontrado.", "nao_encontrado");
   const access = planningAccess(user, support.planning);
@@ -145,6 +149,7 @@ async function loadSupportFor(user: SessionUser, supportId: string, need: "edit"
 }
 
 export async function updateSupport(user: SessionUser, supportId: string, revision: number, input: SupportInput) {
+  const prisma = await db();
   const { support, access, data: previous } = await loadSupportFor(user, supportId, "edit");
   const data = await buildSupportData(user, support.studentId, input, previous, access.owner ? "professor" : "colaboracao");
   // Editar um apoio validado devolve para rascunho: a validação vale para o que foi conferido.
@@ -155,6 +160,7 @@ export async function updateSupport(user: SessionUser, supportId: string, revisi
 }
 
 export async function validateSupport(user: SessionUser, supportId: string, revision: number) {
+  const prisma = await db();
   const { support, data } = await loadSupportFor(user, supportId, "validate");
   const problems = supportProblems(data);
   if (problems.length) throw new DuaError("Ainda falta completar o apoio para validar.", "invalido", problems);
@@ -167,6 +173,7 @@ export async function validateSupport(user: SessionUser, supportId: string, revi
 
 // Participação do estudante (3.4): sempre com contexto, origem e data; revisável.
 export async function addStudentVoice(user: SessionUser, supportId: string, entry: Omit<StudentVoiceEntry, "id">) {
+  const prisma = await db();
   const { support, data } = await loadSupportFor(user, supportId, "edit");
   if (!STUDENT_VOICE_KINDS.includes(entry.kind) || !VOICE_ORIGINS.includes(entry.origin)) throw new DuaError("Escolha o tipo e a origem da informação.");
   const text = clip(entry.text, 600);
@@ -178,6 +185,7 @@ export async function addStudentVoice(user: SessionUser, supportId: string, entr
 }
 
 export async function removeStudentVoice(user: SessionUser, supportId: string, entryId: string) {
+  const prisma = await db();
   const { support, data } = await loadSupportFor(user, supportId, "edit");
   const next: DuaSupportData = { ...data, studentVoice: data.studentVoice.filter((item) => item.id !== entryId) };
   await prisma.duaSupport.update({ where: { id: supportId }, data: { data: JSON.stringify(next), revision: { increment: 1 } } });
@@ -224,6 +232,7 @@ function viewOf(user: SessionUser, row: { id: string; planningId: string; data: 
 
 // Apoios de um planejamento: só os dos estudantes no recorte de quem lê.
 export async function listSupports(user: SessionUser, planningId: string): Promise<SupportView[]> {
+  const prisma = await db();
   await loadPlanningFor(user, planningId, "read");
   const rows = await prisma.duaSupport.findMany({
     where: { planningId },
@@ -235,6 +244,7 @@ export async function listSupports(user: SessionUser, planningId: string): Promi
 
 // Apoios de um estudante em todas as atividades (memória educacional do estudante).
 export async function listStudentSupports(user: SessionUser, studentId: string): Promise<SupportView[]> {
+  const prisma = await db();
   const student = await studentInReach(user, studentId);
   const rows = await prisma.duaSupport.findMany({
     where: { studentId },
@@ -245,6 +255,7 @@ export async function listStudentSupports(user: SessionUser, studentId: string):
 }
 
 export async function getSupport(user: SessionUser, supportId: string): Promise<SupportView> {
+  const prisma = await db();
   const row = await prisma.duaSupport.findUnique({
     where: { id: supportId },
     include: { planning: { select: { title: true, ownerId: true, schoolId: true, sharing: true, collaborators: true } }, student: { select: { id: true, name: true, schoolId: true } } },

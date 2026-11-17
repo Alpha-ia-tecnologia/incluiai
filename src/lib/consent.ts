@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import { isAIEnabled } from "./agents/model";
 import { isImageGenerationEnabled } from "./images/openai-images";
 import { recordChange } from "./access-log";
@@ -19,6 +19,7 @@ export const CONSENT_LABEL: Record<ConsentField, string> = { aiUse: "Uso de IA",
 export type StudentConsent = { aiUse: boolean; therapistLink: boolean; card: boolean; updatedAt: Date | null; updatedBy: string | null };
 
 export async function studentConsent(studentId: string): Promise<StudentConsent> {
+  const prisma = await db();
   const consent = await prisma.consent.findUnique({ where: { studentId } });
   return { aiUse: consent?.aiUse ?? false, therapistLink: consent?.therapistLink ?? false, card: consent?.card ?? false, updatedAt: consent?.updatedAt ?? null, updatedBy: consent?.updatedBy ?? null };
 }
@@ -36,6 +37,7 @@ export async function imagesAllowedFor(studentId: string): Promise<boolean> {
 
 // Só a família vinculada ao estudante decide; a decisão entra no histórico de acessos.
 export async function setStudentConsent(user: SessionUser, studentId: string, field: ConsentField, value: boolean): Promise<void> {
+  const prisma = await db();
   if (user.role !== "familia" || !user.studentIds.includes(studentId)) throw new Error("Só a família do estudante decide as autorizações.");
   await prisma.consent.upsert({
     where: { studentId },

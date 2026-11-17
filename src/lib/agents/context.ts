@@ -1,5 +1,5 @@
 import type { DiaryEntry, FunctionalProfile, Objective, Student } from "@prisma/client";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import { parseJson, ageFrom } from "../format";
 import { BARRIERS, CHANNELS, DIMENSIONS, SENSORY_LABELS, SENSORY_VALUES, STAGES, supportInfo } from "../scale";
 import { CASE_STUDY_FIELDS, parseCaseStudy } from "../case-study";
@@ -78,6 +78,7 @@ function diaryText(entries: DiaryEntry[]) {
 
 // Contexto para o plano: estudo de caso + como aprende + registros + objetivos anteriores.
 export async function loadPlanContext(studentId: string) {
+  const prisma = await db();
   const student = await prisma.student.findUniqueOrThrow({
     where: { id: studentId },
     include: {

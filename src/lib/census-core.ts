@@ -3,7 +3,7 @@
 // de propósito: o agendador nasce em src/instrumentation.ts, fora das páginas.
 // A importação do arquivo fica em census.ts; as regras puras, em census-rules.ts.
 import { randomUUID } from "node:crypto";
-import { prisma } from "./prisma";
+import { db, forEachMunicipality } from "./prisma";
 import { parseJson } from "./format";
 import { identityKeys } from "./educacenso";
 import { DEFAULT_MONITOR, inWindow, networkAeeEstimate, nextRun, verifyCoverage, type Coverage, type MonitorConfig, type PlatformStudent, type SchoolInfo, type SnapshotPerson } from "./census-rules";
@@ -17,6 +17,7 @@ const INSTANCE = `${process.pid}:${randomUUID().slice(0, 8)}`;
 export const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 export async function schoolStudents(schoolId: string): Promise<PlatformStudent[]> {
+  const prisma = await db();
   const students = await prisma.student.findMany({ where: { schoolId, status: "ativo" }, select: { id: true, name: true, birthDate: true, inepId: true, cpf: true, hasAEE: true }, orderBy: { name: "asc" } });
   // Todo estudante cadastrado é tratado como atendido: a conferência com o
   // arquivo vale para todos, qualquer que seja a marcação antiga de AEE no cadastro.
@@ -28,6 +29,7 @@ const NO_INFO: SchoolInfo = { dependency: "", privateCategory: "", municipalPart
 
 // As referências da rede: o último arquivo aplicado de cada escola.
 export async function networkSnapshots(): Promise<NetworkSnapshot[]> {
+  const prisma = await db();
   const rows = await prisma.censusSnapshot.findMany({ select: { schoolId: true, persons: true, regularOnly: true, schoolInfo: true, importedAt: true, school: { select: { name: true } } } });
   return rows.map((row) => ({
     schoolId: row.schoolId, name: row.school.name, importedAt: row.importedAt,
@@ -63,6 +65,7 @@ export const aeeEstimate = (network: readonly NetworkSnapshot[], countOnly?: str
 // escola quando o número de pendências muda (duas verificações por dia não
 // repetem o mesmo aviso).
 export async function runVerification(trigger: "agendada" | "manual", actorName: string) {
+  const prisma = await db();
   const network = await networkSnapshots();
   const results: SchoolResult[] = [];
   for (const snapshot of network) {
@@ -95,6 +98,7 @@ const configOf = (row: { enabled: boolean; periodStart: string; periodEnd: strin
   ({ enabled: row.enabled, periodStart: row.periodStart, periodEnd: row.periodEnd, times: parseJson<string[]>(row.times, DEFAULT_MONITOR.times) });
 
 export async function getMonitor(now: Date = new Date()) {
+  const prisma = await db();
   const row = await prisma.censusMonitor.upsert({
     where: { id: "rede" },
     create: { id: "rede", enabled: DEFAULT_MONITOR.enabled, periodStart: DEFAULT_MONITOR.periodStart, periodEnd: DEFAULT_MONITOR.periodEnd, times: JSON.stringify(DEFAULT_MONITOR.times), nextRunAt: nextRun(DEFAULT_MONITOR, now) },
@@ -105,6 +109,7 @@ export async function getMonitor(now: Date = new Date()) {
 
 // Salvar a janela já reagenda a próxima verificação: a tela e o agendador concordam.
 export async function saveMonitorConfig(config: MonitorConfig, actorName: string, now: Date = new Date()) {
+  const prisma = await db();
   await getMonitor(now);
   await prisma.censusMonitor.update({ where: { id: "rede" }, data: { enabled: config.enabled, periodStart: config.periodStart, periodEnd: config.periodEnd, times: JSON.stringify(config.times), nextRunAt: nextRun(config, now), updatedBy: actorName } });
 }
@@ -112,6 +117,7 @@ export async function saveMonitorConfig(config: MonitorConfig, actorName: string
 // Uma passada do agendador. A trava (lockedUntil) impede que duas instâncias
 // verifiquem juntas; servidor parado no horário marcado verifica ao voltar.
 export async function monitorTick(now: Date = new Date()): Promise<boolean> {
+  const prisma = await db();
   const { row, config } = await getMonitor(now);
   if (!row.nextRunAt) {
     const next = nextRun(config, now);
@@ -145,7 +151,7 @@ const timers = globalThis as unknown as { censusMonitor?: ReturnType<typeof setI
 // Uma vez por processo (o recarregamento do modo dev não duplica). CENSUS_MONITOR=0 desliga.
 export function startCensusMonitor() {
   if (process.env.CENSUS_MONITOR === "0" || timers.censusMonitor) return;
-  const tick = () => void monitorTick().catch((error) => console.error("[censo] agendador falhou", error));
+  const tick = () => void forEachMunicipality(() => monitorTick()).catch((error) => console.error("[censo] agendador falhou", error));
   timers.censusMonitor = setInterval(tick, TICK_MS);
   timers.censusMonitor.unref?.();
   tick();

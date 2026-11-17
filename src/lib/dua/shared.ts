@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import { canAccessStudent, canEditStudentRecord, type SessionUser } from "../auth";
 import { parseJson } from "../format";
 import { normalizeContent, suggestionBasis, type DuaContent } from "./domain";
@@ -25,6 +25,7 @@ export type Need = keyof Omit<PlanningAccess, "owner">;
 // Carrega o planejamento conferindo a permissão. Sem leitura, responde "não
 // encontrado": quem está fora do recorte não fica sabendo que ele existe.
 export async function loadPlanningFor(user: SessionUser, planningId: string, need: Need) {
+  const prisma = await db();
   const planning = await prisma.duaPlanning.findUnique({ where: { id: planningId } });
   if (!planning) throw new DuaError(NOT_FOUND, "nao_encontrado");
   const access = planningAccess(user, planning);
@@ -34,6 +35,7 @@ export async function loadPlanningFor(user: SessionUser, planningId: string, nee
 }
 
 export async function latestVersion(planningId: string) {
+  const prisma = await db();
   const version = await prisma.duaPlanningVersion.findFirst({ where: { planningId }, orderBy: { version: "desc" } });
   if (!version) throw new DuaError(NOT_FOUND, "nao_encontrado");
   return version;
@@ -47,6 +49,7 @@ export function canWorkWithStudent(user: SessionUser, student: { id: string; sch
 }
 
 export async function studentInReach(user: SessionUser, studentId: string) {
+  const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, name: true, schoolId: true, className: true } });
   if (!student) throw new DuaError("Estudante não encontrado.", "nao_encontrado");
   if (!canWorkWithStudent(user, student)) throw new DuaError(STUDENT_FORBIDDEN, "sem_permissao");
@@ -56,6 +59,7 @@ export async function studentInReach(user: SessionUser, studentId: string) {
 // Evento do planejamento: sem nome de estudante no detalhe (o histórico é lido
 // por toda a equipe do planejamento).
 export async function audit(user: SessionUser, planningId: string, action: string, objectType: string, extra: { objectId?: string; versionNumber?: number; detail?: string } = {}) {
+  const prisma = await db();
   await prisma.duaAuditEvent.create({
     data: { planningId, action, objectType, objectId: extra.objectId ?? null, versionNumber: extra.versionNumber ?? null, actorId: user.id, actorName: user.name, role: user.role, detail: extra.detail ?? null },
   });
@@ -63,6 +67,7 @@ export async function audit(user: SessionUser, planningId: string, action: strin
 
 // Histórico de acessos do estudante (LGPD), o mesmo lido pela família.
 export async function studentLog(user: SessionUser, studentId: string, action: "criou" | "editou" | "visualizou" | "enviou", detail: string) {
+  const prisma = await db();
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action, detail } });
 }
 
@@ -81,6 +86,7 @@ export const clip = (value: unknown, max: number) => String(value ?? "").trim().
 // Estudantes que a pessoa acompanha (para escolher participantes e apoios). A
 // lista já sai filtrada pelo recorte; a ação confere de novo ao gravar.
 export async function studentsInReach(user: SessionUser, filter: { className?: string | null } = {}) {
+  const prisma = await db();
   const rows = await prisma.student.findMany({
     where: { status: "ativo", ...(user.schoolId && user.role !== "secretaria" ? { schoolId: user.schoolId } : {}), ...(filter.className ? { className: filter.className } : {}) },
     select: { id: true, name: true, schoolId: true, className: true, gradeYear: true },

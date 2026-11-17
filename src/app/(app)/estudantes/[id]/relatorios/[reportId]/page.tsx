@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Printer, RefreshCw, Trash2 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
 import { refreshReportData, removeReportDraft, saveReport } from "@/actions/reports";
 import { canValidateReport, reportData } from "@/lib/reports";
@@ -13,6 +13,7 @@ import { dangerButtonCls, linkCls, quietButtonCls } from "@/components/form-styl
 export const dynamic = "force-dynamic";
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string; reportId: string }> }) {
+  const prisma = await db();
   const { id, reportId } = await params;
   const user = await requireStudentPage(id, "Relatório do período");
   const team = canEditStudentRecord(user.role);

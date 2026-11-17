@@ -18,6 +18,12 @@
 //   node scripts/prisma-db.mjs contas-teste [--apagar]
 //       Uma conta por perfil (@incluiedu.test), numa escola de teste com um
 //       estudante de teste; --apagar remove tudo isso antes do uso real.
+//   node scripts/prisma-db.mjs plataforma-admin --nome "Nome" --email email@dominio
+//       Vários municípios (PLATFORM_DOMAIN): primeira conta da administração da
+//       plataforma, no banco da plataforma (DATABASE_URL), com senha temporária.
+//   node scripts/prisma-db.mjs tabelas-municipios
+//       Vários municípios: aplica as migrações pendentes no banco de cada
+//       município cadastrado (MUNICIPIO_DATABASE_URL). Com um município só, nada faz.
 //
 // O DATABASE_URL da linha de comando vence o do .env (os testes usam o SQLite).
 import { execFileSync } from "node:child_process";
@@ -53,7 +59,7 @@ function loadEnv() {
 const isPostgres = (url = process.env.DATABASE_URL ?? "") => /^postgres(ql)?:\/\//.test(url);
 
 function prisma(args, options = {}) {
-  return execFileSync(process.execPath, [PRISMA_CLI, ...args], { stdio: options.capture ? ["pipe", "pipe", "inherit"] : "inherit", input: options.input, env: process.env, encoding: "utf8" });
+  return execFileSync(process.execPath, [PRISMA_CLI, ...args], { stdio: options.capture ? ["pipe", "pipe", "inherit"] : "inherit", input: options.input, env: options.env ?? process.env, encoding: "utf8" });
 }
 
 function writePostgresSchema() {
@@ -169,10 +175,10 @@ function hashPassword(password) {
   return `${salt}:${scryptSync(password, salt, 32).toString("hex")}`;
 }
 
-async function admin(args) {
+async function admin(args, { role = "secretaria", label = "Secretaria", script = "db:admin" } = {}) {
   const name = option(args, "--nome");
   const email = option(args, "--email").toLowerCase();
-  if (name.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail('Informe nome e e-mail: npm run db:admin -- --nome "Seu nome" --email voce@municipio.gov.br');
+  if (name.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail(`Informe nome e e-mail: npm run ${script} -- --nome "Seu nome" --email voce@municipio.gov.br`);
   generate();
   const { PrismaClient } = await import("@prisma/client");
   const db = new PrismaClient();
@@ -181,15 +187,53 @@ async function admin(args) {
     // Troca obrigatória da senha no primeiro acesso.
     const password = temporaryPassword();
     const user = await db.user.create({
-      data: { name, email, role: "secretaria", passwordHash: hashPassword(password), mustChangePassword: true },
+      data: { name, email, role, passwordHash: hashPassword(password), mustChangePassword: true },
     });
-    await db.accountEvent.create({ data: { userId: user.id, actorName: "Configuração inicial", actorRole: "sistema", action: "criou", detail: "Primeira conta da Secretaria" } });
-    console.log(`\n✓ Conta criada: ${name} <${email}>, perfil Secretaria.`);
+    await db.accountEvent.create({ data: { userId: user.id, actorName: "Configuração inicial", actorRole: "sistema", action: "criou", detail: `Primeira conta da ${label}` } });
+    console.log(`\n✓ Conta criada: ${name} <${email}>, perfil ${label}.`);
     console.log(`  Senha temporária: ${password}`);
     console.log("  Ela é pedida para troca no primeiro acesso. Anote agora: não aparece de novo.\n");
   } finally {
     await db.$disconnect();
   }
+}
+
+const multiMode = () => Boolean((process.env.PLATFORM_DOMAIN ?? "").trim());
+
+async function platformAdmin(args) {
+  if (!multiMode()) fail("A conta da plataforma só existe com vários municípios: defina PLATFORM_DOMAIN (e DATABASE_URL com o banco da plataforma).");
+  await admin(args, { role: "plataforma", label: "administração da plataforma", script: "db:plataforma-admin" });
+  console.log("  No primeiro acesso, em admin.<PLATFORM_DOMAIN>, ela também liga a verificação em duas etapas.\n");
+}
+
+// Um município com problema não impede os outros de subir: o aviso fica no registro da implantação.
+async function municipalityTables() {
+  if (!multiMode()) return console.log("Um município só (sem PLATFORM_DOMAIN): nada a fazer.");
+  const { municipalityDatabaseUrl, templateProblem } = await import("../src/lib/tenancy-core.ts");
+  const problem = templateProblem(process.env.MUNICIPIO_DATABASE_URL);
+  if (problem) fail(problem);
+  generate();
+  const { PrismaClient } = await import("@prisma/client");
+  const db = new PrismaClient();
+  let municipalities;
+  try {
+    municipalities = await db.municipality.findMany({ where: { status: { in: ["ativo", "suspenso"] } }, select: { slug: true, dbName: true }, orderBy: { slug: "asc" } });
+  } finally {
+    await db.$disconnect();
+  }
+  const failed = [];
+  for (const { slug, dbName } of municipalities) {
+    console.log(`\n— ${slug} (banco ${dbName})`);
+    const env = { ...process.env, DATABASE_URL: municipalityDatabaseUrl(process.env.MUNICIPIO_DATABASE_URL, dbName) };
+    try {
+      if (isPostgres(env.DATABASE_URL)) prisma(["migrate", "deploy", "--schema", POSTGRES_SCHEMA], { env });
+      else prisma(["db", "push", "--skip-generate", "--schema", SQLITE_SCHEMA], { env });
+    } catch {
+      failed.push(slug);
+    }
+  }
+  if (failed.length) console.warn(`\n⚠ As tabelas não foram atualizadas em: ${failed.join(", ")}. Veja o erro acima de cada um.\n`);
+  else console.log(`\n✓ ${municipalities.length} município(s) com as tabelas em dia.`);
 }
 
 // Contas de teste num domínio reservado (RFC 2606): nenhum e-mail sai daqui.
@@ -223,7 +267,7 @@ async function testAccounts(args) {
     // Uma senha para todas, sem troca no primeiro acesso: são contas só para testar.
     const password = temporaryPassword();
     const created = [];
-    for (const [role, label] of Object.entries(ROLES)) {
+    for (const [role, label] of Object.entries(ROLES).filter(([role]) => role !== "plataforma")) {
       const email = `${role.replace("_", ".")}@${TEST_DOMAIN}`;
       const user = await db.user.create({
         data: {
@@ -251,4 +295,6 @@ else if (command === "tabelas") tables();
 else if (command === "migracao") migration(rest[0]);
 else if (command === "admin") await admin(rest);
 else if (command === "contas-teste") await testAccounts(rest);
-else fail("Comandos: gerar, configurar, tabelas, migracao <nome>, admin --nome … --email …, contas-teste [--apagar]");
+else if (command === "plataforma-admin") await platformAdmin(rest);
+else if (command === "tabelas-municipios") await municipalityTables();
+else fail("Comandos: gerar, configurar, tabelas, migracao <nome>, admin --nome … --email …, contas-teste [--apagar], plataforma-admin --nome … --email …, tabelas-municipios");

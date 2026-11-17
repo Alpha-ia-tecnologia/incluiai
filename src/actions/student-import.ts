@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";
 import { isAccountManager } from "@/lib/user-admin";
 import { IMPORT_MAX_BYTES, normalize, readStudentSheet, studentKey, type StudentImport } from "@/lib/student-import";
@@ -42,6 +42,7 @@ async function readFile(file: File): Promise<string> {
 }
 
 async function analyze(text: string, schoolId: string) {
+  const prisma = await db();
   const { rows, problem } = readStudentSheet(text);
   if (problem) return { problem } as const;
   const current = await prisma.student.findMany({ where: { schoolId }, select: { name: true, birthDate: true } });
@@ -61,6 +62,7 @@ async function analyze(text: string, schoolId: string) {
 const birth = (iso: string) => iso.split("-").reverse().join("/");
 
 export async function importStudents(_previous: ImportState, formData: FormData): Promise<ImportState> {
+  const prisma = await db();
   const user = await requireImporter();
   const schoolId = user.schoolId ?? String(formData.get("schoolId") ?? "");
   const school = schoolId ? await prisma.school.findUnique({ where: { id: schoolId }, select: { id: true, name: true } }) : null;

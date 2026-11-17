@@ -1,6 +1,6 @@
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser, isNetworkRole } from "@/lib/auth";
 import { createSchool, createClass, deleteClass } from "@/actions/admin";
 import { SHIFTS } from "@/lib/scale";
@@ -22,6 +22,7 @@ const fieldsCls = "grid items-start gap-4 @md:grid-cols-2";
 const footerCls = "mt-auto flex justify-end border-t border-line pt-4";
 
 export default async function RegistriesPage() {
+  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!isNetworkRole(user.role)) redirect("/");

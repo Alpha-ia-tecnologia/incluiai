@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { parseJson } from "../format";
 import { NO_BASE_TEXT, ratio, type AiBlock, type DuaIndicator } from "./domain";
@@ -22,6 +22,7 @@ export type DuaIndicatorsResult = {
 };
 
 export async function duaIndicators(user: SessionUser, scope: { start: Date | null; now: Date; schoolId: string | null; schoolName: string | null }): Promise<DuaIndicatorsResult | null> {
+  const prisma = await db();
   if (!canSeeDuaIndicators(user)) return null;
   const { start, now, schoolId } = scope;
   const range = start ? { gte: start, lte: now } : { lte: now };

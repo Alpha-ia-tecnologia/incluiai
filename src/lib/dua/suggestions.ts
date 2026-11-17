@@ -1,7 +1,7 @@
 import "server-only";
 import { aiAllowedFor } from "../consent";
 import { randomUUID } from "node:crypto";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { parseJson } from "../format";
 import { AGENT_MODEL, DEEPSEEK_MODEL, createAgentModel, isAIEnabled } from "../agents/model";
@@ -37,6 +37,7 @@ export const DUA_PROMPT_VERSION = "dua-sugestoes-2026-11-v2";
 // Nomes que podem aparecer em texto livre: estudantes e responsáveis do recorte,
 // profissionais e escolas. Cada parte do nome entra (não só o primeiro nome).
 async function knownNames(schoolId: string | null) {
+  const prisma = await db();
   const [students, users, schools] = await Promise.all([
     prisma.student.findMany({ where: schoolId ? { schoolId } : {}, select: { name: true, guardianName: true } }),
     prisma.user.findMany({ select: { name: true } }),
@@ -60,6 +61,7 @@ function duaAnonymizer(names: Awaited<ReturnType<typeof knownNames>>, studentNam
 // ------------------------------------------------------------- pedido
 
 export async function requestSuggestion(user: SessionUser, planningId: string, input: { purpose: AiPurpose; supportId?: string; profileFields?: string[]; requestId: string }) {
+  const prisma = await db();
   const requestId = clip(input.requestId, 80);
   if (!requestId) throw new DuaError("Pedido sem identificador. Atualize a página e tente de novo.");
   // Tentativa repetida (duplo clique, recarregar) devolve o mesmo pedido, sem nova consulta.
@@ -191,6 +193,7 @@ export type SuggestionView = {
 // Sugestões do planejamento, relidas com o recorte atual: as de apoio individual
 // só saem para quem ainda acompanha o estudante (vale depois de revogar).
 export async function listSuggestions(user: SessionUser, planningId: string): Promise<SuggestionView[]> {
+  const prisma = await db();
   await loadPlanningFor(user, planningId, "read");
   const [rows, version] = await Promise.all([
     prisma.duaSuggestion.findMany({ where: { planningId }, include: { student: { select: { id: true, name: true, schoolId: true } } }, orderBy: { createdAt: "desc" }, take: 30 }),
@@ -233,6 +236,7 @@ export type BlockDecisionInput = {
 // aplicação continua sendo outra decisão (CA06). Mudança de objetivo nunca entra
 // sozinha; critério novo só com a escolha explícita do profissional (CA04).
 export async function decideBlock(user: SessionUser, suggestionId: string, blockId: string, input: BlockDecisionInput) {
+  const prisma = await db();
   const row = await prisma.duaSuggestion.findUnique({ where: { id: suggestionId }, include: { planning: true, student: { select: { id: true, schoolId: true } } } });
   if (!row) throw new DuaError("Sugestão não encontrada.", "nao_encontrado");
   const access = planningAccess(user, row.planning);

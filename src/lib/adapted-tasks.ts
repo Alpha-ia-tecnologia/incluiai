@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { recordChange } from "./access-log";
 import { aiAllowedFor } from "./consent";
@@ -56,6 +56,7 @@ export async function readTaskForStudent(user: SessionUser, studentId: string, f
 export type AdaptInput = { title: string; text: string; kind: TaskKind; options: string[]; objectiveId: string | null };
 
 export async function createAdaptedTask(user: SessionUser, studentId: string, input: AdaptInput) {
+  const prisma = await db();
   const options = input.options.filter(isAdaptOption);
   const objective = input.objectiveId
     ? await prisma.objective.findFirst({ where: { id: input.objectiveId, plan: { studentId, status: "ativo" } }, select: { id: true, description: true, bnccCode: true } })
@@ -89,6 +90,7 @@ export async function createAdaptedTask(user: SessionUser, studentId: string, in
 export const taskContent = (stored: string, title: string): AdaptedContent => normalizeAdapted(JSON.parse(stored) as Partial<AdaptedContent>, title);
 
 async function draftTask(where: { id: string; studentId?: string; planningId?: string }) {
+  const prisma = await db();
   const task = await prisma.adaptedTask.findFirst({ where });
   if (!task) throw new Error("Atividade adaptada não encontrada.");
   if (task.status === "aprovada") throw new Error("Atividade aprovada não muda mais. Faça uma nova adaptação.");
@@ -97,18 +99,21 @@ async function draftTask(where: { id: string; studentId?: string; planningId?: s
 
 // Ajustes do professor no texto adaptado (rascunho).
 export async function saveAdaptedContent(where: { id: string; studentId?: string; planningId?: string }, content: AdaptedContent) {
+  const prisma = await db();
   const task = await draftTask(where);
   const clean = normalizeAdapted(content, task.title);
   await prisma.adaptedTask.update({ where: { id: task.id }, data: { content: JSON.stringify(clean), title: clean.title } });
 }
 
 export async function approveAdaptedTask(user: SessionUser, where: { id: string; studentId?: string; planningId?: string }) {
+  const prisma = await db();
   const task = await draftTask(where);
   await prisma.adaptedTask.update({ where: { id: task.id }, data: { status: "aprovada", approvedBy: user.name, approvedAt: new Date() } });
   if (task.studentId) await recordChange(user, task.studentId, "aprovou", `Atividade adaptada: ${task.title.slice(0, 80)}`);
 }
 
 export async function deleteAdaptedTask(where: { id: string; studentId?: string; planningId?: string }) {
+  const prisma = await db();
   const task = await draftTask(where);
   await prisma.adaptedTask.delete({ where: { id: task.id } });
 }
@@ -118,6 +123,7 @@ export async function deleteAdaptedTask(where: { id: string; studentId?: string;
 // Planejamento coletivo: saem os nomes de estudantes, responsáveis, profissionais
 // e escolas do recorte (mesma regra das sugestões do DUA).
 async function planningAnonymizer(schoolId: string | null): Promise<Anonymizer> {
+  const prisma = await db();
   const [students, users, schools] = await Promise.all([
     prisma.student.findMany({ where: schoolId ? { schoolId } : {}, select: { name: true, guardianName: true } }),
     prisma.user.findMany({ select: { name: true } }),
@@ -142,6 +148,7 @@ export async function readTaskForPlanning(user: SessionUser, planningId: string,
 }
 
 export async function createLevels(user: SessionUser, planningId: string, input: { title: string; text: string; kind: TaskKind }) {
+  const prisma = await db();
   const { planning } = await loadPlanningFor(user, planningId, "edit");
   const content = contentOf(await latestVersion(planningId));
   const objective = content.objective.learning.trim() || "Objetivo não informado no planejamento.";

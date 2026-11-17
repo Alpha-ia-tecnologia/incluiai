@@ -75,6 +75,53 @@ O `Dockerfile` monta a imagem com Node 24 e o cliente do Prisma para PostgreSQL.
 4. Clique em **Deploy**. No log, `No pending migrations to apply` e depois `Ready` indicam que a plataforma subiu.
 
 Os comandos `db:*`, como `npm run db:admin`, também rodam no **Console** do serviço, com o banco do ambiente.
+
+## Vários municípios
+
+A mesma implantação pode atender vários municípios: cada um com o **próprio endereço** (`<municipio>.incluiedu.com.br`), o **próprio banco de dados** e a **própria marca** (logo e duas cores; o resto da paleta é derivado com contraste AA garantido). Um painel da plataforma, em `admin.<domínio>`, cadastra os municípios. Sem `PLATFORM_DOMAIN`, nada disso existe: a plataforma funciona como sempre, com um município só.
+
+**Variáveis de ambiente**
+
+- `PLATFORM_DOMAIN`: o domínio da plataforma (ex.: `incluiedu.com.br`; no desenvolvimento, `localhost`). Liga o modo de vários municípios.
+- `DATABASE_URL`: passa a ser o **banco da plataforma**, que guarda só o cadastro dos municípios, o histórico do painel e as contas da administração da plataforma (nenhum dado de estudante).
+- `MUNICIPIO_DATABASE_URL`: o endereço dos bancos dos municípios, com `{banco}` no lugar do nome (ex.: `postgresql://incluiedu:SENHA@HOST_INTERNO:5432/{banco}?sslmode=require`). O cadastro guarda só o nome do banco, nunca usuário e senha. Precisa ser do mesmo tipo do `DATABASE_URL` (PostgreSQL com PostgreSQL, SQLite com SQLite) e, no PostgreSQL, do mesmo servidor: o banco de cada município novo (`incluiedu_<subdomínio>`) é criado pela conexão da plataforma.
+- `APP_URL` e `NETWORK_NAME` deixam de valer: os links dos e-mails e o QR da carteirinha usam o endereço do município, e o cabeçalho dos documentos usa o nome da rede do cadastro.
+
+**Como funciona**
+
+- O endereço decide o banco. O `src/proxy.ts` lê o host do pedido e passa adiante o município (`x-municipio`), sempre apagando o que vier do navegador; o servidor só aceita o cabeçalho quando ele bate com o host. `admin.<domínio>` abre só o painel e o login; o endereço de um município não abre o painel; o domínio puro, `www` e endereços desconhecidos mostram uma página que pede o endereço do município, sem abrir banco nenhum.
+- Município suspenso ou ainda em preparação: o endereço mostra o aviso, as rotas de arquivos e da API respondem 503 (404 para endereço não cadastrado) e nenhum banco é aberto.
+- A sessão fica no banco de cada município e o cookie vale só no próprio endereço: a sessão de um município não serve em outro, nem no painel.
+- A conta da administração da plataforma (perfil "Administração da plataforma") existe só no banco da plataforma, entra só por `admin.<domínio>` e segue o `REQUIRE_2FA`: com a variável, só entra com a verificação em duas etapas, ligada logo depois da senha. Nenhuma tela ou regra dos municípios a reconhece.
+- Cadastrar um município (**Novo município**) cria o banco, aplica as tabelas, carrega o catálogo de atividades e recursos e cria a primeira conta da Secretaria, com senha temporária mostrada uma vez. A marca: o logo (PNG, JPG, WebP ou SVG, até 2 MB) e as cores, sugeridas pelos pixels do logo e escolhidas pela IA (sem `ANTHROPIC_API_KEY`, por regras), sempre com prévia e ajuste à mão. Se a preparação falhar, o motivo fica na página do município, com **Tentar preparar de novo**. Na mesma página: editar nome, rede, logo e cores; suspender e reativar o acesso; o histórico do que foi feito.
+- O monitor do Censo roda em cada município ativo.
+
+**Implantação no EasyPanel**
+
+1. DNS: aponte o domínio e o curinga (`incluiedu.com.br` e `*.incluiedu.com.br`) para o servidor do EasyPanel.
+2. HTTPS: em **Domains**, aponte `*.incluiedu.com.br` (ou `admin.incluiedu.com.br` e cada endereço de município, à medida que forem criados) para a porta 3000. Um certificado curinga exige a validação por DNS do Let's Encrypt (desafio DNS-01), configurada no Traefik do EasyPanel com o provedor de DNS; sem ela, cadastre cada endereço em **Domains** e o EasyPanel emite o certificado de cada um.
+3. PostgreSQL: crie o banco da plataforma (ex.: `CREATE DATABASE incluiedu_plataforma;`) e dê ao usuário a permissão de criar bancos (`ALTER ROLE incluiedu CREATEDB;`).
+4. Em **Environment**: `PLATFORM_DOMAIN`, `DATABASE_URL` (o banco da plataforma) e `MUNICIPIO_DATABASE_URL`. Recomendado: `REQUIRE_2FA=1`. Com mais de uma instância, um `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` fixo.
+5. **Deploy**. A cada subida, o contêiner aplica as migrações no banco da plataforma (`db:tabelas`) e em cada município cadastrado (`db:tabelas-municipios`; um município com erro fica avisado no log e não impede os outros de subir).
+6. No **Console**: `npm run db:plataforma-admin -- --nome "Seu nome" --email voce@dominio` cria a primeira conta da plataforma, com senha temporária mostrada uma vez. Entre em `admin.<domínio>`: a primeira entrada pede a senha nova (e, com `REQUIRE_2FA=1`, liga as duas etapas).
+
+**Trazer a implantação atual como primeiro município.** Com o banco atual (ex.: `incluiai`) intacto: siga os passos acima com um banco novo para a plataforma e, no painel, em **Novo município**, abra **Opção avançada: usar um banco já existente** e informe o nome do banco atual. O banco não é criado, as tabelas são atualizadas e, como ele já tem contas, nenhuma conta nova é criada: as pessoas entram no endereço novo com as senhas de sempre.
+
+**Experimentar no computador** (SQLite; Chrome e Firefox resolvem `*.localhost` para a própria máquina):
+
+```bash
+npm run db:setup        # prisma/dev.db com os dados de demonstração: o banco do município "demo"
+export PLATFORM_DOMAIN=localhost DATABASE_URL="file:./plataforma.db" MUNICIPIO_DATABASE_URL="file:./{banco}.db"
+npm run db:plataforma   # prisma/plataforma.db: a conta plataforma@incluiedu.test e o município "demo" (banco "dev")
+npm run dev
+```
+
+- `http://admin.localhost:3000`: `plataforma@incluiedu.test`, senha `demo123`. `npm run db:plataforma` de novo volta a senha da conta para `demo123`.
+- `http://demo.localhost:3000`: os dados e as contas de demonstração de sempre.
+- Os municípios cadastrados no painel ganham o banco `prisma/incluiedu_<subdomínio>.db`. Com `MUNICIPIO_DATABASE_URL="file:./municipios/{banco}.db"`, os bancos ficam em `prisma/municipios/` (o do demo também: copie o `dev.db` para lá).
+
+**Testes:** `npm run test:unit` cobre as regras puras (`src/lib/tenancy-core.ts`: host, subdomínio, nomes reservados, nome e endereço do banco). `node e2e-multimunicipio.mjs` percorre o painel e os endereços num build (`next build` + `next start -p 3214`) com `PLATFORM_DOMAIN=localhost`, `SESSION_COOKIE_SECURE=0`, um banco de plataforma novo preparado por `npm run db:plataforma` e o demo: entrada na plataforma com as duas etapas, cadastro de um município com logo (`e2e-fixtures/logo-municipio.png`), primeira entrada da Secretaria, marca aplicada, isolamento entre endereços, acessibilidade das telas novas e suspensão.
+
 ## Mapa de funcionalidades → proposta
 
 | Rota | Funcionalidade | Item |

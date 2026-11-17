@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CircleCheck, EyeOff, FileDown, Printer, Target } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { hasApiKey } from "@/lib/env";
 import { isAIEnabled } from "@/lib/agents/model";
@@ -24,6 +24,7 @@ const ORDER: LevelKey[] = ["mais_apoio", "padrao", "desafio"];
 // A mesma atividade da turma em três níveis de complexidade (item 5 do plano):
 // mesmo tema e mesma habilidade, caminhos diferentes para o mesmo objetivo (DUA).
 export default async function LevelsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lote?: string }> }) {
+  const prisma = await db();
   const [{ id }, query, user] = await Promise.all([params, searchParams, getCurrentUser()]);
   if (!user) redirect("/login");
   let access;

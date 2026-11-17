@@ -1,6 +1,6 @@
 import "server-only";
 import QRCode from "qrcode";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import { hashRecoveryCode, matchTotpStep, newRecoveryCodes, otpauthUri } from "./totp";
 
 // Verificação em duas etapas (seção 14): o código do aplicativo autenticador ou
@@ -24,6 +24,7 @@ export const recoveryCodesLeft = (stored: string | null) => parseCodes(stored).l
 // atualizações conferem o valor antigo, para dois envios ao mesmo tempo não
 // aproveitarem o mesmo código.
 export async function consumeSecondFactor(user: SecondFactorUser, code: string): Promise<"aplicativo" | "recuperacao" | null> {
+  const prisma = await db();
   if (!user.totpSecret) return null;
   const step = matchTotpStep(user.totpSecret, code);
   if (step !== null) {
@@ -47,6 +48,7 @@ export async function consumeSecondFactor(user: SecondFactorUser, code: string):
 // Liga as duas etapas com o segredo em espera, se o código do aplicativo bater.
 // Devolve os códigos de recuperação (mostrados uma vez) ou null.
 export async function confirmTwoFactor(userId: string, code: string): Promise<string[] | null> {
+  const prisma = await db();
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { totpPendingSecret: true } });
   if (!user?.totpPendingSecret) return null;
   const step = matchTotpStep(user.totpPendingSecret, code);
@@ -66,6 +68,7 @@ export async function confirmTwoFactor(userId: string, code: string): Promise<st
 }
 
 export async function newRecoveryCodesFor(userId: string): Promise<string[]> {
+  const prisma = await db();
   const codes = newRecoveryCodes();
   await prisma.user.update({ where: { id: userId }, data: { recoveryCodes: JSON.stringify(codes.map(hashRecoveryCode)) } });
   return codes;

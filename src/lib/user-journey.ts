@@ -1,6 +1,6 @@
 import { PARTICIPATION_TEXT, PARTICIPATION_TONE, countItems, percentOf, supportSeries, supportTrend, weeklyCounts, type SeriesPoint, type Trend, type VizTone } from "./series";
 import { SUMMARY_VIEW_DETAILS } from "./access-log";
-import { prisma } from "./prisma";
+import { db } from "./prisma";
 import { canAccessStudent, isNetworkRole, type SessionUser } from "./auth";
 import { objectiveTrend } from "./insights";
 import { getStudentNextStep } from "./student-journey";
@@ -82,6 +82,7 @@ export function homeActivityNote(title: string): string {
 
 // Marca um momento da jornada (boas-vindas, página visitada). Repetir não muda nada.
 export async function recordJourneyMark(userId: string, key: JourneyMarkKey): Promise<void> {
+  const prisma = await db();
   try {
     await prisma.journeyMark.upsert({ where: { userId_key: { userId, key } }, update: {}, create: { userId, key } });
   } catch (error) {
@@ -114,6 +115,7 @@ function finish(journey: Omit<Journey, "current" | "completed">): Journey {
 const ratio = (done: number, total: number) => ({ done, total });
 
 export async function loadJourney(user: SessionUser, options: { studentId?: unknown } = {}): Promise<Journey> {
+  const prisma = await db();
   const marks = new Map((await prisma.journeyMark.findMany({ where: { userId: user.id } })).map((mark) => [mark.key, mark.createdAt]));
   if (user.role === "familia") return familyJourney(user, marks);
   if (user.role === "terapeuta") return therapistJourney(user, marks);
@@ -129,6 +131,7 @@ type Marks = Map<string, Date>;
 // estudante, como a de Maria e Dante.
 // ---------------------------------------------------------------------------
 async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: string): Promise<Journey> {
+  const prisma = await db();
   const aee = user.role === "professor_aee";
   const candidates = await prisma.student.findMany({
     where: { status: "ativo", ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
@@ -299,6 +302,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
 
 // Conquistas da equipe com os estudantes acompanhados, com a data da primeira vez.
 async function teamMilestones(ids: string[]): Promise<Milestone[]> {
+  const prisma = await db();
   const scope = { studentId: { in: ids } };
   const [caseStudy, objective, applied, tenth, achieved, family, report] = await Promise.all([
     prisma.caseStudy.findFirst({ where: { ...scope, status: "concluido" }, orderBy: { concludedAt: "asc" }, select: { concludedAt: true, updatedAt: true } }),
@@ -325,6 +329,7 @@ async function teamMilestones(ids: string[]): Promise<Milestone[]> {
 // Coordenação e gestão escolar: a história da escola.
 // ---------------------------------------------------------------------------
 async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> {
+  const prisma = await db();
   const now = new Date();
   const where = { status: "ativo", ...(user.schoolId ? { schoolId: user.schoolId } : {}) };
   const [school, students] = await Promise.all([
@@ -425,6 +430,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
 // Secretaria de Educação: a história da rede.
 // ---------------------------------------------------------------------------
 async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey> {
+  const prisma = await db();
   const [schools, students, resources] = await Promise.all([
     prisma.school.findMany({ select: { id: true, _count: { select: { classes: true } } } }),
     prisma.student.findMany({
@@ -519,6 +525,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
 // Família: acompanhar, fazer em casa e contar conquistas.
 // ---------------------------------------------------------------------------
 async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> {
+  const prisma = await db();
   const welcomed = marks.has("boas_vindas");
   if (!user.studentIds.length) {
     return finish({
@@ -604,6 +611,7 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
 // Terapeuta: orientações funcionais que chegam à escola.
 // ---------------------------------------------------------------------------
 async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journey> {
+  const prisma = await db();
   const welcomed = marks.has("boas_vindas");
   if (!user.studentIds.length) {
     return finish({

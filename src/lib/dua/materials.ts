@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { parseJson } from "../format";
 import {
@@ -19,6 +19,7 @@ const VALIDATORS = new Set(["professor_sala", "professor_aee", "coordenacao", "g
 export type MaterialInput = { versionNumber: number; format: string; purpose: string; scope: string; supportId: string; resourceId: string };
 
 export async function createMaterial(user: SessionUser, planningId: string, input: MaterialInput) {
+  const prisma = await db();
   const { planning, access } = await loadPlanningFor(user, planningId, "read");
   if (!MATERIAL_FORMATS.includes(input.format as MaterialFormat)) throw new DuaError("Escolha o formato do material.");
   const format = input.format as MaterialFormat;
@@ -79,6 +80,7 @@ export async function createMaterial(user: SessionUser, planningId: string, inpu
 }
 
 async function loadMaterialFor(user: SessionUser, materialId: string) {
+  const prisma = await db();
   const material = await prisma.duaMaterial.findUnique({ where: { id: materialId }, include: { planning: true, student: { select: { id: true, name: true, schoolId: true } } } });
   if (!material) throw new DuaError("Material não encontrado.", "nao_encontrado");
   const access = planningAccess(user, material.planning);
@@ -88,6 +90,7 @@ async function loadMaterialFor(user: SessionUser, materialId: string) {
 
 // Validação profissional para uso pedagógico: só de material de versão validada.
 export async function validateMaterial(user: SessionUser, materialId: string, revision: number) {
+  const prisma = await db();
   const { material, access } = await loadMaterialFor(user, materialId);
   let allowed = access.validate;
   if (!allowed && material.supportId) {
@@ -130,6 +133,7 @@ type MaterialRow = Awaited<ReturnType<typeof loadMaterialFor>>["material"];
 
 // Mesma regra de validateMaterial: quem valida o planejamento, ou o responsável pelo apoio (com papel de validação).
 async function canValidateMaterial(user: SessionUser, row: MaterialRow) {
+  const prisma = await db();
   if (planningAccess(user, row.planning).validate) return true;
   if (!row.supportId || !VALIDATORS.has(user.role)) return false;
   const support = await prisma.duaSupport.findUnique({ where: { id: row.supportId }, select: { responsibleId: true } });
@@ -159,6 +163,7 @@ const viewOf = (row: MaterialRow, canValidate: boolean): MaterialView => ({
 });
 
 export async function listMaterials(user: SessionUser, planningId: string): Promise<MaterialView[]> {
+  const prisma = await db();
   await loadPlanningFor(user, planningId, "read");
   const rows = await prisma.duaMaterial.findMany({ where: { planningId }, include: { planning: true, student: { select: { id: true, name: true, schoolId: true } } }, orderBy: { createdAt: "desc" } });
   const visible = rows.filter((row) => !row.student || canWorkWithStudent(user, row.student));
@@ -172,5 +177,6 @@ export async function getMaterial(user: SessionUser, materialId: string): Promis
 
 // Materiais da biblioteca municipal que podem ser anexados.
 export async function libraryOptions() {
+  const prisma = await db();
   return prisma.resource.findMany({ select: { id: true, title: true }, orderBy: { title: "asc" }, take: 300 });
 }

@@ -1,4 +1,4 @@
-import { prisma } from "../prisma";
+import { db } from "../prisma";
 import { loadAnonymizer } from "../agents/anonymize";
 import { parseJson } from "../format";
 import { normalizeMaterialContent, type MaterialCard, type MaterialKind } from "../material-content";
@@ -36,6 +36,7 @@ async function inBatches<T>(items: T[], size: number, work: (item: T) => Promise
 
 // Gera as imagens que faltam (ou as indicadas) e devolve quantas saíram e os erros.
 export async function generateMaterialImages(materialId: string, user: { name: string; role: string }, only?: number[]) {
+  const prisma = await db();
   const material = await prisma.material.findUniqueOrThrow({
     where: { id: materialId },
     include: { images: { select: { cardIndex: true } }, student: { select: { profile: { select: { interests: true, sensoryProfile: true } } } } },

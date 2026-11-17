@@ -29,6 +29,7 @@
   --navy-line: rgb(255 255 255 / 0.16);
   --navy-hover: rgb(255 255 255 / 0.1);
   --brand: #0a6a9a;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230a6a9a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --brand-strong: #08547a;
   --brand-soft: #e2f1f8;
   --amber: #7a4d00;
@@ -164,11 +165,11 @@ button:not(:disabled), summary { cursor: pointer; }
   input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: var(--shadow-glow); }
 }
 /* Lista de seleção: continua o controle nativo (o mais acessível), com a seta e o
-   espaço da plataforma. A seta é o azul da marca (--brand), escrito no SVG. Fora de camada para valer sobre o px-* dos utilitários. */
+   espaço da plataforma. A seta vem de --select-arrow (o tema do município troca a cor). Fora de camada para valer sobre o px-* dos utilitários. */
 select:not([multiple]):not([size]) {
   appearance: none;
   padding-right: 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230a6a9a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: var(--select-arrow);
   background-repeat: no-repeat;
   background-position: right 0.875rem center;
   background-size: 16px;

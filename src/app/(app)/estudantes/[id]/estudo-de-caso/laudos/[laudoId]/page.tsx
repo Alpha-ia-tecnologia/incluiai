@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, Sprout, Trash2 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma";
 import { canSeeClinicalDetail, requireStudentPage } from "@/lib/auth";
 import { recordView } from "@/lib/access-log";
 import { parseCaseStudy } from "@/lib/case-study";
@@ -53,6 +53,7 @@ export default async function HealthReportPage({
   params: Promise<{ id: string; laudoId: string }>;
   searchParams: Promise<{ revisado?: string }>;
 }) {
+  const prisma = await db();
   const { id, laudoId } = await params;
   const user = await requireStudentPage(id);
   // Só o AEE e a coordenação; a leitura vai para o histórico depois da permissão.

@@ -6,6 +6,7 @@ import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
 import { primaryButtonCls } from "@/components/form-styles";
 import { LoginStepFrame } from "@/components/login-step-frame";
+import { PLATFORM_ROLE } from "@/lib/tenancy-core";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,9 @@ export default async function SecondStepPage() {
       icon={<ShieldCheck size={14} strokeWidth={1.7} aria-hidden="true" />}
       title={setup ? "Proteja sua conta antes de entrar" : "Confirme que é você"}
       lede={setup
-        ? "A equipe da escola e da rede lida com dados de estudantes, por isso a entrada pede, além da senha, um código do celular. Leva dois minutos."
+        ? user.role === PLATFORM_ROLE
+          ? "Quem administra a plataforma cria e suspende os ambientes dos municípios, por isso a entrada pede, além da senha, um código do celular. Leva dois minutos."
+          : "A equipe da escola e da rede lida com dados de estudantes, por isso a entrada pede, além da senha, um código do celular. Leva dois minutos."
         : `A senha de ${user.email} está certa. Agora digite o código de 6 números do aplicativo autenticador.`}
     >
         {setup ? (
