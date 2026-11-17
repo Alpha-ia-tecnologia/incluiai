@@ -7,7 +7,7 @@ import { visibleTabs } from "@/lib/student-tab-list";
 import { PageHeader } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { EvidenceList } from "@/components/dossier/evidence-list";
-import { secondaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, HowToRead } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";
 
@@ -24,7 +24,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
     <>
       <PageHeader level={2}
         title="Dossiê de evidências"
-        actions={<Link href={`/estudantes/${id}/dossie/imprimir`} className={secondaryButtonCls}><Printer size={16} aria-hidden /> Imprimir ou salvar em PDF</Link>}
+        actions={<Link href={`/estudantes/${id}/dossie/imprimir`} className={BUTTON_CLS.secondary}><Printer size={16} aria-hidden /> Imprimir ou salvar em PDF</Link>}
       />
       <div className="grid min-w-0 max-w-3xl gap-6">
         <FederalGuidance />

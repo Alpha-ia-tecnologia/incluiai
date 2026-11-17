@@ -4,7 +4,7 @@ import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { Check, FileSpreadsheet, Upload } from "lucide-react";
 import { importStudents, type ImportState } from "@/actions/student-import";
-import { hintCls, inputCls, labelCls, linkCls, primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { hintCls, inputCls, labelCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
 
 const SHOWN = 50;
 
@@ -27,8 +27,8 @@ function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: strin
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/estudantes" className={primaryButtonCls}>Ver os estudantes</Link>
-          <button type="button" onClick={onRestart} className={quietButtonCls}>Importar outra planilha</button>
+          <Link href="/estudantes" className={BUTTON_CLS.primary}>Ver os estudantes</Link>
+          <button type="button" onClick={onRestart} className={BUTTON_CLS.quiet}>Importar outra planilha</button>
         </div>
       </div>
     );
@@ -80,11 +80,11 @@ function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: strin
           <input type="hidden" name="csv" value={state.csv} />
           <input type="hidden" name="schoolId" value={state.schoolId} />
           {ready.length ? (
-            <button type="submit" disabled={pending} className={primaryButtonCls}>
+            <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
               <Upload size={16} aria-hidden /> {pending ? "Importando…" : ready.length === 1 ? "Importar 1 estudante" : `Importar ${ready.length} estudantes`}
             </button>
           ) : null}
-          <button type="button" onClick={onRestart} className={quietButtonCls}>Escolher outro arquivo</button>
+          <button type="button" onClick={onRestart} className={BUTTON_CLS.quiet}>Escolher outro arquivo</button>
         </form>
       </div>
     );
@@ -112,7 +112,7 @@ function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: strin
       </div>
       {state.problem ? <p role="alert" className="text-sm font-medium text-coral">{state.problem}</p> : null}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={pending} className={primaryButtonCls}>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           <FileSpreadsheet size={16} aria-hidden /> {pending ? "Conferindo…" : "Conferir a planilha"}
         </button>
         <a href="/estudantes/importar/modelo" download className={`text-sm ${linkCls}`}>Baixar o modelo (.csv)</a>

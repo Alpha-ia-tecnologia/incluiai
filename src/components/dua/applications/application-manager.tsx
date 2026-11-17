@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { Save } from "lucide-react";
 import { updateDuaApplication } from "@/actions/dua";
 import { EXECUTION_STATES, EXECUTION_STATE_LABEL, type ExecutionState } from "@/lib/dua/domain";
-import { Field, ResultMessage, hintCls, labelCls, inputCls, secondaryCls, textareaCls } from "../dua-ui";
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, hintCls, labelCls, inputCls, textareaCls } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 import { ParticipantPicker, type StudentOption } from "./participant-picker";
-
-type Feedback = { ok: boolean; message?: string; problems?: { field: string; message: string }[] } | null;
 
 export function ApplicationManager({ planningId, applicationId, revision, state, notes, className, participants, students }: {
   planningId: string;
@@ -20,39 +19,35 @@ export function ApplicationManager({ planningId, applicationId, revision, state,
   participants: { id: string; name: string }[];
   students: StudentOption[];
 }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [feedback, setFeedback] = useState<Feedback>(null);
+  const { result, pending, submit } = useActionResult();
   const [nextState, setNextState] = useState<ExecutionState>(state);
   const [remove, setRemove] = useState<string[]>([]);
   const [add, setAdd] = useState<string[]>([]);
   const prefix = `ap-${applicationId}`;
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    start(async () => {
-      const outcome = await updateDuaApplication({ planningId, applicationId, revision, state: nextState, notes: String(data.get("notes") ?? ""), addParticipantIds: add, removeParticipantIds: remove });
-      if (!outcome.ok) {
-        setFeedback(outcome);
-        return;
-      }
-      setFeedback({ ok: true, message: "Aplicação atualizada." });
-      setAdd([]);
-      setRemove([]);
-      router.refresh();
+    submit(() => updateDuaApplication({ planningId, applicationId, revision, state: nextState, notes: String(data.get("notes") ?? ""), addParticipantIds: add, removeParticipantIds: remove }), {
+      message: "Aplicação atualizada.",
+      onSuccess: () => {
+        setAdd([]);
+        setRemove([]);
+      },
     });
   }
 
   return (
-    <form onSubmit={submit} className="grid min-w-0 gap-4">
+    <form onSubmit={save} className="grid min-w-0 gap-4">
       <Field id={`${prefix}-situacao`} label="Situação de execução" hint="Concluir não registra presença, não cria atendimento do AEE e não é conclusão sobre a aprendizagem. Com a aplicação cancelada, não há evidência a registrar.">
-        <select id={`${prefix}-situacao`} value={nextState} onChange={(event) => setNextState(event.target.value as ExecutionState)} className={inputCls} aria-describedby={`${prefix}-situacao-dica`}>
-          {EXECUTION_STATES.map((item) => <option key={item} value={item}>{EXECUTION_STATE_LABEL[item]}</option>)}
-        </select>
+        {(control) => (
+          <select {...control} value={nextState} onChange={(event) => setNextState(event.target.value as ExecutionState)} className={inputCls}>
+            {EXECUTION_STATES.map((item) => <option key={item} value={item}>{EXECUTION_STATE_LABEL[item]}</option>)}
+          </select>
+        )}
       </Field>
       <Field id={`${prefix}-notas`} label="Observações da aplicação">
-        <textarea id={`${prefix}-notas`} name="notes" defaultValue={notes} maxLength={2000} className={textareaCls} />
+        {(control) => <textarea {...control} name="notes" defaultValue={notes} maxLength={2000} className={textareaCls} />}
       </Field>
       {participants.length ? (
         <fieldset className="min-w-0">
@@ -80,10 +75,10 @@ export function ApplicationManager({ planningId, applicationId, revision, state,
         exclude={participants.map((person) => person.id)}
       />
       <div>
-        <button type="submit" disabled={pending} aria-busy={pending} className={secondaryCls}>
+        <button type="submit" disabled={pending} aria-busy={pending} className={BUTTON_CLS.quiet}>
           <Save size={16} aria-hidden /> {pending ? "Salvando…" : "Salvar a aplicação"}
         </button>
-        <ResultMessage result={feedback} />
+        <FormResult result={result} />
       </div>
     </form>
   );

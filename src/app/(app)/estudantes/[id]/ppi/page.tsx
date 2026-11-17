@@ -27,18 +27,16 @@ import { Assurances, HowToRead, Steps } from "@/components/explain";
 import { requireStudentPage } from "@/lib/page-context";
 import { teachingContext } from "@/lib/roles";
 import { listStudentSupports } from "@/lib/dua/supports";
-import { ReviewBadge } from "@/components/dua/dua-ui";
+import { ReviewBadge } from "@/components/dua/badges";
 import { percentOf } from "@/lib/series";
 import { CLOSE_REASONS, reviewSummary, suggestedNextReview } from "@/lib/plan-lifecycle";
 import { DataBoard, DataCard, RingStat, StatusPill, TONE_COLOR, withSegmentColors, type Tone } from "@/components/data-viz";
 import { HatchedDonut, Legend } from "@/components/charts";
 import { ObjectiveScale } from "@/components/viz/student-viz";
-import { dangerButtonCls, hintCls, inputCls, labelCls, primaryButtonCls as buttonCls, textareaCls } from "@/components/form-styles";
+import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-const fieldStyle = { labelClassName: labelCls, inputClassName: inputCls };
-const multiStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
@@ -79,7 +77,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">
               {student.caseStudy ? "O estudo de caso está em elaboração." : "O estudo de caso ainda não foi começado."} Atividades com DUA, em Planejamento, não dependem dele.
             </p>
-            <Link href={`/estudantes/${id}/estudo-de-caso`} className={`${buttonCls} mt-4`}>
+            <Link href={`/estudantes/${id}/estudo-de-caso`} className={`${BUTTON_CLS.primary} mt-4`}>
               {student.caseStudy ? "Continuar o estudo de caso" : "Começar o estudo de caso"} <ArrowRight size={16} aria-hidden />
             </Link>
           </Card>
@@ -96,13 +94,13 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <SectionTitle>{draft ? "Preencher o plano do zero" : "Comece o plano do estudante"}</SectionTitle>
           <p className={`${hintCls} mb-5`}>Campos com * são obrigatórios.</p>
           <form action={create} className="space-y-6">
-            <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} required hint="Marque o que se aplica e use Outro para acrescentar." {...multiStyle} />
+            <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} required hint="Marque o que se aplica e use Outro para acrescentar." />
             <PlanDocumentFields idPrefix="novo" defaults={caseDefaults} />
             <div>
               <label htmlFor="reviewDate" className={labelCls}>Quando a equipe vai revisar este plano? *</label>
               <input id="reviewDate" name="reviewDate" type="date" required className={inputCls} />
             </div>
-            <button type="submit" className={buttonCls}>Salvar plano e definir objetivos <ArrowRight size={16} aria-hidden /></button>
+            <button type="submit" className={BUTTON_CLS.primary}>Salvar plano e definir objetivos <ArrowRight size={16} aria-hidden /></button>
           </form>
         </Card>
     );
@@ -169,7 +167,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           {!aiOn && !consentMissing ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">IA desligada nesta instalação: falta configurar um provedor de IA no servidor.</p> : null}
           {hasData ? (
             <form action={generate} className="mt-4">
-              <PendingButton className={buttonCls} pendingText={aiOn ? "Os agentes estão analisando o caso e montando o plano." : "Preparando a proposta…"} wait={aiOn ? "plano" : undefined}>
+              <PendingButton className={BUTTON_CLS.primary} pendingText={aiOn ? "Os agentes estão analisando o caso e montando o plano." : "Preparando a proposta…"} wait={aiOn ? "plano" : undefined}>
                 <Sparkles size={16} aria-hidden /> Preparar proposta de plano
               </PendingButton>
             </form>
@@ -229,7 +227,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       {editable && !hasActiveObjectives ? (
         <Card className="mb-6 border-brand/30 bg-brand-soft/50">
           <SectionTitle>Próximo passo: definir um objetivo</SectionTitle>
-          <Link href="#novo-objetivo" className={buttonCls}>
+          <Link href="#novo-objetivo" className={BUTTON_CLS.primary}>
             Definir o objetivo <ArrowRight size={16} aria-hidden />
           </Link>
         </Card>
@@ -287,7 +285,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               <label htmlFor="next-review" className={labelCls}>Próxima revisão (obrigatório)</label>
               <input id="next-review" name="nextReviewDate" type="date" required defaultValue={suggestedNextReview()} className={inputCls} />
             </div>
-            <div><PendingButton className={buttonCls} pendingText="Registrando a revisão…"><CalendarCheck size={16} aria-hidden /> Registrar revisão</PendingButton></div>
+            <div><PendingButton className={BUTTON_CLS.primary} pendingText="Registrando a revisão…"><CalendarCheck size={16} aria-hidden /> Registrar revisão</PendingButton></div>
           </form>
         </details> : null}
         {plan.reviews.length ? (
@@ -322,7 +320,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           </summary>
           <form action={updateDocuments} className="mt-4 grid gap-5">
             <PlanDocumentFields idPrefix="editar" defaults={{ ...plan, aeeServices: plan.aeeServices ?? suggested.aeeServices ?? null, assessmentAccessibility: plan.assessmentAccessibility ?? suggested.assessmentAccessibility ?? null }} />
-            <div><PendingButton className={buttonCls} pendingText="Salvando o PAEE e o PEI…"><CircleCheck size={16} aria-hidden /> Salvar o PAEE e o PEI</PendingButton></div>
+            <div><PendingButton className={BUTTON_CLS.primary} pendingText="Salvando o PAEE e o PEI…"><CircleCheck size={16} aria-hidden /> Salvar o PAEE e o PEI</PendingButton></div>
           </form>
         </details>
       ) : null}
@@ -416,10 +414,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <SectionTitle>Definir um objetivo de aprendizagem</SectionTitle>
           <p className={`${hintCls} mb-5`}>As respostas formam a frase do objetivo. Campos com * são obrigatórios.</p>
           <form action={addObjective} className="grid min-w-0 gap-4 sm:grid-cols-2">
-            <ObjectiveFields {...fieldStyle} studentId={id} />
-            <ChoiceField name="condition" label="Com qual apoio ou condição? *" options={CONDITION_SUGGESTIONS} required otherPlaceholder="Ex.: com apoio de um colega" {...fieldStyle} />
-            <ChoiceField name="criterion" label="Como saberemos que conseguiu? *" options={CRITERION_SUGGESTIONS} required otherPlaceholder="Ex.: 3 de 4 tentativas" {...fieldStyle} />
-            <ChoiceField name="deadlineWeeks" label="Prazo para acompanhar" options={DEADLINE_WEEKS} defaultValue="6" required otherType="number" otherMin={1} otherMax={52} otherPlaceholder="Semanas" {...fieldStyle} />
+            <ObjectiveFields studentId={id} />
+            <ChoiceField name="condition" label="Com qual apoio ou condição? *" options={CONDITION_SUGGESTIONS} required otherPlaceholder="Ex.: com apoio de um colega" />
+            <ChoiceField name="criterion" label="Como saberemos que conseguiu? *" options={CRITERION_SUGGESTIONS} required otherPlaceholder="Ex.: 3 de 4 tentativas" />
+            <ChoiceField name="deadlineWeeks" label="Prazo para acompanhar" options={DEADLINE_WEEKS} defaultValue="6" required otherType="number" otherMin={1} otherMax={52} otherPlaceholder="Semanas" />
             <div className="min-w-0">
               <label htmlFor="currentSupport" className={labelCls}>Apoio necessário hoje</label>
               <select id="currentSupport" name="currentSupport" defaultValue={2} className={inputCls}>
@@ -433,7 +431,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               </select>
             </div>
             <div className="sm:col-span-2">
-              <button type="submit" className={buttonCls}>Salvar objetivo no plano</button>
+              <button type="submit" className={BUTTON_CLS.primary}>Salvar objetivo no plano</button>
             </div>
           </form>
         </Card>
@@ -451,8 +449,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           ]}
         />
         <form action={close} className="mt-4 grid gap-4">
-          <ChoiceField name="reason" label="Por que o plano está sendo encerrado? (obrigatório)" options={[...CLOSE_REASONS]} required otherPlaceholder="Descreva o motivo" {...fieldStyle} />
-          <div><button type="submit" className={dangerButtonCls}><Archive size={16} aria-hidden /> Encerrar o plano</button></div>
+          <ChoiceField name="reason" label="Por que o plano está sendo encerrado? (obrigatório)" options={[...CLOSE_REASONS]} required otherPlaceholder="Descreva o motivo" />
+          <div><button type="submit" className={BUTTON_CLS.danger}><Archive size={16} aria-hidden /> Encerrar o plano</button></div>
         </form>
       </details> : null}
 
@@ -534,7 +532,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
       </details>
 
       <form action={activate} className="space-y-6">
-        <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} defaultValue={proposal.initialSituation} required {...multiStyle} />
+        <MultiChoiceField name="initialSituation" label="O que o estudante já consegue fazer? *" options={INITIAL_SITUATION_OPTIONS} defaultValue={proposal.initialSituation} required />
         <PlanDocumentFields
           idPrefix="proposta"
           defaults={mergeProposalDefaults(documentDefaults, proposal)}
@@ -564,7 +562,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
           <p className="mt-2 text-xs text-ink-soft">Depois de ativar, dá para acrescentar ou revisar objetivos.</p>
         </fieldset>
         <AIDisclaimer />
-        <PendingButton className={buttonCls} pendingText="Ativando o plano…">Ativar plano com os objetivos marcados <ArrowRight size={16} aria-hidden /></PendingButton>
+        <PendingButton className={BUTTON_CLS.primary} pendingText="Ativando o plano…">Ativar plano com os objetivos marcados <ArrowRight size={16} aria-hidden /></PendingButton>
       </form>
 
       <div className="mt-6 flex flex-wrap items-start gap-3 border-t border-line pt-4">

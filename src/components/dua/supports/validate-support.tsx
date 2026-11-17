@@ -1,36 +1,29 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { CircleCheck } from "lucide-react";
 import { validateDuaSupport } from "@/actions/dua";
-import { ResultMessage, buttonCls } from "../dua-ui";
-import type { Outcome } from "./support-form";
+import { FormResult } from "@/components/form-kit";
+import { BUTTON_CLS } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 
 export function ValidateSupport({ planningId, studentId, supportId, revision, validated }: { planningId: string; studentId: string; supportId: string; revision: number; validated: boolean }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [result, setResult] = useState<Outcome | null>(null);
+  const { result, pending, submit } = useActionResult();
 
   function validate() {
-    start(async () => {
-      const outcome = await validateDuaSupport({ planningId, studentId, supportId, revision });
-      setResult(outcome.ok ? { ok: true, message: "Apoio validado para esta atividade." } : outcome);
-      if (outcome.ok) router.refresh();
-    });
+    submit(() => validateDuaSupport({ planningId, studentId, supportId, revision }), { message: "Apoio validado para esta atividade." });
   }
 
   return (
     <div className="min-w-0">
       {validated ? null : (
-        <button type="button" onClick={validate} disabled={pending} aria-busy={pending} className={buttonCls}>
+        <button type="button" onClick={validate} disabled={pending} aria-busy={pending} className={BUTTON_CLS.primary}>
           <CircleCheck size={16} aria-hidden /> {pending ? "Validando…" : "Validar apoio"}
         </button>
       )}
       <p className="mt-2 text-xs leading-relaxed text-ink-soft">
         Validar confirma o apoio só para esta atividade. Não altera a matrícula, a classificação na educação especial, o perfil nem o Plano de ensino.
       </p>
-      <ResultMessage result={result} />
+      <FormResult result={result} />
     </div>
   );
 }

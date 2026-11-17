@@ -1,5 +1,5 @@
 import { PARTICIPATION_TEXT, PARTICIPATION_TONE, countItems, percentOf, supportSeries, supportTrend, weeklyCounts, type SeriesPoint, type Trend, type VizTone } from "./series";
-import { SUMMARY_VIEW_DETAILS } from "./access-log";
+import { summarySeenByTeam } from "./audit";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { familyActivityWhere, studentScopeWhere } from "./policy";
@@ -141,7 +141,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
 
   const ids = students.map((student) => student.id);
   const lastOpened = requestedId && ids.includes(requestedId) ? null : await prisma.accessLog.findFirst({
-    where: { actor: user.name, role: user.role, studentId: { in: ids } },
+    where: { actorId: user.id, studentId: { in: ids } },
     orderBy: { createdAt: "desc" },
     select: { studentId: true },
   });
@@ -601,11 +601,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
   const name = firstName(s.name);
   const reports = s.intersectorReports;
   const last = reports.at(-1);
-  const seen = last ? await prisma.accessLog.findFirst({
-    where: { studentId: s.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { in: rolesWith("pedagogical") }, createdAt: { gt: last.createdAt } },
-    orderBy: { createdAt: "asc" },
-    select: { createdAt: true },
-  }) : null;
+  const seen = last ? await summarySeenByTeam(s.id, last.createdAt) : null;
   const interests = parseJson<string[]>(s.profile?.interests, []);
 
   const chapters = withStatus([
@@ -629,8 +625,8 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
       key: "recebido", tone: "sage", title: "Saber que a escola recebeu",
       story: `Suas orientações aparecem no resumo de ${name} para a equipe.`,
       why: "Saber que a orientação chegou fecha o ciclo entre saúde e escola.",
-      done: !!seen, date: seen?.createdAt ?? null, waiting: !!last && !seen,
-      evidence: seen ? `A equipe abriu o acompanhamento em ${formatDate(seen.createdAt)}, depois do seu último relatório.` : last ? "A equipe ainda não abriu o acompanhamento desde o seu último relatório." : null,
+      done: !!seen, date: seen, waiting: !!last && !seen,
+      evidence: seen ? `A equipe abriu o acompanhamento em ${formatDate(seen)}, depois do seu último relatório.` : last ? "A equipe ainda não abriu o acompanhamento desde o seu último relatório." : null,
       action: { label: "Ver relatórios enviados", href: "/terapeuta#relatorios" },
     },
     {
@@ -655,12 +651,12 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
     impactTitle: "O que já aconteceu",
     impact: [
       { label: "Relatórios enviados", value: String(reports.length), hint: last ? `O último em ${formatDate(last.createdAt)}` : undefined },
-      { label: "A escola recebeu", value: seen ? "Sim" : "Ainda não", hint: seen ? formatDate(seen.createdAt) : undefined },
+      { label: "A escola recebeu", value: seen ? "Sim" : "Ainda não", hint: seen ? formatDate(seen) : undefined },
     ],
     strategies: [], quote: null,
     milestones: [
       { key: "primeiro", title: "Primeira orientação", description: "A escola recebeu suas primeiras orientações.", achieved: reports.length > 0, date: reports[0]?.createdAt ?? null },
-      { key: "recebido", title: "Orientação lida", description: "A equipe abriu o acompanhamento depois do relatório.", achieved: !!seen, date: seen?.createdAt ?? null },
+      { key: "recebido", title: "Orientação lida", description: "A equipe abriu o acompanhamento depois do relatório.", achieved: !!seen, date: seen },
       { key: "atualizado", title: "Orientações atualizadas", description: "Você enviou um novo relatório.", achieved: reports.length >= 2, date: reports[1]?.createdAt ?? null },
     ],
   });

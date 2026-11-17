@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
-import { recordChange } from "./access-log";
+import { AUDIT_ACTION, recordChange } from "./audit";
 import { INSTRUMENT_VERSION, cleanAnswers, observed, type Answers } from "./assessment";
 
 export const answersOf = (stored: string): Answers => cleanAnswers(JSON.parse(stored) as Record<string, unknown>);
@@ -16,7 +16,7 @@ export async function saveAssessment(user: SessionUser, studentId: string, raw: 
     data: { studentId, instrumentVersion: INSTRUMENT_VERSION, kind, answers: JSON.stringify(answers), notes: notes.trim().slice(0, 2000) || null, appliedById: user.id, appliedByName: user.name },
   });
   await prisma.timelineEvent.create({ data: { studentId, type: "avaliacao", title: kind === "linha_de_base" ? "Sondagem: linha de base" : "Sondagem: reavaliação", description: `${observed(answers).length} itens observados, por ${user.name}.` } });
-  await recordChange(user, studentId, "registrou", kind === "linha_de_base" ? "Sondagem (linha de base)" : "Sondagem (reavaliação)");
+  await recordChange(user, studentId, AUDIT_ACTION.recorded, kind === "linha_de_base" ? "Sondagem (linha de base)" : "Sondagem (reavaliação)");
   return assessment.id;
 }
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 import { StatusPage } from "@/components/status-page";
-import { primaryOnNavyCls, quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 
 export default function AppError({ error, unstable_retry }: { error: Error & { digest?: string }; unstable_retry: () => void }) {
   useEffect(() => {
@@ -17,8 +17,8 @@ export default function AppError({ error, unstable_retry }: { error: Error & { d
       eyebrow="Algo não saiu como esperado"
       title="Não foi possível abrir esta tela agora"
       actions={<>
-        <button type="button" onClick={() => unstable_retry()} className={primaryOnNavyCls}><RotateCcw size={16} aria-hidden /> Tentar de novo</button>
-        <Link href="/" className={quietButtonCls}><ArrowLeft size={16} aria-hidden /> Voltar para o início</Link>
+        <button type="button" onClick={() => unstable_retry()} className={BUTTON_CLS.primaryOnNavy}><RotateCcw size={16} aria-hidden /> Tentar de novo</button>
+        <Link href="/" className={BUTTON_CLS.quiet}><ArrowLeft size={16} aria-hidden /> Voltar para o início</Link>
       </>}
     >
       <p>Pode ter sido uma falha passageira de conexão. O que já estava salvo continua salvo.{error.digest ? ` Se o problema continuar, informe à equipe técnica o código ${error.digest}.` : ""}</p>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ButtonHTMLAttributes, ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { supportInfo } from "@/lib/scale";
 import { Character, type CharacterVariant } from "./character";
 import { BUTTON_CLS, type ButtonVariant } from "./form-styles";
@@ -181,21 +181,6 @@ export function EmptyState({ title, hint, character = "resources", action }: { t
   );
 }
 
-export function Button({ variant = "primary", className = "", children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; children: ReactNode }) {
-  return <button type="button" {...rest} className={`${BUTTON_CLS[variant]} ${className}`}>{children}</button>;
-}
-
 export function ButtonLink({ href, variant = "primary", className = "", children }: { href: string; variant?: ButtonVariant; className?: string; children: ReactNode }) {
   return <Link href={href} className={`${BUTTON_CLS[variant]} ${className}`}>{children}</Link>;
-}
-
-export function PrimaryButton({ children, className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
-  return (
-    <button
-      {...rest}
-      className={`${BUTTON_CLS.primary} shadow-e1 hover:shadow-e2 active:translate-y-px ${className}`}
-    >
-      {children}
-    </button>
-  );
 }

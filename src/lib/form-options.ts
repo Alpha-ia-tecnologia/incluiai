@@ -183,3 +183,6 @@ export function splitItems(value: string | null | undefined, separator: "," | ";
   const pattern = separator === "," ? /[,;\n]/ : /[;\n]/;
   return (value ?? "").split(pattern).map((item) => item.trim()).filter(Boolean);
 }
+
+export const linesToList = (value: string) => value.split("\n").map((item) => item.trim()).filter(Boolean);
+export const listToLines = (items: string[]) => items.join("\n");

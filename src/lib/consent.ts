@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "./prisma";
-import { recordChange } from "./access-log";
+import { AUDIT_ACTION, recordChange } from "./audit";
 import type { SessionUser } from "./auth";
 import { isFamilyOf } from "./policy";
 import { newCardToken } from "./student-card-core";
@@ -35,5 +35,5 @@ export async function setStudentConsent(user: SessionUser, studentId: string, fi
     if (value) await prisma.studentCard.upsert({ where: { studentId }, create: { studentId, token: newCardToken() }, update: {} });
     else await prisma.studentCard.deleteMany({ where: { studentId } });
   }
-  await recordChange(user, studentId, value ? "autorizou" : "retirou a autorização", CONSENT_LABEL[field]);
+  await recordChange(user, studentId, value ? AUDIT_ACTION.authorized : AUDIT_ACTION.revoked, CONSENT_LABEL[field]);
 }

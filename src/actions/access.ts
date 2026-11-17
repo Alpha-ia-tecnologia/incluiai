@@ -5,7 +5,7 @@ import { db } from "@/lib/prisma";
 import { NOMINAL_ACCESS_HOURS, getCurrentUser } from "@/lib/auth";
 import { canAccessStudent } from "@/lib/policy";
 import { can } from "@/lib/roles";
-import { recordChange } from "@/lib/access-log";
+import { AUDIT_ACTION, recordChange } from "@/lib/audit";
 
 export type NominalAccessState = { error?: string };
 
@@ -22,6 +22,6 @@ export async function requestNominalAccess(studentId: string, _previous: Nominal
   if (detail.length < 10) return { error: "Descreva o motivo em pelo menos uma frase." };
   const text = `${reason}: ${detail}`.slice(0, 300);
   await prisma.accessGrant.create({ data: { userId: user.id, studentId, reason: text, expiresAt: new Date(Date.now() + NOMINAL_ACCESS_HOURS * 60 * 60 * 1000) } });
-  await recordChange(user, studentId, "acesso justificado", text);
+  await recordChange(user, studentId, AUDIT_ACTION.justifiedAccess, text);
   redirect(`/estudantes/${studentId}`);
 }

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { studentConsent } from "@/lib/consent";
-import { SUMMARY_VIEW_DETAILS } from "@/lib/access-log";
+import { summarySeenByTeam } from "@/lib/audit";
 import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { can, rolesWith } from "@/lib/roles";
+import { can } from "@/lib/roles";
 import { createIntersectorReport } from "@/actions/intersector";
 import { loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
@@ -20,11 +20,9 @@ import { Check, FileText } from "lucide-react";
 import { DataBoard, MiniColumns, StatTile, StatusPill } from "@/components/data-viz";
 import { monthlyCounts } from "@/lib/series";
 import { Timeline } from "@/components/viz/timeline";
-import { inputCls, labelCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-const fieldStyle = { legendClassName: labelCls, inputClassName: inputCls };
 
 export default async function TherapistPage({ searchParams }: { searchParams: Promise<{ estudante?: string | string[] }> }) {
   const prisma = await db();
@@ -60,14 +58,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
     },
   });
   const reports = student.intersectorReports;
-  const seenAt = await Promise.all(reports.map((report, index) => {
-    const newer = index > 0 ? reports[index - 1].createdAt : null;
-    return prisma.accessLog.findFirst({
-      where: { studentId: student.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { in: rolesWith("pedagogical") }, createdAt: newer ? { gt: report.createdAt, lte: newer } : { gt: report.createdAt } },
-      orderBy: { createdAt: "asc" },
-      select: { createdAt: true },
-    }).then((log) => log?.createdAt ?? null);
-  }));
+  const seenAt = await Promise.all(reports.map((report, index) => summarySeenByTeam(student.id, report.createdAt, index > 0 ? reports[index - 1].createdAt : null)));
   const latest = reports[0];
   const latestSeen = seenAt[0] ?? null;
   const p = student.profile;
@@ -115,13 +106,13 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
         <SectionTitle>Novo relatório de articulação</SectionTitle>
         <p className="mb-5 text-sm leading-relaxed text-ink-soft">Os itens com * são obrigatórios.</p>
         <form action={create} className="grid gap-6">
-          <MultiChoiceField name="communication" label="Formas de comunicação mais eficazes *" options={COMMUNICATION_OPTIONS} required {...fieldStyle} />
-          <MultiChoiceField name="accessResources" label="Recursos de acessibilidade utilizados *" options={ACCESSIBILITY_RESOURCE_OPTIONS} required {...fieldStyle} />
-          <MultiChoiceField name="positioning" label="Necessidades de posicionamento / mobilidade" options={POSITIONING_OPTIONS} {...fieldStyle} />
-          <MultiChoiceField name="facilitators" label="Fatores que facilitam a participação *" options={FACILITATOR_OPTIONS} required {...fieldStyle} />
-          <MultiChoiceField name="strategiesToTry" label="Estratégias que podem ser testadas *" options={STRATEGIES_TO_TRY_OPTIONS} required {...fieldStyle} />
-          <MultiChoiceField name="schoolGuidance" label="Orientações aplicáveis à escola *" options={SCHOOL_GUIDANCE_OPTIONS} required {...fieldStyle} />
-          <MultiChoiceField name="sharedGoals" label="Objetivos compartilhados escola-família *" options={SHARED_GOAL_OPTIONS} required {...fieldStyle} />
+          <MultiChoiceField name="communication" label="Formas de comunicação mais eficazes *" options={COMMUNICATION_OPTIONS} required />
+          <MultiChoiceField name="accessResources" label="Recursos de acessibilidade utilizados *" options={ACCESSIBILITY_RESOURCE_OPTIONS} required />
+          <MultiChoiceField name="positioning" label="Necessidades de posicionamento / mobilidade" options={POSITIONING_OPTIONS} />
+          <MultiChoiceField name="facilitators" label="Fatores que facilitam a participação *" options={FACILITATOR_OPTIONS} required />
+          <MultiChoiceField name="strategiesToTry" label="Estratégias que podem ser testadas *" options={STRATEGIES_TO_TRY_OPTIONS} required />
+          <MultiChoiceField name="schoolGuidance" label="Orientações aplicáveis à escola *" options={SCHOOL_GUIDANCE_OPTIONS} required />
+          <MultiChoiceField name="sharedGoals" label="Objetivos compartilhados escola-família *" options={SHARED_GOAL_OPTIONS} required />
           <div>
             <button type="submit" className="rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong">
               Enviar para a equipe escolar

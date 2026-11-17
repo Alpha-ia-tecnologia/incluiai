@@ -5,7 +5,7 @@ import { ClipboardCheck } from "lucide-react";
 import type { AssessmentState } from "@/actions/assessments";
 import { AREAS, ITEMS, type Answers } from "@/lib/assessment";
 import { SUPPORT_LEVELS } from "@/lib/scale";
-import { hintCls, inputCls, labelCls, primaryButtonCls, textareaCls } from "@/components/form-styles";
+import { hintCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 
 export function AssessmentForm({ action, previous }: { action: (state: AssessmentState, formData: FormData) => Promise<AssessmentState>; previous: Answers | null }) {
   const [state, submit, pending] = useActionState(action, {});
@@ -33,7 +33,7 @@ export function AssessmentForm({ action, previous }: { action: (state: Assessmen
       </div>
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       <div>
-        <button type="submit" disabled={pending} className={primaryButtonCls}><ClipboardCheck size={16} aria-hidden /> {pending ? "Salvando…" : "Salvar a sondagem"}</button>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.primary}><ClipboardCheck size={16} aria-hidden /> {pending ? "Salvando…" : "Salvar a sondagem"}</button>
       </div>
     </form>
   );

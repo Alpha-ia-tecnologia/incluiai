@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "./prisma";
+import { AUDIT_ACTION, auditEntry, recordChange } from "./audit";
 import type { SessionUser } from "./auth";
 import { can, roleScope } from "./roles";
 import { parseJson } from "./format";
@@ -126,7 +127,6 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
   const now = new Date();
   const byKey = new Map(persons.map((person) => [person.key, person]));
   const meta = (person: CensusPerson) => JSON.stringify({ syncedAt: now.toISOString(), schoolInep: censusImport.fileSchoolCode, aee: person.hasAee, regular: person.hasRegular, aeeClass: person.aeeClassName || null, regularClass: person.regularClassName || null, services: person.aeeServices, resources: person.assessmentResources } satisfies CensusMeta);
-  const log = (studentId: string, action: string, detail: string) => ({ studentId, actorId: user.id, actor: user.name, role: user.role, action, detail: detail.slice(0, 200) });
   let created = 0;
   let updated = 0;
   await prisma.$transaction(async (tx) => {
@@ -143,7 +143,7 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
             timeline: { create: { type: "avaliacao", title: "Cadastro pelo arquivo do Censo Escolar", description: "A etapa foi estimada pela idade. Confira ano, turma, turno e responsável." } },
           },
         });
-        await tx.accessLog.create({ data: log(student.id, "criou", "Cadastro pelo arquivo do Censo Escolar") });
+        await tx.accessLog.create({ data: { studentId: student.id, ...auditEntry(user, AUDIT_ACTION.created, "Cadastro pelo arquivo do Censo Escolar") } });
         created += 1;
       } else if (item.studentId) {
         const data: { census: string; name?: string; birthDate?: Date; inepId?: string; cpf?: string; hasAEE?: boolean } = { census: meta(person) };
@@ -156,7 +156,7 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
         }
         await tx.student.update({ where: { id: item.studentId }, data });
         if (item.diffs.length) {
-          await tx.accessLog.create({ data: log(item.studentId, "atualizou", `Dados do Censo Escolar: ${item.diffs.map((diff) => diff.label).join(", ")}`) });
+          await tx.accessLog.create({ data: { studentId: item.studentId, ...auditEntry(user, AUDIT_ACTION.updated, `Dados do Censo Escolar: ${item.diffs.map((diff) => diff.label).join(", ")}`) } });
           updated += 1;
         }
       }
@@ -179,7 +179,7 @@ export async function setStudentInep(user: SessionUser, studentId: string, inepI
   const digits = digitsOnly(inepId);
   if (digits.length !== 12) return "O ID INEP tem 12 números.";
   await prisma.student.update({ where: { id: studentId }, data: { inepId: digits } });
-  await prisma.accessLog.create({ data: { studentId, actorId: user.id, actor: user.name, role: user.role, action: "atualizou", detail: "ID INEP do Censo Escolar" } });
+  await recordChange(user, studentId, AUDIT_ACTION.updated, "ID INEP do Censo Escolar");
   return null;
 }
 

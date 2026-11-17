@@ -3,7 +3,7 @@
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { Square, Volume2 } from "lucide-react";
 import { SPEECH_RATES, pickVoice, speechChunks } from "@/lib/speech-text";
-import { inputCls, quietButtonCls } from "@/components/form-styles";
+import { inputBoxCls, BUTTON_CLS } from "@/components/form-styles";
 
 const NO_VOICES: SpeechSynthesisVoice[] = [];
 let voices = NO_VOICES;
@@ -45,7 +45,7 @@ function readableText(root: HTMLElement): string {
 }
 
 type Status = "parado" | "lendo" | "confirmar" | "sem-voz";
-const selectCls = inputCls.replace("w-full ", "w-auto ");
+const selectCls = `${inputBoxCls} w-auto`;
 
 export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; label?: string }) {
   const available = useSyncExternalStore(noop, supported, () => false);
@@ -87,9 +87,9 @@ export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; lab
     <div className="grid gap-2 print:hidden" data-read-skip>
       <div className="flex flex-wrap items-center gap-2">
         {status === "lendo" ? (
-          <button type="button" onClick={stop} className={quietButtonCls}><Square size={16} aria-hidden /> Parar a leitura</button>
+          <button type="button" onClick={stop} className={BUTTON_CLS.quiet}><Square size={16} aria-hidden /> Parar a leitura</button>
         ) : (
-          <button type="button" onClick={() => start()} className={quietButtonCls}><Volume2 size={16} aria-hidden /> {label}</button>
+          <button type="button" onClick={() => start()} className={BUTTON_CLS.quiet}><Volume2 size={16} aria-hidden /> {label}</button>
         )}
         <label htmlFor={`${id}-rate`} className="sr-only">Velocidade da leitura</label>
         <select id={`${id}-rate`} value={rate} onChange={(event) => setRate(Number(event.target.value))} className={selectCls}>
@@ -100,8 +100,8 @@ export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; lab
         <div role="alert" className="max-w-md rounded-xl bg-amber-soft px-4 py-3 text-sm leading-relaxed text-amber">
           <p>Este navegador só tem voz pela internet: ele envia o texto ao serviço de voz dele (no Chrome, o Google), e o texto pode ter o nome do estudante.</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" onClick={() => { setRemoteOk(true); start(true); }} className={quietButtonCls}>Ouvir mesmo assim</button>
-            <button type="button" onClick={() => setStatus("parado")} className={quietButtonCls}>Cancelar</button>
+            <button type="button" onClick={() => { setRemoteOk(true); start(true); }} className={BUTTON_CLS.quiet}>Ouvir mesmo assim</button>
+            <button type="button" onClick={() => setStatus("parado")} className={BUTTON_CLS.quiet}>Cancelar</button>
           </div>
         </div>
       ) : null}

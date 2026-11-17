@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useMemo, type FormEvent, type ReactNode } from "react";
 import { LoaderCircle, Sprout } from "lucide-react";
-import { choiceCls, inputCls, labelCls, primaryButtonCls, textareaCls } from "@/components/form-styles";
+import { choiceCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 import { SUPPORT_LEVELS } from "@/lib/scale";
 import { suggestedRecord, type GameResult } from "@/lib/games/games-core";
 import { recordGameSession } from "@/actions/games";
@@ -62,7 +62,7 @@ export function GameRecordForm({ student, result, note, actions }: {
       </div>
       {state.error && !pending ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
-        <button type="submit" disabled={pending} className={`${primaryButtonCls} disabled:cursor-wait`}>
+        <button type="submit" disabled={pending} className={`${BUTTON_CLS.primary} disabled:cursor-wait`}>
           {pending ? <LoaderCircle size={16} className="animate-spin motion-reduce:animate-none" aria-hidden /> : null}
           {pending ? "Registrando…" : "Registrar a aula"}
         </button>

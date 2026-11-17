@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import { Character } from "@/components/character";
-import { primaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { getStudentNextStep, type StudentJourneyInput } from "@/lib/student-journey";
 
 export function StudentJourney({ progress }: { progress: StudentJourneyInput }) {
@@ -28,7 +28,7 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
         <Character variant="care" className="hidden w-20 sm:block" />
         <div className="min-w-0 flex-1">
           <h2 className="text-xl font-semibold text-ink">Próximo passo: {next.label}</h2>
-          <Link href={next.href} className={`${primaryButtonCls} mt-3`}>
+          <Link href={next.href} className={`${BUTTON_CLS.primary} mt-3`}>
             {next.step === 5 ? "Registrar aula" : "Continuar"} <ArrowRight size={16} aria-hidden />
           </Link>
         </div>
@@ -63,7 +63,7 @@ export function StudentNextStepLink({ progress }: { progress: StudentJourneyInpu
     );
   }
   return (
-    <Link href={next.href} title={next.description} className={`student-head-cta ${primaryButtonCls} max-w-full shrink-0`}>
+    <Link href={next.href} title={next.description} className={`student-head-cta ${BUTTON_CLS.primary} max-w-full shrink-0`}>
       <span className="sr-only">Próximo passo: </span>{next.label} <ArrowRight size={16} aria-hidden />
     </Link>
   );

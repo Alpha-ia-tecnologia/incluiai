@@ -9,7 +9,7 @@ import { PrintButton } from "@/components/print-button";
 import { PendingButton } from "@/components/pending-button";
 import { StudentCardView } from "@/components/student-card-view";
 import { CardPhotoForm } from "@/components/student-card-forms";
-import { dangerButtonCls, quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,7 @@ export default async function StudentCardPage({ params }: { params: Promise<{ id
             <CardPhotoForm action={uploadCardPhoto.bind(null, id)} hasPhoto={view.settings.hasPhoto} />
             {view.settings.hasPhoto ? (
               <form action={removeCardPhoto.bind(null, id)} className="mt-3">
-                <button type="submit" className={dangerButtonCls}><Trash2 size={16} aria-hidden /> Remover a foto</button>
+                <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Remover a foto</button>
               </form>
             ) : null}
           </Card>
@@ -58,7 +58,7 @@ export default async function StudentCardPage({ params }: { params: Promise<{ id
             <h3 className="text-sm font-medium text-ink">Código da carteirinha</h3>
             <p className="mt-1 text-sm text-ink-soft">Emitido em {formatDate(view.issuedAt)}. Perdeu a carteirinha? O código novo desativa a anterior.</p>
             <form action={rotateStudentCard.bind(null, id)} className="mt-3">
-              <PendingButton className={quietButtonCls} pendingText="Gerando o código…"><RefreshCw size={16} aria-hidden /> Gerar código novo</PendingButton>
+              <PendingButton className={BUTTON_CLS.quiet} pendingText="Gerando o código…"><RefreshCw size={16} aria-hidden /> Gerar código novo</PendingButton>
             </form>
           </Card>
           <Assurances

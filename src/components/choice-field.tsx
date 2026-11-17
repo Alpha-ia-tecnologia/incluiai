@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { splitItems, type ChoiceOption } from "@/lib/form-options";
-import { inputCls as defaultInputCls, labelCls as defaultLabelCls } from "@/components/form-styles";
+import { inputCls, labelCls } from "@/components/form-styles";
 
 const OTHER = "__outro__";
 
@@ -13,7 +13,7 @@ const sameText = (a: string, b: string) => a.localeCompare(b, "pt-BR", { sensiti
 export function ChoiceField({
   name, label, options, defaultValue = "", required = false, placeholder = "Escolha uma opção",
   otherLabel = "Outro (digitar)", otherPlaceholder = "Digite aqui", otherType = "text", otherMin, otherMax,
-  hint, labelClassName = defaultLabelCls, inputClassName = defaultInputCls, onValueChange,
+  hint, labelClassName = labelCls, inputClassName = inputCls, onValueChange,
 }: {
   name: string;
   label: string;
@@ -87,7 +87,7 @@ export function ChoiceField({
 
 export function MultiChoiceField({
   name, label, options, defaultValue = [], required = false, separator = ";", submit = "joined",
-  hint, otherPlaceholder = "Digite e toque em Adicionar", legendClassName = defaultLabelCls, inputClassName = defaultInputCls,
+  hint, otherPlaceholder = "Digite e toque em Adicionar",
 }: {
   name: string;
   label: string;
@@ -98,8 +98,6 @@ export function MultiChoiceField({
   submit?: "joined" | "multiple";
   hint?: string;
   otherPlaceholder?: string;
-  legendClassName?: string;
-  inputClassName?: string;
 }) {
   const id = useId();
   const items = options.map(normalize);
@@ -142,7 +140,7 @@ export function MultiChoiceField({
 
   return (
     <fieldset className="relative min-w-0" aria-describedby={hint ? `${id}-hint` : undefined}>
-      <legend className={legendClassName}>{label}</legend>
+      <legend className={labelCls}>{label}</legend>
       {hint ? <p id={`${id}-hint`} className="-mt-1 mb-2 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
       <div className="flex flex-wrap gap-2">
         {items.map((item) => {
@@ -184,7 +182,7 @@ export function MultiChoiceField({
       {otherOpen ? (
         <div id={`${id}-outro`} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <label htmlFor={`${id}-texto`} className="sr-only">{label} — outra opção</label>
-          <input ref={draftRef} id={`${id}-texto`} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={onDraftKey} placeholder={otherPlaceholder} className={inputClassName} />
+          <input ref={draftRef} id={`${id}-texto`} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={onDraftKey} placeholder={otherPlaceholder} className={inputCls} />
           <button type="button" onClick={addDraft} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand-soft px-4 text-sm font-medium text-brand-strong hover:bg-lilac">
             <Plus size={15} aria-hidden /> Adicionar
           </button>

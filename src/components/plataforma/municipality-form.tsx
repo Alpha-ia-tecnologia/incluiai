@@ -9,7 +9,7 @@ import { SLUG_MAX, UFS, defaultNetworkName, suggestSlug } from "@/lib/tenancy-co
 import { BrandEditor } from "@/components/plataforma/brand-editor";
 import { PendingButton } from "@/components/pending-button";
 import { PrintButton } from "@/components/print-button";
-import { choiceCls, hintCls, inputCls, labelCls, linkCls, primaryButtonCls } from "@/components/form-styles";
+import { choiceCls, hintCls, inputCls, labelCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
 
 export function MunicipalityForm({ domain }: { domain: string }) {
   const [state, submit] = useActionState(createMunicipality, {});
@@ -108,7 +108,7 @@ export function MunicipalityForm({ domain }: { domain: string }) {
 
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       <div>
-        <PendingButton className={primaryButtonCls} pendingText="Preparando o ambiente: banco, tabelas, catálogo de recursos e a primeira conta. Costuma levar até um minuto; mantenha esta página aberta.">
+        <PendingButton className={BUTTON_CLS.primary} pendingText="Preparando o ambiente: banco, tabelas, catálogo de recursos e a primeira conta. Costuma levar até um minuto; mantenha esta página aberta.">
           <Check size={16} aria-hidden /> Cadastrar e preparar o ambiente
         </PendingButton>
       </div>

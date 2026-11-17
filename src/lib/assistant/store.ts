@@ -4,6 +4,7 @@ import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { decideActivity, saveDiaryEntry, saveFamilyNote, saveIntersectorReport, setObjectiveStatus, type DiaryEntryInput, type IntersectorReportInput } from "../records";
 import { parseJson } from "../format";
+import { UserError } from "../user-error";
 import type { ActionView, ConversationDetail, ConversationView, MessageView, ToolStep } from "./types";
 
 export const MAX_HISTORY_MESSAGES = 80;
@@ -88,7 +89,7 @@ type ActionArgs = Record<string, unknown> & { studentId: string };
 export async function executeAction(user: SessionUser, actionId: string, decision: "confirmar" | "cancelar"): Promise<{ action: ActionView; error?: string }> {
   const prisma = await db();
   const action = await prisma.assistantAction.findFirst({ where: { id: actionId, conversation: { userId: user.id } } });
-  if (!action) throw new Error("Ação não encontrada.");
+  if (!action) throw new UserError("Ação não encontrada.", "not_found");
   if (action.status !== "pendente") return { action: toActionView(action) };
 
   if (decision === "cancelar") {

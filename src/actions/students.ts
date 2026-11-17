@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
+import { AUDIT_ACTION, recordChange } from "@/lib/audit";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 
@@ -84,15 +85,7 @@ export async function createStudent(formData: FormData) {
     },
   });
 
-  await prisma.accessLog.create({
-    data: {
-      studentId: student.id,
-      actor: user.name,
-      role: user.role,
-      action: "criou",
-      detail: "Cadastro do estudante",
-    },
-  });
+  await recordChange(user, student.id, AUDIT_ACTION.created, "Cadastro do estudante");
 
   revalidatePath("/estudantes");
   revalidatePath("/");

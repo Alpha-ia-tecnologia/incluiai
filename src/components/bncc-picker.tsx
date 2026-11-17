@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { Lightbulb, Search, X } from "lucide-react";
-import { hintCls, inputCls, labelCls, quietButtonCls } from "@/components/form-styles";
+import { hintCls, inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
 export type BnccOption = { code: string; component: string; years: string; description: string };
 
@@ -115,7 +115,7 @@ export function BnccPicker({ label, hint, studentId, dimension, multiple = false
               <label htmlFor={`${id}-busca`} className="sr-only">Buscar habilidade da BNCC por código ou palavra</label>
               <input id={`${id}-busca`} type="search" value={query} onChange={(event) => { setQuery(event.target.value); if (event.target.value.trim().length < 2) setResults(null); }} placeholder="Código (EF01LP) ou palavra (letras, contar)" autoComplete="off" className={`${inputCls} pl-9`} />
             </div>
-            {suggestFrom ? <button type="button" onClick={suggest} className={quietButtonCls}><Lightbulb size={16} aria-hidden /> Sugerir pelo objetivo</button> : null}
+            {suggestFrom ? <button type="button" onClick={suggest} className={BUTTON_CLS.quiet}><Lightbulb size={16} aria-hidden /> Sugerir pelo objetivo</button> : null}
           </div>
           <div aria-live="polite" className="min-w-0">
             {busy ? <p className="text-sm text-ink-soft">Buscando…</p> : results ? (

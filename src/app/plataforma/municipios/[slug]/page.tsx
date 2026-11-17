@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/format";
 import { changeMunicipalityStatus } from "@/actions/platform";
 import { Badge, Card, PageHero, SectionTitle } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
-import { dangerButtonCls, inputCls, labelCls, linkCls, primaryButtonCls, primaryOnNavyCls } from "@/components/form-styles";
+import { BUTTON_CLS, inputCls, labelCls, linkCls } from "@/components/form-styles";
 import { MunicipalityEditForm, RetryProvisioningForm } from "@/components/plataforma/municipality-edit";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export default async function MunicipalityPage({ params }: { params: Promise<{ s
         title={`${municipality.name} (${municipality.uf})`}
         lede={<>Cadastrado em {formatDate(municipality.createdAt)}. Banco <span className="font-mono">{municipality.dbName}</span>.</>}
         character="planning"
-        actions={status === "ativo" ? <a href={address} className={primaryOnNavyCls}>Abrir {address.replace(/^https?:\/\//, "")} <ExternalLink size={16} aria-hidden /></a> : null}
+        actions={status === "ativo" ? <a href={address} className={BUTTON_CLS.primaryOnNavy}>Abrir {address.replace(/^https?:\/\//, "")} <ExternalLink size={16} aria-hidden /></a> : null}
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
@@ -83,14 +83,14 @@ export default async function MunicipalityPage({ params }: { params: Promise<{ s
                     <label htmlFor="motivo-suspensao" className={labelCls}>Motivo (fica no histórico)</label>
                     <input id="motivo-suspensao" name="reason" maxLength={300} autoComplete="off" className={inputCls} />
                   </div>
-                  <div><PendingButton className={dangerButtonCls} pendingText="Suspendendo…"><Pause size={16} aria-hidden /> Suspender o acesso</PendingButton></div>
+                  <div><PendingButton className={BUTTON_CLS.danger} pendingText="Suspendendo…"><Pause size={16} aria-hidden /> Suspender o acesso</PendingButton></div>
                 </form>
               ) : (
                 <form action={changeMunicipalityStatus} className="grid gap-3">
                   <input type="hidden" name="slug" value={municipality.slug} />
                   <input type="hidden" name="status" value="ativo" />
                   <p className="text-sm leading-relaxed text-ink-soft">O endereço está fechado. Ao reativar, as pessoas voltam a entrar com as contas de sempre.</p>
-                  <div><PendingButton className={primaryButtonCls} pendingText="Reativando…"><Play size={16} aria-hidden /> Reativar o acesso</PendingButton></div>
+                  <div><PendingButton className={BUTTON_CLS.primary} pendingText="Reativando…"><Play size={16} aria-hidden /> Reativar o acesso</PendingButton></div>
                 </form>
               )}
             </Card>

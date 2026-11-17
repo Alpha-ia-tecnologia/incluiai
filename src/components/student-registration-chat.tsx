@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { createStudent } from "@/actions/students";
 import { Character } from "@/components/character";
-import { primaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import {
   ACCESSIBILITY_NOTE_OPTIONS,
   AEE_FREQUENCY_OPTIONS,
@@ -678,7 +678,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
                   type="button"
                   onClick={saveStudent}
                   disabled={pending}
-                  className={primaryButtonCls}
+                  className={BUTTON_CLS.primary}
                 >
                   <Save size={16} aria-hidden />
                   {pending ? "Salvando..." : "Salvar no prontuário"}

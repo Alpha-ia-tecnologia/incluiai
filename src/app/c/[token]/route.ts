@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccessStudent, isTherapistOf, studentPathFor } from "@/lib/policy";
-import { recordView } from "@/lib/access-log";
+import { recordView } from "@/lib/audit";
 import { PENDING_CARD_COOKIE } from "@/lib/student-card";
 import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
 import { unavailableResponse } from "@/lib/tenant";

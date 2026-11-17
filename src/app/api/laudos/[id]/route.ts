@@ -2,7 +2,7 @@ import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canWorkWithStudent } from "@/lib/policy";
 import { can } from "@/lib/roles";
-import { recordView } from "@/lib/access-log";
+import { recordView } from "@/lib/audit";
 import { unavailableResponse } from "@/lib/tenant";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {

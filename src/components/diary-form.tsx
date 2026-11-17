@@ -150,12 +150,12 @@ export function DiaryForm({
         <details className="rounded-2xl border border-line p-4 sm:p-5">
           <summary className="cursor-pointer py-1 text-sm font-semibold text-brand-strong">Adicionar mais detalhes (opcional)</summary>
           <div className="mt-4 space-y-6">
-            <MultiChoiceField key={`worked-${savedCount}`} name="whatWorked" label="O que ajudou o estudante?" options={WHAT_WORKED_OPTIONS} legendClassName={labelCls} inputClassName={inputCls} />
-            <MultiChoiceField key={`next-${savedCount}`} name="recommendation" label="O que tentar no próximo encontro?" options={RECOMMENDATION_OPTIONS} legendClassName={labelCls} inputClassName={inputCls} />
+            <MultiChoiceField key={`worked-${savedCount}`} name="whatWorked" label="O que ajudou o estudante?" options={WHAT_WORKED_OPTIONS} />
+            <MultiChoiceField key={`next-${savedCount}`} name="recommendation" label="O que tentar no próximo encontro?" options={RECOMMENDATION_OPTIONS} />
           </div>
         </details>
 
-        <ChoiceField key={`role-${savedCount}`} name="authorRole" label="Seu papel neste registro (obrigatório)" options={roleOptions} required placeholder="Escolha seu papel" otherPlaceholder="Ex.: intérprete de Libras" labelClassName={labelCls} inputClassName={inputCls} />
+        <ChoiceField key={`role-${savedCount}`} name="authorRole" label="Seu papel neste registro (obrigatório)" options={roleOptions} required placeholder="Escolha seu papel" otherPlaceholder="Ex.: intérprete de Libras" />
       </fieldset>
 
       <div className="flex flex-col items-start gap-3 border-t border-line pt-5">

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { KeyRound } from "lucide-react";
 import type { ResetState } from "@/actions/users";
-import { secondaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 
 export function ResetPassword({ action }: { action: (previous: ResetState) => Promise<ResetState> }) {
   const [state, submit, pending] = useActionState(action, {});
@@ -20,7 +20,7 @@ export function ResetPassword({ action }: { action: (previous: ResetState) => Pr
     <form action={submit} className="grid gap-2">
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       <div>
-        <button type="submit" disabled={pending} className={secondaryButtonCls}>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>
           <KeyRound size={16} aria-hidden /> {pending ? "Gerando…" : "Gerar senha temporária"}
         </button>
       </div>

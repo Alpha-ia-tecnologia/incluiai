@@ -1,4 +1,5 @@
 import { db } from "../prisma";
+import { AUDIT_ACTION, recordChange, type AuditActor } from "../audit";
 import { redactorFor } from "../agents/names-in-scope";
 import { parseJson } from "../format";
 import { normalizeMaterialContent, type MaterialCard, type MaterialKind } from "../material-content";
@@ -30,7 +31,7 @@ async function inBatches<T>(items: T[], size: number, work: (item: T) => Promise
   for (let index = 0; index < items.length; index += size) await Promise.all(items.slice(index, index + size).map(work));
 }
 
-export async function generateMaterialImages(materialId: string, user: { name: string; role: string }, only?: number[]) {
+export async function generateMaterialImages(materialId: string, user: AuditActor, only?: number[]) {
   const prisma = await db();
   const material = await prisma.material.findUniqueOrThrow({
     where: { id: materialId },
@@ -60,7 +61,7 @@ export async function generateMaterialImages(materialId: string, user: { name: s
     }
   });
   if (created) {
-    await prisma.accessLog.create({ data: { studentId: material.studentId, actor: user.name, role: user.role, action: "criou", detail: `Imagens do material "${material.title}" (OpenAI, sem dados pessoais)` } });
+    await recordChange(user, material.studentId, AUDIT_ACTION.created, `Imagens do material "${material.title}" (OpenAI, sem dados pessoais)`);
   }
   return { created, errors: [...errors] };
 }

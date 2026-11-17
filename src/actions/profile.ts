@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
+import { AUDIT_ACTION, recordChange } from "@/lib/audit";
 import { requireStudentTeam } from "@/lib/auth";
 
 const SUPPORT_FIELDS = [
@@ -92,15 +93,7 @@ export async function upsertProfile(studentId: string, formData: FormData) {
     update: data,
   });
 
-  await prisma.accessLog.create({
-    data: {
-      studentId,
-      actor: user.name,
-      role: user.role,
-      action: "editou",
-      detail: "Perfil funcional",
-    },
-  });
+  await recordChange(user, studentId, AUDIT_ACTION.edited, "Perfil funcional");
 
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");

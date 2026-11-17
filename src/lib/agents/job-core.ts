@@ -1,7 +1,7 @@
 import type { AiGate, AiNeed } from "./capabilities.ts";
 import type { RedactionScope } from "./names-in-scope.ts";
 import { createRedactor, redactionNames, type Redactor, type ScopeNames } from "./redactor.ts";
-import { AI_AGENTS, ANONYMIZATION, RULES_ENGINE } from "./descriptors.ts";
+import { AI_AGENTS, AI_PROVIDER, ANONYMIZATION, RULES_ENGINE } from "./descriptors.ts";
 import type { AgentModel, AgentReport, TraceStep } from "./types.ts";
 
 export type AiJob<T> = {
@@ -31,7 +31,7 @@ export type JobProviders = {
   names: (scope: RedactionScope | { names: ScopeNames }) => Promise<ScopeNames>;
   chain: (redactor: Redactor, need: AiNeed) => { model: AgentModel; deepseekAgents: () => string[]; modelId: () => string };
   describeError: (error: unknown) => string;
-  recordDeepSeekUse: (studentId: string, agents: string[], trace: TraceStep[], purpose?: string) => Promise<void>;
+  recordDeepSeekUse: (studentId: string, purpose?: string) => Promise<void>;
 };
 
 export type AiJobRunner = {
@@ -95,7 +95,11 @@ export function createJobRunner(providers: JobProviders): AiJobRunner {
       const error = providers.describeError(failure);
       outcome = { ...byRules("falhou", { agent: AI_AGENTS, summary: `Indisponíveis no momento (${error}). ${made}` }, error), privacy: { removed: redactor.removed(), summary: redactor.summary() } };
     }
-    if (job.student) await providers.recordDeepSeekUse(job.student, agents.deepseekAgents(), outcome.trace, job.deepseekPurpose);
+    const deepseek = agents.deepseekAgents();
+    if (job.student && deepseek.length) {
+      outcome.trace.push({ agent: AI_PROVIDER, summary: `Respondido pelo DeepSeek (fallback): ${deepseek.join(", ")}.` });
+      await providers.recordDeepSeekUse(job.student, job.deepseekPurpose);
+    }
     return outcome;
   };
 }

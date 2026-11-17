@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CircleCheck, Send, Share2, Undo2 } from "lucide-react";
-import { returnDuaToDraft, setDuaSharing, submitDuaForReview, validateDuaVersion, type DuaResult } from "@/actions/dua";
+import { returnDuaToDraft, setDuaSharing, submitDuaForReview, validateDuaVersion } from "@/actions/dua";
+import type { ActionResult } from "@/lib/action-result";
 import {
   BARRIER_STATUS_LABEL, PRINCIPLE_LABEL, SHARING_LABEL, strategiesWithoutBarrier, validationProblems,
   type ReviewState, type Sharing,
 } from "@/lib/dua/domain";
 import type { PlanningAccess } from "@/lib/dua/access";
-import { Field, OriginBadge, ResultMessage, ReviewBadge, buttonCls, linkCls, secondaryCls, textareaCls } from "./dua-ui";
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, linkCls, textareaCls } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
+import { OriginBadge, ReviewBadge } from "./badges";
 import type { StepProps } from "./step-objective";
 
 const STEP_OF_FIELD = (field: string) => (field.startsWith("strategies") ? 2 : field.startsWith("barriers") ? 1 : 0);
@@ -19,21 +21,17 @@ export function StepReview({ content, update, readOnly, planningId, access, vers
   planningId: string; access: PlanningAccess; version: number; state: ReviewState; sharing: string; hasValidated: boolean; ownerName: string;
   flush: () => Promise<void>; revision: () => number; goTo: (step: number) => void;
 }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [result, setResult] = useState<(DuaResult & { message?: string }) | null>(null);
+  const { result, pending, submit } = useActionResult();
   const problems = validationProblems(content);
   const withoutBarrier = strategiesWithoutBarrier(content);
   const barrierText = new Map(content.barriers.map((item, index) => [item.id, `${index + 1}. ${item.description}`]));
   const criterionText = new Map(content.criteria.map((item, index) => [item.id, `${index + 1}. ${item.description}`]));
 
-  function act(action: () => Promise<DuaResult>, success: string) {
-    start(async () => {
+  function act(action: () => Promise<ActionResult>, success: string) {
+    submit(async () => {
       await flush();
-      const outcome = await action();
-      setResult(outcome.ok ? { ...outcome, message: success } : outcome);
-      if (outcome.ok) router.refresh();
-    });
+      return action();
+    }, { message: success });
   }
   const ref = () => ({ planningId, version, revision: revision() });
 
@@ -80,7 +78,7 @@ export function StepReview({ content, update, readOnly, planningId, access, vers
           ))}
         </ol>
         <Field id="dua-acompanhamento" label="Como a equipe vai acompanhar" hint="Quem observa, em que momentos e como os registros serão feitos.">
-          <textarea id="dua-acompanhamento" aria-describedby="dua-acompanhamento-dica" className={textareaCls} value={content.followUp} readOnly={readOnly} maxLength={2000} onChange={(event) => update({ ...content, followUp: event.target.value })} />
+          {(control) => <textarea {...control} className={textareaCls} value={content.followUp} readOnly={readOnly} maxLength={2000} onChange={(event) => update({ ...content, followUp: event.target.value })} />}
         </Field>
         <p className="text-sm text-ink-soft">Materiais e apoios individuais ficam nas abas <Link href={`/planejamento/${planningId}/materiais`} className={linkCls}>Materiais</Link> e <Link href={`/planejamento/${planningId}/apoios`} className={linkCls}>Apoios individuais</Link>.</p>
       </section>
@@ -90,13 +88,13 @@ export function StepReview({ content, update, readOnly, planningId, access, vers
         <p className="text-sm leading-relaxed text-ink-soft">Aceitar sugestões só muda o rascunho. <strong className="font-medium text-ink">Validar para aplicação</strong> é a decisão pedagógica final: fica registrada com quem validou, a data e a versão, e a versão deixa de mudar. Validar não altera matrícula, classificação nem dados do Censo.</p>
         <div className="flex flex-wrap gap-2">
           {access.edit && state === "rascunho" ? (
-            <button type="button" disabled={pending} onClick={() => act(() => submitDuaForReview(ref()), "Enviado para revisão.")} className={secondaryCls}><Send size={16} aria-hidden /> Enviar para revisão</button>
+            <button type="button" disabled={pending} onClick={() => act(() => submitDuaForReview(ref()), "Enviado para revisão.")} className={BUTTON_CLS.quiet}><Send size={16} aria-hidden /> Enviar para revisão</button>
           ) : null}
           {access.edit && state === "em_revisao" ? (
-            <button type="button" disabled={pending} onClick={() => act(() => returnDuaToDraft(ref()), "A versão voltou para rascunho.")} className={secondaryCls}><Undo2 size={16} aria-hidden /> Voltar para rascunho</button>
+            <button type="button" disabled={pending} onClick={() => act(() => returnDuaToDraft(ref()), "A versão voltou para rascunho.")} className={BUTTON_CLS.quiet}><Undo2 size={16} aria-hidden /> Voltar para rascunho</button>
           ) : null}
           {access.validate && state !== "validado" ? (
-            <button type="button" disabled={pending} onClick={() => act(() => validateDuaVersion(ref()), `Versão ${version} validada para aplicação.`)} className={buttonCls}><CircleCheck size={16} aria-hidden /> Validar para aplicação</button>
+            <button type="button" disabled={pending} onClick={() => act(() => validateDuaVersion(ref()), `Versão ${version} validada para aplicação.`)} className={BUTTON_CLS.primary}><CircleCheck size={16} aria-hidden /> Validar para aplicação</button>
           ) : null}
           {!access.validate && state !== "validado" ? <p className="text-sm text-ink-soft">A validação é feita por professor(a) responsável ou pela coordenação.</p> : null}
         </div>
@@ -105,14 +103,14 @@ export function StepReview({ content, update, readOnly, planningId, access, vers
             <p className="text-sm text-ink"><span className="font-medium">Compartilhamento:</span> {SHARING_LABEL[sharing as Sharing] ?? sharing}</p>
             <p className="text-xs leading-relaxed text-ink-soft">Compartilhar é uma decisão separada da validação. Compartilhado, o planejamento pode ser lido e aplicado pela equipe da escola, sem edição. Apoios individuais e evidências nunca são compartilhados.</p>
             {sharing === "compartilhado" ? (
-              <button type="button" disabled={pending} onClick={() => act(() => setDuaSharing({ planningId, sharing: "privado" }), "O planejamento deixou de ser compartilhado.")} className={`${secondaryCls} justify-self-start`}><Share2 size={16} aria-hidden /> Deixar de compartilhar</button>
+              <button type="button" disabled={pending} onClick={() => act(() => setDuaSharing({ planningId, sharing: "privado" }), "O planejamento deixou de ser compartilhado.")} className={`${BUTTON_CLS.quiet} justify-self-start`}><Share2 size={16} aria-hidden /> Deixar de compartilhar</button>
             ) : (
-              <button type="button" disabled={pending || !hasValidated} onClick={() => act(() => setDuaSharing({ planningId, sharing: "compartilhado" }), "Compartilhado com a equipe da escola.")} className={`${secondaryCls} justify-self-start`}><Share2 size={16} aria-hidden /> Compartilhar com a equipe da escola</button>
+              <button type="button" disabled={pending || !hasValidated} onClick={() => act(() => setDuaSharing({ planningId, sharing: "compartilhado" }), "Compartilhado com a equipe da escola.")} className={`${BUTTON_CLS.quiet} justify-self-start`}><Share2 size={16} aria-hidden /> Compartilhar com a equipe da escola</button>
             )}
             {!hasValidated && sharing !== "compartilhado" ? <p className="text-xs text-ink-soft">Disponível depois da primeira validação.</p> : null}
           </div>
         ) : null}
-        <ResultMessage result={result} />
+        <FormResult result={result} />
       </section>
     </div>
   );

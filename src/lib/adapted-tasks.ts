@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
-import { recordChange } from "./access-log";
+import { AUDIT_ACTION, recordChange } from "./audit";
 import { validBnccCode } from "./bncc";
 import { runAiJob } from "./agents/job";
 import type { RedactionScope } from "./agents/names-in-scope";
@@ -49,7 +49,7 @@ async function transcribe(file: File, scope: RedactionScope, student: string | n
 
 export async function readTaskForStudent(user: SessionUser, studentId: string, file: File): Promise<ReadResult> {
   const result = await transcribe(file, { student: studentId }, studentId);
-  if (!("error" in result)) await recordChange(user, studentId, "enviou à IA", "Foto ou PDF de atividade da turma, para transcrever (Claude)");
+  if (!("error" in result)) await recordChange(user, studentId, AUDIT_ACTION.sentToAi, "Foto ou PDF de atividade da turma, para transcrever (Claude)");
   return result;
 }
 
@@ -73,7 +73,7 @@ export async function createAdaptedTask(user: SessionUser, studentId: string, in
     },
     rules: () => adaptByRules(input, options),
   });
-  if (source === "ia") await recordChange(user, studentId, "enviou à IA", `Atividade da turma para adaptar: ${input.title.slice(0, 80)} (sem nome do estudante)`);
+  if (source === "ia") await recordChange(user, studentId, AUDIT_ACTION.sentToAi, `Atividade da turma para adaptar: ${input.title.slice(0, 80)} (sem nome do estudante)`);
   const task = await prisma.adaptedTask.create({
     data: {
       studentId, kind: input.kind, title: content.title, sourceText: input.text.slice(0, 20000), options: JSON.stringify(options),
@@ -105,7 +105,7 @@ export async function approveAdaptedTask(user: SessionUser, where: { id: string;
   const prisma = await db();
   const task = await draftTask(where);
   await prisma.adaptedTask.update({ where: { id: task.id }, data: { status: "aprovada", approvedBy: user.name, approvedAt: new Date() } });
-  if (task.studentId) await recordChange(user, task.studentId, "aprovou", `Atividade adaptada: ${task.title.slice(0, 80)}`);
+  if (task.studentId) await recordChange(user, task.studentId, AUDIT_ACTION.approved, `Atividade adaptada: ${task.title.slice(0, 80)}`);
 }
 
 export async function deleteAdaptedTask(where: { id: string; studentId?: string; planningId?: string }) {

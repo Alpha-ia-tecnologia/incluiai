@@ -4,7 +4,7 @@ import { useActionState, useId } from "react";
 import { EyeOff, FileUp, ShieldCheck, Wand2 } from "lucide-react";
 import type { AdaptState } from "@/actions/adapted-tasks";
 import { ADAPT_OPTIONS } from "@/lib/task-adaptation";
-import { choiceCls, hintCls, inputCls, labelCls, primaryButtonCls, textareaCls } from "@/components/form-styles";
+import { choiceCls, hintCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
 type Action = (previous: AdaptState, formData: FormData) => Promise<AdaptState>;
@@ -95,7 +95,7 @@ export function AdaptForm({ action, canRead, aiOn, objectives, showOptions = tru
       ) : null}
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       <div>
-        <button type="submit" disabled={pending} className={primaryButtonCls}>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           {checking ? <Wand2 size={16} aria-hidden /> : <FileUp size={16} aria-hidden />}
           {pending ? (checking ? "Adaptando…" : "Enviando…") : checking ? adaptLabel : canRead ? "Ler o arquivo ou adaptar o texto" : adaptLabel}
         </button>

@@ -10,7 +10,7 @@ import { SHIFTS } from "@/lib/scale";
 import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS } from "@/lib/form-options";
 import { PageHero, Badge, EmptyState } from "@/components/ui";
-import { primaryButtonCls, primaryOnNavyCls, quietButtonCls, secondaryOnNavyCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Character } from "@/components/character";
 import { StepTrack } from "@/components/viz/step-track";
 import { JOURNEY_STEPS } from "@/lib/dashboard";
@@ -89,8 +89,8 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         lede={action ? "Procure pelo nome ou escolha uma turma. Depois, selecione o estudante para continuar." : "Encontre um estudante e veja qual é o próximo passo do acompanhamento."}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link href="/estudantes/novo" className={primaryOnNavyCls}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>
-            {isAccountManager(user.role) ? <Link href="/estudantes/importar" className={secondaryOnNavyCls}><FileSpreadsheet size={18} aria-hidden /> Importar planilha</Link> : null}
+            <Link href="/estudantes/novo" className={BUTTON_CLS.primaryOnNavy}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>
+            {isAccountManager(user.role) ? <Link href="/estudantes/importar" className={BUTTON_CLS.secondaryOnNavy}><FileSpreadsheet size={18} aria-hidden /> Importar planilha</Link> : null}
           </div>
         }
       />
@@ -177,9 +177,9 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                 );
               })}
             </div>
-          ) : !nominal && !searching ? null : <EmptyState character="learning" title="Nenhum estudante encontrado" hint="Confira o nome digitado ou use “Limpar filtros” para ver todos os estudantes disponíveis." action={<Link href={resetHref} className={quietButtonCls}>Limpar filtros</Link>} />}
+          ) : !nominal && !searching ? null : <EmptyState character="learning" title="Nenhum estudante encontrado" hint="Confira o nome digitado ou use “Limpar filtros” para ver todos os estudantes disponíveis." action={<Link href={resetHref} className={BUTTON_CLS.quiet}>Limpar filtros</Link>} />}
         </>
-      ) : <EmptyState character="learning" title="Cadastre o primeiro estudante" hint="Comece com nome, escola e turma. Depois, você poderá completar as informações de aprendizagem." action={<Link href="/estudantes/novo" className={primaryButtonCls}><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link>} />}
+      ) : <EmptyState character="learning" title="Cadastre o primeiro estudante" hint="Comece com nome, escola e turma. Depois, você poderá completar as informações de aprendizagem." action={<Link href="/estudantes/novo" className={BUTTON_CLS.primary}><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link>} />}
 
       {nominal && classes.length ? (
         <details id="planejar-turma" className="mt-8 rounded-2xl border border-line bg-teal-soft/60">

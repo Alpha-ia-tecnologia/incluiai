@@ -19,7 +19,7 @@ import { ResourcePrintButton } from "@/components/resources/resource-print-butto
 import { activityPrintMaterials } from "@/lib/resource-print-materials";
 import { networkName } from "@/lib/network";
 import styles from "@/components/resources/resource-print.module.css";
-import { quietButtonCls, secondaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import {
   ArrowLeft, ThumbsUp, ThumbsDown, Repeat, Clock, Target,
   PackageOpen, ListChecks, SlidersHorizontal, ClipboardCheck, Sprout,
@@ -229,13 +229,13 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
                 <div className="flex flex-wrap gap-2">
                   <form action={register}>
                     <input type="hidden" name="worked" value="sim" />
-                    <button type="submit" className={secondaryButtonCls}>
+                    <button type="submit" className={BUTTON_CLS.secondary}>
                       <ThumbsUp size={15} aria-hidden /> Teve boa resposta
                     </button>
                   </form>
                   <form action={register}>
                     <input type="hidden" name="worked" value="nao" />
-                    <button type="submit" className={quietButtonCls}>
+                    <button type="submit" className={BUTTON_CLS.quiet}>
                       <ThumbsDown size={15} aria-hidden /> Precisa de ajuste
                     </button>
                   </form>

@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import { ClipboardCheck } from "lucide-react";
 import { registerDuaEvidence } from "@/actions/dua";
 import { CRITERION_STATUSES, CRITERION_STATUS_LABEL, type CriterionStatus } from "@/lib/dua/domain";
-import { Field, ResultMessage, buttonCls, hintCls, inputCls, labelCls, textareaCls } from "../dua-ui";
-
-type Feedback = { ok: boolean; message?: string; problems?: { field: string; message: string }[] } | null;
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 
 export type EvidenceDefaults = {
   date: string;
@@ -39,43 +38,37 @@ export function EvidenceForm({ planningId, applicationId, student, criteria, str
   defaults: EvidenceDefaults;
   existing: boolean;
 }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [feedback, setFeedback] = useState<Feedback>(null);
+  const { result, pending, submit } = useActionResult();
   const prefix = `ev-${applicationId}-${student.id}`;
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const field = (name: string) => String(data.get(name) ?? "");
-    start(async () => {
-      const outcome = await registerDuaEvidence({
-        planningId,
-        applicationId,
-        studentId: student.id,
-        date: field("date"),
-        criteria: criteria.map((item) => ({ criterionId: item.id, status: String(data.get(`criterio-${item.id}`) ?? "nao_registrado") })),
-        optionsOffered: data.getAll("options").map(String),
-        participationForm: field("participationForm"),
-        studentChoice: field("studentChoice"),
-        supportProvided: field("supportProvided"),
-        observedResponse: field("observedResponse"),
-        remainingBarriers: field("remainingBarriers"),
-        nextStep: field("nextStep"),
-      });
-      setFeedback(outcome.ok ? { ok: true, message: `Registro de ${student.name} salvo.` } : outcome);
-      if (outcome.ok) router.refresh();
-    });
+    submit(() => registerDuaEvidence({
+      planningId,
+      applicationId,
+      studentId: student.id,
+      date: field("date"),
+      criteria: criteria.map((item) => ({ criterionId: item.id, status: String(data.get(`criterio-${item.id}`) ?? "nao_registrado") })),
+      optionsOffered: data.getAll("options").map(String),
+      participationForm: field("participationForm"),
+      studentChoice: field("studentChoice"),
+      supportProvided: field("supportProvided"),
+      observedResponse: field("observedResponse"),
+      remainingBarriers: field("remainingBarriers"),
+      nextStep: field("nextStep"),
+    }), { message: `Registro de ${student.name} salvo.` });
   }
 
   return (
-    <form onSubmit={submit} className="grid min-w-0 gap-4">
+    <form onSubmit={register} className="grid min-w-0 gap-4">
       <p className="rounded-xl bg-sky-soft px-3 py-2 text-sm leading-relaxed text-sky-ink">
         O registro deve corresponder a uma observação real desta aplicação, com a data em que foi feita. Ele fica com o seu nome como autor{existing ? " e substitui o registro anterior deste estudante nesta aplicação" : ""}.
       </p>
       <div className="max-w-xs">
         <Field id={`${prefix}-data`} label="Data da observação">
-          <input id={`${prefix}-data`} name="date" type="date" defaultValue={defaults.date} className={inputCls} />
+          {(control) => <input {...control} name="date" type="date" defaultValue={defaults.date} className={inputCls} />}
         </Field>
       </div>
 
@@ -122,16 +115,16 @@ export function EvidenceForm({ planningId, applicationId, student, criteria, str
       <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {TEXT_FIELDS.map((item) => (
           <Field key={item.key} id={`${prefix}-${item.key}`} label={item.label} hint={item.hint}>
-            <textarea id={`${prefix}-${item.key}`} name={item.key} defaultValue={defaults[item.key]} maxLength={item.max} className={textareaCls} aria-describedby={item.hint ? `${prefix}-${item.key}-dica` : undefined} />
+            {(control) => <textarea {...control} name={item.key} defaultValue={defaults[item.key]} maxLength={item.max} className={textareaCls} />}
           </Field>
         ))}
       </div>
 
       <div>
-        <button type="submit" disabled={pending} aria-busy={pending} className={buttonCls}>
+        <button type="submit" disabled={pending} aria-busy={pending} className={BUTTON_CLS.primary}>
           <ClipboardCheck size={16} aria-hidden /> {pending ? "Salvando…" : existing ? "Atualizar o registro" : "Registrar a evidência"}
         </button>
-        <ResultMessage result={feedback} />
+        <FormResult result={result} />
       </div>
     </form>
   );

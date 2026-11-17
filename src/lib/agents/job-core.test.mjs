@@ -17,7 +17,7 @@ function setup({ gate = "liberada", provider = async () => ({ ok: true }), deeps
       modelId: () => (deepseek.length ? "deepseek" : "claude"),
     }),
     describeError: (error) => `falha: ${error.message}`,
-    recordDeepSeekUse: async (studentId, agents, trace, purpose) => { records.push({ studentId, agents, purpose }); if (agents.length) trace.push({ agent: "Provedor de IA", summary: agents.join(", ") }); },
+    recordDeepSeekUse: async (studentId, purpose) => { records.push({ studentId, purpose }); },
   });
   return { runAiJob, sent, records };
 }
@@ -41,7 +41,7 @@ test("IA liberada: o modelo recebe o texto trocado; o rastro abre com a anonimiz
   assert.deepEqual(outcome.trace.map((step) => step.agent), ["Anonimização", "Agente"]);
   assert.match(outcome.trace[0].summary, /^Antes do envio à IA, foram substituídos: /);
   assert.deepEqual(outcome.privacy.removed, 3);
-  assert.deepEqual(records, [{ studentId: "s1", agents: [], purpose: undefined }]);
+  assert.deepEqual(records, []);
 });
 
 test("IA desligada ou sem autorização: as regras respondem e o rastro diz por quê", async () => {
@@ -65,8 +65,8 @@ test("a IA falhou: as regras respondem, o erro vira texto para a pessoa e o uso 
   assert.deepEqual([outcome.source, outcome.reason, outcome.error], ["regras", "falhou", "falha: limite"]);
   assert.deepEqual(outcome.value, { regras: true, trace: [] });
   assert.equal(outcome.trace[0].summary, "Indisponíveis no momento (falha: limite). A proposta foi feita pelas regras da plataforma.");
-  assert.deepEqual(outcome.trace.at(-1), { agent: "Provedor de IA", summary: "Analista" });
-  assert.deepEqual(records, [{ studentId: "s1", agents: ["Analista"], purpose: "sugestão de apoio na atividade com DUA" }]);
+  assert.deepEqual(outcome.trace.at(-1), { agent: "Provedor de IA", summary: "Respondido pelo DeepSeek (fallback): Analista." });
+  assert.deepEqual(records, [{ studentId: "s1", purpose: "sugestão de apoio na atividade com DUA" }]);
 });
 
 test("sem regras: a falha volta para quem chamou decidir; sem estudante, nada a registrar", async () => {

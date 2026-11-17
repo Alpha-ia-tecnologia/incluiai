@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";
-import { recordChange } from "@/lib/access-log";
+import { AUDIT_ACTION, recordChange } from "@/lib/audit";
 import { canViewCard, rotateCardToken } from "@/lib/student-card";
 import { canWorkWithStudent, isFamilyOf } from "@/lib/policy";
 import { MAX_CARD_PHOTO_BYTES, MAX_CARD_PHOTO_MB, normalizePhone, sniffCardPhoto, stripPhotoMetadata } from "@/lib/student-card-core";
@@ -44,7 +44,7 @@ export async function uploadCardPhoto(studentId: string, _state: CardFormState, 
   const clean = stripPhotoMetadata(bytes, type);
   if (!clean) return { error: "Não foi possível ler esta foto. Tente outra." };
   await prisma.studentCard.update({ where: { studentId }, data: { photo: new Uint8Array(clean), photoMime: type, photoUpdatedAt: new Date() } });
-  await recordChange(user, studentId, "enviou", "Foto da carteirinha");
+  await recordChange(user, studentId, AUDIT_ACTION.sent, "Foto da carteirinha");
   refresh(studentId);
   return { saved: true };
 }
@@ -53,7 +53,7 @@ export async function removeCardPhoto(studentId: string) {
   const prisma = await db();
   const user = await requireCardManager(studentId);
   await prisma.studentCard.update({ where: { studentId }, data: { photo: null, photoMime: null, photoUpdatedAt: null } });
-  await recordChange(user, studentId, "excluiu", "Foto da carteirinha");
+  await recordChange(user, studentId, AUDIT_ACTION.deleted, "Foto da carteirinha");
   refresh(studentId);
 }
 
@@ -61,7 +61,7 @@ export async function rotateStudentCard(studentId: string) {
   const { user, student } = await loadCardStudent(studentId);
   if (!canViewCard(user, student)) throw new Error("Você não tem permissão para trocar o código desta carteirinha.");
   await rotateCardToken(studentId);
-  await recordChange(user, studentId, "trocou", "Código da carteirinha (o anterior deixou de valer)");
+  await recordChange(user, studentId, AUDIT_ACTION.replaced, "Código da carteirinha (o anterior deixou de valer)");
   refresh(studentId);
 }
 
@@ -82,7 +82,7 @@ export async function saveCardPreferences(studentId: string, _state: CardFormSta
     where: { studentId },
     data: { showHelp, showEmergency, emergencyName: name || null, emergencyRelation: relation || null, emergencyPhone: phone },
   });
-  await recordChange(user, studentId, "alterou", "Carteirinha: verso e contato de emergência");
+  await recordChange(user, studentId, AUDIT_ACTION.changed, "Carteirinha: verso e contato de emergência");
   refresh(studentId);
   return { saved: true };
 }

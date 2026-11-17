@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FileText, Sprout } from "lucide-react";
 import { createDuaMaterial } from "@/actions/dua";
 import { MATERIAL_ACCESSIBILITY, MATERIAL_FORMATS, MATERIAL_FORMAT_LABEL, REVIEW_STATE_LABEL, type MaterialFormat, type MaterialScope, type ReviewState } from "@/lib/dua/domain";
-import { Field, ResultMessage, buttonCls, hintCls, inputCls, labelCls, linkCls, textareaCls } from "../dua-ui";
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, hintCls, inputCls, labelCls, linkCls, textareaCls } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 
 type Option = { id: string; label: string };
-type Feedback = { ok: false; message: string; problems?: { field: string; message: string }[] } | null;
 
 export function NewMaterialForm({ planningId, versions, defaultVersion, canCollective, supports, library }: {
   planningId: string;
@@ -19,10 +19,7 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
   supports: Option[];
   library: Option[];
 }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [feedback, setFeedback] = useState<Feedback>(null);
-  const [createdId, setCreatedId] = useState<string | null>(null);
+  const { result, pending, submit } = useActionResult<{ id: string }>();
   const [versionNumber, setVersionNumber] = useState(defaultVersion);
   const [format, setFormat] = useState<MaterialFormat>(MATERIAL_FORMATS[0]);
   const [scope, setScope] = useState<MaterialScope>(canCollective ? "coletivo" : "individual");
@@ -31,43 +28,38 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
   const [formKey, setFormKey] = useState(0);
   const chosen = versions.find((item) => item.version === versionNumber);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  const createdId = result?.ok ? result.value.id : null;
+
+  function prepare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    start(async () => {
-      setCreatedId(null);
-      const outcome = await createDuaMaterial({
-        planningId,
-        versionNumber,
-        format,
-        purpose: String(data.get("purpose") ?? ""),
-        scope,
-        supportId: scope === "individual" ? supportId : "",
-        resourceId: format === "anexo" ? resourceId : "",
-      });
-      if (!outcome.ok) {
-        setFeedback(outcome);
-        return;
-      }
-      setFeedback(null);
-      setCreatedId(outcome.value.id);
-      setFormKey((key) => key + 1);
-      router.refresh();
-    });
+    submit(() => createDuaMaterial({
+      planningId,
+      versionNumber,
+      format,
+      purpose: String(data.get("purpose") ?? ""),
+      scope,
+      supportId: scope === "individual" ? supportId : "",
+      resourceId: format === "anexo" ? resourceId : "",
+    }), { onSuccess: () => setFormKey((key) => key + 1) });
   }
 
   return (
     <div className="min-w-0">
-      <form key={formKey} onSubmit={submit} className="grid min-w-0 gap-4 sm:grid-cols-2" noValidate>
+      <form key={formKey} onSubmit={prepare} className="grid min-w-0 gap-4 sm:grid-cols-2" noValidate>
         <Field id="mat-versao" label="Versão de origem" hint="Pode ser qualquer versão. Versão que ainda não foi validada gera material de rascunho.">
-          <select id="mat-versao" value={versionNumber} onChange={(event) => setVersionNumber(Number(event.target.value))} className={inputCls} aria-describedby="mat-versao-dica">
-            {versions.map((item) => <option key={item.version} value={item.version}>Versão {item.version} · {REVIEW_STATE_LABEL[item.state]}</option>)}
-          </select>
+          {(control) => (
+            <select {...control} value={versionNumber} onChange={(event) => setVersionNumber(Number(event.target.value))} className={inputCls}>
+              {versions.map((item) => <option key={item.version} value={item.version}>Versão {item.version} · {REVIEW_STATE_LABEL[item.state]}</option>)}
+            </select>
+          )}
         </Field>
         <Field id="mat-formato" label="Formato" hint={`Recursos de acessibilidade: ${MATERIAL_ACCESSIBILITY[format].join(", ")}.`}>
-          <select id="mat-formato" value={format} onChange={(event) => setFormat(event.target.value as MaterialFormat)} className={inputCls} aria-describedby="mat-formato-dica">
-            {MATERIAL_FORMATS.map((item) => <option key={item} value={item}>{MATERIAL_FORMAT_LABEL[item]}</option>)}
-          </select>
+          {(control) => (
+            <select {...control} value={format} onChange={(event) => setFormat(event.target.value as MaterialFormat)} className={inputCls}>
+              {MATERIAL_FORMATS.map((item) => <option key={item} value={item}>{MATERIAL_FORMAT_LABEL[item]}</option>)}
+            </select>
+          )}
         </Field>
         {chosen && chosen.state !== "validado" ? (
           <p className="rounded-xl bg-amber-soft px-3 py-2 text-sm leading-relaxed text-amber sm:col-span-2">
@@ -76,7 +68,7 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
         ) : null}
         <div className="sm:col-span-2">
           <Field id="mat-finalidade" label="Finalidade pedagógica (obrigatória)" hint="Para que o material serve nesta atividade. Ex.: apoiar a compreensão das etapas da proposta.">
-            <textarea id="mat-finalidade" name="purpose" required maxLength={600} className={textareaCls} aria-describedby="mat-finalidade-dica" />
+            {(control) => <textarea {...control} name="purpose" required maxLength={600} className={textareaCls} />}
           </Field>
         </div>
         <fieldset className="min-w-0 sm:col-span-2">
@@ -95,9 +87,11 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
         {scope === "individual" && supports.length ? (
           <div className="sm:col-span-2">
             <Field id="mat-apoio" label="Apoio individual" hint="Só aparecem os apoios que você pode editar. O material individual fica restrito a quem acompanha o estudante.">
-              <select id="mat-apoio" value={supportId} onChange={(event) => setSupportId(event.target.value)} className={inputCls} aria-describedby="mat-apoio-dica">
-                {supports.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-              </select>
+              {(control) => (
+                <select {...control} value={supportId} onChange={(event) => setSupportId(event.target.value)} className={inputCls}>
+                  {supports.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                </select>
+              )}
             </Field>
           </div>
         ) : null}
@@ -105,15 +99,17 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
           <div className="sm:col-span-2">
             {library.length ? (
               <Field id="mat-biblioteca" label="Material da biblioteca a anexar">
-                <select id="mat-biblioteca" value={resourceId} onChange={(event) => setResourceId(event.target.value)} className={inputCls}>
-                  {library.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-                </select>
+                {(control) => (
+                  <select {...control} value={resourceId} onChange={(event) => setResourceId(event.target.value)} className={inputCls}>
+                    {library.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                  </select>
+                )}
               </Field>
             ) : <p className={hintCls}>A biblioteca municipal ainda não tem materiais para anexar.</p>}
           </div>
         ) : null}
         <div className="sm:col-span-2">
-          <button type="submit" disabled={pending} aria-busy={pending} className={buttonCls}>
+          <button type="submit" disabled={pending} aria-busy={pending} className={BUTTON_CLS.primary}>
             <FileText size={16} aria-hidden /> {pending ? "Preparando…" : "Preparar o material"}
           </button>
         </div>
@@ -129,7 +125,7 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
           </p>
         ) : null}
       </div>
-      {feedback ? <ResultMessage result={feedback} /> : null}
+      {result && !result.ok ? <FormResult result={result} /> : null}
     </div>
   );
 }

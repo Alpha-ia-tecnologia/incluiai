@@ -11,7 +11,7 @@ import { Badge, Card, SectionTitle } from "@/components/ui";
 import { AdaptForm } from "@/components/adapted/adapt-form";
 import { AdaptedView } from "@/components/adapted/adapted-view";
 import { AdaptedEditor } from "@/components/adapted/adapted-editor";
-import { quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
@@ -72,8 +72,8 @@ export default async function LevelsPage({ params, searchParams }: { params: Pro
                   </div>
                   <AdaptedView content={content} highlight icons />
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Link href={`/planejamento/${id}/niveis/${task.id}/imprimir`} className={quietButtonCls}><Printer size={16} aria-hidden /> Imprimir<span className="sr-only">: {LEVEL_LABEL[task.level as LevelKey]}</span></Link>
-                    <a href={`/api/atividades-adaptadas/${task.id}/word`} download className={quietButtonCls}><FileDown size={16} aria-hidden /> Word<span className="sr-only">: {LEVEL_LABEL[task.level as LevelKey]}</span></a>
+                    <Link href={`/planejamento/${id}/niveis/${task.id}/imprimir`} className={BUTTON_CLS.quiet}><Printer size={16} aria-hidden /> Imprimir<span className="sr-only">: {LEVEL_LABEL[task.level as LevelKey]}</span></Link>
+                    <a href={`/api/atividades-adaptadas/${task.id}/word`} download className={BUTTON_CLS.quiet}><FileDown size={16} aria-hidden /> Word<span className="sr-only">: {LEVEL_LABEL[task.level as LevelKey]}</span></a>
                   </div>
                   {access.edit && task.status !== "aprovada" ? (
                     <details className="mt-4 rounded-2xl bg-surface-muted p-4">

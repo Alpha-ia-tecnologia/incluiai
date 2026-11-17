@@ -4,7 +4,7 @@ import { useActionState, useId } from "react";
 import { CircleCheck, Save } from "lucide-react";
 import type { AdaptState } from "@/actions/adapted-tasks";
 import { ANSWER_FORMATS, ANSWER_FORMAT_LABEL, type AdaptedContent } from "@/lib/task-adaptation";
-import { hintCls, inputCls, labelCls, primaryButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
+import { hintCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 
 export function AdaptedEditor({ action, content, approveLabel = "Aprovar para usar" }: { action: (previous: AdaptState, formData: FormData) => Promise<AdaptState>; content: AdaptedContent; approveLabel?: string }) {
   const [state, submit, pending] = useActionState(action, {});
@@ -56,8 +56,8 @@ export function AdaptedEditor({ action, content, approveLabel = "Aprovar para us
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       {state.saved ? <p role="status" className="text-sm font-medium text-green">Salvo.</p> : null}
       <div className="flex flex-wrap gap-3">
-        <button type="submit" name="intent" value="salvar" disabled={pending} className={secondaryButtonCls}><Save size={16} aria-hidden /> Salvar ajustes</button>
-        <button type="submit" name="intent" value="aprovar" disabled={pending} className={primaryButtonCls}><CircleCheck size={16} aria-hidden /> {approveLabel}</button>
+        <button type="submit" name="intent" value="salvar" disabled={pending} className={BUTTON_CLS.secondary}><Save size={16} aria-hidden /> Salvar ajustes</button>
+        <button type="submit" name="intent" value="aprovar" disabled={pending} className={BUTTON_CLS.primary}><CircleCheck size={16} aria-hidden /> {approveLabel}</button>
       </div>
     </form>
   );

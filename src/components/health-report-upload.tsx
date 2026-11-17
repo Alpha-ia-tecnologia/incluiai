@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { FileUp } from "lucide-react";
 import { PendingButton } from "@/components/pending-button";
-import { choiceCls, hintCls, inputCls, labelCls, primaryButtonCls } from "@/components/form-styles";
+import { choiceCls, hintCls, inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 import { MAX_REPORT_BYTES, MAX_REPORT_MB } from "@/lib/health-report";
 import type { UploadState } from "@/actions/health-reports";
 
@@ -33,7 +33,7 @@ export function HealthReportUpload({ action }: { action: (state: UploadState, fo
       </label>
       {error ? <p role="alert" className="text-sm font-medium text-coral">{error}</p> : null}
       <div>
-        <PendingButton className={primaryButtonCls} pendingText="Guardando e lendo o laudo. Pode levar até um minuto." disabled={tooBig}>
+        <PendingButton className={BUTTON_CLS.primary} pendingText="Guardando e lendo o laudo. Pode levar até um minuto." disabled={tooBig}>
           <FileUp size={16} aria-hidden /> Anexar e ler o laudo
         </PendingButton>
       </div>

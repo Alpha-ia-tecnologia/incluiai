@@ -19,7 +19,7 @@ import {
 import { Character } from "@/components/character";
 import { CreatedNotice } from "@/components/materials/created-notice";
 import { Assurances } from "@/components/explain";
-import { primaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import {
   BARRIERS,
   CHANNELS,
@@ -860,7 +860,7 @@ function AnswerControl({
         </div>
         {otherField}
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <button type="submit" className={primaryButtonCls}>
+          <button type="submit" className={BUTTON_CLS.primary}>
             Confirmar <ChevronRight size={15} aria-hidden />
           </button>
           {!step.required ? (
@@ -954,7 +954,7 @@ function AnswerControl({
         <button
           type="button"
           onClick={() => onAnswer([...new Set([...multiDraft, ...splitItems(textDraft, ",")])])}
-          className={`mt-4 ${primaryButtonCls}`}
+          className={`mt-4 ${BUTTON_CLS.primary}`}
         >
           Confirmar seleção <ChevronRight size={15} aria-hidden />
         </button>
@@ -1152,7 +1152,7 @@ function Review({
           type="button"
           onClick={onSave}
           disabled={pending}
-          className={primaryButtonCls}
+          className={BUTTON_CLS.primary}
         >
           <Save size={16} aria-hidden />
           {pending ? "Salvando..." : "Salvar perfil educacional"}

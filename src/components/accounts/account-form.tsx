@@ -4,7 +4,7 @@ import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { Check, KeyRound, UserPlus } from "lucide-react";
 import type { AccountFormState } from "@/actions/users";
-import { choiceCls, hintCls, inputCls, labelCls, linkCls, primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { choiceCls, hintCls, inputCls, labelCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
 import { PrintButton } from "@/components/print-button";
 import { accountSchool, can, isLinkedRole } from "@/lib/roles";
 
@@ -104,7 +104,7 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       {state.saved ? <p role="status" className="flex items-center gap-2 text-sm font-medium text-green"><Check size={16} aria-hidden /> Alterações salvas.</p> : null}
       <div>
-        <button type="submit" disabled={pending} className={primaryButtonCls}>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           {mode === "create" ? <UserPlus size={16} aria-hidden /> : <Check size={16} aria-hidden />}
           {pending ? "Salvando…" : mode === "create" ? "Criar a conta" : "Salvar as alterações"}
         </button>
@@ -129,7 +129,7 @@ function CreatedAccount({ created, onAnother }: { created: NonNullable<AccountFo
       </p>
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <PrintButton label="Imprimir" />
-        <button type="button" onClick={onAnother} className={quietButtonCls}>Criar outra conta</button>
+        <button type="button" onClick={onAnother} className={BUTTON_CLS.quiet}>Criar outra conta</button>
         <Link href={`/usuarios/${created.id}`} className={linkCls}>Abrir a conta</Link>
       </div>
     </div>

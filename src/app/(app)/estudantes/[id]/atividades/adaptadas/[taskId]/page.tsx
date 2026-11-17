@@ -11,7 +11,7 @@ import { Badge, Card, SectionTitle } from "@/components/ui";
 import { BnccTag } from "@/components/bncc-tag";
 import { AdaptedView } from "@/components/adapted/adapted-view";
 import { AdaptedEditor } from "@/components/adapted/adapted-editor";
-import { dangerButtonCls, linkCls, quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS, linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +30,8 @@ export default async function AdaptedTaskPage({ params }: { params: Promise<{ id
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href={`/estudantes/${id}/atividades`} className={`inline-flex min-h-11 items-center gap-2 text-sm ${linkCls}`}><ArrowLeft size={16} aria-hidden /> Atividades</Link>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/estudantes/${id}/atividades/adaptadas/${task.id}/imprimir`} className={quietButtonCls}><Printer size={16} aria-hidden /> Imprimir ou salvar em PDF</Link>
-          <a href={`/api/atividades-adaptadas/${task.id}/word`} download className={quietButtonCls}><FileDown size={16} aria-hidden /> Baixar em Word</a>
+          <Link href={`/estudantes/${id}/atividades/adaptadas/${task.id}/imprimir`} className={BUTTON_CLS.quiet}><Printer size={16} aria-hidden /> Imprimir ou salvar em PDF</Link>
+          <a href={`/api/atividades-adaptadas/${task.id}/word`} download className={BUTTON_CLS.quiet}><FileDown size={16} aria-hidden /> Baixar em Word</a>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -64,7 +64,7 @@ export default async function AdaptedTaskPage({ params }: { params: Promise<{ id
           <details className="mt-6 rounded-2xl bg-surface-muted p-4">
             <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir esta adaptação</summary>
             <form action={removeStudentTask.bind(null, id, task.id)} className="mt-3">
-              <button type="submit" className={dangerButtonCls}><Trash2 size={16} aria-hidden /> Excluir</button>
+              <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir</button>
             </form>
           </details>
         </Card>

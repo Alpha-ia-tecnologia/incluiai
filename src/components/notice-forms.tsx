@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { Check, EyeOff, Link2, Send } from "lucide-react";
 import type { NoticeState } from "@/actions/notifications";
 import { CHECKIN_OPTIONS } from "@/lib/family-contact";
-import { choiceCls, labelCls, primaryButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
+import { choiceCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
 type Action = (previous: NoticeState, formData: FormData) => Promise<NoticeState>;
@@ -31,7 +31,7 @@ export function NoticePrefsForm({ action, notifyByEmail, weeklyCheckIn, emailOn,
         ]}
       />
       {state.saved ? <p role="status" className="flex items-center gap-1.5 text-sm font-medium text-green"><Check size={16} aria-hidden /> Preferências salvas.</p> : null}
-      <div><button type="submit" disabled={pending} className={secondaryButtonCls}>Salvar as preferências</button></div>
+      <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar as preferências</button></div>
     </form>
   );
 }
@@ -56,7 +56,7 @@ export function CheckInForm({ action, firstName, previous }: { action: Action; f
         <textarea id="checkin-nota" name="note" rows={3} maxLength={1000} defaultValue={previous?.note} className={textareaCls} />
       </div>
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
-      <div><button type="submit" disabled={pending} className={primaryButtonCls}><Send size={16} aria-hidden /> {previous ? "Atualizar a resposta" : "Enviar para a escola"}</button></div>
+      <div><button type="submit" disabled={pending} className={BUTTON_CLS.primary}><Send size={16} aria-hidden /> {previous ? "Atualizar a resposta" : "Enviar para a escola"}</button></div>
     </form>
   );
   if (!previous) return form;
@@ -64,7 +64,7 @@ export function CheckInForm({ action, firstName, previous }: { action: Action; f
     <div className="grid gap-3">
       <p className="text-sm text-ink"><span className="font-medium">Você já contou como foi esta semana:</span> {[previous.answers.join(", "), previous.note].filter(Boolean).join(". ")}</p>
       <details>
-        <summary className={`${secondaryButtonCls} w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>Mudar a resposta</summary>
+        <summary className={`${BUTTON_CLS.secondary} w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>Mudar a resposta</summary>
         <div className="mt-4">{form}</div>
       </details>
     </div>

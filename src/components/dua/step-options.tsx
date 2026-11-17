@@ -5,7 +5,10 @@ import { Plus, Trash2, Users } from "lucide-react";
 import { DUA_PRINCIPLES, PRINCIPLE_EXAMPLES, PRINCIPLE_LABEL, PRINCIPLE_QUESTION, emptyStrategyDetails, type DuaPrinciple, type DuaStrategy } from "@/lib/dua/domain";
 import type { PlanningAccess } from "@/lib/dua/access";
 import type { SuggestionView } from "@/lib/dua/suggestions";
-import { Field, OriginBadge, hintCls, inputCls, labelCls, linesToList, linkCls, listToLines, secondaryCls, textareaCls } from "./dua-ui";
+import { linesToList, listToLines } from "@/lib/form-options";
+import { Field } from "@/components/form-kit";
+import { BUTTON_CLS, hintCls, inputCls, labelCls, linkCls, textareaCls } from "@/components/form-styles";
+import { OriginBadge } from "./badges";
 import { newId, type StepProps } from "./step-objective";
 import { SuggestionReview } from "./suggestion-review";
 
@@ -52,7 +55,7 @@ export function StepOptions({ content, update, readOnly, planningId, access, sug
                 <OriginBadge origin={strategy.origin} />
               </div>
               <Field id={`opcao-${strategy.id}`} label="Descrição da opção oferecida">
-                <textarea id={`opcao-${strategy.id}`} className={`${textareaCls} min-h-16`} value={strategy.description} readOnly={readOnly} maxLength={1200} onChange={(event) => setStrategy(strategy.id, { description: event.target.value })} />
+                {(control) => <textarea {...control} className={`${textareaCls} min-h-16`} value={strategy.description} readOnly={readOnly} maxLength={1200} onChange={(event) => setStrategy(strategy.id, { description: event.target.value })} />}
               </Field>
               <fieldset className="min-w-0">
                 <legend className={labelCls}>Princípio(s) relacionado(s)</legend>
@@ -89,10 +92,10 @@ export function StepOptions({ content, update, readOnly, planningId, access, sug
               </div>
               <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <Field id={`recursos-${strategy.id}`} label="Recursos necessários" hint="Um por linha.">
-                  <textarea id={`recursos-${strategy.id}`} aria-describedby={`recursos-${strategy.id}-dica`} className={`${textareaCls} min-h-16`} value={listToLines(strategy.resources)} readOnly={readOnly} onChange={(event) => setStrategy(strategy.id, { resources: linesToList(event.target.value) })} />
+                  {(control) => <textarea {...control} className={`${textareaCls} min-h-16`} value={listToLines(strategy.resources)} readOnly={readOnly} onChange={(event) => setStrategy(strategy.id, { resources: linesToList(event.target.value) })} />}
                 </Field>
                 <Field id={`contexto-${strategy.id}`} label="Contexto de utilização">
-                  <input id={`contexto-${strategy.id}`} className={inputCls} value={strategy.context} readOnly={readOnly} maxLength={300} onChange={(event) => setStrategy(strategy.id, { context: event.target.value })} placeholder="Ex.: na leitura coletiva, no início da aula" />
+                  {(control) => <input {...control} className={inputCls} value={strategy.context} readOnly={readOnly} maxLength={300} onChange={(event) => setStrategy(strategy.id, { context: event.target.value })} placeholder="Ex.: na leitura coletiva, no início da aula" />}
                 </Field>
               </div>
               <details className="min-w-0 rounded-xl bg-surface-muted/60 p-3" open={Boolean(strategy.details.what || strategy.details.purpose || strategy.details.when || strategy.details.how)}>
@@ -100,13 +103,13 @@ export function StepOptions({ content, update, readOnly, planningId, access, sug
                 <div className="mt-2 grid min-w-0 gap-3 sm:grid-cols-2">
                   {([["what", "Quais (materiais, imagens, objetos)"], ["purpose", "Para qual finalidade"], ["when", "Em que momento"], ["how", "Como será usada"]] as const).map(([key, label]) => (
                     <Field key={key} id={`detalhe-${key}-${strategy.id}`} label={label}>
-                      <textarea id={`detalhe-${key}-${strategy.id}`} className={`${textareaCls} min-h-16`} value={strategy.details[key]} readOnly={readOnly} maxLength={600} onChange={(event) => setStrategy(strategy.id, { details: { ...strategy.details, [key]: event.target.value } })} />
+                      {(control) => <textarea {...control} className={`${textareaCls} min-h-16`} value={strategy.details[key]} readOnly={readOnly} maxLength={600} onChange={(event) => setStrategy(strategy.id, { details: { ...strategy.details, [key]: event.target.value } })} />}
                     </Field>
                   ))}
                 </div>
               </details>
               {!readOnly ? (
-                <button type="button" className={`${secondaryCls} justify-self-start`} onClick={() => update({ ...content, strategies: content.strategies.filter((item) => item.id !== strategy.id) })}>
+                <button type="button" className={`${BUTTON_CLS.quiet} justify-self-start`} onClick={() => update({ ...content, strategies: content.strategies.filter((item) => item.id !== strategy.id) })}>
                   <Trash2 size={16} aria-hidden /> Remover a opção {index + 1}
                 </button>
               ) : null}
@@ -114,7 +117,7 @@ export function StepOptions({ content, update, readOnly, planningId, access, sug
           ))}
         </ol>
         {!readOnly ? (
-          <button type="button" className={`${secondaryCls} mt-3`} onClick={() => addStrategy()}>
+          <button type="button" className={`${BUTTON_CLS.quiet} mt-3`} onClick={() => addStrategy()}>
             <Plus size={16} aria-hidden /> Escrever uma nova opção
           </button>
         ) : null}

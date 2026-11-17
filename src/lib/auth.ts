@@ -7,6 +7,7 @@ import { db, isPlatformArea } from "./prisma";
 import { LOGIN_WINDOW_MS, MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
 import { can, isLinkedRole, isPlatformRole, isRole, type Role } from "./roles";
 import { canWorkWithStudent, linkedStudentIds } from "./policy";
+import { UserError } from "./user-error";
 
 const SESSION_COOKIE = "incluiedu_session";
 // Cookie só por HTTPS em produção; SESSION_COOKIE_SECURE=0 libera o teste local
@@ -170,18 +171,18 @@ export async function activeGrant(user: SessionUser, studentId: string): Promise
   return prisma.accessGrant.findFirst({ where: { userId: user.id, studentId, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: "desc" }, select: { expiresAt: true } });
 }
 
-export const STUDENT_FORBIDDEN = "Você não tem permissão para esta ação com este estudante.";
+export const studentForbidden = () => new UserError("Você não tem permissão para esta ação com este estudante.", "forbidden");
 
 export async function assertStudentTeam(user: SessionUser, studentId: string) {
   const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, name: true, schoolId: true, className: true } });
-  if (!student || !canWorkWithStudent(user, student)) throw new Error(STUDENT_FORBIDDEN);
+  if (!student || !canWorkWithStudent(user, student)) throw studentForbidden();
   return student;
 }
 
 export async function requireStudentTeam(studentId: string): Promise<SessionUser> {
   const user = await getCurrentUser();
-  if (!user) throw new Error(STUDENT_FORBIDDEN);
+  if (!user) throw studentForbidden();
   await assertStudentTeam(user, studentId);
   return user;
 }

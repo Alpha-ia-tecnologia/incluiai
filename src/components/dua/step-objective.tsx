@@ -2,7 +2,8 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import type { DuaContent } from "@/lib/dua/domain";
-import { Field, hintCls, inputCls, labelCls, secondaryCls, textareaCls } from "./dua-ui";
+import { Field } from "@/components/form-kit";
+import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { BnccPicker } from "@/components/bncc-picker";
 
 export type StepProps = { content: DuaContent; update: (next: DuaContent) => void; readOnly: boolean };
@@ -14,11 +15,11 @@ export function StepObjective({ content, update, readOnly }: StepProps) {
   return (
     <div className="mt-4 grid min-w-0 gap-6">
       <p className="text-sm leading-relaxed text-ink-soft">O que os estudantes precisam aprender, e o que vai permitir ver essa aprendizagem? Recursos e formas de participação vêm depois, na etapa 3.</p>
-      <Field id="dua-titulo" label="Título da atividade" required>
-        <input id="dua-titulo" className={inputCls} value={content.title} readOnly={readOnly} onChange={(event) => set({ title: event.target.value })} maxLength={160} />
+      <Field id="dua-titulo" label="Título da atividade" note="obrigatório para validar">
+        {(control) => <input {...control} className={inputCls} value={content.title} readOnly={readOnly} onChange={(event) => set({ title: event.target.value })} maxLength={160} />}
       </Field>
-      <Field id="dua-objetivo" label="O que os estudantes precisam aprender?" required hint="A aprendizagem pretendida: o que se quer desenvolver ou compreender. Não descreva aqui como a informação será apresentada nem como o estudante vai responder.">
-        <textarea id="dua-objetivo" aria-describedby="dua-objetivo-dica" className={textareaCls} value={content.objective.learning} readOnly={readOnly} onChange={(event) => set({ objective: { ...content.objective, learning: event.target.value } })} maxLength={2000} placeholder="Ex.: identificar dois personagens principais e ordenar três acontecimentos de uma história." />
+      <Field id="dua-objetivo" label="O que os estudantes precisam aprender?" note="obrigatório para validar" hint="A aprendizagem pretendida: o que se quer desenvolver ou compreender. Não descreva aqui como a informação será apresentada nem como o estudante vai responder.">
+        {(control) => <textarea {...control} className={textareaCls} value={content.objective.learning} readOnly={readOnly} onChange={(event) => set({ objective: { ...content.objective, learning: event.target.value } })} maxLength={2000} placeholder="Ex.: identificar dois personagens principais e ordenar três acontecimentos de uma história." />}
       </Field>
       <BnccPicker
         multiple
@@ -30,7 +31,7 @@ export function StepObjective({ content, update, readOnly }: StepProps) {
         suggestFrom={() => content.objective.learning}
       />
       <Field id="dua-curriculo" label="Outra referência curricular (quando houver)" hint="Ex.: a habilidade do currículo municipal.">
-        <input id="dua-curriculo" aria-describedby="dua-curriculo-dica" className={inputCls} value={content.objective.curriculum} readOnly={readOnly} onChange={(event) => set({ objective: { ...content.objective, curriculum: event.target.value } })} maxLength={300} />
+        {(control) => <input {...control} className={inputCls} value={content.objective.curriculum} readOnly={readOnly} onChange={(event) => set({ objective: { ...content.objective, curriculum: event.target.value } })} maxLength={300} />}
       </Field>
 
       <fieldset className="min-w-0">
@@ -51,7 +52,7 @@ export function StepObjective({ content, update, readOnly }: StepProps) {
                 onChange={(event) => set({ criteria: content.criteria.map((item) => (item.id === criterion.id ? { ...item, description: event.target.value } : item)) })}
               />
               {!readOnly ? (
-                <button type="button" className={secondaryCls} onClick={() => set({ criteria: content.criteria.filter((item) => item.id !== criterion.id) })}>
+                <button type="button" className={BUTTON_CLS.quiet} onClick={() => set({ criteria: content.criteria.filter((item) => item.id !== criterion.id) })}>
                   <Trash2 size={16} aria-hidden /> Remover o critério {index + 1}
                 </button>
               ) : null}
@@ -59,7 +60,7 @@ export function StepObjective({ content, update, readOnly }: StepProps) {
           ))}
         </ol>
         {!readOnly ? (
-          <button type="button" className={`${secondaryCls} mt-3`} onClick={() => set({ criteria: [...content.criteria, { id: newId(), description: "" }] })}>
+          <button type="button" className={`${BUTTON_CLS.quiet} mt-3`} onClick={() => set({ criteria: [...content.criteria, { id: newId(), description: "" }] })}>
             <Plus size={16} aria-hidden /> Adicionar critério observável
           </button>
         ) : null}

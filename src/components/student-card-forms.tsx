@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useState, type FormEvent } from "react";
 import { ImageUp, LoaderCircle, Sprout } from "lucide-react";
 import { PendingButton } from "@/components/pending-button";
-import { choiceCls, hintCls, inputCls, labelCls, primaryButtonCls } from "@/components/form-styles";
+import { choiceCls, hintCls, inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 import { MAX_CARD_PHOTO_BYTES, MAX_CARD_PHOTO_MB } from "@/lib/student-card-core";
 import { FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
 import type { CardFormState } from "@/actions/student-card";
@@ -67,7 +67,7 @@ export function CardPhotoForm({ action, hasPhoto }: { action: CardAction; hasPho
       </div>
       {error ? <p role="alert" className="text-sm font-medium text-coral">{error}</p> : null}
       {state.saved && !error ? <p role="status" className="flex items-center gap-2 text-sm font-medium text-green"><Sprout size={16} aria-hidden className="sprout-mark" /> Foto salva na carteirinha.</p> : null}
-      <PendingButton className={primaryButtonCls} pendingText="Enviando a foto…" disabled={preparing}>
+      <PendingButton className={BUTTON_CLS.primary} pendingText="Enviando a foto…" disabled={preparing}>
         <ImageUp size={16} aria-hidden /> {preparing ? "Preparando a foto…" : "Enviar a foto"}
       </PendingButton>
     </form>
@@ -127,7 +127,7 @@ export function CardPreferencesForm({ action, firstName, settings, guardian, has
       <p role="status" aria-live="polite" className={state.saved && !state.error && !pending ? "flex items-center gap-2 text-sm font-medium text-green" : "sr-only"}>
         {pending ? "Salvando a carteirinha…" : state.saved && !state.error ? <><Sprout size={16} aria-hidden className="sprout-mark" /> Carteirinha atualizada.</> : ""}
       </p>
-      <button type="submit" disabled={pending} className={`${primaryButtonCls} disabled:cursor-wait`}>
+      <button type="submit" disabled={pending} className={`${BUTTON_CLS.primary} disabled:cursor-wait`}>
         {pending ? <LoaderCircle size={16} className="animate-spin motion-reduce:animate-none" aria-hidden /> : null}
         {pending ? "Salvando…" : "Salvar a carteirinha"}
       </button>

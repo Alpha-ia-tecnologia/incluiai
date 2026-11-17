@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 import { extractText, getDocumentProxy } from "unpdf";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
-import { recordChange } from "../access-log";
+import { AUDIT_ACTION, recordChange } from "../audit";
 import { runAiJob } from "./job";
 import { DOCUMENT_MARKER_LIST, DOCUMENT_PATTERNS, replacePatterns } from "./redactor";
 import { SAFEGUARDS } from "../pedagogy-rules";
@@ -119,6 +119,6 @@ export async function processHealthReport(reportId: string, user: SessionUser) {
     if (outcome.value) await save({ status: "lido", reading: JSON.stringify(normalizeReading(outcome.value)), privacyNote: note });
     else await save({ status: "falhou", privacyNote: note, failure: `A leitura pela IA não terminou (${outcome.error}). O arquivo continua guardado.` });
   } finally {
-    await recordChange(user, report.studentId, "enviou à IA", "Texto do laudo, sem nomes nem contatos, para leitura (Claude)");
+    await recordChange(user, report.studentId, AUDIT_ACTION.sentToAi, "Texto do laudo, sem nomes nem contatos, para leitura (Claude)");
   }
 }

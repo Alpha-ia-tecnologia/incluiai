@@ -11,7 +11,7 @@ import { StepObjective } from "./step-objective";
 import { StepBarriers } from "./step-barriers";
 import { StepOptions } from "./step-options";
 import { StepReview } from "./step-review";
-import { buttonCls, secondaryCls } from "./dua-ui";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Character } from "@/components/character";
 
 export const STEPS = [
@@ -158,7 +158,7 @@ export function DuaEditor(props: EditorProps) {
             <strong className="font-medium">A versão {props.version} está validada e não muda mais.</strong> As aplicações registradas continuam presas a ela. Para ajustar, abra a versão {props.version + 1}.
           </p>
           {props.access.edit ? (
-            <button type="button" onClick={openNewVersion} disabled={opening} className={buttonCls}>
+            <button type="button" onClick={openNewVersion} disabled={opening} className={BUTTON_CLS.primary}>
               {opening ? "Abrindo…" : `Abrir a versão ${props.version + 1} para editar`}
             </button>
           ) : null}
@@ -198,10 +198,10 @@ export function DuaEditor(props: EditorProps) {
       </section>
 
       <div className="mt-5 flex flex-wrap justify-between gap-2">
-        <button type="button" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={step === 0} className={secondaryCls}>
+        <button type="button" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={step === 0} className={BUTTON_CLS.quiet}>
           <ArrowLeft size={16} aria-hidden /> Etapa anterior
         </button>
-        <button type="button" onClick={() => setStep((value) => Math.min(STEPS.length - 1, value + 1))} disabled={step === STEPS.length - 1} className={buttonCls}>
+        <button type="button" onClick={() => setStep((value) => Math.min(STEPS.length - 1, value + 1))} disabled={step === STEPS.length - 1} className={BUTTON_CLS.primary}>
           Próxima etapa <ArrowRight size={16} aria-hidden />
         </button>
       </div>
@@ -217,8 +217,8 @@ function SaveIndicator({ status, readOnly, onKeepMine, onUseTheirs, onRetry }: {
         <p className="flex items-start gap-2 font-medium"><TriangleAlert size={16} aria-hidden className="mt-0.5 shrink-0" /> {status.byName} salvou este planejamento enquanto você editava. Suas últimas alterações ainda não foram gravadas.</p>
         <p className="mt-1 leading-relaxed">Escolha antes de continuar: ficar com a versão salva por {status.byName} (as suas alterações desde então se perdem) ou gravar a sua por cima da dele(a).</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" onClick={onUseTheirs} className={secondaryCls}>Ficar com a versão de {status.byName}</button>
-          <button type="button" onClick={onKeepMine} className={secondaryCls}>Gravar a minha por cima</button>
+          <button type="button" onClick={onUseTheirs} className={BUTTON_CLS.quiet}>Ficar com a versão de {status.byName}</button>
+          <button type="button" onClick={onKeepMine} className={BUTTON_CLS.quiet}>Gravar a minha por cima</button>
         </div>
       </div>
     );
@@ -228,7 +228,7 @@ function SaveIndicator({ status, readOnly, onKeepMine, onUseTheirs, onRetry }: {
     return (
       <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-coral-soft p-3 text-sm text-coral">
         <span>Não foi possível salvar: {status.message}</span>
-        <button type="button" onClick={onRetry} className={secondaryCls}>Tentar salvar de novo</button>
+        <button type="button" onClick={onRetry} className={BUTTON_CLS.quiet}>Tentar salvar de novo</button>
       </div>
     );
   }

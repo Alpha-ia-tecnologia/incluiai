@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StatusPage } from "@/components/status-page";
-import { primaryOnNavyCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 
 export default function NotFound() {
   return (
@@ -10,7 +10,7 @@ export default function NotFound() {
         character="resources"
         eyebrow="Página não encontrada"
         title="Este endereço não existe na plataforma"
-        actions={<Link href="/" className={primaryOnNavyCls}><ArrowLeft size={16} aria-hidden /> Ir para o início</Link>}
+        actions={<Link href="/" className={BUTTON_CLS.primaryOnNavy}><ArrowLeft size={16} aria-hidden /> Ir para o início</Link>}
       >
         <p>Confira o endereço digitado ou volte para o início para continuar de onde parou.</p>
       </StatusPage>

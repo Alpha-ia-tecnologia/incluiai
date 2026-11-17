@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
+import { AUDIT_ACTION, recordChange } from "@/lib/audit";
 import { buildObjectiveDescription } from "@/lib/objective";
 import { validBnccCode } from "@/lib/bncc";
 import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
@@ -27,7 +28,7 @@ export async function createPlan(studentId: string, formData: FormData) {
   await prisma.timelineEvent.create({
     data: { studentId, type: "plano", title: "PAEE e PEI elaborados", description: "Plano de ensino criado a partir do estudo de caso." },
   });
-  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: "Plano individual (preenchido pela equipe)" } });
+  await recordChange(user, studentId, AUDIT_ACTION.created, "Plano individual (preenchido pela equipe)");
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
   revalidatePath("/");
@@ -101,7 +102,7 @@ export async function updatePlanDocuments(studentId: string, planId: string, for
   const plan = await prisma.plan.findFirst({ where: { id: planId, studentId, status: "ativo" }, select: { id: true } });
   if (!plan) throw new Error("Plano ativo não encontrado para este estudante.");
   await prisma.plan.update({ where: { id: plan.id }, data: planDocumentsFromForm((name) => formData.get(name)) });
-  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "editou", detail: "PAEE e PEI do plano de ensino" } });
+  await recordChange(user, studentId, AUDIT_ACTION.edited, "PAEE e PEI do plano de ensino");
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/dossie");
 }

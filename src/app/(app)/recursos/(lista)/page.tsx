@@ -7,7 +7,7 @@ import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { Card, Badge, EmptyState } from "@/components/ui";
-import { labelCls, primaryButtonCls } from "@/components/form-styles";
+import { labelCls, BUTTON_CLS } from "@/components/form-styles";
 import { HowToRead } from "@/components/explain";
 import { Character } from "@/components/character";
 import { STAGES } from "@/lib/scale";
@@ -99,7 +99,7 @@ export default async function ResourcesPage({
             </select>
           </div>
           <div className="flex items-end gap-2">
-            <button type="submit" className={primaryButtonCls}>Filtrar</button>
+            <button type="submit" className={BUTTON_CLS.primary}>Filtrar</button>
             <Link href="/recursos" className="inline-flex h-11 items-center justify-center rounded-full px-4 text-sm text-ink-soft transition-colors hover:bg-surface-muted">Limpar</Link>
           </div>
         </form>

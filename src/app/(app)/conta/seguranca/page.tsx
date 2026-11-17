@@ -11,7 +11,7 @@ import { roleLabel } from "@/lib/roles";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
-import { primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +86,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
             <div className="grid gap-5">
               <TwoFactorSetup secret={user.totpPendingSecret} account={user.email} finish="refresh" />
               <form action={cancelTwoFactorSetup}>
-                <button type="submit" className={quietButtonCls}>Cancelar</button>
+                <button type="submit" className={BUTTON_CLS.quiet}>Cancelar</button>
               </form>
             </div>
           ) : (
@@ -108,7 +108,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
               />
               {required ? <p className="text-sm text-ink-soft">Obrigatória para a equipe na sua rede.</p> : null}
               <form action={startTwoFactorSetup}>
-                <button type="submit" className={primaryButtonCls}><ShieldCheck size={16} aria-hidden /> Ligar a verificação em duas etapas</button>
+                <button type="submit" className={BUTTON_CLS.primary}><ShieldCheck size={16} aria-hidden /> Ligar a verificação em duas etapas</button>
               </form>
             </div>
           )}
@@ -123,7 +123,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
           </p>
           {sessions > 1 && current ? (
             <form action={endOtherSessions}>
-              <button type="submit" className={quietButtonCls}><LogOut size={16} aria-hidden /> Encerrar as outras sessões</button>
+              <button type="submit" className={BUTTON_CLS.quiet}><LogOut size={16} aria-hidden /> Encerrar as outras sessões</button>
             </form>
           ) : null}
         </Card>

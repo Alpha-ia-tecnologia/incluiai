@@ -5,7 +5,8 @@ import { libraryOptions, listMaterials } from "@/lib/dua/materials";
 import { listSupports } from "@/lib/dua/supports";
 import { REVIEW_STATE_LABEL } from "@/lib/dua/domain";
 import { Badge, Card, EmptyState, SectionTitle } from "@/components/ui";
-import { ReviewBadge, secondaryCls } from "@/components/dua/dua-ui";
+import { ReviewBadge } from "@/components/dua/badges";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { NewMaterialForm } from "@/components/dua/materials/new-material-form";
 import { ValidateMaterialButton } from "@/components/dua/materials/validate-material-button";
 import { MaterialMetaList, materialMeta } from "@/components/dua/materials/material-meta";
@@ -77,7 +78,7 @@ export default async function MaterialsPage({ params }: { params: Promise<{ id: 
                       <p className="mt-3 text-sm text-ink-soft">A versão {material.versionNumber} ainda não foi validada: valide o planejamento antes de validar este material.</p>
                     ) : null}
                     <div className="mt-4 flex min-w-0 flex-wrap items-start gap-2">
-                      <Link href={`/planejamento/${planning.id}/materiais/${material.id}`} className={secondaryCls}>
+                      <Link href={`/planejamento/${planning.id}/materiais/${material.id}`} className={BUTTON_CLS.quiet}>
                         <Printer size={16} aria-hidden /> Abrir para imprimir<span className="sr-only">: {material.title}</span>
                       </Link>
                       {material.state !== "validado" && material.canValidate ? (

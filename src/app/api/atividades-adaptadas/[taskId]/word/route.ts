@@ -9,6 +9,7 @@ import { adaptedDocx } from "@/lib/adapted-docx";
 import { printSettings } from "@/lib/task-adaptation";
 import { parseJson } from "@/lib/format";
 import { unavailableResponse } from "@/lib/tenant";
+import { UserError } from "@/lib/user-error";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ taskId: string }> }) {
   const unavailable = await unavailableResponse();
@@ -21,7 +22,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tas
   if (!task) return NextResponse.json({ error: "Não encontrada." }, { status: 404 });
   if (task.studentId && (!task.student || !canAccessStudent(user, { id: task.studentId, schoolId: task.student.schoolId }))) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   if (task.planningId) {
-    try { await loadPlanningFor(user, task.planningId, "read"); } catch { return NextResponse.json({ error: "Sem acesso." }, { status: 403 }); }
+    try {
+      await loadPlanningFor(user, task.planningId, "read");
+    } catch (error) {
+      if (!(error instanceof UserError)) throw error;
+      return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
+    }
   }
   const options = parseJson<string[]>(task.options, []);
   const dua = Boolean(task.planningId);

@@ -1,4 +1,5 @@
 import { db } from "./prisma";
+import { AI_ACTOR, AUDIT_ACTION, PLAN_PROPOSAL_DETAIL } from "./audit";
 import { bnccSkill } from "./bncc";
 import { componentLabel } from "./bncc-core";
 import { AREAS, compareAreas, reassessmentDue } from "./assessment";
@@ -187,9 +188,9 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     prisma.user.findMany({ select: { role: true, schoolId: true, studentId: true, studentLinks: { select: { studentId: true } } } })
       .then((rows) => rows.map((row) => ({ role: row.role, schoolId: row.schoolId, studentIds: linkedStudentIds(row) }))),
     prisma.accessLog.groupBy({ by: ["action"], where: { student: studentWhere, createdAt }, _count: { _all: true } }),
-    prisma.accessLog.findMany({ where: { student: studentWhere, createdAt, role: { not: "sistema" } }, distinct: ["actor"], select: { actor: true } }),
-    prisma.accessLog.count({ where: { student: studentWhere, createdAt, actor: "Agentes de IA" } }),
-    prisma.accessLog.groupBy({ by: ["detail"], where: { student: studentWhere, createdAt, detail: { startsWith: "Proposta de plano (" } }, _count: { _all: true } }),
+    prisma.accessLog.findMany({ where: { student: studentWhere, createdAt, role: { not: AI_ACTOR.role } }, distinct: ["actor"], select: { actor: true } }),
+    prisma.accessLog.count({ where: { student: studentWhere, createdAt, actor: AI_ACTOR.name } }),
+    prisma.accessLog.groupBy({ by: ["detail"], where: { student: studentWhere, createdAt, detail: { in: Object.values(PLAN_PROPOSAL_DETAIL) } }, _count: { _all: true } }),
     prisma.activityImage.count({ where: { activity: { student: studentWhere }, createdAt } }),
     prisma.resource.findMany({ select: { id: true, title: true, timesUsed: true, positiveOutcomes: true }, orderBy: [{ timesUsed: "desc" }, { title: "asc" }] }),
     prisma.resourceActivity.count(),
@@ -441,7 +442,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     },
     ai: {
       providers: aiProviders(),
-      planProposals: { ia: proposalCount("Proposta de plano (agentes de IA)"), regras: proposalCount("Proposta de plano (regras)") },
+      planProposals: { ia: proposalCount(PLAN_PROPOSAL_DETAIL.ia), regras: proposalCount(PLAN_PROPOSAL_DETAIL.regras) },
       draftsPending: count((student) => !!student.planDraft),
       activities: sources.find((source) => source.source === "ia")!,
       rulesActivities: sources.find((source) => source.source === "regras")!,
@@ -480,7 +481,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     },
     team: {
       byRole: byValue([...countBy(scopedUsers, (item) => item.role)].map(([key, value]) => ({ key, value }))),
-      access: ["visualizou", "criou", "editou", "enviou"].map((action) => ({ key: action, value: accessCount(action) })),
+      access: [AUDIT_ACTION.viewed, AUDIT_ACTION.created, AUDIT_ACTION.edited, AUDIT_ACTION.sent].map((action) => ({ key: action, value: accessCount(action) })),
       actors: actors.length,
     },
   };

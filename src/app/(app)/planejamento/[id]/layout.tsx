@@ -6,7 +6,7 @@ import { SHARING_LABEL, type Sharing } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui";
 import { PlanningTabs } from "@/components/dua/planning-tabs";
-import { ReviewBadge } from "@/components/dua/dua-ui";
+import { ReviewBadge } from "@/components/dua/badges";
 
 export default async function PlanningLayout({ children, params }: { children: ReactNode; params: Promise<{ id: string }> }) {
   const { id } = await params;

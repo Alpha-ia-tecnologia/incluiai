@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Accessibility, CircleCheck, Clock, House, Lightbulb, Printer, Scissors, Target, Trash2, TriangleAlert, Users } from "lucide-react";
 import { approveMaterial, deleteMaterial } from "@/actions/materials";
 import { Badge } from "@/components/ui";
-import { dangerButtonCls, primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { formatDate, parseJson } from "@/lib/format";
 import { MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialActivity, type MaterialKind } from "@/lib/material-content";
 import { CONTEXTS } from "@/lib/scale";
@@ -124,18 +124,18 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
             <ReadAloud targetId={`material-${material.id}`} label="Ouvir o material" />
             {actions && !approved ? (
               <form action={approve}>
-                <button type="submit" className={primaryButtonCls}>
+                <button type="submit" className={BUTTON_CLS.primary}>
                   <CircleCheck size={16} aria-hidden /> Aprovar para uso
                 </button>
               </form>
             ) : null}
             {printHref === null ? null : (
-              <Link href={printHref ?? `/estudantes/${studentId}/materiais/${material.id}/imprimir`} className={quietButtonCls}>
+              <Link href={printHref ?? `/estudantes/${studentId}/materiais/${material.id}/imprimir`} className={BUTTON_CLS.quiet}>
                 <Printer size={16} aria-hidden /> Imprimir<span className="sr-only">: {material.title}</span>
               </Link>
             )}
             {actions ? <form action={remove}>
-              <button type="submit" aria-label={`Excluir material: ${material.title}`} className={dangerButtonCls}>
+              <button type="submit" aria-label={`Excluir material: ${material.title}`} className={BUTTON_CLS.danger}>
                 <Trash2 size={16} aria-hidden /> Excluir
               </button>
             </form> : null}

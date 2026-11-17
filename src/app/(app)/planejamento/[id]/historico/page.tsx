@@ -5,7 +5,7 @@ import { EXECUTION_STATE_LABEL, REVIEW_STATE_LABEL, type ExecutionState, type Re
 import { formatDate } from "@/lib/format";
 import { roleLabel } from "@/lib/roles";
 import { Card, SectionTitle } from "@/components/ui";
-import { ReviewBadge } from "@/components/dua/dua-ui";
+import { ReviewBadge } from "@/components/dua/badges";
 import { VersionSummary } from "@/components/dua/history/version-summary";
 import { CollaboratorsForm } from "@/components/dua/history/collaborators-form";
 import { DataBoard, DataCard } from "@/components/data-viz";

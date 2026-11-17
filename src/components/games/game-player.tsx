@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { ArrowLeft, Flag, Lightbulb, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { Character } from "@/components/character";
-import { quietButtonCls, secondaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import {
   EMOTION_LABEL, GAMES, LEVEL_LABEL, sessionNote,
   type AssociationMode, type ChoiceRound, type EmotionRound, type GameKey, type GameResult, type Level, type MemoryCard, type Pic,
@@ -123,7 +123,7 @@ export function GamePlayer({ data, level, detail, student, replayHref }: {
     <div className="flex min-h-dvh flex-col bg-canvas">
       <header className="sticky top-0 z-10 border-b border-line bg-paper-raised/95 px-3 py-2.5 backdrop-blur sm:px-5">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-2">
-          <Link href={backHref} className={`${quietButtonCls} !px-3`}><ArrowLeft size={18} aria-hidden /> Sair</Link>
+          <Link href={backHref} className={`${BUTTON_CLS.quiet} !px-3`}><ArrowLeft size={18} aria-hidden /> Sair</Link>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-semibold text-ink sm:text-xl">{GAMES[game].title}</h1>
             <p className="truncate text-sm text-ink-soft">{[LEVEL_LABEL[level], detail, student ? `com ${student.firstName}` : null].filter(Boolean).join(" · ")}</p>
@@ -135,14 +135,14 @@ export function GamePlayer({ data, level, detail, student, replayHref }: {
             <div className="flex flex-wrap items-center gap-2">
               {available ? (
                 <>
-                  <button type="button" onClick={() => speak(instruction)} className={secondaryButtonCls}><Volume2 size={18} aria-hidden /> Ouvir</button>
-                  <button type="button" onClick={() => setSoundOn(!soundOn)} aria-pressed={soundOn} className={`${quietButtonCls} !px-3`}>
+                  <button type="button" onClick={() => speak(instruction)} className={BUTTON_CLS.secondary}><Volume2 size={18} aria-hidden /> Ouvir</button>
+                  <button type="button" onClick={() => setSoundOn(!soundOn)} aria-pressed={soundOn} className={`${BUTTON_CLS.quiet} !px-3`}>
                     {soundOn ? <Volume2 size={18} aria-hidden /> : <VolumeX size={18} aria-hidden />} {soundOn ? "Voz" : "Sem voz"}
                   </button>
                 </>
               ) : null}
-              <button type="button" onClick={() => hintHandler.current?.()} className={quietButtonCls}><Lightbulb size={18} aria-hidden /> Dica</button>
-              <button type="button" onClick={() => setFinished(true)} className={`${quietButtonCls} !px-3`}><Flag size={18} aria-hidden /> Terminar</button>
+              <button type="button" onClick={() => hintHandler.current?.()} className={BUTTON_CLS.quiet}><Lightbulb size={18} aria-hidden /> Dica</button>
+              <button type="button" onClick={() => setFinished(true)} className={`${BUTTON_CLS.quiet} !px-3`}><Flag size={18} aria-hidden /> Terminar</button>
             </div>
           ) : null}
         </div>
@@ -173,8 +173,8 @@ function GameEnd({ game, level, detail, result, student, backHref, onReplay }: {
   const [one, many] = UNIT[game];
   const again = (
     <div className="flex flex-wrap items-center gap-2">
-      <button type="button" onClick={onReplay} className={secondaryButtonCls}><RotateCcw size={16} aria-hidden /> Jogar de novo</button>
-      <Link href={backHref} className={quietButtonCls}>Outro jogo</Link>
+      <button type="button" onClick={onReplay} className={BUTTON_CLS.secondary}><RotateCcw size={16} aria-hidden /> Jogar de novo</button>
+      <Link href={backHref} className={BUTTON_CLS.quiet}>Outro jogo</Link>
     </div>
   );
   return (

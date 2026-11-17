@@ -1,6 +1,7 @@
 import { notifyFamily } from "./notifications";
 import type { FunctionalProfile, Student } from "@prisma/client";
 import { db } from "./prisma";
+import { AUDIT_ACTION, recordChange } from "./audit";
 import { assertStudentTeam, type SessionUser } from "./auth";
 import { parseJson } from "./format";
 import { CHANNELS } from "./scale";
@@ -87,7 +88,7 @@ export async function createStudentMaterial(user: SessionUser, studentId: string
     data: { studentId, kind, title, content: JSON.stringify(result.content), source, topic: topic || null, context, objectiveId: objective?.id ?? null, status: "sugerido", trace: JSON.stringify(trace) },
   });
   await prisma.timelineEvent.create({ data: { studentId, type: "recurso", title: `Material de apoio preparado: ${title}`, description: `${MATERIAL_KIND_LABEL[kind]} com ${result.content.activities.length} atividade(s) para aplicar. Aguarda aprovação da equipe.` } });
-  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: `Material de apoio (${source === "ia" ? "agentes de IA" : "regras"}): ${MATERIAL_KIND_LABEL[kind]}` } });
+  await recordChange(user, studentId, AUDIT_ACTION.created, `Material de apoio (${source === "ia" ? "agentes de IA" : "regras"}): ${MATERIAL_KIND_LABEL[kind]}`);
 
   let images = { created: 0, errors: [] as string[], requested: false };
   if (request.withImages && (await studentAI(studentId)).images) {
@@ -108,7 +109,7 @@ export async function approveStudentMaterial(user: SessionUser, studentId: strin
   const prisma = await db();
   const material = await loadOwnMaterial(user, studentId, materialId);
   await prisma.material.update({ where: { id: material.id }, data: { status: "aprovado", approvedBy: user.name, approvedAt: new Date() } });
-  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "editou", detail: `Material de apoio aprovado para uso: ${material.title}` } });
+  await recordChange(user, studentId, AUDIT_ACTION.edited, `Material de apoio aprovado para uso: ${material.title}`);
   await notifyFamily(studentId, "material_aprovado", `/familia/${studentId}#materiais`);
 }
 
@@ -143,6 +144,6 @@ export async function saveMaterialActivity(user: SessionUser, studentId: string,
     source: material.source === "ia" ? "ia" : "regras",
   };
   const created = await prisma.activity.create({ data: { studentId, objectiveId: material.objectiveId, ...activityRow(card) } });
-  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: `Atividade a partir do material: ${activity.title}` } });
+  await recordChange(user, studentId, AUDIT_ACTION.created, `Atividade a partir do material: ${activity.title}`);
   return created.id;
 }

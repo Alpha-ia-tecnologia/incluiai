@@ -9,11 +9,10 @@ import { DIMENSIONS } from "@/lib/scale";
 const dimensionOptions = Object.entries(DIMENSIONS).map(([value, label]) => ({ value, label }));
 const allActions = [...new Set(Object.values(ACTION_SUGGESTIONS).flat())];
 
-export function ObjectiveFields({ inputClassName, labelClassName, studentId }: { inputClassName: string; labelClassName: string; studentId: string }) {
+export function ObjectiveFields({ studentId }: { studentId: string }) {
   const [dimension, setDimension] = useState("comunicacao");
   const box = useRef<HTMLDivElement>(null);
   const actions = ACTION_SUGGESTIONS[dimension] ?? allActions;
-  const style = { inputClassName, labelClassName };
   const objectiveText = () => {
     const form = box.current?.closest("form");
     if (!form) return "";
@@ -22,9 +21,9 @@ export function ObjectiveFields({ inputClassName, labelClassName, studentId }: {
   };
   return (
     <>
-      <ChoiceField name="dimension" label="Área de desenvolvimento *" options={dimensionOptions} defaultValue="comunicacao" required onValueChange={setDimension} {...style} />
+      <ChoiceField name="dimension" label="Área de desenvolvimento *" options={dimensionOptions} defaultValue="comunicacao" required onValueChange={setDimension} />
       <div className="min-w-0 sm:col-span-2">
-        <ChoiceField key={dimension} name="action" label="O que o estudante vai fazer? *" options={actions} required placeholder="Escolha uma ação observável" otherPlaceholder="Ex.: identificará seu nome entre 5 opções" {...style} />
+        <ChoiceField key={dimension} name="action" label="O que o estudante vai fazer? *" options={actions} required placeholder="Escolha uma ação observável" otherPlaceholder="Ex.: identificará seu nome entre 5 opções" />
       </div>
       <div ref={box} className="min-w-0 sm:col-span-2">
         <BnccPicker

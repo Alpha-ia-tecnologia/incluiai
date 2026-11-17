@@ -7,7 +7,7 @@ import { generateMaterial, type MaterialActionState } from "@/actions/materials"
 import { ChoiceField } from "@/components/choice-field";
 import { PendingButton } from "@/components/pending-button";
 import { MATERIAL_CONTEXTS, MATERIAL_KINDS, MATERIAL_TOPICS, type MaterialKind } from "@/lib/material-content";
-import { labelCls, inputCls, linkCls, primaryButtonCls } from "@/components/form-styles";
+import { labelCls, inputCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
 const ICONS: Record<MaterialKind, LucideIcon> = {
@@ -64,8 +64,6 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
           otherLabel="Outra situação ou conteúdo"
           otherPlaceholder="Ex.: visita à biblioteca, frações com pizza"
           hint="Quanto mais específica, mais o material serve ao estudante."
-          labelClassName={labelCls}
-          inputClassName={inputCls}
         />
         <div className="min-w-0">
           <label htmlFor="objectiveId" className={labelCls}>Objetivo do plano (opcional)</label>
@@ -117,7 +115,7 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
         />
         <div>
           <PendingButton
-            className={`${primaryButtonCls} shadow-e1`}
+            className={`${BUTTON_CLS.primary} shadow-e1`}
             pendingText={aiOn ? "Os agentes de IA estão criando o material e as atividades." : "Preparando o material…"}
             wait="material"
           >

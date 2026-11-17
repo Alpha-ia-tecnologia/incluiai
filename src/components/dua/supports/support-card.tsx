@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui";
-import { OriginBadge, ReviewBadge } from "@/components/dua/dua-ui";
+import { OriginBadge, ReviewBadge } from "@/components/dua/badges";
 import { SuggestionReview } from "@/components/dua/suggestion-review";
 import type { SupportView } from "@/lib/dua/supports";
 import type { SuggestionView } from "@/lib/dua/suggestions";

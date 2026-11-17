@@ -1,7 +1,8 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { db } from "../prisma";
-import { STUDENT_FORBIDDEN, assertStudentTeam, type SessionUser } from "../auth";
+import { assertStudentTeam, studentForbidden, type SessionUser } from "../auth";
+import { UserError } from "../user-error";
 import { canWorkWithStudent } from "../policy";
 import { can } from "../roles";
 import { parseJson } from "../format";
@@ -12,7 +13,8 @@ import {
   type DuaSupportData, type PlanLink, type ProfileRef, type StudentVoiceEntry,
 } from "./domain";
 import { planningAccess, type PlanningAccess } from "./access";
-import { DuaError, audit, clip, loadPlanningFor, studentLog } from "./shared";
+import { audit, clip, loadPlanningFor } from "./shared";
+import { AUDIT_ACTION, recordChange } from "../audit";
 
 const CASE_STUDY_REFS = ["barreiras", "potencialidades", "aprendeMelhor", "gostaEscola", "achaDificil", "comoSeSente", "comunicacaoEscola", "recursos"];
 
@@ -92,9 +94,9 @@ async function buildSupportData(user: SessionUser, studentId: string, input: Sup
   const objectives = await planObjectives(user, studentId);
   const byId = new Map(objectives.map((item) => [item.id, item]));
   const planLinks: PlanLink[] = [...new Set(input.objectiveIds)].filter((id) => byId.has(id)).map((id) => ({ kind: "objetivo", planId: byId.get(id)!.planId, objectiveId: id, description: byId.get(id)!.description }));
-  if (input.objectiveIds.some((id) => id && !byId.has(id))) throw new DuaError("Um dos objetivos escolhidos não pertence ao plano deste estudante.");
+  if (input.objectiveIds.some((id) => id && !byId.has(id))) throw new UserError("Um dos objetivos escolhidos não pertence ao plano deste estudante.");
   const individualText = clip(input.individualObjectiveText, 600);
-  if (input.individualObjectiveId && !byId.has(input.individualObjectiveId)) throw new DuaError("O objetivo individual precisa ser do plano deste estudante.");
+  if (input.individualObjectiveId && !byId.has(input.individualObjectiveId)) throw new UserError("O objetivo individual precisa ser do plano deste estudante.");
   return {
     barrier: { description: clip(input.barrierDescription, 600), status: BARRIER_STATUSES.includes(input.barrierStatus as never) ? (input.barrierStatus as DuaSupportData["barrier"]["status"]) : "prevista" },
     support: clip(input.support, 1200),
@@ -114,12 +116,12 @@ export async function createSupport(user: SessionUser, planningId: string, stude
   const student = await assertStudentTeam(user, studentId);
   const data = await buildSupportData(user, studentId, input, null, access.owner ? "professor" : "colaboracao");
   const problems = supportProblems(data);
-  if (!data.support && !data.barrier.description) throw new DuaError("Descreva ao menos a barreira ou o apoio planejado.", "invalido", problems);
+  if (!data.support && !data.barrier.description) throw new UserError("Descreva ao menos a barreira ou o apoio planejado.", "invalid", problems);
   const support = await prisma.duaSupport.create({
     data: { planningId, studentId, data: JSON.stringify(data), responsibleId: user.id, responsibleName: user.name, createdById: user.id, createdByName: user.name },
   });
   await audit(user, planningId, "planejou apoio individual", "apoio", { objectId: support.id });
-  await studentLog(user, student.id, "criou", `Apoio individual na atividade com DUA "${planning.title}"`);
+  await recordChange(user, student.id, AUDIT_ACTION.created, `Apoio individual na atividade com DUA "${planning.title}"`);
   return support.id;
 }
 
@@ -131,10 +133,10 @@ const supportRights = (user: SessionUser, access: PlanningAccess, responsibleId:
 async function loadSupportFor(user: SessionUser, supportId: string, need: "edit" | "validate") {
   const prisma = await db();
   const support = await prisma.duaSupport.findUnique({ where: { id: supportId }, include: { planning: true, student: { select: { id: true, schoolId: true, name: true } } } });
-  if (!support) throw new DuaError("Apoio não encontrado.", "nao_encontrado");
+  if (!support) throw new UserError("Apoio não encontrado.", "not_found");
   const access = planningAccess(user, support.planning);
-  if (!access.read || !canWorkWithStudent(user, support.student)) throw new DuaError("Apoio não encontrado.", "nao_encontrado");
-  if (!supportRights(user, access, support.responsibleId)[need]) throw new DuaError(STUDENT_FORBIDDEN, "sem_permissao");
+  if (!access.read || !canWorkWithStudent(user, support.student)) throw new UserError("Apoio não encontrado.", "not_found");
+  if (!supportRights(user, access, support.responsibleId)[need]) throw studentForbidden();
   return { support, access, data: parseJson<DuaSupportData>(support.data, null as never) };
 }
 
@@ -143,32 +145,32 @@ export async function updateSupport(user: SessionUser, supportId: string, revisi
   const { support, access, data: previous } = await loadSupportFor(user, supportId, "edit");
   const data = await buildSupportData(user, support.studentId, input, previous, access.owner ? "professor" : "colaboracao");
   const updated = await prisma.duaSupport.updateMany({ where: { id: supportId, revision }, data: { data: JSON.stringify(data), state: "rascunho", validatedAt: null, validatedById: null, validatedByName: null, revision: { increment: 1 } } });
-  if (!updated.count) throw new DuaError("Outro profissional alterou este apoio agora há pouco. Atualize a página e confira antes de salvar.", "conflito");
+  if (!updated.count) throw new UserError("Outro profissional alterou este apoio agora há pouco. Atualize a página e confira antes de salvar.", "conflict");
   await audit(user, support.planningId, "editou apoio individual", "apoio", { objectId: supportId });
-  await studentLog(user, support.studentId, "editou", `Apoio individual na atividade com DUA "${support.planning.title}"`);
+  await recordChange(user, support.studentId, AUDIT_ACTION.edited, `Apoio individual na atividade com DUA "${support.planning.title}"`);
 }
 
 export async function validateSupport(user: SessionUser, supportId: string, revision: number) {
   const prisma = await db();
   const { support, data } = await loadSupportFor(user, supportId, "validate");
   const problems = supportProblems(data);
-  if (problems.length) throw new DuaError("Ainda falta completar o apoio para validar.", "invalido", problems);
+  if (problems.length) throw new UserError("Ainda falta completar o apoio para validar.", "invalid", problems);
   const updated = await prisma.duaSupport.updateMany({ where: { id: supportId, revision }, data: { state: "validado", validatedAt: new Date(), validatedById: user.id, validatedByName: user.name, revision: { increment: 1 } } });
-  if (!updated.count) throw new DuaError("Outro profissional alterou este apoio agora há pouco. Atualize a página e confira antes de validar.", "conflito");
+  if (!updated.count) throw new UserError("Outro profissional alterou este apoio agora há pouco. Atualize a página e confira antes de validar.", "conflict");
   await audit(user, support.planningId, "validou apoio individual", "apoio", { objectId: supportId });
-  await studentLog(user, support.studentId, "editou", `Apoio individual validado na atividade com DUA "${support.planning.title}"`);
+  await recordChange(user, support.studentId, AUDIT_ACTION.edited, `Apoio individual validado na atividade com DUA "${support.planning.title}"`);
 }
 
 export async function addStudentVoice(user: SessionUser, supportId: string, entry: Omit<StudentVoiceEntry, "id">) {
   const prisma = await db();
   const { support, data } = await loadSupportFor(user, supportId, "edit");
-  if (!STUDENT_VOICE_KINDS.includes(entry.kind) || !VOICE_ORIGINS.includes(entry.origin)) throw new DuaError("Escolha o tipo e a origem da informação.");
+  if (!STUDENT_VOICE_KINDS.includes(entry.kind) || !VOICE_ORIGINS.includes(entry.origin)) throw new UserError("Escolha o tipo e a origem da informação.");
   const text = clip(entry.text, 600);
   const context = clip(entry.context, 300);
-  if (!text || !context || !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)) throw new DuaError("Registre o que foi dito ou mostrado, o contexto e a data.");
+  if (!text || !context || !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)) throw new UserError("Registre o que foi dito ou mostrado, o contexto e a data.");
   const next: DuaSupportData = { ...data, studentVoice: [...data.studentVoice, { id: randomUUID(), kind: entry.kind, text, context, origin: entry.origin, date: entry.date }].slice(-40) };
   await prisma.duaSupport.update({ where: { id: supportId }, data: { data: JSON.stringify(next), revision: { increment: 1 } } });
-  await studentLog(user, support.studentId, "editou", `Participação do estudante registrada na atividade com DUA "${support.planning.title}"`);
+  await recordChange(user, support.studentId, AUDIT_ACTION.edited, `Participação do estudante registrada na atividade com DUA "${support.planning.title}"`);
 }
 
 export async function removeStudentVoice(user: SessionUser, supportId: string, entryId: string) {
@@ -176,7 +178,7 @@ export async function removeStudentVoice(user: SessionUser, supportId: string, e
   const { support, data } = await loadSupportFor(user, supportId, "edit");
   const next: DuaSupportData = { ...data, studentVoice: data.studentVoice.filter((item) => item.id !== entryId) };
   await prisma.duaSupport.update({ where: { id: supportId }, data: { data: JSON.stringify(next), revision: { increment: 1 } } });
-  await studentLog(user, support.studentId, "editou", `Registro de participação revisado na atividade com DUA "${support.planning.title}"`);
+  await recordChange(user, support.studentId, AUDIT_ACTION.edited, `Registro de participação revisado na atividade com DUA "${support.planning.title}"`);
 }
 
 export type SupportView = {
@@ -245,6 +247,6 @@ export async function getSupport(user: SessionUser, supportId: string): Promise<
     where: { id: supportId },
     include: { planning: { select: { title: true, ownerId: true, schoolId: true, sharing: true, collaborators: true } }, student: { select: { id: true, name: true, schoolId: true } } },
   });
-  if (!row || !canWorkWithStudent(user, row.student) || !planningAccess(user, row.planning).read) throw new DuaError("Apoio não encontrado.", "nao_encontrado");
+  if (!row || !canWorkWithStudent(user, row.student) || !planningAccess(user, row.planning).read) throw new UserError("Apoio não encontrado.", "not_found");
   return viewOf(user, { ...row, student: { id: row.student.id, name: row.student.name } });
 }

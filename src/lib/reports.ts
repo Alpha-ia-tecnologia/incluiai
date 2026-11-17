@@ -3,7 +3,7 @@ import { notifyFamily } from "./notifications";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { can } from "./roles";
-import { recordChange } from "./access-log";
+import { AUDIT_ACTION, recordChange } from "./audit";
 import { bnccSkill } from "./bncc";
 import { parseCaseStudy } from "./case-study";
 import { splitItems } from "./form-options";
@@ -121,7 +121,7 @@ export async function validateReport(user: SessionUser, studentId: string, repor
     prisma.studentReport.update({ where: { id: reportId }, data: { status: "validado", validatedById: user.id, validatedByName: user.name, validatedAt: new Date() } }),
     prisma.timelineEvent.create({ data: { studentId, type: "avaliacao", title: "Relatório do período validado", description: `${periodLabel(data)}, por ${user.name}. A família vê no portal.` } }),
   ]);
-  await recordChange(user, studentId, "validou", `Relatório do período (${periodLabel(data)})`);
+  await recordChange(user, studentId, AUDIT_ACTION.validated, `Relatório do período (${periodLabel(data)})`);
   await notifyFamily(studentId, "relatorio_validado", `/familia/${studentId}/relatorios/${reportId}`);
   return null;
 }

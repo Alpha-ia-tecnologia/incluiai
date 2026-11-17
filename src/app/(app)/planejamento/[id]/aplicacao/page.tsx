@@ -7,7 +7,7 @@ import { listApplications } from "@/lib/dua/applications";
 import { CRITERION_STATUSES, CRITERION_STATUS_LABEL, isObserved } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
-import { linkCls } from "@/components/dua/dua-ui";
+import { linkCls } from "@/components/form-styles";
 import { NewApplicationForm } from "@/components/dua/applications/new-application-form";
 import { ApplicationCard, inputDate } from "@/components/dua/applications/application-card";
 import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";

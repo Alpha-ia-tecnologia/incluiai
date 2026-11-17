@@ -9,7 +9,8 @@ import { formatDate } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHero, SectionTitle } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { NewPlanningForm } from "@/components/dua/new-planning-form";
-import { ReviewBadge, inputCls, labelCls, secondaryCls } from "@/components/dua/dua-ui";
+import { ReviewBadge } from "@/components/dua/badges";
+import { BUTTON_CLS, inputCls, labelCls } from "@/components/form-styles";
 import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
 import { SIGNAL, StackedBar } from "@/components/charts";
 import { DonutSummary } from "@/components/viz/donut-summary";
@@ -116,7 +117,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
           <label className="flex min-h-11 items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="meus" value="1" defaultChecked={mine} className="size-4 accent-[var(--brand)]" /> Só os meus
           </label>
-          <button type="submit" className={secondaryCls}><Search size={16} aria-hidden /> Buscar</button>
+          <button type="submit" className={BUTTON_CLS.quiet}><Search size={16} aria-hidden /> Buscar</button>
         </form>
         <p className="mb-3 text-sm text-ink-soft" role="status">{plural(plannings.length, "planejamento", "planejamentos")}{query ? ` para “${query}”` : ""}.</p>
         {plannings.length === 0 ? (

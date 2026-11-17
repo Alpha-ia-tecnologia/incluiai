@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccessStudent } from "@/lib/policy";
 import { can } from "@/lib/roles";
-import { recordView } from "@/lib/access-log";
+import { recordView } from "@/lib/audit";
 import { parseJson } from "@/lib/format";
 import {
   GAMES, ROUTINES, THEMES, emotionRounds, isAssociationMode, isGameKey, isLevel, isRoutineKey, isThemeKey, memoryDeck, quantityRounds,

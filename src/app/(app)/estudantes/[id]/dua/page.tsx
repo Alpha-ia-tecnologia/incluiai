@@ -7,7 +7,8 @@ import { listStudentEvidence, studentFollowUp, type StudentEvidenceView } from "
 import { APPLICATION_CONTEXTS, APPLICATION_CONTEXT_LABEL, CRITERION_STATUS_LABEL, OBSERVATION_LABEL, REVIEW_STATE_LABEL, type CriterionStatus } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
-import { ReviewBadge, linkCls } from "@/components/dua/dua-ui";
+import { ReviewBadge } from "@/components/dua/badges";
+import { linkCls } from "@/components/form-styles";
 import { SupportSummary } from "@/components/dua/supports/support-summary";
 import { ParticipationStart } from "@/components/dua/student/participation-start";
 import { DataBoard, DataCard, DotStrip, withSegmentColors, type Tone } from "@/components/data-viz";

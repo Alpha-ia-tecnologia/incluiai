@@ -4,15 +4,9 @@ import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { canWorkWithStudent, studentScopeWhere } from "../policy";
 import { parseJson } from "../format";
+import { UserError } from "../user-error";
 import { normalizeContent, suggestionBasis, type DuaContent } from "./domain";
 import { planningAccess, type PlanningAccess } from "./access";
-
-export type DuaErrorKind = "nao_encontrado" | "sem_permissao" | "conflito" | "invalido";
-export class DuaError extends Error {
-  constructor(message: string, readonly kind: DuaErrorKind = "invalido", readonly problems: { field: string; message: string }[] = []) {
-    super(message);
-  }
-}
 
 export const NOT_FOUND = "Planejamento não encontrado.";
 export const FORBIDDEN = "Você não tem permissão para esta ação neste planejamento.";
@@ -22,17 +16,17 @@ export type Need = keyof Omit<PlanningAccess, "owner">;
 export async function loadPlanningFor(user: SessionUser, planningId: string, need: Need) {
   const prisma = await db();
   const planning = await prisma.duaPlanning.findUnique({ where: { id: planningId } });
-  if (!planning) throw new DuaError(NOT_FOUND, "nao_encontrado");
+  if (!planning) throw new UserError(NOT_FOUND, "not_found");
   const access = planningAccess(user, planning);
-  if (!access.read) throw new DuaError(NOT_FOUND, "nao_encontrado");
-  if (!access[need]) throw new DuaError(FORBIDDEN, "sem_permissao");
+  if (!access.read) throw new UserError(NOT_FOUND, "not_found");
+  if (!access[need]) throw new UserError(FORBIDDEN, "forbidden");
   return { planning, access };
 }
 
 export async function latestVersion(planningId: string) {
   const prisma = await db();
   const version = await prisma.duaPlanningVersion.findFirst({ where: { planningId }, orderBy: { version: "desc" } });
-  if (!version) throw new DuaError(NOT_FOUND, "nao_encontrado");
+  if (!version) throw new UserError(NOT_FOUND, "not_found");
   return version;
 }
 
@@ -45,20 +39,8 @@ export async function audit(user: SessionUser, planningId: string, action: strin
   });
 }
 
-export async function studentLog(user: { name: string; role: string }, studentId: string, action: "criou" | "editou" | "visualizou" | "enviou", detail: string) {
-  const prisma = await db();
-  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action, detail } });
-}
-
 export const hashOf = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 32);
 export const basisHashOf = (content: DuaContent) => hashOf(suggestionBasis(content));
-
-// Datas vindas de <input type="date"> ao meio-dia, para não trocar de dia pelo fuso.
-export function dateFromInput(value: string, label = "a data"): Date {
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(Number.NaN);
-  if (Number.isNaN(date.getTime())) throw new DuaError(`Informe ${label} no formato dia/mês/ano.`);
-  return date;
-}
 
 export const clip = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
 

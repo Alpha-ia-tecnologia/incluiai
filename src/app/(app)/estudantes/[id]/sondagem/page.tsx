@@ -11,7 +11,7 @@ import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { BnccTag } from "@/components/bncc-tag";
 import { AreaComparison } from "@/components/assessment/area-comparison";
-import { linkCls, primaryButtonCls } from "@/components/form-styles";
+import { linkCls, BUTTON_CLS } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
   const assessments = await prisma.assessment.findMany({ where: { studentId: id }, orderBy: { appliedAt: "asc" } });
   const baseline = assessments[0];
   const latest = assessments.at(-1);
-  const apply = team ? <Link href={`/estudantes/${id}/sondagem/aplicar`} className={primaryButtonCls}><ClipboardCheck size={16} aria-hidden /> {baseline ? "Aplicar a reavaliação" : "Aplicar a linha de base"}</Link> : undefined;
+  const apply = team ? <Link href={`/estudantes/${id}/sondagem/aplicar`} className={BUTTON_CLS.primary}><ClipboardCheck size={16} aria-hidden /> {baseline ? "Aplicar a reavaliação" : "Aplicar a linha de base"}</Link> : undefined;
 
   if (!baseline || !latest) {
     return (

@@ -1,35 +1,30 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
-import { startStudentParticipation, type DuaResult } from "@/actions/dua";
-import { Field, ResultMessage, buttonCls, inputCls, labelCls } from "../dua-ui";
+import { startStudentParticipation } from "@/actions/dua";
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, inputCls, labelCls } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 
 type PlanningOption = { id: string; label: string };
 
 export function ParticipationStart({ studentId, plannings }: { studentId: string; plannings: PlanningOption[] }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
+  const { result, pending, submit } = useActionResult<{ planningId: string }>();
   const [mode, setMode] = useState<"existente" | "nova">(plannings.length ? "existente" : "nova");
-  const [result, setResult] = useState<DuaResult<{ planningId: string }> | null>(null);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function open(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const planningId = String(form.get("planningId") ?? "");
     const title = String(form.get("title") ?? "");
-    start(async () => {
-      const outcome = mode === "existente"
-        ? await startStudentParticipation({ studentId, planningId })
-        : await startStudentParticipation({ studentId, title });
-      setResult(outcome);
-      if (outcome.ok) router.push(`/planejamento/${outcome.value.planningId}/apoios?estudante=${encodeURIComponent(studentId)}`);
+    submit(() => (mode === "existente" ? startStudentParticipation({ studentId, planningId }) : startStudentParticipation({ studentId, title })), {
+      goTo: (value) => `/planejamento/${value.planningId}/apoios?estudante=${encodeURIComponent(studentId)}`,
     });
   }
 
   return (
-    <form onSubmit={submit} className="grid min-w-0 gap-4" aria-busy={pending}>
+    <form onSubmit={open} className="grid min-w-0 gap-4" aria-busy={pending}>
       <fieldset className="min-w-0">
         <legend className={labelCls}>Como você quer começar?</legend>
         <div className="grid gap-1">
@@ -46,22 +41,24 @@ export function ParticipationStart({ studentId, plannings }: { studentId: string
 
       {mode === "existente" ? (
         <Field id="participacao-atividade" label="Atividade">
-          <select id="participacao-atividade" name="planningId" required defaultValue="" className={inputCls}>
-            <option value="" disabled>Escolha a atividade</option>
-            {plannings.map((planning) => <option key={planning.id} value={planning.id}>{planning.label}</option>)}
-          </select>
+          {(control) => (
+            <select {...control} name="planningId" required defaultValue="" className={inputCls}>
+              <option value="" disabled>Escolha a atividade</option>
+              {plannings.map((planning) => <option key={planning.id} value={planning.id}>{planning.label}</option>)}
+            </select>
+          )}
         </Field>
       ) : (
         <Field id="participacao-titulo" label="Título da nova atividade">
-          <input id="participacao-titulo" name="title" required minLength={3} maxLength={160} className={inputCls} placeholder="Ex.: Compreensão de uma narrativa" />
+          {(control) => <input {...control} name="title" required minLength={3} maxLength={160} className={inputCls} placeholder="Ex.: Compreensão de uma narrativa" />}
         </Field>
       )}
 
       <div>
-        <button type="submit" disabled={pending} className={buttonCls}>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           {pending ? "Abrindo…" : "Planejar a participação"} <ArrowRight size={16} aria-hidden />
         </button>
-        <ResultMessage result={result && !result.ok ? result : null} />
+        <FormResult result={result} />
       </div>
     </form>
   );

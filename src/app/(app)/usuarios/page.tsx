@@ -7,7 +7,7 @@ import { accountSchool, assignableRoles, isAccountManager, isLinkedRole, roleLab
 import { formatDate } from "@/lib/format";
 import { PageHeader, Badge, ButtonLink, EmptyState } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
-import { inputCls, labelCls, quietButtonCls } from "@/components/form-styles";
+import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +69,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
             <option value="desativadas">Desativadas</option>
           </select>
         </div>
-        <button type="submit" className={quietButtonCls}><Search size={16} aria-hidden /> Filtrar</button>
+        <button type="submit" className={BUTTON_CLS.quiet}><Search size={16} aria-hidden /> Filtrar</button>
       </form>
 
       {shown.length ? (

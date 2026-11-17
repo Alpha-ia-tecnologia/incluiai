@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { Check, FileUp, FileX2, RefreshCw, ShieldCheck } from "lucide-react";
 import type { CensusState } from "@/actions/census";
 import type { MonitorConfig } from "@/lib/census-rules";
-import { choiceCls, hintCls, inputCls, labelCls, primaryButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
+import { choiceCls, hintCls, inputBoxCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
 type Action = (previous: CensusState, formData: FormData) => Promise<CensusState>;
@@ -33,7 +33,7 @@ export function CensusUploadForm({ action }: { action: Action }) {
         ]}
       />
       <Feedback state={state} />
-      <div><button type="submit" disabled={pending} className={primaryButtonCls}><FileUp size={16} aria-hidden /> {pending ? "Lendo o arquivo…" : "Ler o arquivo e ver a prévia"}</button></div>
+      <div><button type="submit" disabled={pending} className={BUTTON_CLS.primary}><FileUp size={16} aria-hidden /> {pending ? "Lendo o arquivo…" : "Ler o arquivo e ver a prévia"}</button></div>
     </form>
   );
 }
@@ -67,7 +67,7 @@ export function CensusDecisionForm({ action, personKey, candidates, canCreate }:
         <textarea id={id("motivo")} name="reason" rows={2} maxLength={200} className={textareaCls} />
       </div>
       <Feedback state={state} />
-      <div><button type="submit" disabled={pending} className={secondaryButtonCls}>Salvar a decisão</button></div>
+      <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar a decisão</button></div>
     </form>
   );
 }
@@ -78,7 +78,7 @@ export function CensusApplyForm({ action, blocked }: { action: (previous: Census
     <form action={submit} className="grid gap-2">
       {blocked ? <p className={hintCls}>{blocked}</p> : null}
       <Feedback state={state} />
-      <div><button type="submit" disabled={pending || Boolean(blocked)} className={primaryButtonCls}><Check size={16} aria-hidden /> {pending ? "Aplicando…" : "Aplicar e guardar como referência"}</button></div>
+      <div><button type="submit" disabled={pending || Boolean(blocked)} className={BUTTON_CLS.primary}><Check size={16} aria-hidden /> {pending ? "Aplicando…" : "Aplicar e guardar como referência"}</button></div>
     </form>
   );
 }
@@ -87,7 +87,7 @@ export function CensusVerifyForm({ action }: { action: (previous: CensusState) =
   const [state, submit, pending] = useActionState(action, {});
   return (
     <form action={submit} className="grid gap-2">
-      <div><button type="submit" disabled={pending} className={secondaryButtonCls}><RefreshCw size={16} aria-hidden /> {pending ? "Verificando…" : "Verificar agora"}</button></div>
+      <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}><RefreshCw size={16} aria-hidden /> {pending ? "Verificando…" : "Verificar agora"}</button></div>
       <Feedback state={state} saved="Verificação registrada no histórico." />
     </form>
   );
@@ -125,7 +125,7 @@ export function CensusWindowForm({ action, config }: { action: Action; config: M
         </div>
       </fieldset>
       <Feedback state={state} saved="Janela salva. A próxima verificação já foi reagendada." />
-      <div><button type="submit" disabled={pending} className={secondaryButtonCls}>Salvar a janela</button></div>
+      <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar a janela</button></div>
     </form>
   );
 }
@@ -146,7 +146,7 @@ export function FndeForm({ action, value, year }: { action: Action; value: numbe
         </div>
       </div>
       <Feedback state={state} saved="Número do FNDE salvo." />
-      <div><button type="submit" disabled={pending} className={secondaryButtonCls}>Salvar</button></div>
+      <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar</button></div>
     </form>
   );
 }
@@ -157,9 +157,9 @@ export function InepForm({ action, id, label, name, length, value }: { action: A
     <form action={submit} className="flex flex-wrap items-end gap-2">
       <div className="min-w-0">
         <label htmlFor={id} className={labelCls}>{label}</label>
-        <input id={id} name={name} inputMode="numeric" pattern={`\\d{${length}}`} maxLength={length} required defaultValue={value ?? ""} className={`${inputCls.replace("w-full ", "")} w-40`} />
+        <input id={id} name={name} inputMode="numeric" pattern={`\\d{${length}}`} maxLength={length} required defaultValue={value ?? ""} className={`${inputBoxCls} w-40`} />
       </div>
-      <button type="submit" disabled={pending} className={secondaryButtonCls}>Salvar</button>
+      <button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar</button>
       <div className="basis-full"><Feedback state={state} saved="Salvo." /></div>
     </form>
   );

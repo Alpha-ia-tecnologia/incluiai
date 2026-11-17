@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/format";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { AccountForm } from "@/components/accounts/account-form";
 import { ResetPassword } from "@/components/accounts/reset-password";
-import { dangerButtonCls, linkCls, secondaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS, linkCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +78,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                   {twoFactorRequired(account.role) ? " No próximo acesso, ela liga de novo (obrigatório para a equipe)." : " Ela pode ligar de novo em Segurança da conta."}
                 </p>
                 <form action={resetAccountTwoFactor.bind(null, id)}>
-                  <button type="submit" className={secondaryButtonCls}>Desligar as duas etapas</button>
+                  <button type="submit" className={BUTTON_CLS.secondary}>Desligar as duas etapas</button>
                 </form>
               </details>
             ) : null}
@@ -95,12 +95,12 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                   ]}
                 />
                 <form action={setAccountActive.bind(null, id, false)}>
-                  <button type="submit" className={dangerButtonCls}><UserX size={16} aria-hidden /> Desativar a conta</button>
+                  <button type="submit" className={BUTTON_CLS.danger}><UserX size={16} aria-hidden /> Desativar a conta</button>
                 </form>
               </details>
             ) : (
               <form action={setAccountActive.bind(null, id, true)}>
-                <button type="submit" className={secondaryButtonCls}><UserCheck size={16} aria-hidden /> Reativar a conta</button>
+                <button type="submit" className={BUTTON_CLS.secondary}><UserCheck size={16} aria-hidden /> Reativar a conta</button>
               </form>
             )}
           </div>

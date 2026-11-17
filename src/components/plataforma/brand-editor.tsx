@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition, type CSSPro
 import { Check, Home, Layers, LoaderCircle, Sparkles, Sprout, TriangleAlert, Users } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { StatusPill } from "@/components/data-viz";
-import { hintCls, inputCls, labelCls, linkCls, primaryButtonCls, quietButtonCls, secondaryButtonCls } from "@/components/form-styles";
+import { hintCls, inputCls, labelCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
 import { DEFAULT_BRAND, derivePalette, normalizeHex } from "@/lib/branding/palette";
 import { LOGO_ACCEPT, LOGO_MAX_BYTES, LOGO_TOO_BIG } from "@/lib/branding/logo-core";
 import type { BrandSuggestion } from "@/lib/branding/colors-core";
@@ -138,7 +138,7 @@ export function BrandEditor({ suggest, initial, municipalityName }: {
               onChange={(event) => chooseFile(event.target.files?.[0])}
               className={`${inputCls} py-2 file:mr-3 file:min-h-8 file:rounded-full file:border-0 file:bg-brand-soft file:px-4 file:text-sm file:font-medium file:text-brand-strong`}
             />
-            <button type="button" onClick={runSuggestion} disabled={!fileUrl || pending} aria-busy={pending} className={`${secondaryButtonCls} mt-3 disabled:cursor-wait`}>
+            <button type="button" onClick={runSuggestion} disabled={!fileUrl || pending} aria-busy={pending} className={`${BUTTON_CLS.secondary} mt-3 disabled:cursor-wait`}>
               {pending ? <LoaderCircle size={16} className="animate-spin" aria-hidden /> : <Sparkles size={16} aria-hidden />}
               Sugerir cores pelo logo
             </button>
@@ -177,8 +177,8 @@ export function BrandEditor({ suggest, initial, municipalityName }: {
                           {swatch.hex === primary ? <Badge tone="brand">principal</Badge> : null}
                           {swatch.hex === menu ? <Badge>menu</Badge> : null}
                           <span className="flex gap-1.5">
-                            <button type="button" onClick={() => setByHand("primary", swatch.hex)} aria-label={`Usar ${swatch.hex} como cor principal`} className={`${quietButtonCls} px-3`}>Principal</button>
-                            <button type="button" onClick={() => setByHand("menu", swatch.hex)} aria-label={`Usar ${swatch.hex} como cor do menu`} className={`${quietButtonCls} px-3`}>Menu</button>
+                            <button type="button" onClick={() => setByHand("primary", swatch.hex)} aria-label={`Usar ${swatch.hex} como cor principal`} className={`${BUTTON_CLS.quiet} px-3`}>Principal</button>
+                            <button type="button" onClick={() => setByHand("menu", swatch.hex)} aria-label={`Usar ${swatch.hex} como cor do menu`} className={`${BUTTON_CLS.quiet} px-3`}>Menu</button>
                           </span>
                         </li>
                       ))}
@@ -201,7 +201,7 @@ export function BrandEditor({ suggest, initial, municipalityName }: {
             {adjustments.map(([role, chosen, used, what, why]) => (
               <div key={role} className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-amber-soft px-3 py-2.5 text-sm text-amber">
                 <p className="min-w-0 flex-1">{what} (<span className="font-mono">{used}</span> em vez de <span className="font-mono">{chosen}</span>) {why}.</p>
-                <button type="button" onClick={() => setByHand(role, used)} className={`${quietButtonCls} px-3`}>Usar {used}</button>
+                <button type="button" onClick={() => setByHand(role, used)} className={`${BUTTON_CLS.quiet} px-3`}>Usar {used}</button>
               </div>
             ))}
           </fieldset>
@@ -229,8 +229,8 @@ export function BrandEditor({ suggest, initial, municipalityName }: {
               <p className="font-display text-lg font-semibold text-ink">Acompanhamento da rede</p>
               <p className="mt-1 text-sm leading-relaxed text-ink-soft">Texto de apoio, como nas telas da plataforma.</p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className={primaryButtonCls}>Salvar</span>
-                <span className={secondaryButtonCls}>Ver detalhes</span>
+                <span className={BUTTON_CLS.primary}>Salvar</span>
+                <span className={BUTTON_CLS.secondary}>Ver detalhes</span>
               </div>
               <p className="mt-4 text-sm text-ink">Um <span className={linkCls}>link no texto</span> leva a outra tela.</p>
               <div className="mt-4 flex flex-wrap gap-2">

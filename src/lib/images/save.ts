@@ -1,10 +1,11 @@
 import { db } from "../prisma";
+import { AUDIT_ACTION, recordChange, type AuditActor } from "../audit";
 import { buildActivityImagePrompt } from "./activity-image";
 import { generateImage } from "./openai-images";
 import { redactorFor } from "../agents/names-in-scope";
 
 // Fica fora dos arquivos "use server" para não virar uma ação pública.
-export async function createActivityImage(activityId: string, kind: string, user: { name: string; role: string }) {
+export async function createActivityImage(activityId: string, kind: string, user: AuditActor) {
   const prisma = await db();
   const activity = await prisma.activity.findUniqueOrThrow({
     where: { id: activityId },
@@ -17,7 +18,5 @@ export async function createActivityImage(activityId: string, kind: string, user
   const image = await generateImage(prompt, request.size);
   const data = { kind, prompt, altText, mimeType: image.mimeType, data: image.data, model: image.model, createdBy: user.name, createdAt: new Date() };
   await prisma.activityImage.upsert({ where: { activityId }, create: { activityId, ...data }, update: data });
-  await prisma.accessLog.create({
-    data: { studentId: activity.studentId, actor: user.name, role: user.role, action: "criou", detail: "Imagem de apoio da atividade (OpenAI, sem dados pessoais)" },
-  });
+  await recordChange(user, activity.studentId, AUDIT_ACTION.created, "Imagem de apoio da atividade (OpenAI, sem dados pessoais)");
 }

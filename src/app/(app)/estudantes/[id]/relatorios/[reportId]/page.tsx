@@ -8,7 +8,7 @@ import { reportData } from "@/lib/reports";
 import { Card } from "@/components/ui";
 import { ReportView } from "@/components/reports/report-view";
 import { OpinionEditor } from "@/components/reports/report-forms";
-import { dangerButtonCls, linkCls, quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS, linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +30,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         <div className="flex flex-wrap gap-2">
           {editing ? (
             <form action={refreshReportData.bind(null, id, report.id)}>
-              <button type="submit" className={quietButtonCls}><RefreshCw size={16} aria-hidden /> Atualizar com os registros</button>
+              <button type="submit" className={BUTTON_CLS.quiet}><RefreshCw size={16} aria-hidden /> Atualizar com os registros</button>
             </form>
           ) : null}
-          <Link href={`/estudantes/${id}/relatorios/${report.id}/imprimir`} className={quietButtonCls}><Printer size={16} aria-hidden /> Imprimir ou salvar em PDF</Link>
+          <Link href={`/estudantes/${id}/relatorios/${report.id}/imprimir`} className={BUTTON_CLS.quiet}><Printer size={16} aria-hidden /> Imprimir ou salvar em PDF</Link>
         </div>
       </div>
       <Card>
@@ -46,7 +46,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir este rascunho</summary>
             <p className="my-3 text-sm text-ink-soft">O rascunho e o parecer escrito saem. Os registros do período continuam na ficha.</p>
             <form action={removeReportDraft.bind(null, id, report.id)}>
-              <button type="submit" className={dangerButtonCls}><Trash2 size={16} aria-hidden /> Excluir o rascunho</button>
+              <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir o rascunho</button>
             </form>
           </details>
         </Card>

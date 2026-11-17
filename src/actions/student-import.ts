@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
+import { AUDIT_ACTION, auditEntry } from "@/lib/audit";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";
 import { isAccountManager } from "@/lib/roles";
 import { IMPORT_MAX_BYTES, normalize, readStudentSheet, studentKey, type StudentImport } from "@/lib/student-import";
@@ -92,7 +93,7 @@ export async function importStudents(_previous: ImportState, formData: FormData)
       supportProfessional: values.supportProfessional, guardianName: values.guardianName, guardianPhone: values.guardianPhone,
       avatarHue: Math.floor(Math.random() * 360),
       timeline: { create: { type: "avaliacao", title: "Cadastro no prontuário municipal", description: "Estudante incluído pela importação de planilha." } },
-      accessLogs: { create: { actor: user.name, role: user.role, action: "criou", detail: "Cadastro pela importação de planilha" } },
+      accessLogs: { create: auditEntry(user, AUDIT_ACTION.created, "Cadastro pela importação de planilha") },
     },
   })));
   revalidatePath("/estudantes");

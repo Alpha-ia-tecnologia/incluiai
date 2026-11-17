@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Printer } from "lucide-react";
-import { quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 
 export function ResourcePrintButton({ label, activityId, materialsOnly = false }: {
   label: string;
@@ -53,7 +53,7 @@ export function ResourcePrintButton({ label, activityId, materialsOnly = false }
   }
 
   return <span className="inline-flex flex-col items-start gap-2 print:hidden" data-resource-screen>
-    <button type="button" className={quietButtonCls} disabled={pending} aria-busy={pending || undefined} onClick={(event) => void print(event.currentTarget)}>
+    <button type="button" className={BUTTON_CLS.quiet} disabled={pending} aria-busy={pending || undefined} onClick={(event) => void print(event.currentTarget)}>
       <Printer size={16} aria-hidden="true" /> {pending ? "Preparando imagens…" : label}
     </button>
     {error ? <span role="alert" className="max-w-sm text-xs text-coral">{error}</span> : null}

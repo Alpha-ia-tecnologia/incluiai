@@ -4,6 +4,7 @@ import { validBnccCode } from "@/lib/bncc";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
+import { AUDIT_ACTION, recordChange } from "@/lib/audit";
 import { requireStudentTeam } from "@/lib/auth";
 import { buildObjectiveDescription } from "@/lib/objective";
 import { createPlanDraft } from "@/lib/agents/generate";
@@ -72,7 +73,7 @@ export async function activatePlanDraft(studentId: string, formData: FormData) {
       description: `Plano criado a partir de proposta ${draft.source === "ia" ? "dos agentes de IA" : "do motor de regras"}, revisada pela equipe, com ${chosen.length} objetivo(s).`,
     },
   });
-  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "criou", detail: "Plano individual (a partir de proposta)" } });
+  await recordChange(user, studentId, AUDIT_ACTION.created, "Plano individual (a partir de proposta)");
 
   revalidatePath("/estudantes/[id]", "layout");
   revalidatePath("/estudantes");
@@ -84,6 +85,6 @@ export async function discardPlanDraft(studentId: string) {
   const prisma = await db();
   const user = await requireTeam(studentId);
   await prisma.planDraft.deleteMany({ where: { studentId } });
-  await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "editou", detail: "Proposta de plano descartada" } });
+  await recordChange(user, studentId, AUDIT_ACTION.edited, "Proposta de plano descartada");
   revalidatePath(`/estudantes/${studentId}/ppi`);
 }

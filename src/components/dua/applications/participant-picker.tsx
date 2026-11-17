@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { hintCls, inputCls, labelCls } from "../dua-ui";
+import { hintCls, inputCls, labelCls } from "@/components/form-styles";
 
 export type StudentOption = { id: string; name: string; className: string; gradeYear: string };
 

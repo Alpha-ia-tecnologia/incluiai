@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { ImagePlus, Send } from "lucide-react";
 import { generateMaterialImagesAction, sendMaterialActivity, type MaterialActionState } from "@/actions/materials";
 import { PendingButton } from "@/components/pending-button";
-import { quietButtonCls as secondaryCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 
 
 function Result({ state }: { state: MaterialActionState }) {
@@ -20,7 +20,7 @@ export function MaterialImagesButton({ studentId, materialId, missing }: { stude
   const [state, action] = useActionState<MaterialActionState>(generateMaterialImagesAction.bind(null, studentId, materialId), { status: "idle" });
   return (
     <form action={action} className="flex flex-wrap items-center gap-2 print:hidden">
-      <PendingButton className={secondaryCls} pendingText="Desenhando os pictogramas dos cartões." wait="imagem">
+      <PendingButton className={BUTTON_CLS.quiet} pendingText="Desenhando os pictogramas dos cartões." wait="imagem">
         <ImagePlus size={16} aria-hidden /> {missing > 1 ? `Desenhar ${missing} imagens` : "Desenhar a imagem"}
       </PendingButton>
       <Result state={state} />
@@ -32,7 +32,7 @@ export function SendActivityButton({ studentId, materialId, index, title }: { st
   const [state, action] = useActionState<MaterialActionState>(sendMaterialActivity.bind(null, studentId, materialId, index), { status: "idle" });
   return (
     <form action={action} className="flex flex-wrap items-center gap-2 print:hidden">
-      <PendingButton className={secondaryCls} pendingText="Levando a atividade…" disabled={state.status === "ok"}>
+      <PendingButton className={BUTTON_CLS.quiet} pendingText="Levando a atividade…" disabled={state.status === "ok"}>
         <Send size={16} aria-hidden /> {state.status === "ok" ? "Já está em Atividades" : <>Levar para Atividades<span className="sr-only">: {title}</span></>}
       </PendingButton>
       <Result state={state} />

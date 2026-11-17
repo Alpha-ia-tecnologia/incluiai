@@ -10,7 +10,7 @@ import { applyCensusImport, decideCensusPerson, discardCensusImport, undoCensusD
 import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { CensusApplyForm, CensusDecisionForm } from "@/components/census/census-forms";
-import { quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, Steps } from "@/components/explain";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ function Warnings({ item }: { item: PlanItem }) {
 }
 
 function Undo({ importId, personKey }: { importId: string; personKey: string }) {
-  return <form action={undoCensusDecision.bind(null, importId, personKey)}><button type="submit" className={quietButtonCls}>Desfazer a decisão</button></form>;
+  return <form action={undoCensusDecision.bind(null, importId, personKey)}><button type="submit" className={BUTTON_CLS.quiet}>Desfazer a decisão</button></form>;
 }
 
 export default async function CensusImportPage({ params }: { params: Promise<{ importId: string }> }) {
@@ -163,7 +163,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
             ]}
           />
           <CensusApplyForm action={applyCensusImport.bind(null, importId)} blocked={plan.totals.review ? `Resolva ${plan.totals.review === 1 ? "a revisão" : `as ${plan.totals.review} revisões`} acima para aplicar.` : null} />
-          <form action={discardCensusImport.bind(null, importId)} className="mt-3"><button type="submit" className={quietButtonCls}>Descartar a prévia</button></form>
+          <form action={discardCensusImport.bind(null, importId)} className="mt-3"><button type="submit" className={BUTTON_CLS.quiet}>Descartar a prévia</button></form>
           {decided.length ? <p className="mt-3 text-xs text-ink-soft">{decided.length === 1 ? "1 decisão de revisão registrada" : `${decided.length} decisões de revisão registradas`}.</p> : null}
         </Card>
       </div>

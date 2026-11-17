@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowRight, ArrowUpRight, CalendarDays, Check, CircleSlash, Lightbulb, Scale, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
+import { AUDIT_ACTION } from "@/lib/audit";
 import {
   ALERT_LABELS, GAUGES, PERIODS, loadDashboard, parseGauge, parsePeriod,
   type DashboardGauge, type DashboardPeriod,
@@ -16,7 +17,7 @@ import { CALENDAR_THEMES, MONTH_SHORT, monthParam, relativeLabel, todayInBrazil,
 import { duaIndicators } from "@/lib/dua/indicators";
 import { AI_BLOCK_DECISION_LABEL } from "@/lib/dua/domain";
 import { EmptyState } from "@/components/ui";
-import { primaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, HowToRead } from "@/components/explain";
 import {
   BarList, ColumnChart, HatchedDonut, HatchedGauge, Legend, MonthGrid, SIGNAL, StackedBar, SupportScale, type ChartSegment,
@@ -29,7 +30,7 @@ import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
-const ACCESS_LABELS: Record<string, string> = { visualizou: "Consultas", criou: "Inclusões", editou: "Alterações", enviou: "Envios à IA de reserva (DeepSeek)" };
+const ACCESS_LABELS: Record<string, string> = { [AUDIT_ACTION.viewed]: "Consultas", [AUDIT_ACTION.created]: "Inclusões", [AUDIT_ACTION.edited]: "Alterações", [AUDIT_ACTION.sent]: "Envios à IA de reserva (DeepSeek)" };
 const SHORT_ALERTS: Record<string, string> = { sem_registro: "Sem registro há 7+ dias", plano_vencido: "Revisão vencida", sem_plano: "Sem plano", queda_participacao: "Queda de participação" };
 
 const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -298,7 +299,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <option value="">Toda a rede</option>
                 {scope.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
               </select>
-              <button type="submit" className={primaryButtonCls}>Ver</button>
+              <button type="submit" className={BUTTON_CLS.primary}>Ver</button>
             </form>
           ) : null}
           <PrintButton label="Imprimir" />

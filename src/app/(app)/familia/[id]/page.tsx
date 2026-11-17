@@ -6,6 +6,7 @@ import { ConsentCard } from "@/components/consent-card";
 import { ReadAloud } from "@/components/read-aloud";
 import { TextSizeControl } from "@/components/text-size-control";
 import { studentConsent } from "@/lib/consent";
+import { AUDIT_ACTION } from "@/lib/audit";
 import { db } from "@/lib/prisma";
 import { requireFamilyPortal } from "@/lib/page-context";
 import { familyActivityWhere, familyMaterialWhere, isFamilyOf } from "@/lib/policy";
@@ -32,7 +33,7 @@ import { percentOf } from "@/lib/series";
 import { RingTile } from "@/components/viz/ring-tile";
 import { SupportTrack } from "@/components/viz/support-track";
 import { Timeline } from "@/components/viz/timeline";
-import { labelCls as familyLabelCls, inputCls as familyInputCls, quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { imageWidthOf } from "@/lib/images/activity-image";
 
 
@@ -65,7 +66,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
     },
   });
   const isFamily = isFamilyOf(user, student.id);
-  const justified = await prisma.accessLog.findMany({ where: { studentId: student.id, action: "acesso justificado" }, orderBy: { createdAt: "desc" }, take: 50 });
+  const justified = await prisma.accessLog.findMany({ where: { studentId: student.id, action: AUDIT_ACTION.justifiedAccess }, orderBy: { createdAt: "desc" }, take: 50 });
   const accessLogs = [...new Map([...student.accessLogs, ...justified].map((log) => [log.id, log])).values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const [consent, reports, prefs, checkIn] = await Promise.all([
     studentConsent(student.id),
@@ -229,7 +230,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                   <CardPreferencesForm action={saveCardPreferences.bind(null, id)} firstName={firstName} settings={cardView.settings} guardian={cardView.guardian} hasProfile={cardView.settings.hasProfile} />
                   <form action={rotateStudentCard.bind(null, id)} className="mt-4 border-t border-line pt-4">
                     <p className="mb-2 text-sm text-ink-soft">Perderam a carteirinha? Troquem o código: a antiga deixa de abrir.</p>
-                    <PendingButton className={quietButtonCls} pendingText="Trocando o código…">Trocar o código</PendingButton>
+                    <PendingButton className={BUTTON_CLS.quiet} pendingText="Trocando o código…">Trocar o código</PendingButton>
                   </form>
                 </div>
               ) : null}
@@ -262,8 +263,8 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
           <Card className="scroll-mt-24 border-green/40" id="conquista">
             <SectionTitle>Registrar uma conquista de casa</SectionTitle>
             <form action={addNote} className="space-y-4">
-              <MultiChoiceField name="note" label="O que aconteceu? *" options={FAMILY_ACHIEVEMENT_OPTIONS} required otherPlaceholder={`Ex.: ${firstName} pediu água durante o jantar`} legendClassName={familyLabelCls} inputClassName={familyInputCls} />
-              <ChoiceField name="author" label="Quem observou" options={FAMILY_MEMBER_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: madrinha" labelClassName={familyLabelCls} inputClassName={familyInputCls} />
+              <MultiChoiceField name="note" label="O que aconteceu? *" options={FAMILY_ACHIEVEMENT_OPTIONS} required otherPlaceholder={`Ex.: ${firstName} pediu água durante o jantar`} />
+              <ChoiceField name="author" label="Quem observou" options={FAMILY_MEMBER_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: madrinha" />
               <button type="submit" className="min-h-11 rounded-full bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-strong">
                 Enviar
               </button>

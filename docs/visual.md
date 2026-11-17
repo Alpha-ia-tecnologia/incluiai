@@ -20,8 +20,8 @@ cartões brancos sobre um fundo cinza-azulado. Estas regras organizam o uso.
   - Texto: `on-navy` (títulos, 12,8:1) e `on-navy-soft` (apoio, 8,6:1). Nunca
     `ink`, `ink-soft` nem `brand` sobre o marinho.
   - Ação e item ativo: azul-claro (`accent-sky`) com texto `ink-strong`
-    (6,7:1): `primaryOnNavyCls`, `task-action-on-navy`, `pill-action-on-navy`.
-    A segunda ação usa `secondaryOnNavyCls`; o botão discreto serve como está.
+    (6,7:1): `BUTTON_CLS.primaryOnNavy`, `task-action-on-navy`, `pill-action-on-navy`.
+    A segunda ação usa `BUTTON_CLS.secondaryOnNavy`; o botão discreto serve como está.
   - Linhas e realce: `navy-line` e `navy-hover`.
   - Foco do teclado em azul-claro (o azul da marca some no marinho).
   - No papel, a superfície vira fundo claro com texto escuro (regra de
@@ -82,24 +82,30 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
 
 ## Kit de componentes
 
-- **`src/components/form-styles.ts`:** `inputCls`, `textareaCls`, `labelCls`,
-  `hintCls`, `choiceCls`, `linkCls` e os botões:
-  - `primaryButtonCls`: a ação da tela;
-  - `secondaryButtonCls`: azul-claro;
-  - `quietButtonCls`: com borda, para cancelar, filtrar e navegar;
-  - `dangerButtonCls`: excluir.
+- **`src/components/form-styles.ts`:** `inputCls` (`inputBoxCls` é o mesmo
+  campo sem largura), `textareaCls`, `labelCls`, `hintCls`, `choiceCls`,
+  `linkCls` e os botões em `BUTTON_CLS`:
+  - `primary`: a ação da tela;
+  - `secondary`: azul-claro;
+  - `quiet`: com borda, para cancelar, filtrar e navegar;
+  - `danger`: excluir; `dangerOutline`: excluir dentro de uma lista;
+  - `primaryOnNavy` e `secondaryOnNavy`: sobre o marinho.
 
   Não crie estilo local de campo ou botão.
+- **`src/components/form-kit.tsx`:** `Field` (rótulo, dica e
+  `aria-describedby` ligados pelo `id`) e `FormResult` (o resultado da ação:
+  alerta com os problemas ou confirmação). `useActionResult`
+  (`src/components/use-action-result.ts`) envia por transição.
 - **`src/components/ui.tsx`:**
   - `PageHeader`: `level={2}` para o título de uma aba dentro da ficha do
     estudante, que já tem o h1 com o nome;
   - `PageHero`: faixa em marinho com o personagem, nas telas principais. O
-    que entra nela usa as versões sobre o marinho: `primaryOnNavyCls`,
-    `secondaryOnNavyCls`, `Assurances onNavy`, `HowToRead onNavy`,
+    que entra nela usa as versões sobre o marinho: `BUTTON_CLS.primaryOnNavy`,
+    `BUTTON_CLS.secondaryOnNavy`, `Assurances onNavy`, `HowToRead onNavy`,
     `PillLink onNavy`, `TextSizeControl onNavy`;
   - `HeroStat`;
   - `EmptyState`: com `character` e `action`;
-  - `Button` e `ButtonLink`;
+  - `ButtonLink`;
   - `Card`, `Badge`, `SectionTitle`.
 - **Lista de seleção:** o `<select>` nativo ganha a seta e o espaço da
   plataforma por uma regra global; basta usar `inputCls`.

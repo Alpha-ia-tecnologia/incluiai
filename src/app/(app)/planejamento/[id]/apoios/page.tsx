@@ -9,7 +9,8 @@ import { listSuggestions } from "@/lib/dua/suggestions";
 import { listSupports, planObjectives, profileReferences } from "@/lib/dua/supports";
 import { formatDate } from "@/lib/format";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
-import { Field, inputCls, linkCls, secondaryCls } from "@/components/dua/dua-ui";
+import { Field } from "@/components/form-kit";
+import { BUTTON_CLS, inputCls, linkCls } from "@/components/form-styles";
 import { SupportCard } from "@/components/dua/supports/support-card";
 import { SupportForm, type ObjectiveOption, type ProfileOption } from "@/components/dua/supports/support-form";
 import { Assurances, HowToRead } from "@/components/explain";
@@ -77,12 +78,14 @@ export default async function SupportsPage({ params, searchParams }: { params: P
               <Form action={base} scroll={false} className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                 {showAll && className ? <input type="hidden" name="todos" value="1" /> : null}
                 <Field id="apoio-estudante" label={showAll ? "Estudante (todos os que você acompanha)" : `Estudante da turma ${className}`}>
-                  <select key={selected?.id ?? "nenhum"} id="apoio-estudante" name="estudante" required defaultValue={selected?.id ?? ""} className={inputCls}>
-                    <option value="" disabled>Escolha o estudante</option>
-                    {choices.map((student) => <option key={student.id} value={student.id}>{student.name} · {student.gradeYear} ({student.className})</option>)}
-                  </select>
+                  {(control) => (
+                    <select key={selected?.id ?? "nenhum"} {...control} name="estudante" required defaultValue={selected?.id ?? ""} className={inputCls}>
+                      <option value="" disabled>Escolha o estudante</option>
+                      {choices.map((student) => <option key={student.id} value={student.id}>{student.name} · {student.gradeYear} ({student.className})</option>)}
+                    </select>
+                  )}
                 </Field>
-                <button type="submit" className={secondaryCls}>
+                <button type="submit" className={BUTTON_CLS.quiet}>
                   {selected ? "Trocar de estudante" : "Escolher estudante"} <ArrowRight size={16} aria-hidden />
                 </button>
               </Form>

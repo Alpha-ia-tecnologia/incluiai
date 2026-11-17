@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Sprout } from "lucide-react";
 import { logout } from "@/actions/auth";
-import { quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 
 export function LoginStepFrame({ badge, icon, title, lede, children }: { badge: string; icon: ReactNode; title: string; lede: string; children: ReactNode }) {
   return (
@@ -25,7 +25,7 @@ export function LoginStepFrame({ badge, icon, title, lede, children }: { badge: 
         {children}
 
         <form action={logout} className="mt-8 border-t border-line pt-5">
-          <button type="submit" className={quietButtonCls}>Voltar e entrar com outra conta</button>
+          <button type="submit" className={BUTTON_CLS.quiet}>Voltar e entrar com outra conta</button>
         </form>
       </div>
     </main>

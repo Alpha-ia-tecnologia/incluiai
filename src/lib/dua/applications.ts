@@ -8,7 +8,10 @@ import {
   type ApplicationContext, type CriterionStatus, type DuaContent, type DuaSupportData, type EvidenceObservation, type ExecutionState, type FollowUpSuggestion,
 } from "./domain";
 import { planningAccess, type PlanningAccess } from "./access";
-import { DuaError, audit, clip, contentOf, dateFromInput, loadPlanningFor, studentLog } from "./shared";
+import { audit, clip, contentOf, loadPlanningFor } from "./shared";
+import { AUDIT_ACTION, recordChange } from "../audit";
+import { dateFromInput } from "../form-data";
+import { UserError } from "../user-error";
 
 type Person = { id: string; name: string };
 
@@ -28,7 +31,7 @@ async function participantsInReach(user: SessionUser, ids: string[]) {
   const unique = [...new Set(ids.filter(Boolean))].slice(0, 60);
   const students = await prisma.student.findMany({ where: { id: { in: unique } }, select: { id: true, name: true, schoolId: true } });
   if (students.length !== unique.length || students.some((student) => !canWorkWithStudent(user, student))) {
-    throw new DuaError("Há participante fora do seu acesso. Escolha só estudantes que você acompanha.", "sem_permissao");
+    throw new UserError("Há participante fora do seu acesso. Escolha só estudantes que você acompanha.", "forbidden");
   }
   return unique;
 }
@@ -37,9 +40,9 @@ export async function createApplication(user: SessionUser, planningId: string, i
   const prisma = await db();
   const { planning } = await loadPlanningFor(user, planningId, "read");
   const version = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version: input.versionNumber } } });
-  if (!version) throw new DuaError("Versão não encontrada.", "nao_encontrado");
-  if (version.state !== "validado") throw new DuaError("Só uma versão validada pode ser aplicada. Valide o planejamento antes.");
-  if (!APPLICATION_CONTEXTS.includes(input.context as ApplicationContext)) throw new DuaError("Diga se a aplicação é na sala comum ou no AEE.");
+  if (!version) throw new UserError("Versão não encontrada.", "not_found");
+  if (version.state !== "validado") throw new UserError("Só uma versão validada pode ser aplicada. Valide o planejamento antes.");
+  if (!APPLICATION_CONTEXTS.includes(input.context as ApplicationContext)) throw new UserError("Diga se a aplicação é na sala comum ou no AEE.");
   const date = dateFromInput(input.date, "a data da aplicação");
   const participantIds = await participantsInReach(user, input.participantIds);
   const application = await prisma.duaApplication.create({
@@ -70,17 +73,17 @@ const canManageApplication = (user: SessionUser, access: PlanningAccess, applica
 async function loadApplicationFor(user: SessionUser, applicationId: string) {
   const prisma = await db();
   const application = await prisma.duaApplication.findUnique({ where: { id: applicationId }, include: { planning: true, version: true } });
-  if (!application) throw new DuaError("Aplicação não encontrada.", "nao_encontrado");
+  if (!application) throw new UserError("Aplicação não encontrada.", "not_found");
   const access = planningAccess(user, application.planning);
-  if (!access.read) throw new DuaError("Aplicação não encontrada.", "nao_encontrado");
+  if (!access.read) throw new UserError("Aplicação não encontrada.", "not_found");
   return { application, access, canManage: canManageApplication(user, access, application) };
 }
 
 export async function updateApplication(user: SessionUser, applicationId: string, revision: number, input: { state: string; notes?: string; addParticipantIds: string[]; removeParticipantIds: string[] }) {
   const prisma = await db();
   const { application, canManage } = await loadApplicationFor(user, applicationId);
-  if (!canManage) throw new DuaError("Só quem responde pela aplicação ou edita o planejamento altera a aplicação.", "sem_permissao");
-  if (!EXECUTION_STATES.includes(input.state as ExecutionState)) throw new DuaError("Situação de execução inválida.");
+  if (!canManage) throw new UserError("Só quem responde pela aplicação ou edita o planejamento altera a aplicação.", "forbidden");
+  if (!EXECUTION_STATES.includes(input.state as ExecutionState)) throw new UserError("Situação de execução inválida.");
   const current = parseJson<string[]>(application.participantIds, []);
   const added = await participantsInReach(user, input.addParticipantIds);
   const removable = (await prisma.student.findMany({ where: { id: { in: input.removeParticipantIds } }, select: { id: true, schoolId: true } })).filter((student) => canWorkWithStudent(user, student)).map((student) => student.id);
@@ -89,7 +92,7 @@ export async function updateApplication(user: SessionUser, applicationId: string
     where: { id: applicationId, revision },
     data: { state: input.state, ...(input.notes !== undefined ? { notes: clip(input.notes, 2000) || null } : {}), participantIds: JSON.stringify(next), revision: { increment: 1 } },
   });
-  if (!updated.count) throw new DuaError("Outro profissional alterou esta aplicação agora há pouco. Atualize a página.", "conflito");
+  if (!updated.count) throw new UserError("Outro profissional alterou esta aplicação agora há pouco. Atualize a página.", "conflict");
   if (input.state !== application.state) await audit(user, application.planningId, "mudou a situação da aplicação", "aplicacao", { objectId: applicationId, versionNumber: application.versionNumber, detail: input.state });
 }
 
@@ -109,8 +112,8 @@ export async function registerEvidence(user: SessionUser, applicationId: string,
   const prisma = await db();
   const { application } = await loadApplicationFor(user, applicationId);
   const student = await assertStudentTeam(user, studentId);
-  if (!parseJson<string[]>(application.participantIds, []).includes(studentId)) throw new DuaError("Este estudante não está entre os participantes da aplicação.");
-  if (application.state === "cancelada") throw new DuaError("A aplicação foi cancelada: não há evidência a registrar.");
+  if (!parseJson<string[]>(application.participantIds, []).includes(studentId)) throw new UserError("Este estudante não está entre os participantes da aplicação.");
+  if (application.state === "cancelada") throw new UserError("A aplicação foi cancelada: não há evidência a registrar.");
   const content = contentOf(application.version);
   const criterionIds = new Set(content.criteria.map((item) => item.id));
   const given = new Map(input.criteria.filter((item) => criterionIds.has(item.criterionId)).map((item) => [item.criterionId, item.status]));
@@ -141,7 +144,7 @@ export async function registerEvidence(user: SessionUser, applicationId: string,
     update: data,
   });
   await audit(user, application.planningId, existing ? "atualizou evidência" : "registrou evidência", "evidencia", { objectId: applicationId, versionNumber: application.versionNumber });
-  await studentLog(user, student.id, existing ? "editou" : "criou", `Evidência da atividade com DUA "${application.planning.title}" (${application.context === "aee" ? "AEE" : "sala comum"})`);
+  await recordChange(user, student.id, existing ? AUDIT_ACTION.edited : AUDIT_ACTION.created, `Evidência da atividade com DUA "${application.planning.title}" (${application.context === "aee" ? "AEE" : "sala comum"})`);
 }
 
 export type EvidenceView = {

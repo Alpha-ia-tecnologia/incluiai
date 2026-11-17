@@ -4,7 +4,7 @@ import { useActionState, useId } from "react";
 import { KeyRound } from "lucide-react";
 import type { PasswordState } from "@/actions/account";
 import { PASSWORD_MIN } from "@/lib/user-admin";
-import { hintCls, inputCls, labelCls, primaryButtonCls } from "@/components/form-styles";
+import { hintCls, inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
 export function PasswordForm({ action, askCurrent = false, button, pendingLabel, savedMessage }: {
   action: (previous: PasswordState, formData: FormData) => Promise<PasswordState>;
@@ -35,7 +35,7 @@ export function PasswordForm({ action, askCurrent = false, button, pendingLabel,
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       {state.saved && savedMessage ? <p role="status" className="text-sm font-medium text-green">{savedMessage}</p> : null}
       <div>
-        <button type="submit" disabled={pending} className={primaryButtonCls}>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           <KeyRound size={16} aria-hidden /> {pending ? pendingLabel : button}
         </button>
       </div>

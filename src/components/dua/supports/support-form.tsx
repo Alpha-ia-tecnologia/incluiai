@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { Plus, Save } from "lucide-react";
 import { createDuaSupport, updateDuaSupport } from "@/actions/dua";
+import type { ActionResult } from "@/lib/action-result";
 import { BARRIER_STATUSES, BARRIER_STATUS_LABEL, type DuaSupportData } from "@/lib/dua/domain";
-import { Field, ResultMessage, buttonCls, hintCls, inputCls, labelCls, textareaCls } from "../dua-ui";
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 
 export type ProfileOption = { field: string; label: string; value: string; source: string; dateLabel: string; version: string };
 export type ObjectiveOption = { id: string; description: string; status: string };
-
-export type Outcome = { ok: boolean; message?: string; problems?: { field: string; message: string }[] };
 
 const OBJECTIVE_STATUS: Record<string, string> = { ativo: "ativo", alcancado: "alcançado", em_revisao: "em revisão" };
 
@@ -23,7 +23,7 @@ type Props = {
 };
 
 export function SupportForm(props: Props) {
-  const [result, setResult] = useState<Outcome | null>(null);
+  const { result, pending, submit } = useActionResult<unknown>();
   const [round, setRound] = useState(0);
   const formKey = props.existing ? `revisao-${props.existing.revision}` : `novo-${round}`;
   return (
@@ -31,19 +31,15 @@ export function SupportForm(props: Props) {
       <SupportFields
         key={formKey}
         {...props}
-        onResult={(outcome) => {
-          setResult(outcome);
-          if (outcome.ok && !props.existing) setRound((value) => value + 1);
-        }}
+        pending={pending}
+        save={(call, message) => submit(call, { message, onSuccess: () => { if (!props.existing) setRound((value) => value + 1); } })}
       />
-      <ResultMessage result={result} />
+      <FormResult result={result} />
     </div>
   );
 }
 
-function SupportFields({ planningId, student, profileOptions, objectives, existing, onResult }: Props & { onResult: (outcome: Outcome) => void }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
+function SupportFields({ planningId, student, profileOptions, objectives, existing, pending, save }: Props & { pending: boolean; save: (call: () => Promise<ActionResult<unknown>>, message?: string) => void }) {
   const data = existing?.data;
   const [individualText, setIndividualText] = useState(data?.individualObjective?.text ?? "");
   const [showIndividual, setShowIndividual] = useState(Boolean(data?.individualObjective?.text));
@@ -55,7 +51,7 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
   const goneLinks = (data?.planLinks ?? []).filter((link) => !objectives.some((objective) => objective.id === link.objectiveId));
   const hasIndividual = individualText.trim().length > 0;
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
@@ -64,14 +60,14 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
     const individualObjectiveId = hasIndividual ? text("individualObjectiveId") : "";
     if (hasIndividual && (!justification.trim() || !individualObjectiveId)) {
       setShowIndividual(true);
-      onResult({
+      save(async () => ({
         ok: false,
         message: "Complete o objetivo individual antes de salvar.",
         problems: [
           ...(!justification.trim() ? [{ field: "individualObjective.justification", message: "Explique por que o objetivo individual é diferente do coletivo." }] : []),
           ...(!individualObjectiveId ? [{ field: "individualObjective.objectiveId", message: "Escolha o objetivo do Plano de ensino ao qual ele se liga." }] : []),
         ],
-      });
+      }));
       return;
     }
     const objectiveIds = [...new Set([...form.getAll("objectiveIds").map(String), individualObjectiveId].filter(Boolean))];
@@ -87,28 +83,20 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
       individualObjectiveJustification: justification,
       individualObjectiveId,
     };
-    start(async () => {
-      const outcome = existing
-        ? await updateDuaSupport({ planningId, studentId: student.id, supportId: existing.id, revision: existing.revision, ...fields })
-        : await createDuaSupport({ planningId, studentId: student.id, ...fields });
-      if (!outcome.ok) {
-        onResult(outcome);
-        return;
-      }
-      onResult({
-        ok: true,
-        message: existing
-          ? existing.state === "validado"
-            ? "Alterações salvas. O apoio voltou para rascunho e precisa ser validado de novo."
-            : "Alterações salvas no rascunho do apoio."
-          : `Apoio de ${student.name} salvo como rascunho. Ele aparece na lista de apoios planejados.`,
-      });
-      router.refresh();
-    });
+    save(
+      () => (existing
+        ? updateDuaSupport({ planningId, studentId: student.id, supportId: existing.id, revision: existing.revision, ...fields })
+        : createDuaSupport({ planningId, studentId: student.id, ...fields })),
+      existing
+        ? existing.state === "validado"
+          ? "Alterações salvas. O apoio voltou para rascunho e precisa ser validado de novo."
+          : "Alterações salvas no rascunho do apoio."
+        : `Apoio de ${student.name} salvo como rascunho. Ele aparece na lista de apoios planejados.`,
+    );
   }
 
   return (
-    <form onSubmit={submit} className="grid min-w-0 gap-5" aria-busy={pending}>
+    <form onSubmit={send} className="grid min-w-0 gap-5" aria-busy={pending}>
       <fieldset className="min-w-0">
         <legend className={labelCls}>O que do perfil embasa este apoio</legend>
         <p className={hintCls}>Marque só o que importa para esta atividade. Cada item guarda a fonte e a data consultadas. Diagnóstico e dados de saúde não aparecem aqui.</p>
@@ -160,7 +148,7 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
 
       <div className="grid min-w-0 gap-4 rounded-xl bg-surface-muted/60 p-3 sm:p-4">
         <Field id={`${prefix}-barreira`} label="Barreira nesta atividade" hint="Descreva a barreira na tarefa, no material ou no ambiente, e não no estudante.">
-          <textarea id={`${prefix}-barreira`} name="barrierDescription" aria-describedby={`${prefix}-barreira-dica`} defaultValue={data?.barrier.description ?? ""} maxLength={600} className={`${textareaCls} min-h-16`} placeholder="Ex.: o enunciado só aparece por escrito, em um bloco longo" />
+          {(control) => <textarea {...control} name="barrierDescription" defaultValue={data?.barrier.description ?? ""} maxLength={600} className={`${textareaCls} min-h-16`} placeholder="Ex.: o enunciado só aparece por escrito, em um bloco longo" />}
         </Field>
         <fieldset className="min-w-0">
           <legend className={labelCls}>Situação da barreira</legend>
@@ -175,14 +163,14 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
         </fieldset>
       </div>
 
-      <Field id={`${prefix}-recurso`} label="Recurso ou intervenção planejada" required hint="O que será oferecido ao estudante nesta atividade.">
-        <textarea id={`${prefix}-recurso`} name="support" aria-describedby={`${prefix}-recurso-dica`} defaultValue={data?.support ?? ""} maxLength={1200} className={textareaCls} placeholder="Ex.: enunciado em passos curtos, com leitura em voz alta pelo colega" />
+      <Field id={`${prefix}-recurso`} label="Recurso ou intervenção planejada" note="obrigatório para validar" hint="O que será oferecido ao estudante nesta atividade.">
+        {(control) => <textarea {...control} name="support" defaultValue={data?.support ?? ""} maxLength={1200} className={textareaCls} placeholder="Ex.: enunciado em passos curtos, com leitura em voz alta pelo colega" />}
       </Field>
-      <Field id={`${prefix}-finalidade`} label="Finalidade do apoio" required hint="Para que o apoio serve nesta atividade.">
-        <textarea id={`${prefix}-finalidade`} name="purpose" aria-describedby={`${prefix}-finalidade-dica`} defaultValue={data?.purpose ?? ""} maxLength={600} className={`${textareaCls} min-h-16`} placeholder="Ex.: compreender a proposta sem depender só da leitura" />
+      <Field id={`${prefix}-finalidade`} label="Finalidade do apoio" note="obrigatório para validar" hint="Para que o apoio serve nesta atividade.">
+        {(control) => <textarea {...control} name="purpose" defaultValue={data?.purpose ?? ""} maxLength={600} className={`${textareaCls} min-h-16`} placeholder="Ex.: compreender a proposta sem depender só da leitura" />}
       </Field>
       <Field id={`${prefix}-uso`} label="Quando e onde usar" hint="Momento da atividade e espaço, como sala comum ou AEE.">
-        <input id={`${prefix}-uso`} name="usageContext" aria-describedby={`${prefix}-uso-dica`} defaultValue={data?.usageContext ?? ""} maxLength={300} className={inputCls} placeholder="Ex.: na leitura do enunciado, na sala comum" />
+        {(control) => <input {...control} name="usageContext" defaultValue={data?.usageContext ?? ""} maxLength={300} className={inputCls} placeholder="Ex.: na leitura do enunciado, na sala comum" />}
       </Field>
 
       <details open={showIndividual} onToggle={(event) => setShowIndividual(event.currentTarget.open)} className="min-w-0 rounded-xl border border-line px-4">
@@ -194,16 +182,18 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
           ) : (
             <>
               <Field id={`${prefix}-objetivo`} label="Objetivo individual nesta atividade">
-                <textarea id={`${prefix}-objetivo`} value={individualText} onChange={(event) => setIndividualText(event.target.value)} maxLength={600} className={`${textareaCls} min-h-16`} />
+                {(control) => <textarea {...control} value={individualText} onChange={(event) => setIndividualText(event.target.value)} maxLength={600} className={`${textareaCls} min-h-16`} />}
               </Field>
               <Field id={`${prefix}-justificativa`} label={hasIndividual ? "Justificativa (obrigatória)" : "Justificativa"} hint="Por que o objetivo da turma, com apoios, não atende este estudante nesta atividade.">
-                <textarea id={`${prefix}-justificativa`} name="individualObjectiveJustification" aria-describedby={`${prefix}-justificativa-dica`} aria-required={hasIndividual} defaultValue={data?.individualObjective?.justification ?? ""} maxLength={600} className={`${textareaCls} min-h-16`} />
+                {(control) => <textarea {...control} name="individualObjectiveJustification" aria-required={hasIndividual} defaultValue={data?.individualObjective?.justification ?? ""} maxLength={600} className={`${textareaCls} min-h-16`} />}
               </Field>
               <Field id={`${prefix}-vinculo`} label={hasIndividual ? "Objetivo do Plano de ensino ligado (obrigatório)" : "Objetivo do Plano de ensino ligado"} hint="Ele também fica marcado entre os objetivos ligados ao apoio.">
-                <select id={`${prefix}-vinculo`} name="individualObjectiveId" aria-describedby={`${prefix}-vinculo-dica`} aria-required={hasIndividual} defaultValue={data?.individualObjective?.objectiveId ?? ""} className={inputCls}>
-                  <option value="">Escolha o objetivo do plano</option>
-                  {objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.description}</option>)}
-                </select>
+                {(control) => (
+                  <select {...control} name="individualObjectiveId" aria-required={hasIndividual} defaultValue={data?.individualObjective?.objectiveId ?? ""} className={inputCls}>
+                    <option value="">Escolha o objetivo do plano</option>
+                    {objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.description}</option>)}
+                  </select>
+                )}
               </Field>
             </>
           )}
@@ -211,7 +201,7 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
       </details>
 
       <div>
-        <button type="submit" disabled={pending} className={buttonCls}>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           {existing ? <Save size={16} aria-hidden /> : <Plus size={16} aria-hidden />}
           {pending ? "Salvando…" : existing ? "Salvar alterações" : "Salvar apoio como rascunho"}
         </button>

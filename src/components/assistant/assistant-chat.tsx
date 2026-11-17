@@ -9,7 +9,7 @@ import type { GardenOutcome } from "@/lib/assistant/garden-scenes";
 import { ACTION_KIND_LABELS, STEP_DONE_LABELS } from "@/lib/assistant/labels";
 import { GardenWait } from "@/components/garden-wait/garden-wait";
 import { Character } from "@/components/character";
-import { secondaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Markdown } from "./markdown";
 
 type Live = { text: string; steps: ToolStep[] };
@@ -386,7 +386,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
       ) : (
         <>
           <p className="max-w-md rounded-2xl bg-amber-soft px-4 py-3 text-left text-sm leading-relaxed text-amber">O assistente ainda não está ativo nesta instalação: falta a chave da Anthropic no servidor.</p>
-          <Link href="/ajuda" className={secondaryButtonCls}><CircleHelp size={16} aria-hidden /> Abrir a Ajuda</Link>
+          <Link href="/ajuda" className={BUTTON_CLS.secondary}><CircleHelp size={16} aria-hidden /> Abrir a Ajuda</Link>
         </>
       )}
     </div>

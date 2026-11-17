@@ -4,7 +4,7 @@ import { getCurrentUser, getPendingLogin } from "@/lib/auth";
 import { startTwoFactorSetup, verifySecondStep } from "@/actions/two-factor";
 import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
-import { primaryButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { LoginStepFrame } from "@/components/login-step-frame";
 import { isPlatformRole } from "@/lib/roles";
 
@@ -34,7 +34,7 @@ export default async function SecondStepPage() {
             <TwoFactorSetup secret={user.totpPendingSecret} account={user.email} finish="enter" />
           ) : (
             <form action={startTwoFactorSetup}>
-              <button type="submit" className={primaryButtonCls}><ShieldCheck size={16} aria-hidden /> Começar</button>
+              <button type="submit" className={BUTTON_CLS.primary}><ShieldCheck size={16} aria-hidden /> Começar</button>
             </form>
           )
         ) : (

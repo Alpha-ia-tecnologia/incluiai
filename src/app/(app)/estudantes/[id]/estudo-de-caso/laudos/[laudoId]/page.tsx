@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/format";
 import { deleteHealthReport, retryHealthReport, reviewHealthReport } from "@/actions/health-reports";
 import { AIDisclaimer, ButtonLink, Card, PageHeader } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
-import { choiceCls, dangerButtonCls, linkCls, primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { choiceCls, BUTTON_CLS, linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +90,7 @@ export default async function HealthReportPage({
         title="Leitura do laudo"
         lede={`${report.fileName} · anexado por ${report.uploadedBy} em ${formatDate(report.createdAt)}.`}
         actions={
-          <a href={`/api/laudos/${report.id}`} target="_blank" rel="noopener" className={`${quietButtonCls} print:hidden`}>
+          <a href={`/api/laudos/${report.id}`} target="_blank" rel="noopener" className={`${BUTTON_CLS.quiet} print:hidden`}>
             Abrir o arquivo <ExternalLink size={15} aria-hidden /><span className="sr-only"> (abre em nova aba)</span>
           </a>
         }
@@ -187,11 +187,11 @@ export default async function HealthReportPage({
               {nothingNew ? <p className="text-base text-ink">O laudo não trouxe nada novo para o estudo de caso de {firstName}.</p> : null}
 
               <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
-                <PendingButton className={primaryButtonCls} pendingText="Salvando a revisão…">
+                <PendingButton className={BUTTON_CLS.primary} pendingText="Salvando a revisão…">
                   {nothingNew ? "Marcar como revisado" : "Juntar ao estudo de caso"} <ArrowRight size={16} aria-hidden />
                 </PendingButton>
                 {!nothingNew ? (
-                  <button type="submit" name="intent" value="descartar" className={quietButtonCls}>
+                  <button type="submit" name="intent" value="descartar" className={BUTTON_CLS.quiet}>
                     Descartar as sugestões
                   </button>
                 ) : null}
@@ -234,7 +234,7 @@ export default async function HealthReportPage({
             <div className="mt-5 flex flex-wrap items-center gap-3">
               {canRetry ? (
                 <form action={retryHealthReport.bind(null, report.id)}>
-                  <PendingButton className={primaryButtonCls} pendingText="Lendo o laudo. Pode levar até um minuto.">
+                  <PendingButton className={BUTTON_CLS.primary} pendingText="Lendo o laudo. Pode levar até um minuto.">
                     <RotateCcw size={16} aria-hidden /> {report.status === "sem_autorizacao" ? "Pedir a leitura" : "Tentar ler de novo"}
                   </PendingButton>
                 </form>
@@ -250,7 +250,7 @@ export default async function HealthReportPage({
           <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir este laudo</summary>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">O arquivo e a leitura da IA saem da plataforma. O que já foi juntado ao estudo de caso continua lá.</p>
           <form action={deleteHealthReport.bind(null, report.id)} className="mt-3">
-            <button type="submit" className={dangerButtonCls}><Trash2 size={16} aria-hidden /> Excluir o laudo</button>
+            <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir o laudo</button>
           </form>
         </details>
       </div>

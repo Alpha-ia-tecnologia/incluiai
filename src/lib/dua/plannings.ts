@@ -10,7 +10,8 @@ import {
 } from "./domain";
 import { collaboratorIds, planningAccess, readablePlanningsWhere } from "./access";
 import { validBnccCode } from "../bncc";
-import { DuaError, NOT_FOUND, audit, clip, contentOf, latestVersion, loadPlanningFor } from "./shared";
+import { NOT_FOUND, audit, clip, contentOf, latestVersion, loadPlanningFor } from "./shared";
+import { UserError } from "../user-error";
 
 const MAX_CONTENT = 200_000;
 const MAX_ITEMS = 40;
@@ -79,15 +80,15 @@ async function checkedClassName(user: SessionUser, className: string) {
   const prisma = await db();
   if (!className) return null;
   const known = await prisma.schoolClass.findFirst({ where: { name: className, ...(user.schoolId ? { schoolId: user.schoolId } : {}) }, select: { id: true } });
-  if (!known) throw new DuaError("Escolha uma turma cadastrada na sua escola.");
+  if (!known) throw new UserError("Escolha uma turma cadastrada na sua escola.");
   return className;
 }
 
 export async function createPlanning(user: SessionUser, input: { title: string; className?: string; reuseFromId?: string }) {
   const prisma = await db();
-  if (!can(user.role, "planDua")) throw new DuaError("Seu perfil não planeja atividades com DUA.", "sem_permissao");
+  if (!can(user.role, "planDua")) throw new UserError("Seu perfil não planeja atividades com DUA.", "forbidden");
   const title = clip(input.title, 160);
-  if (title.length < 3) throw new DuaError("Dê um título à atividade (ao menos 3 letras).");
+  if (title.length < 3) throw new UserError("Dê um título à atividade (ao menos 3 letras).");
   const className = await checkedClassName(user, clip(input.className, 80));
 
   let content: DuaContent = emptyDuaContent(title);
@@ -119,7 +120,7 @@ export async function loadPlanning(user: SessionUser, planningId: string) {
   const { planning, access } = await loadPlanningFor(user, planningId, "read");
   const versions = await prisma.duaPlanningVersion.findMany({ where: { planningId }, orderBy: { version: "desc" } });
   const current = versions[0];
-  if (!current) throw new DuaError(NOT_FOUND, "nao_encontrado");
+  if (!current) throw new UserError(NOT_FOUND, "not_found");
   return {
     planning: { ...planning, collaboratorList: parseJson<Array<{ id: string; name: string }>>(planning.collaborators, []) },
     access,
@@ -185,9 +186,9 @@ export type SaveResult =
 export async function saveDraft(user: SessionUser, planningId: string, input: { version: number; revision: number; content: Partial<DuaContent> }): Promise<SaveResult> {
   const prisma = await db();
   const { planning, access } = await loadPlanningFor(user, planningId, "edit");
-  if (JSON.stringify(input.content ?? {}).length > MAX_CONTENT) throw new DuaError("O planejamento ficou grande demais para salvar. Divida em duas atividades.");
+  if (JSON.stringify(input.content ?? {}).length > MAX_CONTENT) throw new UserError("O planejamento ficou grande demais para salvar. Divida em duas atividades.");
   const current = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version: input.version } } });
-  if (!current) throw new DuaError(NOT_FOUND, "nao_encontrado");
+  if (!current) throw new UserError(NOT_FOUND, "not_found");
   if (current.state === "validado") return { ok: false, reason: "validado", message: "Esta versão foi validada e não muda mais. Abra uma nova versão para editar." };
   const content = reconcileContent(contentOf(current), input.content ?? {}, access.owner ? "professor" : "colaboracao");
   const updated = await prisma.duaPlanningVersion.updateMany({
@@ -207,12 +208,12 @@ export async function saveDraft(user: SessionUser, planningId: string, input: { 
 async function transition(user: SessionUser, planningId: string, version: number, revision: number, from: ReviewState[], data: Record<string, unknown>) {
   const prisma = await db();
   const current = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version } } });
-  if (!current) throw new DuaError(NOT_FOUND, "nao_encontrado");
+  if (!current) throw new UserError(NOT_FOUND, "not_found");
   const latest = await latestVersion(planningId);
-  if (latest.id !== current.id) throw new DuaError("Há uma versão mais nova deste planejamento. Atualize a página.", "conflito");
-  if (!from.includes(current.state as ReviewState)) throw new DuaError(current.state === "validado" ? "Esta versão já está validada." : "Esta versão não está no estado esperado. Atualize a página.", "conflito");
+  if (latest.id !== current.id) throw new UserError("Há uma versão mais nova deste planejamento. Atualize a página.", "conflict");
+  if (!from.includes(current.state as ReviewState)) throw new UserError(current.state === "validado" ? "Esta versão já está validada." : "Esta versão não está no estado esperado. Atualize a página.", "conflict");
   const updated = await prisma.duaPlanningVersion.updateMany({ where: { id: current.id, revision, state: { in: from } }, data: { ...data, revision: { increment: 1 } } });
-  if (updated.count === 0) throw new DuaError("Outro profissional alterou esta versão agora há pouco. Atualize a página e confira antes de continuar.", "conflito");
+  if (updated.count === 0) throw new UserError("Outro profissional alterou esta versão agora há pouco. Atualize a página e confira antes de continuar.", "conflict");
   return current;
 }
 
@@ -232,9 +233,9 @@ export async function validateVersion(user: SessionUser, planningId: string, ver
   const prisma = await db();
   await loadPlanningFor(user, planningId, "validate");
   const current = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId, version } } });
-  if (!current) throw new DuaError(NOT_FOUND, "nao_encontrado");
+  if (!current) throw new UserError(NOT_FOUND, "not_found");
   const problems = validationProblems(contentOf(current));
-  if (problems.length) throw new DuaError("Ainda falta completar o planejamento para validar.", "invalido", problems);
+  if (problems.length) throw new UserError("Ainda falta completar o planejamento para validar.", "invalid", problems);
   await transition(user, planningId, version, revision, ["rascunho", "em_revisao"], { state: "validado", validatedAt: new Date(), validatedById: user.id, validatedByName: user.name, updatedById: user.id, updatedByName: user.name });
   await audit(user, planningId, "validou para aplicação", "versao", { versionNumber: version });
 }
@@ -260,7 +261,7 @@ export async function setSharing(user: SessionUser, planningId: string, sharing:
   await loadPlanningFor(user, planningId, "share");
   if (sharing === "compartilhado") {
     const validated = await prisma.duaPlanningVersion.count({ where: { planningId, state: "validado" } });
-    if (!validated) throw new DuaError("Valide o planejamento antes de compartilhar com a equipe.");
+    if (!validated) throw new UserError("Valide o planejamento antes de compartilhar com a equipe.");
   }
   await prisma.duaPlanning.update({ where: { id: planningId }, data: sharing === "compartilhado" ? { sharing, sharedAt: new Date(), sharedBy: user.name } : { sharing, sharedAt: null, sharedBy: null } });
   await audit(user, planningId, sharing === "compartilhado" ? "compartilhou com a equipe" : "deixou de compartilhar", "planejamento");

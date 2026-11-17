@@ -5,7 +5,7 @@ import { canAccessStudent, isTherapistOf } from "./policy";
 import { can, isLinkedRole } from "./roles";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
-import { recordChange } from "./access-log";
+import { AUDIT_ACTION, auditEntry, recordChange } from "./audit";
 
 export async function assertCaseStudyConcluded(studentId: string) {
   const prisma = await db();
@@ -59,7 +59,7 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
   if (activityId) {
     await prisma.activity.update({ where: { id: activityId }, data: { status: "aplicada" } });
   }
-  await recordChange(user, studentId, "registrou", "Registro de aula");
+  await recordChange(user, studentId, AUDIT_ACTION.recorded, "Registro de aula");
   return entry;
 }
 
@@ -97,9 +97,7 @@ export async function saveIntersectorReport(user: SessionUser, studentId: string
   await prisma.timelineEvent.create({
     data: { studentId, type: "atendimento", title: "Relatório de Articulação Intersetorial", description: `Registrado por ${user.name} (rede de saúde).` },
   });
-  await prisma.accessLog.create({
-    data: { studentId, actor: user.name, role: user.role, action: "criou", detail: "Relatório de articulação intersetorial" },
-  });
+  await recordChange(user, studentId, AUDIT_ACTION.created, "Relatório de articulação intersetorial");
   await notifyTeam(studentId, "terapeuta_relatorio", `/estudantes/${studentId}`);
   return report;
 }
@@ -110,7 +108,7 @@ export async function setObjectiveStatus(user: SessionUser, studentId: string, o
   const objective = await prisma.objective.findFirst({ where: { id: objectiveId, plan: { studentId } } });
   if (!objective) throw new Error("Objetivo não encontrado para este estudante.");
   await prisma.objective.update({ where: { id: objectiveId }, data: { status } });
-  await recordChange(user, studentId, "alterou", `Objetivo: ${status === "alcancado" ? "alcançado" : status === "em_revisao" ? "em revisão" : "ativo"}`);
+  await recordChange(user, studentId, AUDIT_ACTION.changed, `Objetivo: ${status === "alcancado" ? "alcançado" : status === "em_revisao" ? "em revisão" : "ativo"}`);
   if (status === "alcancado") {
     await prisma.timelineEvent.create({ data: { studentId, type: "conquista", title: "Objetivo alcançado", description: objective.description } });
   }
@@ -127,7 +125,7 @@ export async function decideActivity(user: SessionUser, studentId: string, activ
     where: { id: activityId },
     data: decision === "aceita" ? { status: "aceita", rejectReason: null, ...decided } : { status: "rejeitada", rejectReason: reason?.trim() || "Sem motivo informado", ...decided },
   });
-  await recordChange(user, studentId, decision === "aceita" ? "aceitou" : "recusou", `Atividade: ${activity.title}`);
+  await recordChange(user, studentId, decision === "aceita" ? AUDIT_ACTION.accepted : AUDIT_ACTION.declined, `Atividade: ${activity.title}`);
   return updated;
 }
 
@@ -153,7 +151,7 @@ export async function reviewStudentPlan(user: SessionUser, studentId: string, pl
     prisma.planReview.create({ data: { planId, reviewedAt: now, dueDate: plan.reviewDate, onTime, summary, nextReviewDate: input.nextReviewDate, reviewerName: user.name, reviewerRole: user.role } }),
     prisma.plan.update({ where: { id: planId }, data: { reviewDate: input.nextReviewDate, reviewedAt: now } }),
     prisma.timelineEvent.create({ data: { studentId, type: "plano", title: "Plano revisado", description: `${onTime ? "Revisão no prazo" : "Revisão fora do prazo"}. ${summary}`.slice(0, 600) } }),
-    prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "revisou", detail: "Plano individual" } }),
+    prisma.accessLog.create({ data: { studentId, ...auditEntry(user, AUDIT_ACTION.reviewed, "Plano individual") } }),
   ]);
   await notifyFamily(studentId, "plano_revisado", `/familia/${studentId}`);
 }
@@ -169,6 +167,6 @@ export async function closeStudentPlan(user: SessionUser, studentId: string, pla
   await prisma.$transaction([
     prisma.plan.update({ where: { id: planId }, data: { status: "encerrado", closedAt: now, closedReason: text.slice(0, 300) } }),
     prisma.timelineEvent.create({ data: { studentId, type: "plano", title: "Plano encerrado", description: text.slice(0, 600) } }),
-    prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action: "encerrou", detail: "Plano individual" } }),
+    prisma.accessLog.create({ data: { studentId, ...auditEntry(user, AUDIT_ACTION.closed, "Plano individual") } }),
   ]);
 }

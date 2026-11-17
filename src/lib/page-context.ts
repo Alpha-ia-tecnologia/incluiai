@@ -3,11 +3,11 @@ import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { db } from "./prisma";
 import { activeGrant, getCurrentUser, type SessionUser } from "./auth";
-import { recordView } from "./access-log";
+import { recordView } from "./audit";
 import { canAccessStudent, isFamilyOf, studentPathFor } from "./policy";
 import { can } from "./roles";
 import { isTabVisible } from "./student-tab-list";
-import { DuaError } from "./dua/shared";
+import { UserError } from "./user-error";
 import { loadPlanning } from "./dua/plannings";
 
 async function requireUser(): Promise<SessionUser> {
@@ -58,7 +58,7 @@ export async function orNotFound<T>(work: Promise<T>): Promise<T> {
   try {
     return await work;
   } catch (error) {
-    if (error instanceof DuaError) notFound();
+    if (error instanceof UserError && (error.kind === "not_found" || error.kind === "forbidden")) notFound();
     throw error;
   }
 }

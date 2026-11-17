@@ -1,7 +1,7 @@
 import { Bot, CheckCircle2, CircleSlash, Eye, HeartHandshake, IdCard, Languages, QrCode, RefreshCw, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Undo2, UserCheck, type LucideIcon } from "lucide-react";
 import { setFamilyConsent } from "@/actions/consent";
 import { formatDate } from "@/lib/format";
-import { primaryButtonCls, quietButtonCls } from "@/components/form-styles";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { Badge, Card, SectionTitle } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
 import { Assurances } from "@/components/explain";
@@ -93,7 +93,7 @@ export function ConsentCard({ studentId, firstName, consent, canDecide }: {
               </ul>
               {canDecide ? (
                 <form action={toggle} className="mt-3">
-                  <PendingButton className={granted ? quietButtonCls : primaryButtonCls} pendingText="Salvando a decisão…">
+                  <PendingButton className={granted ? BUTTON_CLS.quiet : BUTTON_CLS.primary} pendingText="Salvando a decisão…">
                     {granted ? "Retirar a autorização" : "Autorizar"}<span className="sr-only">: {title}</span>
                   </PendingButton>
                 </form>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
+import { AUDIT_ACTION, recordChange } from "@/lib/audit";
 import { requireStudentTeam } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, RETIRED_CASE_FIELDS, conductedByAee, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
@@ -49,9 +50,7 @@ export async function saveCaseStudy(studentId: string, formData: FormData) {
     update: data,
   });
 
-  await prisma.accessLog.create({
-    data: { studentId, actor: user.name, role: user.role, action: existing ? "editou" : "criou", detail: "Estudo de caso" },
-  });
+  await recordChange(user, studentId, existing ? AUDIT_ACTION.edited : AUDIT_ACTION.created, "Estudo de caso");
   if (concluding && existing?.status !== "concluido") {
     await prisma.timelineEvent.create({
       data: {

@@ -4,6 +4,7 @@ import type { BetaRunnableTool } from "@anthropic-ai/sdk/lib/tools/BetaRunnableT
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { db } from "../prisma";
+import { recordView } from "../audit";
 import { assertStudentTeam, type SessionUser } from "../auth";
 import { can, roleGroup, type Group } from "../roles";
 import { familyActivityWhere } from "../policy";
@@ -87,11 +88,6 @@ async function resolveStudentId(ctx: ToolContext, ref: string): Promise<string> 
   throw new Error("Estudante não encontrado. Use buscar_estudantes para ver a lista.");
 }
 
-async function logAccess(ctx: ToolContext, studentId: string, detail: string) {
-  const prisma = await db();
-  await prisma.accessLog.create({ data: { studentId, actor: ctx.user.name, role: ctx.user.role, action: "visualizou", detail } });
-}
-
 async function propose(ctx: ToolContext, kind: string, summary: string, args: Record<string, unknown>): Promise<string> {
   const prisma = await db();
   const action = await prisma.assistantAction.create({ data: { conversationId: ctx.conversationId, kind, summary, args: JSON.stringify(args) } });
@@ -172,7 +168,7 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
           planDraft: { select: { source: true, createdAt: true } },
         },
       });
-      await logAccess(ctx, id, "Assistente: resumo do estudante");
+      await recordView(ctx.user, id, "Assistente: resumo do estudante");
       const { text } = await loadPlanContext(id);
       const label = ctx.privacy.studentLabel(id);
       const activePlan = s.plans.find((plan) => plan.status === "ativo");
@@ -240,7 +236,7 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const suggestions = await studentFollowUp(ctx.user, id);
-      await logAccess(ctx, id, "Assistente: próximos passos das atividades com DUA");
+      await recordView(ctx.user, id, "Assistente: próximos passos das atividades com DUA");
       const label = ctx.privacy.studentLabel(id);
       const notice = "Recomendações para a equipe revisar. Recomendação não é decisão profissional, e decisão não é resultado observado: a equipe decide o que fazer, e o resultado só existe quando for observado e registrado.";
       const page = `Página: /estudantes/${id}/dua (atividades com DUA do estudante)`;

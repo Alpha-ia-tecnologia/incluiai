@@ -22,7 +22,7 @@ import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS, REJECT_REASON_OPTIONS } from "@/lib/form-options";
 import { ArrowRight, CircleCheck, Clock, FilePen, FileUp, ImagePlus, ShieldCheck, Trash2, Wand2 } from "lucide-react";
 import { Assurances, Steps } from "@/components/explain";
-import { inputCls, labelCls, primaryButtonCls as linkCls } from "@/components/form-styles";
+import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -142,12 +142,12 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
       {activity.status === "sugerida" ? (
         <div className="mt-4 space-y-3">
           <form action={accept}>
-            <button type="submit" className={`${linkCls} w-full sm:w-auto`}>Usar esta atividade</button>
+            <button type="submit" className={`${BUTTON_CLS.primary} w-full sm:w-auto`}>Usar esta atividade</button>
           </form>
           <details className="rounded-xl border border-line px-4">
             <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-ink-soft">Esta sugestão não serve para a aula?</summary>
             <form action={reject} className="space-y-3 pb-4">
-              <ChoiceField name="reason" label="Conte o motivo (opcional)" options={REJECT_REASON_OPTIONS} placeholder="Escolha um motivo" otherPlaceholder="Ex.: a turma terá passeio neste dia" labelClassName={labelCls} inputClassName={inputCls} />
+              <ChoiceField name="reason" label="Conte o motivo (opcional)" options={REJECT_REASON_OPTIONS} placeholder="Escolha um motivo" otherPlaceholder="Ex.: a turma terá passeio neste dia" />
               <button type="submit" className="min-h-11 rounded-full border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-coral-soft hover:text-coral">Rejeitar sugestão</button>
             </form>
           </details>
@@ -156,7 +156,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
       {activity.status === "aceita" ? (
         <div className="mt-4 rounded-xl bg-brand-soft p-4">
           <p className="mb-3 text-sm leading-relaxed text-ink">Atividade escolhida. Depois de aplicar, registre como foi.</p>
-          <Link href={`/estudantes/${studentId}/diario?activityId=${encodeURIComponent(activity.id)}`} className={linkCls}>Registrar como foi a aula <ArrowRight size={16} aria-hidden /></Link>
+          <Link href={`/estudantes/${studentId}/diario?activityId=${encodeURIComponent(activity.id)}`} className={BUTTON_CLS.primary}>Registrar como foi a aula <ArrowRight size={16} aria-hidden /></Link>
         </div>
       ) : null}
       {activity.status === "rejeitada" && activity.rejectReason ? (
@@ -230,7 +230,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
           ]}
         />
         <Assurances className="mb-5" label="Na prova" items={[{ icon: ShieldCheck, text: "Prova mantém o que é avaliado" }]} />
-        <Link href={`/estudantes/${id}/atividades/adaptar`} className={linkCls}><FileUp size={16} aria-hidden /> Adaptar a atividade da turma</Link>
+        <Link href={`/estudantes/${id}/atividades/adaptar`} className={BUTTON_CLS.primary}><FileUp size={16} aria-hidden /> Adaptar a atividade da turma</Link>
         {adapted.length ? (
           <ul className="mt-5 grid gap-2">
             {adapted.map((task) => (
@@ -250,12 +250,12 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
         {!profile ? (
           <div className="space-y-3">
             <p className="text-sm leading-relaxed text-ink-soft">Primeiro, registre como o estudante aprende.</p>
-            <Link href={`/estudantes/${id}/perfil`} className={linkCls}>Conhecer o estudante <ArrowRight size={16} aria-hidden /></Link>
+            <Link href={`/estudantes/${id}/perfil`} className={BUTTON_CLS.primary}>Conhecer o estudante <ArrowRight size={16} aria-hidden /></Link>
           </div>
         ) : objectives.length === 0 ? (
           <div className="space-y-3">
             <p className="text-sm leading-relaxed text-ink-soft">O plano precisa de pelo menos um objetivo ativo.</p>
-            <Link href={`/estudantes/${id}/ppi`} className={linkCls}>Definir um objetivo no plano <ArrowRight size={16} aria-hidden /></Link>
+            <Link href={`/estudantes/${id}/ppi`} className={BUTTON_CLS.primary}>Definir um objetivo no plano <ArrowRight size={16} aria-hidden /></Link>
           </div>
         ) : (
           <>
@@ -267,7 +267,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
                 {objectives.map((o) => <option key={o.id} value={o.id}>{o.action}</option>)}
               </select>
             </div>
-            <ChoiceField name="lessonTopic" label="2. O que a turma vai estudar?" options={LESSON_TOPIC_OPTIONS} placeholder="Escolha um conteúdo (opcional)" otherPlaceholder="Ex.: sistema solar" labelClassName={labelCls} inputClassName={inputCls} />
+            <ChoiceField name="lessonTopic" label="2. O que a turma vai estudar?" options={LESSON_TOPIC_OPTIONS} placeholder="Escolha um conteúdo (opcional)" otherPlaceholder="Ex.: sistema solar" />
             {imagesOn ? (
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-paper p-3 text-sm sm:col-span-2 has-checked:border-brand has-checked:bg-brand-soft/40">
                 <input type="checkbox" name="gerarImagens" className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
@@ -278,7 +278,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
               </label>
             ) : null}
             <div className="sm:col-span-2">
-              <PendingButton className={linkCls} pendingText={aiOn ? "Os agentes da sala comum, do AEE e da família estão preparando as atividades, e o revisor vai conferir." : "Preparando as sugestões…"} wait={aiOn ? "atividades" : undefined}>
+              <PendingButton className={BUTTON_CLS.primary} pendingText={aiOn ? "Os agentes da sala comum, do AEE e da família estão preparando as atividades, e o revisor vai conferir." : "Preparando as sugestões…"} wait={aiOn ? "atividades" : undefined}>
                 <Wand2 size={16} aria-hidden /> Preparar 3 sugestões
               </PendingButton>
               <p className="mt-4 mb-2 text-sm text-ink-soft">{aiOn ? "Três agentes de IA trabalham ao mesmo tempo." : "Sugestões montadas pelo motor de regras."}</p>

@@ -1,34 +1,29 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { addDuaStudentVoice, removeDuaStudentVoice } from "@/actions/dua";
 import {
   STUDENT_VOICE_KINDS, STUDENT_VOICE_LABEL, VOICE_ORIGINS, VOICE_ORIGIN_LABEL,
   type StudentVoiceEntry, type StudentVoiceKind, type VoiceOrigin,
 } from "@/lib/dua/domain";
-import { Field, ResultMessage, dangerCls, inputCls, labelCls, secondaryCls, textareaCls } from "../dua-ui";
-import type { Outcome } from "./support-form";
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, inputCls, labelCls, textareaCls } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 
 const dateLabel = (value: string) => value.split("-").reverse().join("/");
 
 type Props = { planningId: string; studentId: string; supportId: string; entries: StudentVoiceEntry[]; canEdit: boolean; today: string };
 
 export function StudentVoice({ planningId, studentId, supportId, entries, canEdit, today }: Props) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [removal, setRemoval] = useState<Outcome | null>(null);
-  const [addition, setAddition] = useState<Outcome | null>(null);
+  const removal = useActionResult();
+  const addition = useActionResult();
+  const pending = removal.pending || addition.pending;
   const prefix = `voz-${supportId}`;
   const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
 
   function remove(entry: StudentVoiceEntry) {
-    start(async () => {
-      const outcome = await removeDuaStudentVoice({ planningId, studentId, supportId, entryId: entry.id });
-      setRemoval(outcome.ok ? { ok: true, message: "Registro de participação removido." } : outcome);
-      if (outcome.ok) router.refresh();
-    });
+    removal.submit(() => removeDuaStudentVoice({ planningId, studentId, supportId, entryId: entry.id }), { message: "Registro de participação removido." });
   }
 
   function add(event: FormEvent<HTMLFormElement>) {
@@ -36,21 +31,14 @@ export function StudentVoice({ planningId, studentId, supportId, entries, canEdi
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const value = (name: string) => String(form.get(name) ?? "");
-    start(async () => {
-      const outcome = await addDuaStudentVoice({
-        planningId, studentId, supportId,
-        kind: value("kind") as StudentVoiceKind,
-        text: value("text"),
-        context: value("context"),
-        origin: value("origin") as VoiceOrigin,
-        date: value("date"),
-      });
-      setAddition(outcome.ok ? { ok: true, message: "Participação registrada." } : outcome);
-      if (outcome.ok) {
-        formElement.reset();
-        router.refresh();
-      }
-    });
+    addition.submit(() => addDuaStudentVoice({
+      planningId, studentId, supportId,
+      kind: value("kind") as StudentVoiceKind,
+      text: value("text"),
+      context: value("context"),
+      origin: value("origin") as VoiceOrigin,
+      date: value("date"),
+    }), { message: "Participação registrada.", onSuccess: () => formElement.reset() });
   }
 
   return (
@@ -69,7 +57,7 @@ export function StudentVoice({ planningId, studentId, supportId, entries, canEdi
                 Contexto: {entry.context} · {VOICE_ORIGIN_LABEL[entry.origin] ?? entry.origin} · {dateLabel(entry.date)}
               </p>
               {canEdit ? (
-                <button type="button" onClick={() => remove(entry)} disabled={pending} className={`${dangerCls} mt-2`} aria-label={`Remover o registro de ${dateLabel(entry.date)}: ${STUDENT_VOICE_LABEL[entry.kind] ?? entry.kind}`}>
+                <button type="button" onClick={() => remove(entry)} disabled={pending} className={`${BUTTON_CLS.dangerOutline} mt-2`} aria-label={`Remover o registro de ${dateLabel(entry.date)}: ${STUDENT_VOICE_LABEL[entry.kind] ?? entry.kind}`}>
                   <Trash2 size={16} aria-hidden /> Remover
                 </button>
               ) : null}
@@ -79,7 +67,7 @@ export function StudentVoice({ planningId, studentId, supportId, entries, canEdi
       ) : (
         <p className="mt-3 text-sm text-ink-soft">Ainda não há registro do que o estudante disse ou mostrou sobre esta atividade.</p>
       )}
-      <ResultMessage result={removal} />
+      <FormResult result={removal.result} />
 
       {canEdit ? (
         <details className="mt-3 min-w-0 rounded-xl border border-line px-4">
@@ -87,19 +75,21 @@ export function StudentVoice({ planningId, studentId, supportId, entries, canEdi
           <form onSubmit={add} className="grid min-w-0 gap-4 pb-4" aria-busy={pending}>
             <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <Field id={`${prefix}-tipo`} label="O que foi registrado">
-                <select id={`${prefix}-tipo`} name="kind" required defaultValue="interesse" className={inputCls}>
-                  {STUDENT_VOICE_KINDS.map((kind) => <option key={kind} value={kind}>{STUDENT_VOICE_LABEL[kind]}</option>)}
-                </select>
+                {(control) => (
+                  <select {...control} name="kind" required defaultValue="interesse" className={inputCls}>
+                    {STUDENT_VOICE_KINDS.map((kind) => <option key={kind} value={kind}>{STUDENT_VOICE_LABEL[kind]}</option>)}
+                  </select>
+                )}
               </Field>
               <Field id={`${prefix}-data`} label="Data">
-                <input id={`${prefix}-data`} name="date" type="date" required defaultValue={today} className={inputCls} />
+                {(control) => <input {...control} name="date" type="date" required defaultValue={today} className={inputCls} />}
               </Field>
             </div>
             <Field id={`${prefix}-texto`} label="O que o estudante disse ou mostrou" hint="Com as palavras ou os gestos dele, sem interpretar.">
-              <textarea id={`${prefix}-texto`} name="text" required aria-describedby={`${prefix}-texto-dica`} maxLength={600} className={`${textareaCls} min-h-16`} />
+              {(control) => <textarea {...control} name="text" required maxLength={600} className={`${textareaCls} min-h-16`} />}
             </Field>
             <Field id={`${prefix}-contexto`} label="Em que situação" hint="Ex.: na leitura do conto, em dupla, na sala comum.">
-              <input id={`${prefix}-contexto`} name="context" required aria-describedby={`${prefix}-contexto-dica`} maxLength={300} className={inputCls} />
+              {(control) => <input {...control} name="context" required maxLength={300} className={inputCls} />}
             </Field>
             <fieldset className="min-w-0">
               <legend className={labelCls}>Origem da informação</legend>
@@ -113,11 +103,11 @@ export function StudentVoice({ planningId, studentId, supportId, entries, canEdi
               </div>
             </fieldset>
             <div>
-              <button type="submit" disabled={pending} className={secondaryCls}>
+              <button type="submit" disabled={pending} className={BUTTON_CLS.quiet}>
                 <Plus size={16} aria-hidden /> {pending ? "Salvando…" : "Salvar registro"}
               </button>
             </div>
-            <ResultMessage result={addition} />
+            <FormResult result={addition.result} />
           </form>
         </details>
       ) : null}

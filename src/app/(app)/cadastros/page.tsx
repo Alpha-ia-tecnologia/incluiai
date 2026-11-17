@@ -9,11 +9,10 @@ import { PageHeader, Card, SectionTitle, Badge, EmptyState, ButtonLink } from "@
 import { ChoiceField } from "@/components/choice-field";
 import { CLASS_NAME_OPTIONS, GRADE_YEAR_OPTIONS, REGION_OPTIONS } from "@/lib/form-options";
 import { MapPin, School as SchoolIcon, Users, UserPlus, Trash2 } from "lucide-react";
-import { inputCls, labelCls, primaryButtonCls } from "@/components/form-styles";
+import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
-const fieldStyle = { labelClassName: labelCls, inputClassName: inputCls };
 const shiftOptions = Object.entries(SHIFTS).map(([value, label]) => ({ value, label }));
 const formCls = "@container flex flex-1 flex-col gap-5";
 const fieldsCls = "grid items-start gap-4 @md:grid-cols-2";
@@ -52,10 +51,10 @@ export default async function RegistriesPage() {
                 <label htmlFor="school-name" className={labelCls}>Nome *</label>
                 <input id="school-name" name="name" required placeholder="Ex.: EMEF Anísio Teixeira" className={inputCls} />
               </div>
-              <ChoiceField name="region" label="Região / território *" options={regionOptions} required otherPlaceholder="Ex.: Distrito Industrial" {...fieldStyle} />
+              <ChoiceField name="region" label="Região / território *" options={regionOptions} required otherPlaceholder="Ex.: Distrito Industrial" />
             </div>
             <div className={footerCls}>
-              <button type="submit" className={primaryButtonCls}>Salvar escola</button>
+              <button type="submit" className={BUTTON_CLS.primary}>Salvar escola</button>
             </div>
           </form>
         </Card>
@@ -70,12 +69,12 @@ export default async function RegistriesPage() {
                   {schools.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              <ChoiceField name="name" label="Nome da turma *" options={CLASS_NAME_OPTIONS} required otherPlaceholder="Ex.: Turma Girassol" {...fieldStyle} />
-              <ChoiceField name="gradeYear" label="Ano / série" options={GRADE_YEAR_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: Multisseriada" {...fieldStyle} />
-              <ChoiceField name="shift" label="Turno *" options={shiftOptions} defaultValue="manha" required otherPlaceholder="Ex.: Noite" {...fieldStyle} />
+              <ChoiceField name="name" label="Nome da turma *" options={CLASS_NAME_OPTIONS} required otherPlaceholder="Ex.: Turma Girassol" />
+              <ChoiceField name="gradeYear" label="Ano / série" options={GRADE_YEAR_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: Multisseriada" />
+              <ChoiceField name="shift" label="Turno *" options={shiftOptions} defaultValue="manha" required otherPlaceholder="Ex.: Noite" />
             </div>
             <div className={footerCls}>
-              <button type="submit" className={primaryButtonCls}>Salvar turma</button>
+              <button type="submit" className={BUTTON_CLS.primary}>Salvar turma</button>
             </div>
           </form>
         </Card>

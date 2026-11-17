@@ -1,4 +1,5 @@
 import { db } from "../prisma";
+import { AUDIT_ACTION, PLAN_PROPOSAL_DETAIL, recordChange } from "../audit";
 import { assertCaseStudyConcluded } from "../records";
 import type { SessionUser } from "../auth";
 import { activityRow, generateActivityCards, type ActivityCard, type EngineInput } from "../activity-engine";
@@ -38,9 +39,7 @@ export async function createPlanDraft(studentId: string, user: SessionUser, repo
     createdBy: user.name,
   };
   await prisma.planDraft.upsert({ where: { studentId }, create: { studentId, ...data }, update: { ...data, createdAt: new Date() } });
-  await prisma.accessLog.create({
-    data: { studentId, actor: user.name, role: user.role, action: "criou", detail: source === "ia" ? "Proposta de plano (agentes de IA)" : "Proposta de plano (regras)" },
-  });
+  await recordChange(user, studentId, AUDIT_ACTION.created, PLAN_PROPOSAL_DETAIL[source]);
   return { proposal, analysis, trace, source };
 }
 

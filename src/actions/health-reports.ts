@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { requireStudentTeam, type SessionUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
-import { recordChange } from "@/lib/access-log";
+import { AUDIT_ACTION, recordChange } from "@/lib/audit";
 import { parseCaseStudy } from "@/lib/case-study";
 import {
   MAX_REPORT_BYTES, MAX_REPORT_MB, RETRY_STATUSES, cleanReportFileName, mergeIntoCaseStudy, parseReading, sniffReportType, type ReportAccepted,
@@ -57,7 +57,7 @@ export async function uploadHealthReport(studentId: string, _state: UploadState,
     },
     select: { id: true },
   });
-  await recordChange(user, studentId, "anexou", "Laudo no estudo de caso");
+  await recordChange(user, studentId, AUDIT_ACTION.attached, "Laudo no estudo de caso");
   await processHealthReport(report.id, user);
   refresh();
   redirect(reportPath(studentId, report.id));
@@ -100,10 +100,10 @@ export async function reviewHealthReport(reportId: string, formData: FormData) {
       create: { studentId, content, updatedBy: user.name },
       update: { content, updatedBy: user.name },
     });
-    await recordChange(user, studentId, existing ? "editou" : "criou", "Estudo de caso: informações do laudo");
+    await recordChange(user, studentId, existing ? AUDIT_ACTION.edited : AUDIT_ACTION.created, "Estudo de caso: informações do laudo");
   }
   await prisma.healthReport.update({ where: { id: reportId }, data: { reviewedBy: user.name, reviewedAt: new Date(), accepted: JSON.stringify(accepted) } });
-  await recordChange(user, studentId, "revisou", "Sugestões da leitura do laudo");
+  await recordChange(user, studentId, AUDIT_ACTION.reviewed, "Sugestões da leitura do laudo");
 
   const joined = Object.values(accepted.fields).reduce((total, values) => total + (values?.length ?? 0), 0);
   if (joined + accepted.guidance.length > 0) {
@@ -126,7 +126,7 @@ export async function deleteHealthReport(reportId: string) {
   const prisma = await db();
   const { report, user } = await loadReport(reportId);
   await prisma.healthReport.delete({ where: { id: reportId } });
-  await recordChange(user, report.studentId, "excluiu", "Laudo do estudo de caso");
+  await recordChange(user, report.studentId, AUDIT_ACTION.deleted, "Laudo do estudo de caso");
   refresh();
   redirect(`${reportPath(report.studentId)}?excluido=1`);
 }

@@ -13,7 +13,9 @@ import {
   type AiBlock, type AiCheck, type AiPurpose, type AiState, type DuaContent, type DuaPrinciple, type DuaSupportData,
 } from "./domain";
 import { planningAccess } from "./access";
-import { DuaError, audit, basisHashOf, clip, contentOf, latestVersion, loadPlanningFor, studentLog } from "./shared";
+import { audit, basisHashOf, clip, contentOf, latestVersion, loadPlanningFor } from "./shared";
+import { AUDIT_ACTION, recordChange } from "../audit";
+import { UserError } from "../user-error";
 import { canWorkWithStudent } from "../policy";
 
 export const DUA_PROMPT_VERSION = "dua-sugestoes-2026-11-v2";
@@ -21,10 +23,10 @@ export const DUA_PROMPT_VERSION = "dua-sugestoes-2026-11-v2";
 export async function requestSuggestion(user: SessionUser, planningId: string, input: { purpose: AiPurpose; supportId?: string; profileFields?: string[]; requestId: string }) {
   const prisma = await db();
   const requestId = clip(input.requestId, 80);
-  if (!requestId) throw new DuaError("Pedido sem identificador. Atualize a página e tente de novo.");
+  if (!requestId) throw new UserError("Pedido sem identificador. Atualize a página e tente de novo.");
   const existing = await prisma.duaSuggestion.findUnique({ where: { requestId } });
   if (existing) {
-    if (existing.planningId !== planningId || existing.requestedById !== user.id) throw new DuaError("Pedido inválido.", "conflito");
+    if (existing.planningId !== planningId || existing.requestedById !== user.id) throw new UserError("Pedido inválido.", "conflict");
     return existing.id;
   }
 
@@ -34,13 +36,13 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
   let support: { id: string; studentId: string; data: DuaSupportData; student: { id: string; name: string; schoolId: string } } | null = null;
   if (input.purpose === "apoio_individual") {
     const row = await prisma.duaSupport.findUnique({ where: { id: input.supportId ?? "" }, include: { student: { select: { id: true, name: true, schoolId: true } } } });
-    if (!row || row.planningId !== planningId || !canWorkWithStudent(user, row.student)) throw new DuaError("Apoio não encontrado.", "nao_encontrado");
-    if (!access.edit && row.responsibleId !== user.id) throw new DuaError("Só quem responde pelo apoio pede sugestão para ele.", "sem_permissao");
+    if (!row || row.planningId !== planningId || !canWorkWithStudent(user, row.student)) throw new UserError("Apoio não encontrado.", "not_found");
+    if (!access.edit && row.responsibleId !== user.id) throw new UserError("Só quem responde pelo apoio pede sugestão para ele.", "forbidden");
     support = { id: row.id, studentId: row.studentId, data: parseJson<DuaSupportData>(row.data, null as never), student: row.student };
   } else if (!access.edit) {
-    throw new DuaError("Só quem edita o planejamento pede sugestões de opções.", "sem_permissao");
+    throw new UserError("Só quem edita o planejamento pede sugestões de opções.", "forbidden");
   }
-  if (!content.objective.learning.trim()) throw new DuaError("Escreva o objetivo de aprendizagem antes de pedir sugestões: elas partem dele.");
+  if (!content.objective.learning.trim()) throw new UserError("Escreva o objetivo de aprendizagem antes de pedir sugestões: elas partem dele.");
 
   const profile = support ? support.data.profileRefs.filter((ref) => (input.profileFields ?? []).includes(ref.field)) : [];
   const context: DuaAiContext = {
@@ -115,7 +117,7 @@ export async function requestSuggestion(user: SessionUser, planningId: string, i
     data: { ...base, provider, model, state, checks: JSON.stringify(checks), blocks: JSON.stringify(blocks), removedCount: removed, error },
   });
   await audit(user, planningId, "pediu sugestão", "sugestao", { objectId: suggestion.id, versionNumber: version.version, detail: `${provider === "ia" ? `IA (${model ?? "sem resposta"})` : "regras da plataforma"} · ${state}` });
-  if (support) await studentLog(user, support.studentId, "criou", `Sugestão para revisão pedida para o apoio na atividade com DUA "${planning.title}"`);
+  if (support) await recordChange(user, support.studentId, AUDIT_ACTION.created, `Sugestão para revisão pedida para o apoio na atividade com DUA "${planning.title}"`);
   return suggestion.id;
 }
 
@@ -178,29 +180,29 @@ export type BlockDecisionInput = {
 export async function decideBlock(user: SessionUser, suggestionId: string, blockId: string, input: BlockDecisionInput) {
   const prisma = await db();
   const row = await prisma.duaSuggestion.findUnique({ where: { id: suggestionId }, include: { planning: true, student: { select: { id: true, schoolId: true } } } });
-  if (!row) throw new DuaError("Sugestão não encontrada.", "nao_encontrado");
+  if (!row) throw new UserError("Sugestão não encontrada.", "not_found");
   const access = planningAccess(user, row.planning);
-  if (!access.read || (row.student && !canWorkWithStudent(user, row.student))) throw new DuaError("Sugestão não encontrada.", "nao_encontrado");
+  if (!access.read || (row.student && !canWorkWithStudent(user, row.student))) throw new UserError("Sugestão não encontrada.", "not_found");
   const blocks = parseJson<AiBlock[]>(row.blocks, []);
   const block = blocks.find((item) => item.id === blockId);
-  if (!block) throw new DuaError("Bloco não encontrado.", "nao_encontrado");
-  if (block.decision !== "pendente") throw new DuaError("Este bloco já foi decidido.", "conflito");
-  if (row.state !== "aguardando_revisao") throw new DuaError("Esta sugestão não aguarda revisão.", "conflito");
+  if (!block) throw new UserError("Bloco não encontrado.", "not_found");
+  if (block.decision !== "pendente") throw new UserError("Este bloco já foi decidido.", "conflict");
+  if (row.state !== "aguardando_revisao") throw new UserError("Esta sugestão não aguarda revisão.", "conflict");
   const accepting = input.decision !== "recusado";
-  if (accepting && block.flags.blocked) throw new DuaError("Este bloco foi barrado pelas verificações e só pode ser recusado.");
+  if (accepting && block.flags.blocked) throw new UserError("Este bloco foi barrado pelas verificações e só pode ser recusado.");
 
   const version = await latestVersion(row.planningId);
   const content: DuaContent = contentOf(version);
   if (accepting && basisHashOf(content) !== row.basisHash && !input.confirmStale) {
-    throw new DuaError("O objetivo, os critérios ou as barreiras mudaram depois desta sugestão. Confira de novo e confirme antes de aceitar.", "conflito");
+    throw new UserError("O objetivo, os critérios ou as barreiras mudaram depois desta sugestão. Confira de novo e confirme antes de aceitar.", "conflict");
   }
   const strategyText = clip(input.decision === "editado" ? input.strategy : block.strategy, 1200);
   const principles = input.decision === "editado" && input.principles?.length ? [...new Set(input.principles.filter((item) => DUA_PRINCIPLES.includes(item)))] : block.principles;
-  if (accepting && (!strategyText || !principles.length)) throw new DuaError("Descreva a opção e escolha o princípio antes de aceitar.");
+  if (accepting && (!strategyText || !principles.length)) throw new UserError("Descreva a opção e escolha o princípio antes de aceitar.");
 
   if (accepting && row.purpose === "opcoes") {
-    if (!access.edit) throw new DuaError("Só quem edita o planejamento incorpora sugestões.", "sem_permissao");
-    if (version.state === "validado") throw new DuaError("A versão atual está validada. Abra uma nova versão para incorporar a sugestão.", "conflito");
+    if (!access.edit) throw new UserError("Só quem edita o planejamento incorpora sugestões.", "forbidden");
+    if (version.state === "validado") throw new UserError("A versão atual está validada. Abra uma nova versão para incorporar a sugestão.", "conflict");
     const origin = { kind: "ia" as const, suggestionId: row.id, blockId: block.id };
     let barrierIds = block.barrierConsidered.barrierId ? [block.barrierConsidered.barrierId] : [];
     if (!barrierIds.length && block.barrierConsidered.hypothesis) {
@@ -222,21 +224,21 @@ export async function decideBlock(user: SessionUser, suggestionId: string, block
       where: { id: version.id, revision: version.revision, state: { not: "validado" } },
       data: { content: JSON.stringify(content), revision: { increment: 1 }, updatedById: user.id, updatedByName: user.name },
     });
-    if (!saved.count) throw new DuaError("O rascunho foi alterado agora há pouco. Atualize a página e decida de novo.", "conflito");
+    if (!saved.count) throw new UserError("O rascunho foi alterado agora há pouco. Atualize a página e decida de novo.", "conflict");
   }
 
   if (accepting && row.purpose === "apoio_individual") {
     const support = await prisma.duaSupport.findUnique({ where: { id: row.supportId ?? "" } });
-    if (!support || (!access.edit && support.responsibleId !== user.id)) throw new DuaError("Só quem responde pelo apoio incorpora a sugestão.", "sem_permissao");
+    if (!support || (!access.edit && support.responsibleId !== user.id)) throw new UserError("Só quem responde pelo apoio incorpora a sugestão.", "forbidden");
     const data = parseJson<DuaSupportData>(support.data, null as never);
     const next: DuaSupportData = { ...data, support: [data.support.trim(), strategyText].filter(Boolean).join("\n"), origin: data.origin.kind === "ia" ? data.origin : { kind: "ia", suggestionId: row.id, blockId: block.id } };
     const saved = await prisma.duaSupport.updateMany({ where: { id: support.id, revision: support.revision }, data: { data: JSON.stringify(next), state: "rascunho", validatedAt: null, validatedById: null, validatedByName: null, revision: { increment: 1 } } });
-    if (!saved.count) throw new DuaError("O apoio foi alterado agora há pouco. Atualize a página e decida de novo.", "conflito");
+    if (!saved.count) throw new UserError("O apoio foi alterado agora há pouco. Atualize a página e decida de novo.", "conflict");
   }
 
   const decided: AiBlock = { ...block, decision: input.decision, decidedBy: { id: user.id, name: user.name }, decidedAt: new Date().toISOString(), reason: clip(input.reason, 600) || null, ...(input.decision === "editado" ? { strategy: strategyText, principles } : {}) };
   const nextBlocks = blocks.map((item) => (item.id === blockId ? decided : item));
   const updated = await prisma.duaSuggestion.updateMany({ where: { id: row.id, blocks: row.blocks }, data: { blocks: JSON.stringify(nextBlocks), state: suggestionStateAfter(nextBlocks) } });
-  if (!updated.count) throw new DuaError("Outra decisão foi registrada agora há pouco. Atualize a página.", "conflito");
+  if (!updated.count) throw new UserError("Outra decisão foi registrada agora há pouco. Atualize a página.", "conflict");
   await audit(user, row.planningId, `${input.decision === "recusado" ? "recusou" : input.decision === "editado" ? "aceitou com edição" : "aceitou"} bloco de sugestão`, "sugestao", { objectId: row.id, versionNumber: version.version });
 }

@@ -6,7 +6,7 @@ import { retryProvisioning, suggestColors, updateMunicipality } from "@/actions/
 import { UFS } from "@/lib/tenancy-core";
 import { BrandEditor } from "@/components/plataforma/brand-editor";
 import { PendingButton } from "@/components/pending-button";
-import { hintCls, inputCls, labelCls, linkCls, primaryButtonCls } from "@/components/form-styles";
+import { hintCls, inputCls, labelCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
 
 type Defaults = { slug: string; name: string; uf: string; networkName: string; primaryColor: string; menuColor: string; colorSource: string; logoUrl: string | null };
 const SOURCES = new Set(["ia", "regras", "manual"]);
@@ -43,7 +43,7 @@ export function MunicipalityEditForm({ defaults }: { defaults: Defaults }) {
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       {state.saved ? <p role="status" className="flex items-center gap-2 text-sm font-medium text-green"><Check size={16} aria-hidden /> Alterações salvas. O ambiente do município já mostra a marca nova.</p> : null}
       <div>
-        <PendingButton className={primaryButtonCls} pendingText="Salvando…"><Check size={16} aria-hidden /> Salvar as alterações</PendingButton>
+        <PendingButton className={BUTTON_CLS.primary} pendingText="Salvando…"><Check size={16} aria-hidden /> Salvar as alterações</PendingButton>
       </div>
     </form>
   );
@@ -73,7 +73,7 @@ export function RetryProvisioningForm({ slug, address }: { slug: string; address
       <input type="hidden" name="slug" value={slug} />
       {state.error ? <p role="alert" className="break-words rounded-xl bg-coral-soft px-4 py-3 font-mono text-xs text-ink">{state.error}</p> : null}
       <div>
-        <PendingButton className={primaryButtonCls} pendingText="Preparando o ambiente: banco, tabelas, catálogo de recursos e a primeira conta. Costuma levar até um minuto; mantenha esta página aberta.">
+        <PendingButton className={BUTTON_CLS.primary} pendingText="Preparando o ambiente: banco, tabelas, catálogo de recursos e a primeira conta. Costuma levar até um minuto; mantenha esta página aberta.">
           <RotateCcw size={16} aria-hidden /> Tentar preparar de novo
         </PendingButton>
       </div>

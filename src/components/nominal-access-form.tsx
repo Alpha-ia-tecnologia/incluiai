@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { KeyRound } from "lucide-react";
 import type { NominalAccessState } from "@/actions/access";
 import { ChoiceField } from "@/components/choice-field";
-import { hintCls, inputCls, labelCls, primaryButtonCls, textareaCls } from "@/components/form-styles";
+import { hintCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 
 const REASONS = [
   "Demanda da família ou da escola",
@@ -17,7 +17,7 @@ export function NominalAccessForm({ action }: { action: (previous: NominalAccess
   const [state, submit, pending] = useActionState(action, {});
   return (
     <form action={submit} className="grid gap-5">
-      <ChoiceField name="reason" label="Motivo do acesso (obrigatório)" options={REASONS} required otherPlaceholder="Descreva o motivo" labelClassName={labelCls} inputClassName={inputCls} />
+      <ChoiceField name="reason" label="Motivo do acesso (obrigatório)" options={REASONS} required otherPlaceholder="Descreva o motivo" />
       <div>
         <label htmlFor="access-detail" className={labelCls}>O que você precisa ver e por quê (obrigatório)</label>
         <p id="access-detail-hint" className={hintCls}>A família vê este texto no histórico de quem acessou os dados do estudante.</p>
@@ -25,7 +25,7 @@ export function NominalAccessForm({ action }: { action: (previous: NominalAccess
       </div>
       {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
       <div>
-        <button type="submit" disabled={pending} className={primaryButtonCls}>
+        <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           <KeyRound size={16} aria-hidden /> {pending ? "Registrando o acesso…" : "Registrar o motivo e abrir a ficha"}
         </button>
       </div>

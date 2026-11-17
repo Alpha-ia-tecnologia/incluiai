@@ -14,7 +14,7 @@ import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { PrintButton } from "@/components/print-button";
 import { CreatedNotice } from "@/components/materials/created-notice";
 import { HealthReportsNote } from "@/components/health-report-note";
-import { hintCls, inputCls, labelCls, primaryButtonCls, quietButtonCls, secondaryButtonCls, textareaCls } from "@/components/form-styles";
+import { hintCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +33,13 @@ function FieldInput({ field, value }: { field: CaseStudyField; value: string }) 
   if (field.type === "multi") {
     return (
       <div className={wrapper}>
-        <MultiChoiceField name={field.key} label={label} options={field.options ?? []} defaultValue={value} required={field.requiredToConclude} hint={field.hint} legendClassName={labelCls} inputClassName={inputCls} />
+        <MultiChoiceField name={field.key} label={label} options={field.options ?? []} defaultValue={value} required={field.requiredToConclude} hint={field.hint} />
       </div>
     );
   }
   return (
     <div className={wrapper}>
-      <ChoiceField name={field.key} label={label} options={field.options ?? []} defaultValue={value} required={field.requiredToConclude} hint={field.hint} placeholder="Escolha uma opção" labelClassName={labelCls} inputClassName={inputCls} />
+      <ChoiceField name={field.key} label={label} options={field.options ?? []} defaultValue={value} required={field.requiredToConclude} hint={field.hint} placeholder="Escolha uma opção" />
     </div>
   );
 }
@@ -282,17 +282,17 @@ export default async function CaseStudyPage({
           <div className="sticky bottom-[calc(96px_+_env(safe-area-inset-bottom,0px))] z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-paper-raised p-3 shadow-e2 lg:bottom-4">
             {concluded ? (
               <>
-                <button type="submit" name="intent" value="concluir" className={primaryButtonCls}>
+                <button type="submit" name="intent" value="concluir" className={BUTTON_CLS.primary}>
                   <Save size={16} aria-hidden /> Salvar alterações
                 </button>
-                <Link href={`/estudantes/${id}/estudo-de-caso`} className={quietButtonCls}>Cancelar</Link>
+                <Link href={`/estudantes/${id}/estudo-de-caso`} className={BUTTON_CLS.quiet}>Cancelar</Link>
               </>
             ) : (
               <>
-                <button type="submit" name="intent" value="rascunho" formNoValidate className={secondaryButtonCls}>
+                <button type="submit" name="intent" value="rascunho" formNoValidate className={BUTTON_CLS.secondary}>
                   <Save size={16} aria-hidden /> Salvar rascunho
                 </button>
-                <button type="submit" name="intent" value="concluir" className={primaryButtonCls}>
+                <button type="submit" name="intent" value="concluir" className={BUTTON_CLS.primary}>
                   <CheckCircle2 size={16} aria-hidden /> Concluir estudo de caso
                 </button>
               </>
