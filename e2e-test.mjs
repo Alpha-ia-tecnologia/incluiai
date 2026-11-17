@@ -12,6 +12,12 @@ const check = (name, ok, detail = "") => {
   results.push({ name, ok });
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${!ok && detail ? " — " + detail : ""}`);
 };
+const warnings = [];
+const warn = (name, ok, detail = "") => {
+  if (ok) return;
+  warnings.push(`${name} — ${detail}`);
+  console.log(`AVISO ${name} — ${detail}`);
+};
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({
@@ -1570,7 +1576,7 @@ if (!ONLY_WAIT) {
     // O widget vem do endereço oficial: quando o governo trocar a versão, este teste
     // avisa para conferir de novo como o texto é enviado (src/lib/vlibras-core.ts).
     const served = await fetch("https://vlibras.gov.br/app/vlibras-plugin.js", { method: "HEAD", redirect: "manual" }).then((response) => response.headers.get("location") ?? "", () => "sem rede");
-    check("vlibras: o governo serve a versão conferida (7.12.2)", served.includes("@v7.12.2/"), served);
+    warn("vlibras: o governo trocou a versão do widget (conferida: 7.12.2); confira de novo src/lib/vlibras-core.ts", served.includes("@v7.12.2/"), served);
     check("vlibras: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
 
@@ -1749,5 +1755,6 @@ if (!ONLY_WAIT) {
 
 await browser.close();
 const failed = results.filter((r) => !r.ok);
+for (const warning of warnings) console.log(`AVISO ${warning}`);
 console.log(`\n===== ${results.length - failed.length}/${results.length} testes passaram =====`);
 process.exit(failed.length ? 1 : 0);
