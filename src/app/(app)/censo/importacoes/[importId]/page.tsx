@@ -7,6 +7,7 @@ import { brMoment, type FieldDiff, type PlanItem } from "@/lib/census-rules";
 import { STAGES } from "@/lib/scale";
 import { STAGE_GROUPS } from "@/lib/educacenso";
 import { applyCensusImport, decideCensusPerson, discardCensusImport, undoCensusDecision } from "@/actions/census";
+import { ActionForm } from "@/components/action-form";
 import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { CensusApplyForm, CensusDecisionForm } from "@/components/census/census-forms";
@@ -25,7 +26,7 @@ function Warnings({ item }: { item: PlanItem }) {
 }
 
 function Undo({ importId, personKey }: { importId: string; personKey: string }) {
-  return <form action={undoCensusDecision.bind(null, importId, personKey)}><button type="submit" className={BUTTON_CLS.quiet}>Desfazer a decisão</button></form>;
+  return <ActionForm action={undoCensusDecision.bind(null, importId, personKey)}><button type="submit" className={BUTTON_CLS.quiet}>Desfazer a decisão</button></ActionForm>;
 }
 
 export default async function CensusImportPage({ params }: { params: Promise<{ importId: string }> }) {
@@ -163,7 +164,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
             ]}
           />
           <CensusApplyForm action={applyCensusImport.bind(null, importId)} blocked={plan.totals.review ? `Resolva ${plan.totals.review === 1 ? "a revisão" : `as ${plan.totals.review} revisões`} acima para aplicar.` : null} />
-          <form action={discardCensusImport.bind(null, importId)} className="mt-3"><button type="submit" className={BUTTON_CLS.quiet}>Descartar a prévia</button></form>
+          <ActionForm action={discardCensusImport.bind(null, importId)} className="mt-3"><button type="submit" className={BUTTON_CLS.quiet}>Descartar a prévia</button></ActionForm>
           {decided.length ? <p className="mt-3 text-xs text-ink-soft">{decided.length === 1 ? "1 decisão de revisão registrada" : `${decided.length} decisões de revisão registradas`}.</p> : null}
         </Card>
       </div>

@@ -1,16 +1,25 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useId, type FormEvent } from "react";
 import { CircleCheck, Save } from "lucide-react";
-import type { AdaptState } from "@/actions/adapted-tasks";
+import type { ActionResult } from "@/lib/action-result";
 import { ANSWER_FORMATS, ANSWER_FORMAT_LABEL, type AdaptedContent } from "@/lib/task-adaptation";
-import { hintCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
+import { Field, FormResult } from "@/components/form-kit";
+import { inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 
-export function AdaptedEditor({ action, content, approveLabel = "Aprovar para usar" }: { action: (previous: AdaptState, formData: FormData) => Promise<AdaptState>; content: AdaptedContent; approveLabel?: string }) {
-  const [state, submit, pending] = useActionState(action, {});
+export function AdaptedEditor({ action, content, approveLabel = "Aprovar para usar" }: { action: (formData: FormData) => Promise<ActionResult>; content: AdaptedContent; approveLabel?: string }) {
+  const { result, pending, submit } = useActionResult();
   const id = useId();
+
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter);
+    submit(() => action(data), { message: "Salvo." });
+  }
+
   return (
-    <form action={submit} className="grid min-w-0 gap-5">
+    <form onSubmit={save} className="grid min-w-0 gap-5" aria-busy={pending}>
       <input type="hidden" name="itemCount" value={content.items.length} />
       <input type="hidden" name="teacherNotes" value={content.teacherNotes.join("\n")} />
       <div>
@@ -48,13 +57,10 @@ export function AdaptedEditor({ action, content, approveLabel = "Aprovar para us
           </li>
         ))}
       </ol>
-      <div>
-        <label htmlFor={`${id}-preserved`} className={labelCls}>O que continua igual ao original</label>
-        <p className={hintCls}>Na prova, o que é avaliado. Confira antes de aprovar.</p>
-        <textarea id={`${id}-preserved`} name="preserved" rows={2} defaultValue={content.preserved} className={textareaCls} />
-      </div>
-      {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
-      {state.saved ? <p role="status" className="text-sm font-medium text-green">Salvo.</p> : null}
+      <Field id={`${id}-preserved`} label="O que continua igual ao original" hint="Na prova, o que é avaliado. Confira antes de aprovar.">
+        {(control) => <textarea {...control} name="preserved" rows={2} defaultValue={content.preserved} className={textareaCls} />}
+      </Field>
+      <FormResult result={result} />
       <div className="flex flex-wrap gap-3">
         <button type="submit" name="intent" value="salvar" disabled={pending} className={BUTTON_CLS.secondary}><Save size={16} aria-hidden /> Salvar ajustes</button>
         <button type="submit" name="intent" value="aprovar" disabled={pending} className={BUTTON_CLS.primary}><CircleCheck size={16} aria-hidden /> {approveLabel}</button>

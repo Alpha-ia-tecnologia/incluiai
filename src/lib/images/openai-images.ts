@@ -1,4 +1,5 @@
 // Geração de imagens pela API da OpenAI (https://developers.openai.com/api/docs/guides/image-generation).
+import { UserError } from "../user-error";
 
 export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2.5-flare";
 const BASE_URL = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
@@ -6,7 +7,7 @@ const TIMEOUT_MS = 180_000;
 
 export type ImageSize = "1024x1024" | "1536x1024" | "1024x1536";
 
-export class ImageGenerationError extends Error {
+export class ImageGenerationError extends UserError {
   constructor(message: string, readonly status?: number) {
     super(message);
   }

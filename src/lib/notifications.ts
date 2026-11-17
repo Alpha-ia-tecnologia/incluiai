@@ -6,6 +6,7 @@ import { isFamilyOf } from "./policy";
 import { rolesWith } from "./roles";
 import { emailConfigured, sendEmail } from "./email";
 import { cleanCheckIn, noticeEmail, noticeTitle, weekStart, type NoticeKind } from "./family-contact";
+import { UserError } from "./user-error";
 
 const appUrl = async () => {
   const tenant = await currentTenant();
@@ -50,22 +51,26 @@ export async function unreadNotices(userId: string): Promise<{ unread: number; l
   return { unread, latest: latest?.id ?? null };
 }
 
-export async function saveCheckIn(user: SessionUser, studentId: string, answers: string[], note: string): Promise<string | null> {
+export async function saveNoticePrefs(user: SessionUser, prefs: { notifyByEmail: boolean; weeklyCheckIn: boolean }): Promise<void> {
   const prisma = await db();
-  if (!isFamilyOf(user, studentId)) return "Só a família do estudante responde a pergunta da semana.";
+  await prisma.user.update({ where: { id: user.id }, data: prefs });
+}
+
+export async function saveCheckIn(user: SessionUser, studentId: string, answers: string[], note: string): Promise<void> {
+  const prisma = await db();
+  if (!isFamilyOf(user, studentId)) throw new UserError("Só a família do estudante responde a pergunta da semana.", "forbidden");
   const clean = cleanCheckIn(answers, note);
-  if ("error" in clean) return clean.error;
+  if ("error" in clean) throw new UserError(clean.error);
   const week = weekStart();
   const key = { studentId_weekStart: { studentId, weekStart: week } };
   const fields = { userId: user.id, authorName: user.name, answers: JSON.stringify(clean.answers), note: clean.note };
   if (await prisma.familyCheckIn.findUnique({ where: key, select: { id: true } })) {
     await prisma.familyCheckIn.update({ where: key, data: fields });
-    return null;
+    return;
   }
   await prisma.familyCheckIn.create({ data: { studentId, weekStart: week, ...fields } });
   await prisma.timelineEvent.create({ data: { studentId, type: "familia", title: "A família contou como foi a semana", description: [clean.answers.join(", "), clean.note].filter(Boolean).join(". ").slice(0, 400) } });
   await notifyTeam(studentId, "checkin_respondido", `/estudantes/${studentId}/diario`);
-  return null;
 }
 
 export const recentCheckIn = async (studentId: string) => {

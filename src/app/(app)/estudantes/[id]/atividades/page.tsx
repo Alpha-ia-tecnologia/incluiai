@@ -4,12 +4,13 @@ import Image from "next/image";
 import type { Activity } from "@prisma/client";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
-import { generateActivities, acceptActivity, rejectActivity } from "@/actions/activities";
+import { generateActivitiesAction, acceptActivity, rejectActivity } from "@/actions/activities";
 import { parseJson, formatDate } from "@/lib/format";
 import { CONTEXTS, ACTIVITY_STATUS } from "@/lib/scale";
 import { PageHeader, Card, SectionTitle, Badge, AIDisclaimer, EmptyState } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { PendingButton } from "@/components/pending-button";
+import { ActionForm } from "@/components/action-form";
 import { studentAI } from "@/lib/agents/capabilities";
 import { generateActivityImage, removeActivityImage } from "@/actions/activity-images";
 import { ActivityImageForm } from "@/components/activity-image-form";
@@ -79,9 +80,9 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
           <figcaption className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
             Imagem gerada por IA (OpenAI). Confira antes de usar com o estudante.
             {imagesOn && activity.status !== "rejeitada" ? (
-              <form action={removeImage} className="print:hidden">
+              <ActionForm action={removeImage} className="print:hidden">
                 <button type="submit" className="inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-ink-soft hover:bg-coral-soft hover:text-coral"><Trash2 size={13} aria-hidden /> Remover imagem</button>
-              </form>
+              </ActionForm>
             ) : null}
           </figcaption>
         </figure>
@@ -141,15 +142,15 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
 
       {activity.status === "sugerida" ? (
         <div className="mt-4 space-y-3">
-          <form action={accept}>
+          <ActionForm action={accept}>
             <button type="submit" className={`${BUTTON_CLS.primary} w-full sm:w-auto`}>Usar esta atividade</button>
-          </form>
+          </ActionForm>
           <details className="rounded-xl border border-line px-4">
             <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-ink-soft">Esta sugestão não serve para a aula?</summary>
-            <form action={reject} className="space-y-3 pb-4">
+            <ActionForm action={reject} className="grid gap-3 pb-4">
               <ChoiceField name="reason" label="Conte o motivo (opcional)" options={REJECT_REASON_OPTIONS} placeholder="Escolha um motivo" otherPlaceholder="Ex.: a turma terá passeio neste dia" />
-              <button type="submit" className="min-h-11 rounded-full border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-coral-soft hover:text-coral">Rejeitar sugestão</button>
-            </form>
+              <div><button type="submit" className="min-h-11 rounded-full border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-coral-soft hover:text-coral">Rejeitar sugestão</button></div>
+            </ActionForm>
           </details>
         </div>
       ) : null}
@@ -183,7 +184,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
     }),
   ]);
 
-  const generate = generateActivities.bind(null, id);
+  const generate = generateActivitiesAction.bind(null, id);
   const [ai, adapted] = await Promise.all([
     studentAI(id),
     prisma.adaptedTask.findMany({ where: { studentId: id }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, title: true, kind: true, status: true, createdAt: true } }),
@@ -260,7 +261,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
         ) : (
           <>
           <ConsentNote show={consentMissing} />
-          <form action={generate} className="grid min-w-0 gap-4 sm:grid-cols-2">
+          <ActionForm action={generate} className="grid min-w-0 gap-4 sm:grid-cols-2 [&>[role=alert]]:col-span-full">
             <div className="min-w-0">
               <label htmlFor="objectiveId" className={labelCls}>1. Escolha um objetivo</label>
               <select id="objectiveId" name="objectiveId" className={inputCls}>
@@ -291,7 +292,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
                 ]}
               />
             </div>
-          </form>
+          </ActionForm>
           </>
         )}
         <AIDisclaimer />

@@ -5,11 +5,9 @@ import { getCurrentUser, type SessionUser } from "./auth";
 import { FALLBACK, SESSION_ENDED, failureOf, type ActionResult } from "./action-result";
 import { readForm } from "./form-data";
 
-export async function runAction<T>(work: (user: SessionUser) => Promise<T>): Promise<ActionResult<T>> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, message: SESSION_ENDED };
+export async function runWithoutSession<T>(work: () => Promise<T>): Promise<ActionResult<T>> {
   try {
-    return { ok: true, value: await work(user) };
+    return { ok: true, value: await work() };
   } catch (error) {
     unstable_rethrow(error);
     const failure = failureOf(error);
@@ -17,6 +15,12 @@ export async function runAction<T>(work: (user: SessionUser) => Promise<T>): Pro
     console.error("[ação] falhou:", error);
     return { ok: false, message: FALLBACK };
   }
+}
+
+export async function runAction<T>(work: (user: SessionUser) => Promise<T>): Promise<ActionResult<T>> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, message: SESSION_ENDED };
+  return runWithoutSession(() => work(user));
 }
 
 export function runFormAction<S extends z.ZodObject, T>(formData: FormData, schema: S, work: (user: SessionUser, data: z.output<S>) => Promise<T>): Promise<ActionResult<T>> {

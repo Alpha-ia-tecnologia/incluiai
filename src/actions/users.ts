@@ -1,151 +1,49 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { getCurrentUser, hashPassword, type SessionUser } from "@/lib/auth";
-import { linkableStudents, managedAccount, recordAccountEvent, schoolsFor, type AccountRow } from "@/lib/accounts";
-import { EMAIL_RE, accountSchoolProblem, mergeLinks, temporaryPassword } from "@/lib/user-admin";
-import { assignableRoles, isAccountManager, isLinkedRole, isRole, roleLabel } from "@/lib/roles";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import * as accounts from "@/lib/accounts";
+import { formField } from "@/lib/form-data";
+import { runAction, runFormAction } from "@/lib/server-action";
 
-export type AccountFormState = { error?: string; saved?: boolean; created?: { id: string; name: string; email: string; password: string }; values?: AccountInput };
-export type ResetState = { error?: string; password?: string };
+const accountForm = z.object({ name: formField.text(), email: formField.text(), role: formField.text(), schoolId: formField.optionalText(), studentIds: formField.list() });
 
-async function requireManager(): Promise<SessionUser> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (!isAccountManager(user.role)) redirect("/");
-  return user;
-}
-
-async function requireAccount(manager: SessionUser, id: string): Promise<AccountRow> {
-  const account = await managedAccount(manager, id);
-  if (!account) redirect("/usuarios");
-  return account;
-}
-
-export type AccountInput = { name: string; email: string; role: string; schoolId: string | null; studentIds: string[] };
-
-function readAccount(formData: FormData): AccountInput {
-  return {
-    name: String(formData.get("name") ?? "").trim().replace(/\s+/g, " "),
-    email: String(formData.get("email") ?? "").trim().toLowerCase(),
-    role: String(formData.get("role") ?? ""),
-    schoolId: String(formData.get("schoolId") ?? "") || null,
-    studentIds: formData.getAll("studentIds").map(String),
-  };
-}
-
-async function checkAccount(manager: SessionUser, input: AccountInput, selfId?: string) {
-  const prisma = await db();
-  if (input.name.length < 3 || input.name.length > 120) return { error: "Escreva o nome da pessoa (de 3 a 120 caracteres)." } as const;
-  if (!EMAIL_RE.test(input.email) || input.email.length > 160) return { error: "Confira o e-mail." } as const;
-  if (!isRole(input.role) || !assignableRoles(manager.role).includes(input.role)) return { error: "Escolha um perfil que você pode atribuir." } as const;
-  const linked = isLinkedRole(input.role);
-  const schoolId = linked ? null : input.schoolId;
-  const schoolProblem = accountSchoolProblem(manager, input.role, schoolId);
-  if (schoolProblem) return { error: schoolProblem } as const;
-  if (schoolId && !(await schoolsFor(manager)).some((school) => school.id === schoolId)) return { error: "Escolha uma escola da lista." } as const;
-  const allowed = linked ? await linkableStudents(manager) : [];
-  const chosen = allowed.filter((student) => input.studentIds.includes(student.id)).map((student) => ({ studentId: student.id, schoolId: student.schoolId, name: student.name }));
-  if (linked && input.studentIds.some((id) => !allowed.some((student) => student.id === id))) return { error: "Escolha estudantes da lista." } as const;
-  const taken = await prisma.user.findFirst({ where: { email: input.email, ...(selfId ? { id: { not: selfId } } : {}) }, select: { id: true } });
-  if (taken) return { error: "Já existe uma conta com este e-mail." } as const;
-  return { schoolId, chosen } as const;
-}
-
-const firstNames = (names: string[]) => names.map((name) => name.split(" ")[0]).join(", ");
-
-export async function createAccount(_previous: AccountFormState, formData: FormData): Promise<AccountFormState> {
-  const prisma = await db();
-  const manager = await requireManager();
-  const input = readAccount(formData);
-  const checked = await checkAccount(manager, input);
-  if ("error" in checked) return { error: checked.error, values: input };
-  if (isLinkedRole(input.role) && !checked.chosen.length) return { error: "Escolha pelo menos um estudante para vincular.", values: input };
-  const password = temporaryPassword();
-  const user = await prisma.user.create({
-    data: {
-      name: input.name, email: input.email, role: input.role, schoolId: checked.schoolId,
-      passwordHash: hashPassword(password), mustChangePassword: true,
-      studentLinks: { create: checked.chosen.map((link) => ({ studentId: link.studentId })) },
-    },
+export async function createAccount(formData: FormData): Promise<ActionResult<accounts.CreatedAccount>> {
+  return runFormAction(formData, accountForm, async (manager, input) => {
+    const created = await accounts.createAccount(manager, input);
+    revalidatePath("/usuarios");
+    return created;
   });
-  const where = checked.chosen.length ? `vinculada a ${firstNames(checked.chosen.map((link) => link.name))}` : checked.schoolId ? `na escola ${(await schoolsFor(manager)).find((school) => school.id === checked.schoolId)?.name ?? ""}` : "na rede";
-  await recordAccountEvent(user.id, manager, "criou a conta", `${roleLabel(input.role)}, ${where}. Senha temporária entregue pela gestão.`);
-  revalidatePath("/usuarios");
-  return { created: { id: user.id, name: user.name, email: user.email, password } };
 }
 
-export async function updateAccount(id: string, _previous: AccountFormState, formData: FormData): Promise<AccountFormState> {
-  const prisma = await db();
-  const manager = await requireManager();
-  const account = await requireAccount(manager, id);
-  const input = readAccount(formData);
-  const checked = await checkAccount(manager, input, id);
-  if ("error" in checked) return { error: checked.error, values: input };
-  const linked = isLinkedRole(input.role);
-  const studentIds = linked ? mergeLinks(manager, isLinkedRole(account.role) ? account.links : [], checked.chosen) : [];
-  if (linked && !studentIds.length) return { error: "Mantenha pelo menos um estudante vinculado. Para tirar o acesso, desative a conta.", values: input };
-
-  const changes: string[] = [];
-  if (input.name !== account.name) changes.push(`nome: ${input.name}`);
-  if (input.email !== account.email) changes.push(`e-mail: ${input.email}`);
-  if (input.role !== account.role) changes.push(`perfil: ${roleLabel(account.role)} → ${roleLabel(input.role)}`);
-  if (checked.schoolId !== account.schoolId) changes.push(checked.schoolId ? `escola: ${(await schoolsFor(manager)).find((school) => school.id === checked.schoolId)?.name ?? ""}` : "escola: rede");
-  const before = account.links.map((link) => link.studentId).sort().join();
-  const linksChanged = linked && studentIds.slice().sort().join() !== before;
-  if (linksChanged) {
-    const names = await prisma.student.findMany({ where: { id: { in: studentIds } }, select: { name: true }, orderBy: { name: "asc" } });
-    changes.push(`estudantes: ${firstNames(names.map((student) => student.name))}`);
-  }
-  if (!changes.length) return { saved: true };
-
-  await prisma.$transaction([
-    prisma.user.update({ where: { id }, data: { name: input.name, email: input.email, role: input.role, schoolId: checked.schoolId, studentId: null } }),
-    prisma.studentLink.deleteMany({ where: { userId: id, studentId: { notIn: studentIds } } }),
-    ...studentIds.map((studentId) => prisma.studentLink.upsert({ where: { userId_studentId: { userId: id, studentId } }, create: { userId: id, studentId }, update: {} })),
-  ]);
-  const accessChanged = input.role !== account.role || checked.schoolId !== account.schoolId || linksChanged || input.email !== account.email;
-  if (accessChanged) await prisma.session.deleteMany({ where: { userId: id } });
-  await recordAccountEvent(id, manager, "alterou a conta", changes.join("; "));
-  revalidatePath("/usuarios");
-  revalidatePath(`/usuarios/${id}`);
-  return { saved: true };
+export async function updateAccount(id: string, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, accountForm, async (manager, input) => {
+    await accounts.updateAccount(manager, id, input);
+    revalidatePath("/usuarios");
+    revalidatePath(`/usuarios/${id}`);
+  });
 }
 
-export async function resetAccountPassword(id: string, _previous: ResetState): Promise<ResetState> {
-  const prisma = await db();
-  const manager = await requireManager();
-  const account = await requireAccount(manager, id);
-  if (account.deactivatedAt) return { error: "Reative a conta antes de redefinir a senha." };
-  const password = temporaryPassword();
-  await prisma.user.update({ where: { id }, data: { passwordHash: hashPassword(password), mustChangePassword: true } });
-  await prisma.session.deleteMany({ where: { userId: id } });
-  await recordAccountEvent(id, manager, "redefiniu a senha", "Senha temporária entregue pela gestão; a pessoa cria a própria no próximo acesso");
-  revalidatePath(`/usuarios/${id}`);
-  return { password };
+export async function resetAccountPassword(id: string): Promise<ActionResult<string>> {
+  return runAction(async (manager) => {
+    const password = await accounts.resetAccountPassword(manager, id);
+    revalidatePath(`/usuarios/${id}`);
+    return password;
+  });
 }
 
-export async function resetAccountTwoFactor(id: string): Promise<void> {
-  const prisma = await db();
-  const manager = await requireManager();
-  const account = await requireAccount(manager, id);
-  if (!account.totpEnabledAt) return;
-  await prisma.user.update({ where: { id }, data: { totpSecret: null, totpPendingSecret: null, totpEnabledAt: null, totpLastStep: null, recoveryCodes: null } });
-  await prisma.session.deleteMany({ where: { userId: id } });
-  await recordAccountEvent(id, manager, "desligou as duas etapas", "A pessoa liga de novo com o celular no próximo acesso");
-  revalidatePath(`/usuarios/${id}`);
+export async function resetAccountTwoFactor(id: string): Promise<ActionResult> {
+  return runAction(async (manager) => {
+    await accounts.resetAccountTwoFactor(manager, id);
+    revalidatePath(`/usuarios/${id}`);
+  });
 }
 
-export async function setAccountActive(id: string, active: boolean): Promise<void> {
-  const prisma = await db();
-  const manager = await requireManager();
-  const account = await requireAccount(manager, id);
-  if (active === !account.deactivatedAt) return;
-  await prisma.user.update({ where: { id }, data: { deactivatedAt: active ? null : new Date() } });
-  if (!active) await prisma.session.deleteMany({ where: { userId: id } });
-  await recordAccountEvent(id, manager, active ? "reativou a conta" : "desativou a conta", active ? undefined : "As sessões abertas foram encerradas; o histórico fica guardado");
-  revalidatePath("/usuarios");
-  revalidatePath(`/usuarios/${id}`);
+export async function setAccountActive(id: string, active: boolean): Promise<ActionResult> {
+  return runAction(async (manager) => {
+    await accounts.setAccountActive(manager, id, active);
+    revalidatePath("/usuarios");
+    revalidatePath(`/usuarios/${id}`);
+  });
 }

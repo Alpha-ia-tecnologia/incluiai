@@ -2,29 +2,21 @@
 
 import { useActionState } from "react";
 import { Check, FileUp, FileX2, RefreshCw, ShieldCheck } from "lucide-react";
-import type { CensusState } from "@/actions/census";
+import type { ActionResult } from "@/lib/action-result";
 import type { MonitorConfig } from "@/lib/census-rules";
+import { Field, FormResult } from "@/components/form-kit";
 import { choiceCls, hintCls, inputBoxCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
-type Action = (previous: CensusState, formData: FormData) => Promise<CensusState>;
-
-const Feedback = ({ state, saved }: { state: CensusState; saved?: string }) => (
-  <>
-    {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
-    {state.saved && saved ? <p role="status" className="flex items-center gap-1.5 text-sm font-medium text-green"><Check size={16} aria-hidden /> {saved}</p> : null}
-  </>
-);
+type Action = (previous: ActionResult | null, formData: FormData) => Promise<ActionResult>;
 
 export function CensusUploadForm({ action }: { action: Action }) {
-  const [state, submit, pending] = useActionState(action, {});
+  const [result, submit, pending] = useActionState(action, null);
   return (
     <form action={submit} className="grid gap-3">
-      <div>
-        <label htmlFor="censo-arquivo" className={labelCls}>Arquivo de migração do Educacenso (.txt)</label>
-        <p id="censo-arquivo-dica" className={hintCls}>Do Educacenso ou do sistema de gestão da escola.</p>
-        <input id="censo-arquivo" name="file" type="file" accept=".txt,text/plain" required aria-describedby="censo-arquivo-dica" className={`${inputCls} file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-3 file:py-1.5 file:text-sm file:text-brand-strong`} />
-      </div>
+      <Field id="censo-arquivo" label="Arquivo de migração do Educacenso (.txt)" hint="Do Educacenso ou do sistema de gestão da escola.">
+        {(control) => <input {...control} name="file" type="file" accept=".txt,text/plain" required className={`${inputCls} file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-3 file:py-1.5 file:text-sm file:text-brand-strong`} />}
+      </Field>
       <Assurances
         label="Cuidados com o arquivo"
         items={[
@@ -32,14 +24,14 @@ export function CensusUploadForm({ action }: { action: Action }) {
           { icon: FileX2, text: "O arquivo não fica guardado" },
         ]}
       />
-      <Feedback state={state} />
+      <FormResult result={result} />
       <div><button type="submit" disabled={pending} className={BUTTON_CLS.primary}><FileUp size={16} aria-hidden /> {pending ? "Lendo o arquivo…" : "Ler o arquivo e ver a prévia"}</button></div>
     </form>
   );
 }
 
 export function CensusDecisionForm({ action, personKey, candidates, canCreate }: { action: Action; personKey: string; candidates: { id: string; name: string; birthDate: string }[]; canCreate: boolean }) {
-  const [state, submit, pending] = useActionState(action, {});
+  const [result, submit, pending] = useActionState(action, null);
   const id = (suffix: string) => `decisao-${personKey.replace(/\W/g, "")}-${suffix}`;
   return (
     <form action={submit} className="grid gap-3">
@@ -66,35 +58,35 @@ export function CensusDecisionForm({ action, personKey, candidates, canCreate }:
         <label htmlFor={id("motivo")} className={labelCls}>Motivo, se for ignorar</label>
         <textarea id={id("motivo")} name="reason" rows={2} maxLength={200} className={textareaCls} />
       </div>
-      <Feedback state={state} />
+      <FormResult result={result} />
       <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar a decisão</button></div>
     </form>
   );
 }
 
-export function CensusApplyForm({ action, blocked }: { action: (previous: CensusState) => Promise<CensusState>; blocked: string | null }) {
-  const [state, submit, pending] = useActionState(action, {});
+export function CensusApplyForm({ action, blocked }: { action: () => Promise<ActionResult>; blocked: string | null }) {
+  const [result, submit, pending] = useActionState<ActionResult | null>(action, null);
   return (
     <form action={submit} className="grid gap-2">
       {blocked ? <p className={hintCls}>{blocked}</p> : null}
-      <Feedback state={state} />
+      <FormResult result={result} />
       <div><button type="submit" disabled={pending || Boolean(blocked)} className={BUTTON_CLS.primary}><Check size={16} aria-hidden /> {pending ? "Aplicando…" : "Aplicar e guardar como referência"}</button></div>
     </form>
   );
 }
 
-export function CensusVerifyForm({ action }: { action: (previous: CensusState) => Promise<CensusState> }) {
-  const [state, submit, pending] = useActionState(action, {});
+export function CensusVerifyForm({ action }: { action: () => Promise<ActionResult> }) {
+  const [result, submit, pending] = useActionState<ActionResult | null>(action, null);
   return (
     <form action={submit} className="grid gap-2">
       <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}><RefreshCw size={16} aria-hidden /> {pending ? "Verificando…" : "Verificar agora"}</button></div>
-      <Feedback state={state} saved="Verificação registrada no histórico." />
+      <FormResult result={result} success="Verificação registrada no histórico." />
     </form>
   );
 }
 
 export function CensusWindowForm({ action, config }: { action: Action; config: MonitorConfig }) {
-  const [state, submit, pending] = useActionState(action, {});
+  const [result, submit, pending] = useActionState(action, null);
   const times = [...config.times, "", "", "", ""].slice(0, 4);
   return (
     <form action={submit} className="grid gap-4">
@@ -124,35 +116,33 @@ export function CensusWindowForm({ action, config }: { action: Action; config: M
           ))}
         </div>
       </fieldset>
-      <Feedback state={state} saved="Janela salva. A próxima verificação já foi reagendada." />
+      <FormResult result={result} success="Janela salva. A próxima verificação já foi reagendada." />
       <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar a janela</button></div>
     </form>
   );
 }
 
 export function FndeForm({ action, value, year }: { action: Action; value: number | null; year: number }) {
-  const [state, submit, pending] = useActionState(action, {});
+  const [result, submit, pending] = useActionState(action, null);
   return (
     <form action={submit} className="grid gap-3">
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,9rem)]">
-        <div>
-          <label htmlFor="fnde-aee" className={labelCls}>Matrículas de AEE consideradas pelo FNDE</label>
-          <p id="fnde-aee-dica" className={hintCls}>Da lista do Fundeb publicada pelo FNDE. Vazio apaga o número.</p>
-          <input id="fnde-aee" name="fndeAee" type="number" min={0} inputMode="numeric" defaultValue={value ?? ""} aria-describedby="fnde-aee-dica" className={inputCls} />
-        </div>
+        <Field id="fnde-aee" label="Matrículas de AEE consideradas pelo FNDE" hint="Da lista do Fundeb publicada pelo FNDE. Vazio apaga o número.">
+          {(control) => <input {...control} name="fndeAee" type="number" min={0} inputMode="numeric" defaultValue={value ?? ""} className={inputCls} />}
+        </Field>
         <div className="self-end">
           <label htmlFor="fnde-ano" className={labelCls}>Fundeb de</label>
           <input id="fnde-ano" name="fndeYear" type="number" min={2020} max={2100} defaultValue={year} className={inputCls} />
         </div>
       </div>
-      <Feedback state={state} saved="Número do FNDE salvo." />
+      <FormResult result={result} success="Número do FNDE salvo." />
       <div><button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar</button></div>
     </form>
   );
 }
 
 export function InepForm({ action, id, label, name, length, value }: { action: Action; id: string; label: string; name: string; length: 8 | 12; value?: string | null }) {
-  const [state, submit, pending] = useActionState(action, {});
+  const [result, submit, pending] = useActionState(action, null);
   return (
     <form action={submit} className="flex flex-wrap items-end gap-2">
       <div className="min-w-0">
@@ -160,7 +150,7 @@ export function InepForm({ action, id, label, name, length, value }: { action: A
         <input id={id} name={name} inputMode="numeric" pattern={`\\d{${length}}`} maxLength={length} required defaultValue={value ?? ""} className={`${inputBoxCls} w-40`} />
       </div>
       <button type="submit" disabled={pending} className={BUTTON_CLS.secondary}>Salvar</button>
-      <div className="basis-full"><Feedback state={state} saved="Salvo." /></div>
+      <div className="basis-full"><FormResult result={result} success="Salvo." /></div>
     </form>
   );
 }

@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import { BookOpen, LayoutGrid, ListChecks, ListOrdered, MessagesSquare, ShieldCheck, Sparkles, Thermometer, UserCheck, type LucideIcon } from "lucide-react";
-import { generateMaterial, type MaterialActionState } from "@/actions/materials";
+import { generateMaterial } from "@/actions/materials";
 import { ChoiceField } from "@/components/choice-field";
 import { PendingButton } from "@/components/pending-button";
 import { MATERIAL_CONTEXTS, MATERIAL_KINDS, MATERIAL_TOPICS, type MaterialKind } from "@/lib/material-content";
-import { labelCls, inputCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
+import { FormResult } from "@/components/form-kit";
+import { labelCls, inputCls, BUTTON_CLS } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
 const ICONS: Record<MaterialKind, LucideIcon> = {
@@ -28,11 +28,11 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
   aiConfigured: boolean;
   imagesOn: boolean;
 }) {
-  const [state, action] = useActionState<MaterialActionState, FormData>(generateMaterial.bind(null, studentId), { status: "idle" });
+  const [result, action] = useActionState(generateMaterial.bind(null, studentId), null);
   const resultRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (state.status !== "idle") resultRef.current?.focus();
-  }, [state]);
+    if (result) resultRef.current?.focus();
+  }, [result]);
 
   return (
     <form action={action} className="grid min-w-0 gap-6">
@@ -124,14 +124,8 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
         </div>
       </div>
 
-      <div ref={resultRef} tabIndex={-1} className="outline-none" aria-live="polite">
-        {state.status === "ok" ? (
-          <p role="status" className="rounded-xl bg-green-soft px-3 py-2 text-sm text-green">
-            {state.message} {state.materialId ? <Link href={`/estudantes/${studentId}/materiais/${state.materialId}`} className={linkCls}>Abrir o material</Link> : null}
-          </p>
-        ) : state.status === "erro" ? (
-          <p role="alert" className="rounded-xl bg-coral-soft px-3 py-2 text-sm text-coral">{state.message}</p>
-        ) : null}
+      <div ref={resultRef} tabIndex={-1} className="outline-none">
+        <FormResult result={result} />
       </div>
     </form>
   );

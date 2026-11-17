@@ -4,6 +4,7 @@ import { getCurrentUser, getPendingLogin } from "@/lib/auth";
 import { startTwoFactorSetup, verifySecondStep } from "@/actions/two-factor";
 import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
+import { ActionForm } from "@/components/action-form";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { LoginStepFrame } from "@/components/login-step-frame";
 import { isPlatformRole } from "@/lib/roles";
@@ -33,9 +34,9 @@ export default async function SecondStepPage() {
           user.totpPendingSecret ? (
             <TwoFactorSetup secret={user.totpPendingSecret} account={user.email} finish="enter" />
           ) : (
-            <form action={startTwoFactorSetup}>
+            <ActionForm action={startTwoFactorSetup}>
               <button type="submit" className={BUTTON_CLS.primary}><ShieldCheck size={16} aria-hidden /> Começar</button>
-            </form>
+            </ActionForm>
           )
         ) : (
           <div className="grid gap-6">

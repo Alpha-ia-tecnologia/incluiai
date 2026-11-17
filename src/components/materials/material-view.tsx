@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Accessibility, CircleCheck, Clock, House, Lightbulb, Printer, Scissors, Target, Trash2, TriangleAlert, Users } from "lucide-react";
 import { approveMaterial, deleteMaterial } from "@/actions/materials";
+import { ActionForm } from "@/components/action-form";
 import { Badge } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { formatDate, parseJson } from "@/lib/format";
@@ -123,22 +124,22 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
           <div className="flex flex-wrap items-center gap-2 print:hidden">
             <ReadAloud targetId={`material-${material.id}`} label="Ouvir o material" />
             {actions && !approved ? (
-              <form action={approve}>
+              <ActionForm action={approve}>
                 <button type="submit" className={BUTTON_CLS.primary}>
                   <CircleCheck size={16} aria-hidden /> Aprovar para uso
                 </button>
-              </form>
+              </ActionForm>
             ) : null}
             {printHref === null ? null : (
               <Link href={printHref ?? `/estudantes/${studentId}/materiais/${material.id}/imprimir`} className={BUTTON_CLS.quiet}>
                 <Printer size={16} aria-hidden /> Imprimir<span className="sr-only">: {material.title}</span>
               </Link>
             )}
-            {actions ? <form action={remove}>
+            {actions ? <ActionForm action={remove}>
               <button type="submit" aria-label={`Excluir material: ${material.title}`} className={BUTTON_CLS.danger}>
                 <Trash2 size={16} aria-hidden /> Excluir
               </button>
-            </form> : null}
+            </ActionForm> : null}
           </div>
         ) : null}
       </header>

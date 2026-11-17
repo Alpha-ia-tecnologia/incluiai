@@ -156,7 +156,7 @@ test("janela do Censo: duas verificações por dia, no horário de Brasília", (
 
 test("configuração da janela: datas e horários válidos", () => {
   assert.deepEqual(cleanMonitorConfig({ enabled: true, periodStart: "2027-05-26", periodEnd: "2027-08-31", times: ["16:00", "08:00", "08:00"] }), { enabled: true, periodStart: "2027-05-26", periodEnd: "2027-08-31", times: ["08:00", "16:00"] });
-  assert.match(cleanMonitorConfig({ enabled: true, periodStart: "2027-08-31", periodEnd: "2027-05-26", times: ["08:00"] }).error, /fim da janela vem antes/);
-  assert.match(cleanMonitorConfig({ enabled: true, periodStart: "2027-05-26", periodEnd: "2027-08-31", times: ["25:00"] }).error, /de 1 a 4 horários/);
-  assert.match(cleanMonitorConfig({ enabled: true, periodStart: "2027-02-30", periodEnd: "2027-08-31", times: ["08:00"] }).error, /datas/);
+  assert.throws(() => cleanMonitorConfig({ enabled: true, periodStart: "2027-08-31", periodEnd: "2027-05-26", times: ["08:00"] }), /fim da janela vem antes/);
+  assert.throws(() => cleanMonitorConfig({ enabled: true, periodStart: "2027-05-26", periodEnd: "2027-08-31", times: ["25:00"] }), /de 1 a 4 horários/);
+  assert.throws(() => cleanMonitorConfig({ enabled: true, periodStart: "2027-02-30", periodEnd: "2027-08-31", times: ["08:00"] }), /datas/);
 });

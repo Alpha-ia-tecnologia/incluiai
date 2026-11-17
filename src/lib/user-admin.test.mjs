@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { accountSchoolProblem, canManageAccount, mergeLinks, passwordProblem, temporaryPassword } from "./user-admin.ts";
+import { accessChanged, accountSchoolProblem, canManageAccount, mergeLinks, passwordProblem, temporaryPassword } from "./user-admin.ts";
 import { assignableRoles, isAccountManager } from "./roles.ts";
 
 const secretaria = { id: "s", role: "secretaria", schoolId: null };
@@ -49,6 +49,18 @@ test("vínculos: a escola mexe só nos estudantes dela", () => {
   const current = [{ studentId: "a1", schoolId: "A" }, { studentId: "b1", schoolId: "B" }];
   assert.deepEqual(mergeLinks(coordA, current, [{ studentId: "a2", schoolId: "A" }, { studentId: "b2", schoolId: "B" }]), ["b1", "a2"]);
   assert.deepEqual(mergeLinks({ ...coordA, schoolId: null }, current, [{ studentId: "a2", schoolId: "A" }]), ["a2"]);
+});
+
+test("alterar a conta: mudar e-mail, perfil, escola ou estudantes encerra as sessões; nome não", () => {
+  const before = { email: "ana@escola.br", role: "familia", schoolId: null, studentIds: ["a", "b"] };
+  assert.equal(accessChanged(before, { ...before }), false);
+  assert.equal(accessChanged(before, { ...before, studentIds: ["b", "a"] }), false);
+  assert.equal(accessChanged(before, { ...before, studentIds: ["a"] }), true);
+  assert.equal(accessChanged(before, { ...before, email: "ana@outra.br" }), true);
+  assert.equal(accessChanged(before, { ...before, role: "terapeuta" }), true);
+  const staff = { email: "bia@escola.br", role: "professor_aee", schoolId: "A", studentIds: [] };
+  assert.equal(accessChanged(staff, { ...staff, schoolId: "B" }), true);
+  assert.equal(accessChanged(staff, { ...staff, schoolId: null }), true);
 });
 
 test("senha nova", () => {

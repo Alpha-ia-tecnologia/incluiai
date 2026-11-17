@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { db, isPlatformArea } from "./prisma";
-import { LOGIN_WINDOW_MS, MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
+import { MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
 import { can, isLinkedRole, isPlatformRole, isRole, type Role } from "./roles";
 import { canWorkWithStudent, linkedStudentIds } from "./policy";
 import { UserError } from "./user-error";
@@ -34,19 +34,6 @@ export function verifyPasswordOrDummy(password: string, stored: string | null): 
   dummyHash ??= hashPassword("incluiedu-conta-inexistente");
   verifyPassword(password, dummyHash);
   return false;
-}
-
-export async function loginAllowed(email: string): Promise<boolean> {
-  const prisma = await db();
-  const since = new Date(Date.now() - LOGIN_WINDOW_MS);
-  const attempts = await prisma.loginAttempt.findMany({ where: { email, createdAt: { gte: since } }, select: { success: true, createdAt: true } });
-  return !loginBlocked(attempts);
-}
-
-export async function recordLoginAttempt(email: string, success: boolean): Promise<void> {
-  const prisma = await db();
-  await prisma.loginAttempt.create({ data: { email, success } });
-  await prisma.loginAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
 }
 
 export async function createSession(userId: string, { pending = false }: { pending?: boolean } = {}): Promise<void> {

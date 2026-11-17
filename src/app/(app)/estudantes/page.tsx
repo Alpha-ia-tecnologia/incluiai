@@ -8,6 +8,7 @@ import { getStudentNextStep } from "@/lib/student-journey";
 import { generateBatchForClass } from "@/actions/activities";
 import { SHIFTS } from "@/lib/scale";
 import { ChoiceField } from "@/components/choice-field";
+import { ActionForm } from "@/components/action-form";
 import { LESSON_TOPIC_OPTIONS } from "@/lib/form-options";
 import { PageHero, Badge, EmptyState } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
@@ -186,11 +187,11 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
           <summary className="min-h-14 cursor-pointer px-5 py-5 text-base font-medium sm:px-6">Preparar atividades para uma turma inteira</summary>
           <div className="px-5 pb-6 sm:px-6">
             <div className="mb-5 flex items-center gap-5"><div className="flex-1"><h2 className="text-base font-medium">Planejamento da turma</h2><p className="mt-2 text-sm leading-relaxed text-ink-soft">Use esta opção quando já tiver preenchido como os estudantes aprendem e definido seus objetivos no plano de ensino.</p></div><Character variant="planning" className="hidden w-28 sm:block" /></div>
-            <form action={generateBatchForClass} className="grid gap-4 sm:grid-cols-2">
+            <ActionForm action={generateBatchForClass} className="grid gap-4 sm:grid-cols-2 [&>[role=alert]]:col-span-full">
               <div className="min-w-0"><label htmlFor="batch-class" className="mb-2 block text-sm font-medium">Turma (obrigatório)</label><select id="batch-class" name="turma" required defaultValue="" className="min-h-12 w-full min-w-0 rounded-xl border border-line bg-paper-raised px-3 text-base"><option value="" disabled>Escolha a turma</option>{classes.map((item) => <option key={item.key} value={item.key}>{item.className} — {item.school}</option>)}</select></div>
               <ChoiceField name="lessonTopic" label="Conteúdo da aula (opcional)" options={LESSON_TOPIC_OPTIONS} placeholder="Escolha um conteúdo (opcional)" otherPlaceholder="Ex.: sistema solar" labelClassName="mb-2 block text-sm font-medium" inputClassName="min-h-12 w-full min-w-0 rounded-xl border border-line bg-paper-raised px-3 text-base" />
               <div className="sm:col-span-2"><button type="submit" className="task-action"><Layers size={18} aria-hidden /> Criar sugestões para a turma</button><p className="mt-3 text-sm leading-relaxed text-ink-soft">Serão criadas 3 sugestões por estudante com perfil e objetivo ativo. Você analisa cada sugestão antes de aplicar.</p></div>
-            </form>
+            </ActionForm>
           </div>
         </details>
       ) : null}

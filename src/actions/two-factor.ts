@@ -2,131 +2,78 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { currentSessionId, getCurrentUser, getPendingLogin, loginAllowed, recordLoginAttempt, twoFactorRequired, upgradeSession } from "@/lib/auth";
-import { confirmTwoFactor, consumeSecondFactor, newRecoveryCodesFor } from "@/lib/two-factor";
-import { recordAccountEvent } from "@/lib/accounts";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { getPendingLogin, upgradeSession } from "@/lib/auth";
+import * as security from "@/lib/account-security";
+import { formField, readForm } from "@/lib/form-data";
+import { runAction, runFormAction, runWithoutSession } from "@/lib/server-action";
 import { homeAfterLogin } from "@/lib/tenant";
-import { newTotpSecret } from "@/lib/totp";
 
-export type CodeState = { error?: string; codes?: string[] };
+const codeForm = z.object({ code: formField.text(20) });
 
-const BLOCKED = "Muitas tentativas com código errado. Aguarde 15 minutos e entre de novo.";
-const WRONG = "Código inválido ou já usado. Confira o aplicativo e tente de novo.";
-const codeFrom = (formData: FormData) => String(formData.get("code") ?? "").trim().slice(0, 20);
-
-async function setupUser(): Promise<{ id: string; name: string; role: string; pendingSessionId: string | null } | null> {
-  const user = await getCurrentUser();
-  if (user) return { id: user.id, name: user.name, role: user.role, pendingSessionId: null };
-  const pending = await getPendingLogin();
-  if (pending && !pending.user.totpEnabledAt && !pending.user.mustChangePassword) {
-    return { id: pending.user.id, name: pending.user.name, role: pending.user.role, pendingSessionId: pending.sessionId };
-  }
-  return null;
-}
-
-async function checkCode(user: { id: string; email: string; totpSecret: string | null; totpLastStep: number | null; recoveryCodes: string | null }, code: string) {
-  const key = `mfa:${user.email}`;
-  if (!(await loginAllowed(key))) return { error: BLOCKED } as const;
-  const kind = await consumeSecondFactor(user, code);
-  await recordLoginAttempt(key, Boolean(kind));
-  return kind ? ({ kind } as const) : ({ error: WRONG } as const);
-}
-
-export async function verifySecondStep(_previous: CodeState, formData: FormData): Promise<CodeState> {
-  const pending = await getPendingLogin();
-  if (!pending) redirect("/login");
-  if (pending.user.mustChangePassword) redirect("/login/nova-senha");
-  if (!pending.user.totpEnabledAt) redirect("/login/duas-etapas");
-  const code = codeFrom(formData);
-  if (!code) return { error: "Digite o código de 6 números do aplicativo." };
-  const result = await checkCode(pending.user, code);
-  if ("error" in result) return { error: result.error };
-  if (result.kind === "recuperacao") await recordAccountEvent(pending.user.id, pending.user, "entrou com um código de recuperação");
-  await upgradeSession(pending.sessionId, pending.user.id);
-  const home = await homeAfterLogin();
-  redirect(result.kind === "recuperacao" && home === "/" ? "/conta/seguranca?aviso=recuperacao" : home);
-}
-
-export async function startTwoFactorSetup(): Promise<void> {
-  const prisma = await db();
-  const user = await setupUser();
-  if (!user) redirect("/login");
-  const current = await prisma.user.findUnique({ where: { id: user.id }, select: { totpEnabledAt: true } });
-  if (!current?.totpEnabledAt) await prisma.user.update({ where: { id: user.id }, data: { totpPendingSecret: newTotpSecret() } });
-  revalidatePath("/conta/seguranca");
-  revalidatePath("/login/duas-etapas");
-}
-
-export async function cancelTwoFactorSetup(): Promise<void> {
-  const prisma = await db();
-  const user = await setupUser();
-  if (!user) redirect("/login");
-  await prisma.user.update({ where: { id: user.id }, data: { totpPendingSecret: null } });
-  revalidatePath("/conta/seguranca");
-}
-
-export async function confirmTwoFactorSetup(_previous: CodeState, formData: FormData): Promise<CodeState> {
-  const prisma = await db();
-  const user = await setupUser();
-  if (!user) redirect("/login");
-  const code = codeFrom(formData);
-  if (!code) return { error: "Digite o código de 6 números que aparece no aplicativo." };
-  const codes = await confirmTwoFactor(user.id, code);
-  if (!codes) return { error: "O código não bateu. Confira se o aplicativo leu o QR code desta tela e digite o código atual." };
-  await recordAccountEvent(user.id, user, "ligou as duas etapas");
-  if (!user.pendingSessionId) {
-    const keep = await currentSessionId();
-    await prisma.session.deleteMany({ where: { userId: user.id, ...(keep ? { id: { not: keep } } : {}) } });
-  }
-  return { codes };
-}
-
-export async function finishSecondStepSetup(): Promise<void> {
-  const pending = await getPendingLogin();
-  if (!pending) redirect("/login");
-  if (pending.user.mustChangePassword) redirect("/login/nova-senha");
-  if (!pending.user.totpEnabledAt || pending.user.totpEnabledAt < pending.startedAt) redirect("/login/duas-etapas");
-  await upgradeSession(pending.sessionId, pending.user.id);
-  redirect(await homeAfterLogin());
-}
-
-export async function regenerateRecoveryCodes(_previous: CodeState, formData: FormData): Promise<CodeState> {
-  const prisma = await db();
-  const session = await getCurrentUser();
-  if (!session) redirect("/login");
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id } });
-  if (!user.totpEnabledAt) return { error: "Ligue a verificação em duas etapas primeiro." };
-  const result = await checkCode(user, codeFrom(formData));
-  if ("error" in result) return { error: result.error };
-  const codes = await newRecoveryCodesFor(user.id);
-  await recordAccountEvent(user.id, session, "gerou novos códigos de recuperação", "Os códigos antigos deixaram de valer");
-  return { codes };
-}
-
-export async function disableTwoFactor(_previous: CodeState, formData: FormData): Promise<CodeState> {
-  const prisma = await db();
-  const session = await getCurrentUser();
-  if (!session) redirect("/login");
-  if (twoFactorRequired(session.role)) return { error: "Na sua rede, a verificação em duas etapas é obrigatória para a equipe." };
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id } });
-  if (!user.totpEnabledAt) return {};
-  const result = await checkCode(user, codeFrom(formData));
-  if ("error" in result) return { error: result.error };
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { totpSecret: null, totpPendingSecret: null, totpEnabledAt: null, totpLastStep: null, recoveryCodes: null },
+export async function verifySecondStep(_previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runWithoutSession(async () => {
+    const pending = await getPendingLogin();
+    if (!pending) redirect("/login");
+    if (pending.user.mustChangePassword) redirect("/login/nova-senha");
+    if (!pending.user.totpEnabledAt) redirect("/login/duas-etapas");
+    const kind = await security.confirmSecondStep(pending, readForm(formData, codeForm).code);
+    const home = await homeAfterLogin();
+    redirect(kind === "recuperacao" && home === "/" ? "/conta/seguranca?aviso=recuperacao" : home);
   });
-  await recordAccountEvent(user.id, session, "desligou as duas etapas");
-  revalidatePath("/conta/seguranca");
-  return {};
 }
 
-export async function endOtherSessions(): Promise<void> {
-  const prisma = await db();
-  const user = await getCurrentUser();
+async function setupUser(): Promise<security.SetupUser> {
+  const user = await security.twoFactorSetupUser();
   if (!user) redirect("/login");
-  const keep = await currentSessionId();
-  await prisma.session.deleteMany({ where: { userId: user.id, ...(keep ? { id: { not: keep } } : {}) } });
-  revalidatePath("/conta/seguranca");
+  return user;
+}
+
+export async function startTwoFactorSetup(): Promise<ActionResult> {
+  return runWithoutSession(async () => {
+    await security.startTwoFactorSetup(await setupUser());
+    revalidatePath("/conta/seguranca");
+    revalidatePath("/login/duas-etapas");
+  });
+}
+
+export async function cancelTwoFactorSetup(): Promise<ActionResult> {
+  return runWithoutSession(async () => {
+    await security.cancelTwoFactorSetup(await setupUser());
+    revalidatePath("/conta/seguranca");
+  });
+}
+
+export async function confirmTwoFactorSetup(_previous: unknown, formData: FormData): Promise<ActionResult<string[]>> {
+  return runWithoutSession(async () => security.confirmTwoFactorSetup(await setupUser(), readForm(formData, codeForm).code));
+}
+
+export async function finishSecondStepSetup(): Promise<ActionResult> {
+  return runWithoutSession(async () => {
+    const pending = await getPendingLogin();
+    if (!pending) redirect("/login");
+    if (pending.user.mustChangePassword) redirect("/login/nova-senha");
+    if (!pending.user.totpEnabledAt || pending.user.totpEnabledAt < pending.startedAt) redirect("/login/duas-etapas");
+    await upgradeSession(pending.sessionId, pending.user.id);
+    redirect(await homeAfterLogin());
+  });
+}
+
+export async function regenerateRecoveryCodes(_previous: unknown, formData: FormData): Promise<ActionResult<string[]>> {
+  return runFormAction(formData, codeForm, (user, data) => security.regenerateRecoveryCodes(user, data.code));
+}
+
+export async function disableTwoFactor(_previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, codeForm, async (user, data) => {
+    await security.disableTwoFactor(user, data.code);
+    revalidatePath("/conta/seguranca");
+  });
+}
+
+export async function endOtherSessions(): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await security.endOtherSessions(user.id);
+    revalidatePath("/conta/seguranca");
+  });
 }

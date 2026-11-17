@@ -6,11 +6,12 @@ import { requireStudentPage } from "@/lib/page-context";
 import { taskContent } from "@/lib/adapted-tasks";
 import { printSettings } from "@/lib/task-adaptation";
 import { parseJson, formatDate } from "@/lib/format";
-import { removeStudentTask, saveStudentTask } from "@/actions/adapted-tasks";
+import { removeStudentTask, saveTask } from "@/actions/adapted-tasks";
 import { Badge, Card, SectionTitle } from "@/components/ui";
 import { BnccTag } from "@/components/bncc-tag";
 import { AdaptedView } from "@/components/adapted/adapted-view";
 import { AdaptedEditor } from "@/components/adapted/adapted-editor";
+import { ActionForm } from "@/components/action-form";
 import { BUTTON_CLS, linkCls } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
@@ -60,12 +61,12 @@ export default async function AdaptedTaskPage({ params }: { params: Promise<{ id
       {editing ? (
         <Card className="max-w-3xl">
           <SectionTitle>Ajustar antes de aprovar</SectionTitle>
-          <AdaptedEditor action={saveStudentTask.bind(null, id, task.id)} content={content} />
+          <AdaptedEditor action={saveTask.bind(null, { studentId: id }, task.id)} content={content} />
           <details className="mt-6 rounded-2xl bg-surface-muted p-4">
             <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir esta adaptação</summary>
-            <form action={removeStudentTask.bind(null, id, task.id)} className="mt-3">
+            <ActionForm action={removeStudentTask.bind(null, id, task.id)} className="mt-3">
               <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir</button>
-            </form>
+            </ActionForm>
           </details>
         </Card>
       ) : null}

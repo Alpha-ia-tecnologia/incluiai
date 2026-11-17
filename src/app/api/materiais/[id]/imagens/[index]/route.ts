@@ -1,30 +1,18 @@
 import { db } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { canAccessStudent, isFamilyMaterial } from "@/lib/policy";
-import { can } from "@/lib/roles";
-import { unavailableResponse } from "@/lib/tenant";
+import { isFamilyMaterial } from "@/lib/policy";
+import { serveStudentFile, teamOrSharedWithFamily } from "@/lib/student-files";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string; index: string }> }) {
-  const unavailable = await unavailableResponse();
-  if (unavailable) return unavailable;
-  const prisma = await db();
   const { id, index } = await params;
-  const user = await getCurrentUser();
-  if (!user) return new Response("Não autenticado", { status: 401 });
-  const cardIndex = Number(index);
-  if (!Number.isInteger(cardIndex) || cardIndex < 0) return new Response("Imagem não encontrada", { status: 404 });
-
-  const image = await prisma.materialImage.findUnique({
-    where: { materialId_cardIndex: { materialId: id, cardIndex } },
-    include: { material: { select: { studentId: true, status: true, student: { select: { schoolId: true } } } } },
-  });
-  if (!image || !canAccessStudent(user, { id: image.material.studentId, schoolId: image.material.student.schoolId })) {
-    return new Response("Imagem não encontrada", { status: 404 });
-  }
-  if (!can(user.role, "pedagogical") && !(can(user.role, "familyPortal") && isFamilyMaterial(image.material))) {
-    return new Response("Imagem não encontrada", { status: 404 });
-  }
-  return new Response(new Uint8Array(image.data), {
-    headers: { "Content-Type": image.mimeType, "Cache-Control": "private, max-age=86400" },
+  return serveStudentFile(async (user) => {
+    const prisma = await db();
+    const cardIndex = Number(index);
+    if (!Number.isInteger(cardIndex) || cardIndex < 0) return null;
+    const image = await prisma.materialImage.findUnique({
+      where: { materialId_cardIndex: { materialId: id, cardIndex } },
+      include: { material: { select: { studentId: true, status: true, student: { select: { schoolId: true } } } } },
+    });
+    if (!image || !teamOrSharedWithFamily(user, { id: image.material.studentId, schoolId: image.material.student.schoolId }, isFamilyMaterial(image.material))) return null;
+    return { studentId: image.material.studentId, data: image.data, mimeType: image.mimeType };
   });
 }

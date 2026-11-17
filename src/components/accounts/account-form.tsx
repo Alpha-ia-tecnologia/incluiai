@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Check, KeyRound, UserPlus } from "lucide-react";
-import type { AccountFormState } from "@/actions/users";
+import type { ActionResult } from "@/lib/action-result";
+import type { CreatedAccount as Created } from "@/lib/accounts";
+import { FormResult } from "@/components/form-kit";
 import { choiceCls, hintCls, inputCls, labelCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
+import { useActionResult } from "@/components/use-action-result";
 import { PrintButton } from "@/components/print-button";
 import { accountSchool, can, isLinkedRole } from "@/lib/roles";
 
@@ -13,7 +16,7 @@ type StudentOption = { id: string; name: string; detail: string };
 type Defaults = { name: string; email: string; role: string; schoolId: string | null; studentIds: string[] };
 
 export function AccountForm({ action, roles, schools, fixedSchool, students, defaults, mode }: {
-  action: (previous: AccountFormState, formData: FormData) => Promise<AccountFormState>;
+  action: (formData: FormData) => Promise<ActionResult<Created | void>>;
   roles: Option[];
   schools: { id: string; name: string }[];
   fixedSchool: boolean;
@@ -26,27 +29,32 @@ export function AccountForm({ action, roles, schools, fixedSchool, students, def
 }
 
 function AccountFormBody({ action, roles, schools, fixedSchool, students, defaults, mode, onAnother }: Parameters<typeof AccountForm>[0] & { onAnother: () => void }) {
-  const [state, submit, pending] = useActionState(action, {});
+  const { result, pending, submit } = useActionResult<Created | void>();
   const [role, setRole] = useState(defaults?.role ?? roles[0]?.value ?? "");
-  const values = state.values ?? defaults;
   const [filter, setFilter] = useState("");
   const id = useId();
-  if (state.created) return <CreatedAccount created={state.created} onAnother={onAnother} />;
+  if (result?.ok && result.value) return <CreatedAccount created={result.value} onAnother={onAnother} />;
+
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    submit(() => action(data), { message: mode === "edit" ? "Alterações salvas." : undefined });
+  }
 
   const linked = isLinkedRole(role);
   const needsSchool = accountSchool(role) !== "nenhuma";
   const networkRole = accountSchool(role) === "opcional";
   const shown = students.filter((student) => !filter.trim() || student.name.toLowerCase().includes(filter.trim().toLowerCase()));
   return (
-    <form action={submit} className="grid max-w-2xl gap-5">
+    <form onSubmit={save} className="grid max-w-2xl gap-5" aria-busy={pending}>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor={`${id}-name`} className={labelCls}>Nome completo</label>
-          <input id={`${id}-name`} name="name" required minLength={3} maxLength={120} defaultValue={values?.name} autoComplete="off" className={inputCls} />
+          <input id={`${id}-name`} name="name" required minLength={3} maxLength={120} defaultValue={defaults?.name} autoComplete="off" className={inputCls} />
         </div>
         <div>
           <label htmlFor={`${id}-email`} className={labelCls}>E-mail de acesso</label>
-          <input id={`${id}-email`} name="email" type="email" required maxLength={160} defaultValue={values?.email} autoComplete="off" className={inputCls} />
+          <input id={`${id}-email`} name="email" type="email" required maxLength={160} defaultValue={defaults?.email} autoComplete="off" className={inputCls} />
         </div>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
@@ -65,7 +73,7 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
                 <p id={`${id}-school`} className="flex min-h-11 items-center text-sm text-ink">{schools[0].name}</p>
               </>
             ) : (
-              <select id={`${id}-school`} name="schoolId" defaultValue={values?.schoolId ?? ""} required={!networkRole} className={inputCls}>
+              <select id={`${id}-school`} name="schoolId" defaultValue={defaults?.schoolId ?? ""} required={!networkRole} className={inputCls}>
                 <option value="">{networkRole ? "Rede inteira (sem escola)" : "Escolha a escola"}</option>
                 {schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
               </select>
@@ -89,7 +97,7 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
               {students.map((student) => (
                 <li key={student.id} className={`min-w-0 ${shown.includes(student) ? "" : "hidden"}`}>
                   <label className={choiceCls}>
-                    <input type="checkbox" name="studentIds" value={student.id} defaultChecked={values?.studentIds.includes(student.id)} className="size-5 shrink-0 accent-[var(--brand)]" />
+                    <input type="checkbox" name="studentIds" value={student.id} defaultChecked={defaults?.studentIds.includes(student.id)} className="size-5 shrink-0 accent-[var(--brand)]" />
                     <span className="min-w-0"><span className="block truncate font-medium">{student.name}</span><span className="block text-xs text-ink-soft">{student.detail}</span></span>
                   </label>
                 </li>
@@ -101,8 +109,7 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
         </fieldset>
       ) : null}
 
-      {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
-      {state.saved ? <p role="status" className="flex items-center gap-2 text-sm font-medium text-green"><Check size={16} aria-hidden /> Alterações salvas.</p> : null}
+      <FormResult result={result} />
       <div>
         <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           {mode === "create" ? <UserPlus size={16} aria-hidden /> : <Check size={16} aria-hidden />}
@@ -113,7 +120,7 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
   );
 }
 
-function CreatedAccount({ created, onAnother }: { created: NonNullable<AccountFormState["created"]>; onAnother: () => void }) {
+function CreatedAccount({ created, onAnother }: { created: Created; onAnother: () => void }) {
   return (
     <div role="status" className="grid max-w-2xl gap-4">
       <p className="flex items-start gap-2 text-sm font-medium text-ink"><Check size={18} aria-hidden className="mt-0.5 shrink-0 text-green" /> Conta criada para {created.name}.</p>

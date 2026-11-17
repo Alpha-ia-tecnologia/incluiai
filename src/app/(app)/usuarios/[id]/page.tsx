@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/format";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { AccountForm } from "@/components/accounts/account-form";
 import { ResetPassword } from "@/components/accounts/reset-password";
+import { ActionForm } from "@/components/action-form";
 import { BUTTON_CLS, linkCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
@@ -77,9 +78,9 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                   Só se a pessoa perdeu o celular e os códigos de recuperação, depois de confirmar quem ela é.
                   {twoFactorRequired(account.role) ? " No próximo acesso, ela liga de novo (obrigatório para a equipe)." : " Ela pode ligar de novo em Segurança da conta."}
                 </p>
-                <form action={resetAccountTwoFactor.bind(null, id)}>
+                <ActionForm action={resetAccountTwoFactor.bind(null, id)}>
                   <button type="submit" className={BUTTON_CLS.secondary}>Desligar as duas etapas</button>
-                </form>
+                </ActionForm>
               </details>
             ) : null}
             {active ? (
@@ -94,14 +95,14 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                     { icon: RotateCcw, text: "Pode ser reativada depois" },
                   ]}
                 />
-                <form action={setAccountActive.bind(null, id, false)}>
+                <ActionForm action={setAccountActive.bind(null, id, false)}>
                   <button type="submit" className={BUTTON_CLS.danger}><UserX size={16} aria-hidden /> Desativar a conta</button>
-                </form>
+                </ActionForm>
               </details>
             ) : (
-              <form action={setAccountActive.bind(null, id, true)}>
+              <ActionForm action={setAccountActive.bind(null, id, true)}>
                 <button type="submit" className={BUTTON_CLS.secondary}><UserCheck size={16} aria-hidden /> Reativar a conta</button>
-              </form>
+              </ActionForm>
             )}
           </div>
         </Card>

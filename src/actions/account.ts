@@ -2,61 +2,30 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { currentSessionId, getCurrentUser, getPendingLogin, hashPassword, loginAllowed, loginStep, recordLoginAttempt, upgradeSession, verifyPassword } from "@/lib/auth";
-import { recordAccountEvent } from "@/lib/accounts";
-import { passwordProblem } from "@/lib/user-admin";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { getPendingLogin } from "@/lib/auth";
+import * as security from "@/lib/account-security";
+import { readForm } from "@/lib/form-data";
+import { runFormAction, runWithoutSession } from "@/lib/server-action";
 import { homeAfterLogin } from "@/lib/tenant";
 
-export type PasswordState = { error?: string; saved?: boolean };
+const newPassword = z.object({ password: z.string().catch(""), confirm: z.string().catch("") });
+const passwordChange = newPassword.extend({ current: z.string().catch("") });
 
-function readPasswords(formData: FormData) {
-  return { password: String(formData.get("password") ?? ""), confirm: String(formData.get("confirm") ?? "") };
+export async function setPasswordAtLogin(_previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runWithoutSession(async () => {
+    const pending = await getPendingLogin();
+    if (!pending) redirect("/login");
+    if (!pending.user.mustChangePassword) redirect("/login/duas-etapas");
+    const next = await security.createOwnPassword(pending, readForm(formData, newPassword));
+    redirect(next ? `/login/${next}` : await homeAfterLogin());
+  });
 }
 
-function newPasswordProblem(password: string, confirm: string, user: { email: string; name: string; passwordHash: string }, sameMessage: string): string | null {
-  const problem = passwordProblem(password, user);
-  if (problem) return problem;
-  if (password !== confirm) return "As duas senhas não são iguais. Digite de novo.";
-  if (verifyPassword(password, user.passwordHash)) return sameMessage;
-  return null;
-}
-
-export async function setPasswordAtLogin(_previous: PasswordState, formData: FormData): Promise<PasswordState> {
-  const prisma = await db();
-  const pending = await getPendingLogin();
-  if (!pending) redirect("/login");
-  const { user } = pending;
-  if (!user.mustChangePassword) redirect("/login/duas-etapas");
-  const { password, confirm } = readPasswords(formData);
-  const problem = newPasswordProblem(password, confirm, user, "Escolha uma senha diferente da temporária.");
-  if (problem) return { error: problem };
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(password), mustChangePassword: false, passwordChangedAt: new Date() } });
-  await recordAccountEvent(user.id, user, "criou a própria senha", "No primeiro acesso, no lugar da senha temporária");
-  const next = loginStep({ ...user, mustChangePassword: false });
-  if (next) redirect(`/login/${next}`);
-  await upgradeSession(pending.sessionId, user.id);
-  redirect(await homeAfterLogin());
-}
-
-export async function changeOwnPassword(_previous: PasswordState, formData: FormData): Promise<PasswordState> {
-  const prisma = await db();
-  const session = await getCurrentUser();
-  if (!session) redirect("/login");
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id } });
-  const key = `senha:${user.email}`;
-  if (!(await loginAllowed(key))) return { error: "Muitas tentativas com a senha atual errada. Aguarde 15 minutos." };
-  const current = String(formData.get("current") ?? "");
-  const right = verifyPassword(current, user.passwordHash);
-  await recordLoginAttempt(key, right);
-  if (!right) return { error: "A senha atual não confere." };
-  const { password, confirm } = readPasswords(formData);
-  const problem = newPasswordProblem(password, confirm, user, "A senha nova precisa ser diferente da atual.");
-  if (problem) return { error: problem };
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(password), passwordChangedAt: new Date() } });
-  const keep = await currentSessionId();
-  await prisma.session.deleteMany({ where: { userId: user.id, ...(keep ? { id: { not: keep } } : {}) } });
-  await recordAccountEvent(user.id, session, "trocou a senha", "As outras sessões da conta foram encerradas");
-  revalidatePath("/conta/seguranca");
-  return { saved: true };
+export async function changeOwnPassword(_previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, passwordChange, async (user, data) => {
+    await security.changeOwnPassword(user, data);
+    revalidatePath("/conta/seguranca");
+  });
 }

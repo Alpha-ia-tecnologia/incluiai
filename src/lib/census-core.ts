@@ -100,6 +100,12 @@ export async function saveMonitorConfig(config: MonitorConfig, actorName: string
   await prisma.censusMonitor.update({ where: { id: "rede" }, data: { enabled: config.enabled, periodStart: config.periodStart, periodEnd: config.periodEnd, times: JSON.stringify(config.times), nextRunAt: nextRun(config, now), updatedBy: actorName } });
 }
 
+export async function saveFndeCount(count: number | null, year: number | null, actorName: string, now: Date = new Date()) {
+  const prisma = await db();
+  await getMonitor(now);
+  await prisma.censusMonitor.update({ where: { id: "rede" }, data: { fndeAee: count, fndeYear: year, updatedBy: actorName } });
+}
+
 export async function monitorTick(now: Date = new Date()): Promise<boolean> {
   const prisma = await db();
   const { row, config } = await getMonitor(now);

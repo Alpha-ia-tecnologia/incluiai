@@ -1,89 +1,56 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { requireStudentTeam } from "@/lib/auth";
-import { addMaterialImages, approveStudentMaterial, createStudentMaterial, saveMaterialActivity } from "@/lib/material-generate";
-
-export type MaterialActionState = { status: "idle" | "ok" | "erro"; message?: string; materialId?: string };
-
-const failure = (error: unknown, fallback: string): MaterialActionState => {
-  console.error("[materiais]", error);
-  const message = error instanceof Error && /permissão|Preencha|Escolha|objetivo|configurada|não encontrad/i.test(error.message) ? error.message : fallback;
-  return { status: "erro", message };
-};
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { invalidateStudent } from "@/lib/invalidate";
+import { runAction, runFormAction } from "@/lib/server-action";
+import { addMaterialImages, approveStudentMaterial, createStudentMaterial, deleteStudentMaterial, saveMaterialActivity } from "@/lib/material-generate";
 
 const galleryPath = (studentId: string) => `/estudantes/${studentId}/materiais`;
-const materialPath = (studentId: string, materialId: string) => `${galleryPath(studentId)}/${materialId}`;
 
-function revalidateMaterial(studentId: string, materialId: string) {
-  revalidatePath(galleryPath(studentId));
-  revalidatePath(materialPath(studentId, materialId));
-  revalidatePath(`${materialPath(studentId, materialId)}/imprimir`);
-}
+const materialRequest = z.object({ kind: formField.text(), topic: formField.text(), context: formField.text(), objectiveId: formField.optionalText(), gerarImagens: formField.checkbox() });
 
-// O redirect fica fora do try: ele lança o desvio do Next.
-export async function generateMaterial(studentId: string, _previous: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
-  let target: string;
-  try {
-    const user = await requireStudentTeam(studentId);
-    const { material, source, images } = await createStudentMaterial(user, studentId, {
-      kind: String(formData.get("kind") ?? ""),
-      topic: String(formData.get("topic") ?? ""),
-      context: String(formData.get("context") ?? "aee"),
-      objectiveId: String(formData.get("objectiveId") ?? "") || null,
-      withImages: formData.get("gerarImagens") === "on",
-    });
-    revalidateMaterial(studentId, material.id);
-    revalidatePath(`/estudantes/${studentId}/linha-do-tempo`);
+export async function generateMaterial(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, materialRequest, async (user, data) => {
+    const { material, source, images } = await createStudentMaterial(user, studentId, { ...data, withImages: data.gerarImagens });
+    invalidateStudent(studentId);
     const query = new URLSearchParams({ criado: source });
     if (images.requested) {
       query.set("imagens", String(images.created));
       if (images.errors.length) query.set("falhas", "1");
     }
-    target = `${materialPath(studentId, material.id)}?${query}`;
-  } catch (error) {
-    return failure(error, "Não foi possível criar o material agora. Tente de novo.");
-  }
-  redirect(target);
+    redirect(`${galleryPath(studentId)}/${material.id}?${query}`);
+  });
 }
 
-export async function approveMaterial(studentId: string, materialId: string) {
-  const user = await requireStudentTeam(studentId);
-  await approveStudentMaterial(user, studentId, materialId);
-  revalidateMaterial(studentId, materialId);
+export async function approveMaterial(studentId: string, materialId: string): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await approveStudentMaterial(user, studentId, materialId);
+    invalidateStudent(studentId);
+  });
 }
 
-export async function generateMaterialImagesAction(studentId: string, materialId: string): Promise<MaterialActionState> {
-  try {
-    const user = await requireStudentTeam(studentId);
+export async function generateMaterialImagesAction(studentId: string, materialId: string): Promise<ActionResult<{ created: number; errors: string[] }>> {
+  return runAction(async (user) => {
     const result = await addMaterialImages(user, studentId, materialId);
-    revalidateMaterial(studentId, materialId);
-    if (!result.created && result.errors.length) return { status: "erro", message: result.errors[0] };
-    return { status: "ok", message: result.created ? `${result.created} imagem(ns) prontas.${result.errors.length ? ` ${result.errors[0]}` : ""}` : "Todas as imagens já estavam prontas." };
-  } catch (error) {
-    return failure(error, "Não foi possível gerar as imagens agora. Tente de novo.");
-  }
+    invalidateStudent(studentId);
+    return result;
+  });
 }
 
-export async function sendMaterialActivity(studentId: string, materialId: string, index: number): Promise<MaterialActionState> {
-  try {
-    const user = await requireStudentTeam(studentId);
+export async function sendMaterialActivity(studentId: string, materialId: string, index: number): Promise<ActionResult> {
+  return runAction(async (user) => {
     await saveMaterialActivity(user, studentId, materialId, index);
-    revalidatePath(`/estudantes/${studentId}/atividades`);
-    revalidateMaterial(studentId, materialId);
-    return { status: "ok", message: "Atividade levada para Atividades, como sugestão para aceitar." };
-  } catch (error) {
-    return failure(error, "Não foi possível levar a atividade agora. Tente de novo.");
-  }
+    invalidateStudent(studentId);
+  });
 }
 
-export async function deleteMaterial(studentId: string, materialId: string) {
-  const prisma = await db();
-  await requireStudentTeam(studentId);
-  const removed = await prisma.material.deleteMany({ where: { id: materialId, studentId } });
-  if (!removed.count) throw new Error("Material não encontrado para este estudante.");
-  revalidateMaterial(studentId, materialId);
-  redirect(galleryPath(studentId));
+export async function deleteMaterial(studentId: string, materialId: string): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await deleteStudentMaterial(user, studentId, materialId);
+    invalidateStudent(studentId);
+    redirect(galleryPath(studentId));
+  });
 }

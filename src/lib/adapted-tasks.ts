@@ -1,9 +1,10 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { db } from "./prisma";
-import type { SessionUser } from "./auth";
+import { assertStudentTeam, type SessionUser } from "./auth";
 import { AUDIT_ACTION, recordChange } from "./audit";
 import { validBnccCode } from "./bncc";
+import { UserError } from "./user-error";
 import { runAiJob } from "./agents/job";
 import type { RedactionScope } from "./agents/names-in-scope";
 import { profileText } from "./agents/context";
@@ -12,17 +13,25 @@ import type { AgentAttachment } from "./agents/types";
 import { adaptByRules, isAdaptOption, levelsByRules, normalizeAdapted, type AdaptedContent, type LevelKey, type TaskKind } from "./task-adaptation";
 import { loadPlanningFor, contentOf, latestVersion } from "./dua/shared";
 
-export const MAX_TASK_FILE_BYTES = 10 * 1024 * 1024;
+export type TaskScope = { studentId: string } | { planningId: string };
+export type TaskText = { title: string; text: string };
+
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
-export type ReadResult = { title: string; text: string } | { error: string };
+async function authorize(user: SessionUser, scope: TaskScope): Promise<{ redaction: RedactionScope; studentId: string | null }> {
+  if ("studentId" in scope) {
+    await assertStudentTeam(user, scope.studentId);
+    return { redaction: { student: scope.studentId }, studentId: scope.studentId };
+  }
+  const { planning } = await loadPlanningFor(user, scope.planningId, "edit");
+  return { redaction: { school: planning.schoolId }, studentId: null };
+}
 
-async function attachmentOf(file: File): Promise<AgentAttachment | string> {
-  if (file.size > MAX_TASK_FILE_BYTES) return "O arquivo passa de 10 MB. Tire a foto de novo ou divida o PDF.";
+async function attachmentOf(file: File): Promise<AgentAttachment> {
   const data = Buffer.from(await file.arrayBuffer()).toString("base64");
   if (file.type === "application/pdf") return { kind: "pdf", data };
   if (IMAGE_TYPES.has(file.type)) return { kind: "image", mediaType: file.type as "image/jpeg", data };
-  return "Envie uma foto (JPG, PNG ou WebP) ou um PDF.";
+  throw new UserError("Envie uma foto (JPG, PNG ou WebP) ou um PDF.");
 }
 
 const READ_UNAVAILABLE = {
@@ -31,32 +40,37 @@ const READ_UNAVAILABLE = {
   falhou: "Não foi possível ler o arquivo agora. Tente de novo ou cole o texto da atividade.",
 };
 
-async function transcribe(file: File, scope: RedactionScope, student: string | null): Promise<ReadResult> {
-  const { value, reason } = await runAiJob<ReadResult>({
+export async function transcribeTask(user: SessionUser, scope: TaskScope, file: File): Promise<TaskText> {
+  const { redaction, studentId } = await authorize(user, scope);
+  const attachment = await attachmentOf(file);
+  const { value, reason } = await runAiJob<TaskText>({
     task: "leitura de foto ou PDF",
-    scope,
-    student,
+    scope: redaction,
+    student: studentId,
     needs: "files",
     run: async (model) => {
-      const attachment = await attachmentOf(file);
-      if (typeof attachment === "string") return { error: attachment };
       const result = await readTaskFile(model, attachment);
-      return result.text.trim() ? { title: result.title.trim(), text: result.text.trim() } : { error: "Não deu para ler texto no arquivo. Tente uma foto mais nítida ou cole o texto." };
+      return { title: result.title.trim(), text: result.text.trim() };
     },
   });
-  return value ?? { error: READ_UNAVAILABLE[reason ?? "falhou"] };
+  if (!value) throw new UserError(READ_UNAVAILABLE[reason ?? "falhou"]);
+  if (studentId) await recordChange(user, studentId, AUDIT_ACTION.sentToAi, "Foto ou PDF de atividade da turma, para transcrever (Claude)");
+  if (!value.text) throw new UserError("Não deu para ler texto no arquivo. Tente uma foto mais nítida ou cole o texto.");
+  return value;
 }
 
-export async function readTaskForStudent(user: SessionUser, studentId: string, file: File): Promise<ReadResult> {
-  const result = await transcribe(file, { student: studentId }, studentId);
-  if (!("error" in result)) await recordChange(user, studentId, AUDIT_ACTION.sentToAi, "Foto ou PDF de atividade da turma, para transcrever (Claude)");
-  return result;
+function taskText(input: TaskText): TaskText {
+  const text = input.text.trim();
+  if (text.length < 10) throw new UserError("Cole o texto da atividade (ou envie a foto ou o PDF).");
+  return { title: input.title.trim() || "Atividade da turma", text };
 }
 
-export type AdaptInput = { title: string; text: string; kind: TaskKind; options: string[]; objectiveId: string | null };
+export type AdaptInput = TaskText & { kind: TaskKind; options: string[]; objectiveId: string | null };
 
-export async function createAdaptedTask(user: SessionUser, studentId: string, input: AdaptInput) {
+export async function createAdaptedTask(user: SessionUser, studentId: string, request: AdaptInput) {
   const prisma = await db();
+  await authorize(user, { studentId });
+  const input = { ...request, ...taskText(request) };
   const options = input.options.filter(isAdaptOption);
   const objective = input.objectiveId
     ? await prisma.objective.findFirst({ where: { id: input.objectiveId, plan: { studentId, status: "ativo" } }, select: { id: true, description: true, bnccCode: true } })
@@ -86,42 +100,37 @@ export async function createAdaptedTask(user: SessionUser, studentId: string, in
 
 export const taskContent = (stored: string, title: string): AdaptedContent => normalizeAdapted(JSON.parse(stored) as Partial<AdaptedContent>, title);
 
-async function draftTask(where: { id: string; studentId?: string; planningId?: string }) {
+async function draftTask(user: SessionUser, scope: TaskScope, taskId: string) {
   const prisma = await db();
-  const task = await prisma.adaptedTask.findFirst({ where });
-  if (!task) throw new Error("Atividade adaptada não encontrada.");
-  if (task.status === "aprovada") throw new Error("Atividade aprovada não muda mais. Faça uma nova adaptação.");
+  await authorize(user, scope);
+  const task = await prisma.adaptedTask.findFirst({ where: { id: taskId, ...scope } });
+  if (!task) throw new UserError("Atividade adaptada não encontrada.", "not_found");
+  if (task.status === "aprovada") throw new UserError("Atividade aprovada não muda mais. Faça uma nova adaptação.", "conflict");
   return task;
 }
 
-export async function saveAdaptedContent(where: { id: string; studentId?: string; planningId?: string }, content: AdaptedContent) {
+export async function saveAdaptedTask(user: SessionUser, scope: TaskScope, taskId: string, content: Partial<AdaptedContent>, approve: boolean) {
   const prisma = await db();
-  const task = await draftTask(where);
+  const task = await draftTask(user, scope, taskId);
   const clean = normalizeAdapted(content, task.title);
-  await prisma.adaptedTask.update({ where: { id: task.id }, data: { content: JSON.stringify(clean), title: clean.title } });
+  await prisma.adaptedTask.update({
+    where: { id: task.id },
+    data: { content: JSON.stringify(clean), title: clean.title, ...(approve ? { status: "aprovada", approvedBy: user.name, approvedAt: new Date() } : {}) },
+  });
+  if (approve && task.studentId) await recordChange(user, task.studentId, AUDIT_ACTION.approved, `Atividade adaptada: ${clean.title.slice(0, 80)}`);
 }
 
-export async function approveAdaptedTask(user: SessionUser, where: { id: string; studentId?: string; planningId?: string }) {
+export async function deleteAdaptedTask(user: SessionUser, scope: TaskScope, taskId: string) {
   const prisma = await db();
-  const task = await draftTask(where);
-  await prisma.adaptedTask.update({ where: { id: task.id }, data: { status: "aprovada", approvedBy: user.name, approvedAt: new Date() } });
-  if (task.studentId) await recordChange(user, task.studentId, AUDIT_ACTION.approved, `Atividade adaptada: ${task.title.slice(0, 80)}`);
-}
-
-export async function deleteAdaptedTask(where: { id: string; studentId?: string; planningId?: string }) {
-  const prisma = await db();
-  const task = await draftTask(where);
+  const task = await draftTask(user, scope, taskId);
   await prisma.adaptedTask.delete({ where: { id: task.id } });
+  if (task.studentId) await recordChange(user, task.studentId, AUDIT_ACTION.deleted, `Atividade adaptada: ${task.title.slice(0, 80)}`);
 }
 
-export async function readTaskForPlanning(user: SessionUser, planningId: string, file: File): Promise<ReadResult> {
-  const { planning } = await loadPlanningFor(user, planningId, "edit");
-  return transcribe(file, { school: planning.schoolId }, null);
-}
-
-export async function createLevels(user: SessionUser, planningId: string, input: { title: string; text: string; kind: TaskKind }) {
+export async function createLevels(user: SessionUser, planningId: string, request: TaskText & { kind: TaskKind }) {
   const prisma = await db();
   const { planning } = await loadPlanningFor(user, planningId, "edit");
+  const input = { ...request, ...taskText(request) };
   const content = contentOf(await latestVersion(planningId));
   const objective = content.objective.learning.trim() || "Objetivo não informado no planejamento.";
   const { value: levels, source } = await runAiJob({

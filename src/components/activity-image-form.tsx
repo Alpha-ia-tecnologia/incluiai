@@ -4,14 +4,16 @@ import { useActionState } from "react";
 import { ImagePlus } from "lucide-react";
 import { ChoiceField } from "@/components/choice-field";
 import { PendingButton } from "@/components/pending-button";
+import { FormResult } from "@/components/form-kit";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { IMAGE_KINDS } from "@/lib/images/activity-image";
-import type { ImageActionState } from "@/actions/activity-images";
+import type { ActionResult } from "@/lib/action-result";
 
 export function ActivityImageForm({ action, hasImage }: {
-  action: (previous: ImageActionState, formData: FormData) => Promise<ImageActionState>;
+  action: (previous: ActionResult | null, formData: FormData) => Promise<ActionResult>;
   hasImage: boolean;
 }) {
-  const [state, formAction] = useActionState(action, { status: "idle" });
+  const [result, formAction] = useActionState(action, null);
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-3">
       <div className="min-w-56 flex-1">
@@ -27,15 +29,11 @@ export function ActivityImageForm({ action, hasImage }: {
         />
       </div>
       <div className="contents">
-        <PendingButton
-          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-soft px-4 text-sm font-medium text-brand-strong hover:bg-lilac"
-          pendingText="A OpenAI está desenhando a imagem."
-          wait="imagem"
-        >
+        <PendingButton className={BUTTON_CLS.secondary} pendingText="A OpenAI está desenhando a imagem." wait="imagem">
           <ImagePlus size={16} aria-hidden /> {hasImage ? "Gerar outra imagem" : "Gerar imagem de apoio"}
         </PendingButton>
       </div>
-      {state.status === "erro" ? <p role="alert" className="basis-full text-sm text-coral">{state.message}</p> : null}
+      <div className={result?.ok === false ? "basis-full" : "contents"}><FormResult result={result} /></div>
     </form>
   );
 }

@@ -3,25 +3,28 @@
 import { useActionState, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Download, KeyRound, ScanQrCode, ShieldCheck } from "lucide-react";
-import type { CodeState } from "@/actions/two-factor";
+import type { ActionResult } from "@/lib/action-result";
 import { confirmTwoFactorSetup, finishSecondStepSetup } from "@/actions/two-factor";
-import { BUTTON_CLS, type ButtonVariant, hintCls, inputCls, labelCls } from "@/components/form-styles";
+import { ActionForm } from "@/components/action-form";
+import { Field, FormResult } from "@/components/form-kit";
+import { BUTTON_CLS, type ButtonVariant, inputCls } from "@/components/form-styles";
 import { PrintButton } from "@/components/print-button";
 import { Steps } from "@/components/explain";
 
-type CodeAction = (previous: CodeState, formData: FormData) => Promise<CodeState>;
+type CodeResult = ActionResult<string[] | void>;
+type CodeAction = (previous: CodeResult | null, formData: FormData) => Promise<CodeResult>;
 
 type FormText = { label: string; hint?: string; button: string; pendingLabel: string; kind?: "app" | "recovery"; variant?: ButtonVariant };
 
 export function CodeForm({ action, finish = "refresh", ...text }: FormText & { action: CodeAction; finish?: "refresh" | "enter" }) {
-  const [state, submit, pending] = useActionState(action, {});
-  if (state.codes) return <RecoveryCodes codes={state.codes} finish={finish} />;
-  return <CodeFields state={state} submit={submit} pending={pending} {...text} />;
+  const [result, submit, pending] = useActionState(action, null);
+  if (result?.ok && result.value) return <RecoveryCodes codes={result.value} finish={finish} />;
+  return <CodeFields result={result} submit={submit} pending={pending} {...text} />;
 }
 
 export function SetupFlow({ svg, secret, account, finish }: { svg: string; secret: string; account: string; finish: "refresh" | "enter" }) {
-  const [state, submit, pending] = useActionState(confirmTwoFactorSetup, {});
-  if (state.codes) return <RecoveryCodes codes={state.codes} finish={finish} />;
+  const [result, submit, pending] = useActionState(confirmTwoFactorSetup, null);
+  if (result?.ok) return <RecoveryCodes codes={result.value} finish={finish} />;
   return (
     <div className="grid gap-6">
       <div className="grid gap-2">
@@ -48,32 +51,31 @@ export function SetupFlow({ svg, secret, account, finish }: { svg: string; secre
           <p className="mt-2 text-xs leading-relaxed text-ink-soft">Conta: {account}. Tipo: baseado em tempo.</p>
         </div>
       </div>
-      <CodeFields state={state} submit={submit} pending={pending} label="Código do aplicativo (6 números)" button="Confirmar e ligar" pendingLabel="Conferindo o código…" />
+      <CodeFields result={result} submit={submit} pending={pending} label="Código do aplicativo (6 números)" button="Confirmar e ligar" pendingLabel="Conferindo o código…" />
     </div>
   );
 }
 
-function CodeFields({ state, submit, pending, label, hint, button, pendingLabel, kind = "app", variant = "primary" }: FormText & { state: CodeState; submit: (formData: FormData) => void; pending: boolean }) {
+function CodeFields({ result, submit, pending, label, hint, button, pendingLabel, kind = "app", variant = "primary" }: FormText & { result: ActionResult<unknown> | null; submit: (formData: FormData) => void; pending: boolean }) {
   const id = useId();
   return (
     <form action={submit} className="grid max-w-sm gap-3">
-      <div>
-        <label htmlFor={`${id}-code`} className={labelCls}>{label}</label>
-        {hint ? <p id={`${id}-hint`} className={hintCls}>{hint}</p> : null}
-        <input
-          id={`${id}-code`}
-          name="code"
-          required
-          autoComplete="one-time-code"
-          inputMode={kind === "app" ? "numeric" : "text"}
-          maxLength={kind === "app" ? 7 : 12}
-          placeholder={kind === "app" ? "000000" : "XXXX-XXXX"}
-          aria-describedby={hint ? `${id}-hint` : undefined}
-          aria-invalid={state.error ? true : undefined}
-          className={`${inputCls} font-mono tracking-widest`}
-        />
-      </div>
-      {state.error ? <p role="alert" className="text-sm font-medium text-coral">{state.error}</p> : null}
+      <Field id={`${id}-code`} label={label} hint={hint}>
+        {(control) => (
+          <input
+            {...control}
+            name="code"
+            required
+            autoComplete="one-time-code"
+            inputMode={kind === "app" ? "numeric" : "text"}
+            maxLength={kind === "app" ? 7 : 12}
+            placeholder={kind === "app" ? "000000" : "XXXX-XXXX"}
+            aria-invalid={result?.ok === false ? true : undefined}
+            className={`${inputCls} font-mono tracking-widest`}
+          />
+        )}
+      </Field>
+      <FormResult result={result} />
       <div>
         <button type="submit" disabled={pending} className={BUTTON_CLS[variant]}>
           <KeyRound size={16} aria-hidden /> {pending ? pendingLabel : button}
@@ -102,9 +104,9 @@ function RecoveryCodes({ codes, finish }: { codes: string[]; finish: "refresh" |
       <div className="flex flex-wrap gap-3 print:hidden">
         <PrintButton label="Imprimir os códigos" />
         {finish === "enter" ? (
-          <form action={finishSecondStepSetup}>
+          <ActionForm action={finishSecondStepSetup}>
             <button type="submit" className={BUTTON_CLS.primary}>Já guardei: entrar na plataforma</button>
-          </form>
+          </ActionForm>
         ) : (
           <button type="button" onClick={() => router.refresh()} className={BUTTON_CLS.primary}>Já guardei os códigos</button>
         )}

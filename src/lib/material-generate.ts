@@ -7,13 +7,15 @@ import { parseJson } from "./format";
 import { CHANNELS } from "./scale";
 import { isActivityContext } from "./pedagogy-rules";
 import { activityRow, type ActivityCard } from "./activity-engine";
-import { isImageGenerationEnabled, studentAI } from "./agents/capabilities";
+import { studentAI } from "./agents/capabilities";
 import { runAiJob } from "./agents/job";
 import { materialContextText } from "./agents/context";
 import { runMaterialAgent } from "./agents/material-agent";
 import { guidanceForPlan, parseAccepted } from "./health-report";
 import { applicableRules } from "./rules";
 import { generateMaterialImages } from "./images/material-images";
+import { assertImagesAllowed } from "./images/save";
+import { UserError } from "./user-error";
 import {
   MATERIAL_KIND_LABEL, checkMaterial, isMaterialKind, normalizeMaterialContent, rulesMaterial,
   type MaterialContent, type ProfileFacts,
@@ -45,17 +47,17 @@ export function profileFacts(student: Pick<Student, "name">, profile: Functional
 export async function createStudentMaterial(user: SessionUser, studentId: string, request: MaterialRequest) {
   const prisma = await db();
   await assertStudentTeam(user, studentId);
-  if (!isMaterialKind(request.kind)) throw new Error("Escolha o tipo de material.");
+  if (!isMaterialKind(request.kind)) throw new UserError("Escolha o tipo de material.");
   const kind = request.kind;
   const context = isActivityContext(request.context) ? request.context : "aee";
   const topic = request.topic.replace(/\s+/g, " ").trim().slice(0, 160);
   const student = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { profile: true, caseStudy: true } });
   const profile = student.profile;
-  if (!profile) throw new Error("Preencha Como aprende antes de gerar materiais.");
+  if (!profile) throw new UserError("Preencha Como aprende antes de gerar materiais.");
   const objective = request.objectiveId
     ? await prisma.objective.findFirst({ where: { id: request.objectiveId, plan: { studentId } }, select: { id: true, dimension: true, action: true, condition: true, criterion: true, currentSupport: true, targetSupport: true, bnccCode: true } })
     : null;
-  if (request.objectiveId && !objective) throw new Error("O objetivo escolhido não é do plano deste estudante.");
+  if (request.objectiveId && !objective) throw new UserError("O objetivo escolhido não é do plano deste estudante.");
   const objectiveText = objective ? `${objective.action}, ${objective.condition}, ${objective.criterion}` : null;
   const facts = profileFacts(student, profile);
   const rules = { kind, toleranceMinutes: facts.toleranceMinutes };
@@ -101,7 +103,7 @@ async function loadOwnMaterial(user: SessionUser, studentId: string, materialId:
   const prisma = await db();
   await assertStudentTeam(user, studentId);
   const material = await prisma.material.findFirst({ where: { id: materialId, studentId } });
-  if (!material) throw new Error("Material não encontrado para este estudante.");
+  if (!material) throw new UserError("Material não encontrado para este estudante.", "not_found");
   return material;
 }
 
@@ -115,9 +117,17 @@ export async function approveStudentMaterial(user: SessionUser, studentId: strin
 
 export async function addMaterialImages(user: SessionUser, studentId: string, materialId: string) {
   const material = await loadOwnMaterial(user, studentId, materialId);
-  if (!isImageGenerationEnabled()) throw new Error("A geração de imagens não está configurada (falta OPENAI_API_KEY).");
-  if (!(await studentAI(studentId)).images) throw new Error("A família ainda não autorizou o uso de IA com os dados deste estudante.");
-  return generateMaterialImages(material.id, user);
+  await assertImagesAllowed(studentId);
+  const result = await generateMaterialImages(material.id, user);
+  if (!result.created && result.errors.length) throw new UserError(result.errors[0]);
+  return result;
+}
+
+export async function deleteStudentMaterial(user: SessionUser, studentId: string, materialId: string) {
+  const prisma = await db();
+  const material = await loadOwnMaterial(user, studentId, materialId);
+  await prisma.material.delete({ where: { id: material.id } });
+  await recordChange(user, studentId, AUDIT_ACTION.deleted, `Material de apoio: ${material.title}`);
 }
 
 export async function saveMaterialActivity(user: SessionUser, studentId: string, materialId: string, index: number) {
@@ -125,7 +135,7 @@ export async function saveMaterialActivity(user: SessionUser, studentId: string,
   const material = await loadOwnMaterial(user, studentId, materialId);
   const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
   const activity = content.activities[index];
-  if (!activity) throw new Error("Atividade não encontrada neste material.");
+  if (!activity) throw new UserError("Atividade não encontrada neste material.", "not_found");
   const card: ActivityCard = {
     title: activity.title,
     context: activity.context,

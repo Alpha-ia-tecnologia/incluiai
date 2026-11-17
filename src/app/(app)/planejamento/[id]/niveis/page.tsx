@@ -6,7 +6,7 @@ import { canReadFiles, isAIEnabled } from "@/lib/agents/capabilities";
 import { taskContent } from "@/lib/adapted-tasks";
 import { LEVEL_LABEL, type LevelKey } from "@/lib/task-adaptation";
 import { formatDate } from "@/lib/format";
-import { makeLevels, saveLevelTask } from "@/actions/adapted-tasks";
+import { adaptTask, saveTask } from "@/actions/adapted-tasks";
 import { Badge, Card, SectionTitle } from "@/components/ui";
 import { AdaptForm } from "@/components/adapted/adapt-form";
 import { AdaptedView } from "@/components/adapted/adapted-view";
@@ -43,7 +43,7 @@ export default async function LevelsPage({ params, searchParams }: { params: Pro
       {access.edit ? (
         <Card className="min-w-0">
           <SectionTitle>Gerar os níveis de uma atividade</SectionTitle>
-          <AdaptForm action={makeLevels.bind(null, id)} canRead={canReadFiles()} aiOn={isAIEnabled()} showOptions={false} adaptLabel="Gerar os três níveis" />
+          <AdaptForm action={adaptTask.bind(null, { planningId: id })} canRead={canReadFiles()} aiOn={isAIEnabled()} showOptions={false} adaptLabel="Gerar os três níveis" />
         </Card>
       ) : null}
 
@@ -78,7 +78,7 @@ export default async function LevelsPage({ params, searchParams }: { params: Pro
                   {access.edit && task.status !== "aprovada" ? (
                     <details className="mt-4 rounded-2xl bg-surface-muted p-4">
                       <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Ajustar e aprovar: {LEVEL_LABEL[task.level as LevelKey]}</summary>
-                      <div className="mt-4"><AdaptedEditor action={saveLevelTask.bind(null, id, task.id)} content={content} approveLabel="Aprovar este nível" /></div>
+                      <div className="mt-4"><AdaptedEditor action={saveTask.bind(null, { planningId: id }, task.id)} content={content} approveLabel="Aprovar este nível" /></div>
                     </details>
                   ) : null}
                 </Card>

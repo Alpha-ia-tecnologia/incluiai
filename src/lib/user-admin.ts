@@ -30,6 +30,13 @@ export function mergeLinks(
   return [...new Set([...kept, ...added])];
 }
 
+export const sameLinks = (a: readonly string[], b: readonly string[]): boolean => [...a].sort().join() === [...b].sort().join();
+
+export type AccountAccess = { email: string; role: string; schoolId: string | null; studentIds: readonly string[] };
+
+export const accessChanged = (before: AccountAccess, after: AccountAccess): boolean =>
+  before.email !== after.email || before.role !== after.role || before.schoolId !== after.schoolId || !sameLinks(before.studentIds, after.studentIds);
+
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Senha nova: comprimento conta mais que regras de símbolo (NIST 800-63B).

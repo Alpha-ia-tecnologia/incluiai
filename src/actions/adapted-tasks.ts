@@ -2,110 +2,80 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
-import { approveAdaptedTask, createAdaptedTask, createLevels, deleteAdaptedTask, readTaskForPlanning, readTaskForStudent, saveAdaptedContent } from "@/lib/adapted-tasks";
-import { loadPlanningFor } from "@/lib/dua/shared";
-import { ANSWER_FORMATS, type AdaptedContent, type AnswerFormat, type TaskKind } from "@/lib/task-adaptation";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { invalidateStudent } from "@/lib/invalidate";
+import { runAction, runFormAction } from "@/lib/server-action";
+import { UPLOAD_LIMIT_BYTES, megabytes, optionalUpload } from "@/lib/uploads";
+import { createAdaptedTask, createLevels, deleteAdaptedTask, saveAdaptedTask, transcribeTask, type TaskScope, type TaskText } from "@/lib/adapted-tasks";
+import type { AdaptedContent, AnswerFormat } from "@/lib/task-adaptation";
 
-export type AdaptState = { error?: string; step?: "conferir"; title?: string; text?: string; saved?: boolean; kind?: TaskKind; options?: string[]; objectiveId?: string };
-
-const kindOf = (value: FormDataEntryValue | null): TaskKind => (value === "prova" ? "prova" : "atividade");
-const fileOf = (formData: FormData) => {
-  const file = formData.get("file");
-  return file instanceof File && file.size ? file : null;
+const refresh = (scope: TaskScope) => {
+  if ("studentId" in scope) invalidateStudent(scope.studentId);
+  else revalidatePath(`/planejamento/${scope.planningId}/niveis`);
 };
 
-export async function adaptForStudent(studentId: string, _previous: AdaptState, formData: FormData): Promise<AdaptState> {
-  const user = await requireStudentTeam(studentId);
-  const title = String(formData.get("title") ?? "").trim();
-  const text = String(formData.get("text") ?? "").trim();
-  const file = fileOf(formData);
-  if (formData.get("intent") !== "adaptar" && file) {
-    const read = await readTaskForStudent(user, studentId, file);
-    if ("error" in read) return { error: read.error };
-    return { step: "conferir", title: title || read.title, text: read.text, kind: kindOf(formData.get("kind")), options: formData.getAll("options").map(String), objectiveId: String(formData.get("objectiveId") ?? "") };
-  }
-  if (text.length < 10) return { error: "Cole o texto da atividade (ou envie a foto ou o PDF)." };
-  const task = await createAdaptedTask(user, studentId, {
-    title: title || "Atividade da turma", text, kind: kindOf(formData.get("kind")),
-    options: formData.getAll("options").map(String), objectiveId: String(formData.get("objectiveId") ?? "") || null,
+const taskForm = z.object({
+  intent: formField.text(),
+  title: formField.text(),
+  text: formField.text(),
+  kind: z.unknown().transform((value) => (value === "prova" ? "prova" : "atividade")),
+  options: formField.list(),
+  objectiveId: formField.optionalText(),
+});
+
+export async function adaptTask(scope: TaskScope, formData: FormData): Promise<ActionResult<TaskText>> {
+  return runFormAction(formData, taskForm, async (user, data) => {
+    const file = optionalUpload(formData.get("file"), {
+      maxBytes: UPLOAD_LIMIT_BYTES.taskFile,
+      tooLarge: `O arquivo passa de ${megabytes(UPLOAD_LIMIT_BYTES.taskFile)} MB. Tire a foto de novo ou divida o PDF.`,
+    });
+    if (data.intent !== "adaptar" && file) {
+      const read = await transcribeTask(user, scope, file);
+      return { title: data.title || read.title, text: read.text };
+    }
+    if ("studentId" in scope) {
+      const task = await createAdaptedTask(user, scope.studentId, data);
+      refresh(scope);
+      redirect(`/estudantes/${scope.studentId}/atividades/adaptadas/${task.id}`);
+    }
+    const batchId = await createLevels(user, scope.planningId, data);
+    refresh(scope);
+    redirect(`/planejamento/${scope.planningId}/niveis?lote=${batchId}`);
   });
-  revalidatePath(`/estudantes/${studentId}/atividades`);
-  redirect(`/estudantes/${studentId}/atividades/adaptadas/${task.id}`);
 }
 
-function contentFrom(formData: FormData): AdaptedContent {
-  const lines = (name: string) => String(formData.get(name) ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
+function contentFrom(formData: FormData): Partial<AdaptedContent> {
+  const text = (name: string) => String(formData.get(name) ?? "");
+  const lines = (name: string) => text(name).split("\n").map((line) => line.trim()).filter(Boolean);
   const count = Number(formData.get("itemCount") ?? 0);
   return {
-    title: String(formData.get("title") ?? ""),
+    title: text("title"),
     instructions: lines("instructions"),
-    items: Array.from({ length: Math.min(count, 40) }, (_, index) => {
-      const format = String(formData.get(`item-${index}-format`) ?? "escrever");
-      return {
-        number: index + 1,
-        prompt: String(formData.get(`item-${index}-prompt`) ?? ""),
-        answerFormat: (ANSWER_FORMATS.includes(format as AnswerFormat) ? format : "escrever") as AnswerFormat,
-        options: lines(`item-${index}-options`),
-        support: String(formData.get(`item-${index}-support`) ?? ""),
-      };
-    }),
+    items: Array.from({ length: Math.min(count, 40) }, (_, index) => ({
+      number: index + 1,
+      prompt: text(`item-${index}-prompt`),
+      answerFormat: text(`item-${index}-format`) as AnswerFormat,
+      options: lines(`item-${index}-options`),
+      support: text(`item-${index}-support`),
+    })),
     teacherNotes: lines("teacherNotes"),
-    preserved: String(formData.get("preserved") ?? ""),
+    preserved: text("preserved"),
   };
 }
 
-export async function saveStudentTask(studentId: string, taskId: string, _previous: AdaptState, formData: FormData): Promise<AdaptState> {
-  const user = await requireStudentTeam(studentId);
-  try {
-    await saveAdaptedContent({ id: taskId, studentId }, contentFrom(formData));
-    if (formData.get("intent") === "aprovar") await approveAdaptedTask(user, { id: taskId, studentId });
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Não foi possível salvar." };
-  }
-  revalidatePath(`/estudantes/${studentId}/atividades/adaptadas/${taskId}`);
-  revalidatePath(`/estudantes/${studentId}/atividades`);
-  return { saved: true };
+export async function saveTask(scope: TaskScope, taskId: string, formData: FormData): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await saveAdaptedTask(user, scope, taskId, contentFrom(formData), formData.get("intent") === "aprovar");
+    refresh(scope);
+  });
 }
 
-export async function removeStudentTask(studentId: string, taskId: string): Promise<void> {
-  await requireStudentTeam(studentId);
-  await deleteAdaptedTask({ id: taskId, studentId });
-  revalidatePath(`/estudantes/${studentId}/atividades`);
-  redirect(`/estudantes/${studentId}/atividades`);
-}
-
-async function planner(planningId: string) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  await loadPlanningFor(user, planningId, "edit");
-  return user;
-}
-
-export async function makeLevels(planningId: string, _previous: AdaptState, formData: FormData): Promise<AdaptState> {
-  const user = await planner(planningId);
-  const title = String(formData.get("title") ?? "").trim();
-  const text = String(formData.get("text") ?? "").trim();
-  const file = fileOf(formData);
-  if (formData.get("intent") !== "adaptar" && file) {
-    const read = await readTaskForPlanning(user, planningId, file);
-    if ("error" in read) return { error: read.error };
-    return { step: "conferir", title: title || read.title, text: read.text, kind: kindOf(formData.get("kind")) };
-  }
-  if (text.length < 10) return { error: "Cole o texto da atividade da turma (ou envie a foto ou o PDF)." };
-  const batchId = await createLevels(user, planningId, { title: title || "Atividade da turma", text, kind: kindOf(formData.get("kind")) });
-  revalidatePath(`/planejamento/${planningId}/niveis`);
-  redirect(`/planejamento/${planningId}/niveis?lote=${batchId}`);
-}
-
-export async function saveLevelTask(planningId: string, taskId: string, _previous: AdaptState, formData: FormData): Promise<AdaptState> {
-  const user = await planner(planningId);
-  try {
-    await saveAdaptedContent({ id: taskId, planningId }, contentFrom(formData));
-    if (formData.get("intent") === "aprovar") await approveAdaptedTask(user, { id: taskId, planningId });
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Não foi possível salvar." };
-  }
-  revalidatePath(`/planejamento/${planningId}/niveis`);
-  return { saved: true };
+export async function removeStudentTask(studentId: string, taskId: string): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await deleteAdaptedTask(user, { studentId }, taskId);
+    invalidateStudent(studentId);
+    redirect(`/estudantes/${studentId}/atividades`);
+  });
 }

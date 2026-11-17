@@ -1,28 +1,22 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { db, isPlatformArea } from "@/lib/prisma";
-import { isPlatformRole } from "@/lib/roles";
-import { createSession, destroySession, loginAllowed, loginStep, recordLoginAttempt, verifyPasswordOrDummy } from "@/lib/auth";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { destroySession } from "@/lib/auth";
+import { signIn } from "@/lib/account-security";
+import { formField, readForm } from "@/lib/form-data";
+import { runWithoutSession } from "@/lib/server-action";
 import { homeAfterLogin } from "@/lib/tenant";
 
-export async function login(_prev: unknown, formData: FormData): Promise<{ error?: string }> {
-  const prisma = await db();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { error: "Preencha o e-mail e a senha." };
-  if (!(await loginAllowed(email))) {
-    return { error: "Muitas tentativas com este e-mail. Aguarde 15 minutos ou peça ajuda à coordenação." };
-  }
-  const found = await prisma.user.findUnique({ where: { email } });
-  const user = found && isPlatformRole(found.role) === (await isPlatformArea()) ? found : null;
-  const ok = verifyPasswordOrDummy(password, user?.passwordHash ?? null);
-  await recordLoginAttempt(email, ok);
-  if (!user || !ok) return { error: "E-mail ou senha inválidos." };
-  if (user.deactivatedAt) return { error: "Esta conta está desativada. Fale com a coordenação da escola ou com a Secretaria." };
-  const step = loginStep(user);
-  await createSession(user.id, { pending: Boolean(step) });
-  redirect(step ? `/login/${step}` : await homeAfterLogin());
+const credentials = z.object({ email: formField.text(), password: z.string().catch("") });
+
+export async function login(_previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runWithoutSession(async () => {
+    const { email, password } = readForm(formData, credentials);
+    const step = await signIn(email, password);
+    redirect(step ? `/login/${step}` : await homeAfterLogin());
+  });
 }
 
 export async function logout() {

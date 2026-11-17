@@ -5,6 +5,7 @@ import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { registerResourceUse } from "@/actions/resources";
+import { ActionForm } from "@/components/action-form";
 import { CONTEXTS, STAGES } from "@/lib/scale";
 import { parseJson } from "@/lib/format";
 import { COMPLEXITY_LABELS, RESOURCE_TYPES, resourcePresentation } from "@/lib/resource-bank";
@@ -227,18 +228,18 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
               <div data-resource-screen className="mt-5 border-t border-line pt-4">
                 <p className="mb-2 text-xs text-ink-soft">Depois de aplicar, registre a resposta:</p>
                 <div className="flex flex-wrap gap-2">
-                  <form action={register}>
+                  <ActionForm action={register}>
                     <input type="hidden" name="worked" value="sim" />
                     <button type="submit" className={BUTTON_CLS.secondary}>
                       <ThumbsUp size={15} aria-hidden /> Teve boa resposta
                     </button>
-                  </form>
-                  <form action={register}>
+                  </ActionForm>
+                  <ActionForm action={register}>
                     <input type="hidden" name="worked" value="nao" />
                     <button type="submit" className={BUTTON_CLS.quiet}>
                       <ThumbsDown size={15} aria-hidden /> Precisa de ajuste
                     </button>
-                  </form>
+                  </ActionForm>
                 </div>
               </div>
             </Card>

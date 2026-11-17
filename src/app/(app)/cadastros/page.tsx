@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createSchool, createClass, deleteClass } from "@/actions/admin";
+import { ActionForm } from "@/components/action-form";
 import { SHIFTS } from "@/lib/scale";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState, ButtonLink } from "@/components/ui";
 import { ChoiceField } from "@/components/choice-field";
@@ -45,7 +46,7 @@ export default async function RegistriesPage() {
       <div className="grid gap-5 lg:grid-cols-2">
         <Card className="flex min-w-0 flex-col">
           <SectionTitle><span className="flex items-center gap-2"><SchoolIcon size={16} aria-hidden /> Nova escola</span></SectionTitle>
-          <form action={createSchool} className={formCls}>
+          <ActionForm action={createSchool} className={formCls}>
             <div className={fieldsCls}>
               <div className="min-w-0">
                 <label htmlFor="school-name" className={labelCls}>Nome *</label>
@@ -56,12 +57,12 @@ export default async function RegistriesPage() {
             <div className={footerCls}>
               <button type="submit" className={BUTTON_CLS.primary}>Salvar escola</button>
             </div>
-          </form>
+          </ActionForm>
         </Card>
 
         <Card className="flex min-w-0 flex-col">
           <SectionTitle><span className="flex items-center gap-2"><Users size={16} aria-hidden /> Nova turma</span></SectionTitle>
-          <form action={createClass} className={formCls}>
+          <ActionForm action={createClass} className={formCls}>
             <div className={fieldsCls}>
               <div className="min-w-0">
                 <label htmlFor="class-school" className={labelCls}>Escola *</label>
@@ -76,7 +77,7 @@ export default async function RegistriesPage() {
             <div className={footerCls}>
               <button type="submit" className={BUTTON_CLS.primary}>Salvar turma</button>
             </div>
-          </form>
+          </ActionForm>
         </Card>
       </div>
 
@@ -120,11 +121,11 @@ export default async function RegistriesPage() {
                               </td>
                               <td className="py-1 pr-3">{SHIFTS[c.shift] ?? c.shift}</td>
                               <td className="py-1 text-right">
-                                <form action={remove}>
+                                <ActionForm action={remove}>
                                   <button type="submit" aria-label={`Excluir a turma ${c.name} da escola ${s.name}`} title="Excluir turma" className="inline-flex size-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-coral-soft hover:text-coral">
                                     <Trash2 size={16} aria-hidden />
                                   </button>
-                                </form>
+                                </ActionForm>
                               </td>
                             </tr>
                           );

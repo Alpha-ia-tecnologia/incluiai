@@ -1,4 +1,5 @@
 import { digitsOnly, identityKeys, normalizeName, titleCase, type CensusPerson, type Dependency } from "./educacenso.ts";
+import { UserError } from "./user-error.ts";
 
 export type PlatformStudent = { id: string; name: string; birthDate: string; inepId: string | null; cpf: string | null; hasAEE: boolean };
 export type MatchBy = "inep" | "cpf" | "nome_nascimento" | "nome" | "manual";
@@ -340,12 +341,12 @@ const nextDay = (day: string) => new Date(Date.parse(`${day}T12:00:00Z`) + 86_40
 const brDate = (day: string) => `${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(0, 4)}`;
 export const brMoment = (date: Date) => `${brDate(brDayOf(date))} às ${date.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}`;
 
-export function cleanMonitorConfig(raw: { enabled: boolean; periodStart: string; periodEnd: string; times: string[] }): MonitorConfig | { error: string } {
+export function cleanMonitorConfig(raw: MonitorConfig): MonitorConfig {
   const times = [...new Set(raw.times.map((time) => time.trim()).filter(Boolean))].sort();
-  if (!validDay(raw.periodStart) || !validDay(raw.periodEnd)) return { error: "Informe as datas de início e fim da janela." };
-  if (raw.periodStart > raw.periodEnd) return { error: "O fim da janela vem antes do início." };
-  if ((Date.parse(raw.periodEnd) - Date.parse(raw.periodStart)) / 86_400_000 > MAX_WINDOW_DAYS) return { error: "A janela tem mais de 400 dias: confira as datas." };
-  if (!times.length || times.length > 4 || !times.every((time) => TIME_PATTERN.test(time))) return { error: "Informe de 1 a 4 horários, como 08:00." };
+  if (!validDay(raw.periodStart) || !validDay(raw.periodEnd)) throw new UserError("Informe as datas de início e fim da janela.");
+  if (raw.periodStart > raw.periodEnd) throw new UserError("O fim da janela vem antes do início.");
+  if ((Date.parse(raw.periodEnd) - Date.parse(raw.periodStart)) / 86_400_000 > MAX_WINDOW_DAYS) throw new UserError("A janela tem mais de 400 dias: confira as datas.");
+  if (!times.length || times.length > 4 || !times.every((time) => TIME_PATTERN.test(time))) throw new UserError("Informe de 1 a 4 horários, como 08:00.");
   return { enabled: raw.enabled, periodStart: raw.periodStart, periodEnd: raw.periodEnd, times };
 }
 

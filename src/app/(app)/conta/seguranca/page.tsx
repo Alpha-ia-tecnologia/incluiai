@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/format";
 import { cancelTwoFactorSetup, disableTwoFactor, endOtherSessions, regenerateRecoveryCodes, startTwoFactorSetup } from "@/actions/two-factor";
 import { changeOwnPassword } from "@/actions/account";
 import { PasswordForm } from "@/components/password-form";
+import { ActionForm } from "@/components/action-form";
 import { roleLabel } from "@/lib/roles";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { CodeForm } from "@/components/two-factor-forms";
@@ -85,9 +86,9 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
           ) : user.totpPendingSecret ? (
             <div className="grid gap-5">
               <TwoFactorSetup secret={user.totpPendingSecret} account={user.email} finish="refresh" />
-              <form action={cancelTwoFactorSetup}>
+              <ActionForm action={cancelTwoFactorSetup}>
                 <button type="submit" className={BUTTON_CLS.quiet}>Cancelar</button>
-              </form>
+              </ActionForm>
             </div>
           ) : (
             <div className="grid gap-4">
@@ -107,9 +108,9 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
                 ]}
               />
               {required ? <p className="text-sm text-ink-soft">Obrigatória para a equipe na sua rede.</p> : null}
-              <form action={startTwoFactorSetup}>
+              <ActionForm action={startTwoFactorSetup}>
                 <button type="submit" className={BUTTON_CLS.primary}><ShieldCheck size={16} aria-hidden /> Ligar a verificação em duas etapas</button>
-              </form>
+              </ActionForm>
             </div>
           )}
         </Card>
@@ -122,9 +123,9 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
               : `Aqui e em mais ${sessions - 1 === 1 ? "1 lugar" : `${sessions - 1} lugares`}. Esqueceu aberta em outro computador? Encerre as outras.`}
           </p>
           {sessions > 1 && current ? (
-            <form action={endOtherSessions}>
+            <ActionForm action={endOtherSessions}>
               <button type="submit" className={BUTTON_CLS.quiet}><LogOut size={16} aria-hidden /> Encerrar as outras sessões</button>
-            </form>
+            </ActionForm>
           ) : null}
         </Card>
 

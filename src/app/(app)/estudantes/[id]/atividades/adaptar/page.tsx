@@ -3,7 +3,7 @@ import { ArrowLeft, FilePen, FileUp, Wand2 } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { studentAI } from "@/lib/agents/capabilities";
-import { adaptForStudent } from "@/actions/adapted-tasks";
+import { adaptTask } from "@/actions/adapted-tasks";
 import { Card, PageHeader } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { ConsentNote } from "@/components/consent-note";
@@ -36,7 +36,7 @@ export default async function AdaptTaskPage({ params }: { params: Promise<{ id: 
       />
       <Card className="max-w-3xl">
         <ConsentNote show={ai.waitingConsent.text} />
-        <AdaptForm action={adaptForStudent.bind(null, id)} canRead={ai.files} aiOn={ai.text} objectives={objectives} adaptLabel="Adaptar para o estudante" />
+        <AdaptForm action={adaptTask.bind(null, { studentId: id })} canRead={ai.files} aiOn={ai.text} objectives={objectives} adaptLabel="Adaptar para o estudante" />
       </Card>
     </>
   );

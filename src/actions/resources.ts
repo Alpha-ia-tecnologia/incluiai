@@ -1,38 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { can } from "@/lib/roles";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { runFormAction } from "@/lib/server-action";
+import { registerResourceUse as registerUse } from "@/lib/resources";
 
-export async function registerResourceUse(resourceId: string, activityId: string, formData: FormData) {
-  const prisma = await db();
-  const user = await getCurrentUser();
-  if (!user || !can(user.role, "pedagogical")) {
-    throw new Error("Apenas a equipe escolar pode registrar aplicações.");
-  }
-  const worked = String(formData.get("worked")) === "sim";
-  const activity = await prisma.resourceActivity.findFirst({
-    where: { id: activityId, resourceId },
+const outcome = z.object({ worked: formField.text() });
+
+export async function registerResourceUse(resourceId: string, activityId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, outcome, async (user, data) => {
+    await registerUse(user, resourceId, activityId, data.worked === "sim");
+    revalidatePath(`/recursos/${resourceId}`);
+    revalidatePath("/recursos");
   });
-  if (!activity) throw new Error("Atividade não pertence a este recurso.");
-
-  await prisma.$transaction([
-    prisma.resource.update({
-      where: { id: resourceId },
-      data: {
-        timesUsed: { increment: 1 },
-        ...(worked ? { positiveOutcomes: { increment: 1 } } : {}),
-      },
-    }),
-    prisma.resourceActivity.update({
-      where: { id: activity.id },
-      data: {
-        timesUsed: { increment: 1 },
-        ...(worked ? { positiveOutcomes: { increment: 1 } } : {}),
-      },
-    }),
-  ]);
-  revalidatePath(`/recursos/${resourceId}`);
-  revalidatePath("/recursos");
 }

@@ -1,27 +1,27 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { saveCheckIn } from "@/lib/notifications";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { invalidateStudent } from "@/lib/invalidate";
+import { runFormAction } from "@/lib/server-action";
+import { saveCheckIn, saveNoticePrefs } from "@/lib/notifications";
 
-export type NoticeState = { error?: string; saved?: boolean };
+const prefsForm = z.object({ notifyByEmail: formField.checkbox(), weeklyCheckIn: formField.checkbox() });
 
-export async function setNoticePrefs(_previous: NoticeState, formData: FormData): Promise<NoticeState> {
-  const prisma = await db();
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  await prisma.user.update({ where: { id: user.id }, data: { notifyByEmail: formData.get("notifyByEmail") === "on", weeklyCheckIn: formData.get("weeklyCheckIn") === "on" } });
-  revalidatePath("/avisos");
-  return { saved: true };
+export async function setNoticePrefs(_previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, prefsForm, async (user, data) => {
+    await saveNoticePrefs(user, data);
+    revalidatePath("/avisos");
+  });
 }
 
-export async function answerCheckIn(studentId: string, _previous: NoticeState, formData: FormData): Promise<NoticeState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const error = await saveCheckIn(user, studentId, formData.getAll("answers").map(String), String(formData.get("note") ?? ""));
-  if (error) return { error };
-  revalidatePath(`/familia/${studentId}`);
-  return { saved: true };
+const checkInForm = z.object({ answers: formField.list(), note: formField.text() });
+
+export async function answerCheckIn(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, checkInForm, async (user, data) => {
+    await saveCheckIn(user, studentId, data.answers, data.note);
+    invalidateStudent(studentId);
+  });
 }

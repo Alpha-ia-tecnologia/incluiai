@@ -1,54 +1,34 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { can } from "@/lib/roles";
+import { z } from "zod/v4";
+import type { ActionResult } from "@/lib/action-result";
+import { formField } from "@/lib/form-data";
+import { runAction, runFormAction } from "@/lib/server-action";
+import * as schools from "@/lib/schools";
 
-async function requireNetworkUser() {
-  const user = await getCurrentUser();
-  if (!user || !can(user.role, "management")) {
-    throw new Error("Apenas coordenação, gestão ou Secretaria podem gerir cadastros.");
-  }
-  return user;
-}
+const schoolForm = z.object({ name: formField.text(), region: formField.text() });
 
-export async function createSchool(formData: FormData) {
-  const prisma = await db();
-  await requireNetworkUser();
-  const name = String(formData.get("name") ?? "").trim();
-  const region = String(formData.get("region") ?? "").trim();
-  if (!name || !region) throw new Error("Nome e região são obrigatórios.");
-  await prisma.school.create({ data: { name, region } });
-  revalidatePath("/cadastros");
-}
-
-export async function createClass(formData: FormData) {
-  const prisma = await db();
-  await requireNetworkUser();
-  const schoolId = String(formData.get("schoolId") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
-  if (!schoolId || !name) throw new Error("Escola e nome da turma são obrigatórios.");
-  await prisma.schoolClass.upsert({
-    where: { schoolId_name: { schoolId, name } },
-    create: {
-      schoolId,
-      name,
-      gradeYear: String(formData.get("gradeYear") ?? "").trim() || null,
-      shift: String(formData.get("shift") ?? "manha"),
-    },
-    update: {
-      gradeYear: String(formData.get("gradeYear") ?? "").trim() || null,
-      shift: String(formData.get("shift") ?? "manha"),
-    },
+export async function createSchool(_previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, schoolForm, async (user, data) => {
+    await schools.createSchool(user, data);
+    revalidatePath("/cadastros");
   });
-  revalidatePath("/cadastros");
-  revalidatePath("/estudantes/novo");
 }
 
-export async function deleteClass(classId: string) {
-  const prisma = await db();
-  await requireNetworkUser();
-  await prisma.schoolClass.delete({ where: { id: classId } });
-  revalidatePath("/cadastros");
+const classForm = z.object({ schoolId: formField.text(), name: formField.text(), gradeYear: formField.optionalText(), shift: formField.text() });
+
+export async function createClass(_previous: unknown, formData: FormData): Promise<ActionResult> {
+  return runFormAction(formData, classForm, async (user, data) => {
+    await schools.saveClass(user, data);
+    revalidatePath("/cadastros");
+    revalidatePath("/estudantes/novo");
+  });
+}
+
+export async function deleteClass(classId: string): Promise<ActionResult> {
+  return runAction(async (user) => {
+    await schools.deleteClass(user, classId);
+    revalidatePath("/cadastros");
+  });
 }
