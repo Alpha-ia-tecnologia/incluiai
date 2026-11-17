@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, canEditStudentRecord, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccessStudent } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { loadPlanningFor } from "@/lib/dua/shared";
 import { taskContent } from "@/lib/adapted-tasks";
 import { adaptedDocx } from "@/lib/adapted-docx";
@@ -14,10 +16,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tas
   const prisma = await db();
   const { taskId } = await params;
   const user = await getCurrentUser();
-  if (!user || !canEditStudentRecord(user.role)) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
+  if (!user || !can(user.role, "editRecord")) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   const task = await prisma.adaptedTask.findUnique({ where: { id: taskId }, include: { student: { select: { schoolId: true } } } });
   if (!task) return NextResponse.json({ error: "Não encontrada." }, { status: 404 });
-  if (task.studentId && (!task.student || !canAccessStudent(user, task.student.schoolId, task.studentId))) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
+  if (task.studentId && (!task.student || !canAccessStudent(user, { id: task.studentId, schoolId: task.student.schoolId }))) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   if (task.planningId) {
     try { await loadPlanningFor(user, task.planningId, "read"); } catch { return NextResponse.json({ error: "Sem acesso." }, { status: 403 }); }
   }

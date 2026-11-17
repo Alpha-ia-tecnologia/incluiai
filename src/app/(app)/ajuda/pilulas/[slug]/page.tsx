@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
-import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { PILLS, pillBySlug, readingMinutes } from "@/lib/learning-pills";
 import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { ReadAloud } from "@/components/read-aloud";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function PillPage({ params }: { params: Promise<{ slug: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!isStaffOrNetwork(user.role)) redirect("/ajuda");
+  if (!can(user.role, "pedagogical")) redirect("/ajuda");
   const pill = pillBySlug((await params).slug);
   if (!pill) notFound();
   const others = PILLS.filter((other) => other.slug !== pill.slug);

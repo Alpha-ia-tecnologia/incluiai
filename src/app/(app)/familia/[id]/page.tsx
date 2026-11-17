@@ -6,15 +6,15 @@ import { ConsentCard } from "@/components/consent-card";
 import { ReadAloud } from "@/components/read-aloud";
 import { TextSizeControl } from "@/components/text-size-control";
 import { studentConsent } from "@/lib/consent";
-import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, canAccessStudent, hasNominalAccess } from "@/lib/auth";
+import { requireFamilyPortal } from "@/lib/page-context";
+import { familyActivityWhere, familyMaterialWhere, isFamilyOf } from "@/lib/policy";
 import { createFamilyNote, markHomeActivityDone } from "@/actions/diary";
 import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { PendingButton } from "@/components/pending-button";
 import { parseJson, formatDate } from "@/lib/format";
-import { ROLES } from "@/lib/scale";
+import { roleLabel } from "@/lib/roles";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
@@ -40,9 +40,8 @@ export const dynamic = "force-dynamic";
 export default async function FamilyStudentPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const student = await prisma.student.findUnique({
+  const { user } = await requireFamilyPortal(id, "Portal da família");
+  const student = await prisma.student.findUniqueOrThrow({
     where: { id },
     include: {
       school: true,
@@ -51,25 +50,20 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       accessLogs: { orderBy: { createdAt: "desc" }, take: 200 },
       timeline: { where: { type: "conquista" }, orderBy: { date: "desc" }, take: 5 },
       activities: {
-        where: { context: "casa", status: { in: ["aceita", "aplicada"] } },
+        where: familyActivityWhere,
         orderBy: { createdAt: "desc" },
         take: 5,
         include: { image: { select: { altText: true, kind: true, createdAt: true } } },
       },
       materials: {
-        where: { status: "aprovado" },
+        where: familyMaterialWhere,
         orderBy: { createdAt: "desc" },
         take: 6,
         select: { id: true, title: true, kind: true, status: true, content: true, createdAt: true, images: { where: { cardIndex: 0 }, select: { createdAt: true } } },
       },
     },
   });
-  if (!student) notFound();
-  if (!canAccessStudent(user, student.schoolId, student.id)) redirect("/");
-  if (user.role === "terapeuta") redirect("/terapeuta");
-  if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
-
-  const isFamily = user.role === "familia";
+  const isFamily = isFamilyOf(user, student.id);
   const justified = await prisma.accessLog.findMany({ where: { studentId: student.id, action: "acesso justificado" }, orderBy: { createdAt: "desc" }, take: 50 });
   const accessLogs = [...new Map([...student.accessLogs, ...justified].map((log) => [log.id, log])).values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const [consent, reports, prefs, checkIn] = await Promise.all([
@@ -83,8 +77,8 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   const objectives = student.plans.flatMap((p) => p.objectives);
   const addNote = createFamilyNote.bind(null, id);
   const firstName = student.name.split(" ")[0];
-  const cardView = consent.card && canViewCard(user, student.schoolId, student.id) ? await loadCardView(student.id) : null;
-  const decidesCard = isFamily && user.studentIds.includes(id);
+  const cardView = consent.card && canViewCard(user, student) ? await loadCardView(student.id) : null;
+  const decidesCard = isFamily;
   const homeActivities = student.activities.map((activity) => ({ activity, doneAt: student.familyNotes.find((n) => n.note === homeActivityNote(activity.title))?.date }));
   const homeDone = homeActivities.filter((item) => item.doneAt).length;
   const lastNote = student.familyNotes[0];
@@ -98,7 +92,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       />
       {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} character={false} />) : null}
 
-      {user.role === "familia" && user.studentIds.includes(id) && prefs?.weeklyCheckIn ? (
+      {isFamily && prefs?.weeklyCheckIn ? (
         <Card className="mb-6 max-w-3xl border-brand/30" id="pergunta-da-semana">
           <SectionTitle>Pergunta da semana</SectionTitle>
           <CheckInForm action={answerCheckIn.bind(null, id)} firstName={firstName} previous={checkIn ? { answers: parseJson<string[]>(checkIn.answers, []), note: checkIn.note ?? "" } : null} />
@@ -300,7 +294,7 @@ function AccessList({ logs }: { logs: { id: string; actor: string; role: string;
       {logs.map((log) => (
         <li key={log.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2">
           <span className="min-w-0">
-            <span className="font-medium text-ink">{log.actor}</span> <span className="text-xs text-ink-soft">({ROLES[log.role] ?? log.role})</span>
+            <span className="font-medium text-ink">{log.actor}</span> <span className="text-xs text-ink-soft">({roleLabel(log.role)})</span>
             <span className="block text-xs text-ink-soft">{log.action}{log.detail ? ` · ${log.detail}` : ""}</span>
           </span>
           <span className="shrink-0 text-xs tabular-nums text-ink-soft">{formatDate(log.createdAt)}</span>

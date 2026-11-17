@@ -1,9 +1,9 @@
 ﻿import Link from "next/link";
 import { ConsentNote } from "@/components/consent-note";
 import { aiAllowedFor, imagesAllowedFor } from "@/lib/consent";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
+import { teachingContext } from "@/lib/roles";
 import { isAIEnabled } from "@/lib/agents/model";
 import { MATERIAL_KINDS, isMaterialKind } from "@/lib/material-content";
 import { PageHeader, Card, SectionTitle, EmptyState, ButtonLink } from "@/components/ui";
@@ -26,12 +26,8 @@ const one = (value: string | string[] | undefined) => (Array.isArray(value) ? va
 export default async function MaterialsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
   const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  await requireStudentPage(id, "Materiais de apoio");
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const student = await prisma.student.findUnique({ where: { id }, select: { schoolId: true } });
-  if (!student || !canAccessStudent(user, student.schoolId, id)) redirect("/");
-  const team = canEditStudentRecord(user.role);
+  const { user, can } = await requireStudentPage(id, "Materiais de apoio");
+  const team = can.edit;
   const [aiOn, imagesOn] = await Promise.all([aiAllowedFor(id), imagesAllowedFor(id)]);
   const consentMissing = isAIEnabled() && !aiOn;
   const [profile, materials, objectives] = await Promise.all([
@@ -97,7 +93,7 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
               <MaterialForm
                 studentId={id}
                 objectives={objectives}
-                defaultContext={user.role === "professor_sala" ? "sala_comum" : "aee"}
+                defaultContext={teachingContext(user.role) ?? "aee"}
                 aiOn={aiOn}
                 aiConfigured={isAIEnabled()}
                 imagesOn={imagesOn}

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { accountSchoolProblem, assignableRoles, canManageAccount, isAccountManager, mergeLinks, passwordProblem, temporaryPassword } from "./user-admin.ts";
+import { accountSchoolProblem, canManageAccount, mergeLinks, passwordProblem, temporaryPassword } from "./user-admin.ts";
+import { assignableRoles, isAccountManager } from "./roles.ts";
 
 const secretaria = { id: "s", role: "secretaria", schoolId: null };
 const coordA = { id: "c", role: "coordenacao", schoolId: "A" };
@@ -12,10 +13,10 @@ test("quem gerencia contas", () => {
   assert.equal(isAccountManager("coordenacao"), true);
   assert.equal(isAccountManager("professor_aee"), false);
   assert.equal(isAccountManager("familia"), false);
-  assert.equal(assignableRoles(secretaria).includes("familia"), false);
-  assert.equal(assignableRoles(coordA).includes("coordenacao"), false);
-  assert.equal(assignableRoles(gestaoA).includes("coordenacao"), true);
-  assert.equal(assignableRoles(gestaoA).includes("secretaria"), false);
+  assert.equal(assignableRoles(secretaria.role).includes("familia"), false);
+  assert.equal(assignableRoles(coordA.role).includes("coordenacao"), false);
+  assert.equal(assignableRoles(gestaoA.role).includes("coordenacao"), true);
+  assert.equal(assignableRoles(gestaoA.role).includes("secretaria"), false);
 });
 
 test("coordenação: equipe da própria escola e famílias de estudantes dela", () => {

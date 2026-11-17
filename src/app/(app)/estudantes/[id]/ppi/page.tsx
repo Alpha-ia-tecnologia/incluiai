@@ -24,10 +24,9 @@ import { ObjectiveFields } from "@/components/objective-fields";
 import { BnccTag } from "@/components/bncc-tag";
 import { Archive, ArrowRight, CalendarCheck, CircleCheck, ClipboardList, Cog, FilePen, FilePlus, History, ListChecks, ScanSearch, ShieldCheck, Sparkles, Target, Trash2, UserCheck } from "lucide-react";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
-import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canEditStudentRecord } from "@/lib/auth";
-import { canPlanDua } from "@/lib/dua/access";
-import { DuaError } from "@/lib/dua/shared";
-import { listStudentSupports, type SupportView } from "@/lib/dua/supports";
+import { requireStudentPage } from "@/lib/page-context";
+import { teachingContext } from "@/lib/roles";
+import { listStudentSupports } from "@/lib/dua/supports";
 import { ReviewBadge } from "@/components/dua/dua-ui";
 import { percentOf } from "@/lib/series";
 import { CLOSE_REASONS, reviewSummary, suggestedNextReview } from "@/lib/plan-lifecycle";
@@ -44,8 +43,8 @@ const multiStyle = { legendClassName: labelCls, inputClassName: inputCls };
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  const viewer = await requireStudentPage(id, "Plano de ensino");
-  const editable = canEditStudentRecord(viewer.role);
+  const { user: viewer, can } = await requireStudentPage(id, "Plano de ensino");
+  const editable = can.edit;
   const plans = await prisma.plan.findMany({
     where: { studentId: id },
     include: { objectives: { orderBy: { createdAt: "asc" } }, reviews: { orderBy: { reviewedAt: "desc" } } },
@@ -91,7 +90,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     const aiOn = await aiAllowedFor(id);
     const consentMissing = isAIEnabled() && !aiOn;
     const generate = generatePlanDraft.bind(null, id);
-    const caseDefaults = planDefaultsFromCaseStudy(parseCaseStudy(student.caseStudy?.content), viewer.role === "professor_aee" ? viewer.name : null);
+    const caseDefaults = planDefaultsFromCaseStudy(parseCaseStudy(student.caseStudy?.content), teachingContext(viewer.role) === "aee" ? viewer.name : null);
     const manualForm = (
         <Card className="max-w-2xl">
           <SectionTitle>{draft ? "Preencher o plano do zero" : "Comece o plano do estudante"}</SectionTitle>
@@ -198,12 +197,12 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const suggested = planDefaultsFromCaseStudy(parseCaseStudy(studentRecord.caseStudy?.content));
   const reviews = reviewSummary(plan.reviews);
   const hasActiveObjectives = plan.objectives.some((objective) => objective.status === "ativo");
-  const dua = await linkedDuaSupports(id);
+  const dua = { supports: can.edit ? await listStudentSupports(viewer, id) : [], canPlan: can.dua };
   const duaByObjective = plan.objectives
     .map((objective) => ({ objective, supports: dua.supports.filter((support) => (support.data.planLinks ?? []).some((link) => link.planId === plan.id && link.objectiveId === objective.id)) }))
     .filter((group) => group.supports.length);
   const latestSupport = await latestSupportByObjective(id, plan.objectives.map((objective) => objective.id));
-  const hasScale = plan.objectives.some((objective) => latestSupport?.has(objective.id));
+  const hasScale = plan.objectives.some((objective) => latestSupport.has(objective.id));
 
   const today = new Date();
   const elapsed = percentOf(today.getTime() - plan.createdAt.getTime(), new Date(plan.reviewDate).getTime() - plan.createdAt.getTime());
@@ -337,7 +336,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         {plan.objectives.map((obj) => {
           const markDone = markObjectiveStatus.bind(null, id, obj.id, "alcancado");
           const markReview = markObjectiveStatus.bind(null, id, obj.id, "em_revisao");
-          const latest = latestSupport?.get(obj.id);
+          const latest = latestSupport.get(obj.id);
           return (
             <Card key={obj.id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -364,9 +363,9 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                     caption={`Último registro de aula em ${formatDate(latest.date)} · ${latest.count} ${latest.count === 1 ? "registro" : "registros"}`}
                   />
                 </div>
-              ) : latestSupport ? (
+              ) : (
                 <p className="mt-3 text-xs text-ink-soft">Ainda sem registro de aula para este objetivo.</p>
-              ) : null}
+              )}
               {editable && obj.status === "ativo" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <form action={markDone}><button type="submit" className="inline-flex min-h-11 items-center rounded-full bg-green-soft px-4 text-sm font-medium text-green hover:opacity-80">Marcar como alcançado</button></form>
@@ -462,21 +461,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   );
 }
 
-async function linkedDuaSupports(studentId: string): Promise<{ supports: SupportView[]; canPlan: boolean }> {
-  const user = await getCurrentUser();
-  if (!user || !canSeePedagogicalDetail(user.role)) return { supports: [], canPlan: false };
-  try {
-    return { supports: await listStudentSupports(user, studentId), canPlan: canPlanDua(user) };
-  } catch (error) {
-    if (error instanceof DuaError) return { supports: [], canPlan: false };
-    throw error;
-  }
-}
-
-async function latestSupportByObjective(studentId: string, objectiveIds: string[]): Promise<Map<string, { level: number; date: Date; count: number }> | null> {
+async function latestSupportByObjective(studentId: string, objectiveIds: string[]): Promise<Map<string, { level: number; date: Date; count: number }>> {
   const prisma = await db();
-  const user = await getCurrentUser();
-  if (!user || !canSeePedagogicalDetail(user.role)) return null;
   const latest = new Map<string, { level: number; date: Date; count: number }>();
   if (!objectiveIds.length) return latest;
   const entries = await prisma.diaryEntry.findMany({

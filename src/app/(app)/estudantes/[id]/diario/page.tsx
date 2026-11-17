@@ -1,10 +1,10 @@
 import { recentCheckIn } from "@/lib/notifications";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { requireStudentPage, canEditStudentRecord } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { createDiaryEntry } from "@/actions/diary";
 import { formatDate, parseJson } from "@/lib/format";
-import { PARTICIPATION, CRITERION_MET, ROLES } from "@/lib/scale";
+import { PARTICIPATION, CRITERION_MET } from "@/lib/scale";
+import { roleLabel } from "@/lib/roles";
 import { axisDate, supportSeries, supportTrend, TREND_TEXT, weeklyCounts } from "@/lib/series";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
 import { DataBoard, DataCard, MiniColumns, StatTile, StatusPill, SupportChart } from "@/components/data-viz";
@@ -19,8 +19,7 @@ const CRITERION_TONES = { sim: "green", parcial: "amber", nao: "coral" } as cons
 export default async function DiaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ activityId?: string | string[] }> }) {
   const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const viewer = await requireStudentPage(id, "Registrar aula (histórico)");
-  if (!canEditStudentRecord(viewer.role)) redirect(`/estudantes/${id}`);
+  await requireStudentPage(id, "Registrar aula (histórico)", { tab: "diario" });
   const [entries, objectives, acceptedActivities] = await Promise.all([
     prisma.diaryEntry.findMany({
       where: { studentId: id },
@@ -116,7 +115,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
               <Card key={entry.id}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-semibold text-ink">{formatDate(entry.date)}</h3>
-                  <span className="text-xs text-ink-soft">{ROLES[entry.authorRole] ?? entry.authorRole}</span>
+                  <span className="text-xs text-ink-soft">{roleLabel(entry.authorRole)}</span>
                 </div>
                 {entry.objective ? <p className="mt-3 text-sm text-ink"><span className="font-medium">Objetivo: </span>{entry.objective.action}</p> : null}
                 {entry.activity ? <p className="mt-1 text-sm text-ink"><span className="font-medium">Atividade: </span>{entry.activity.title}</p> : null}

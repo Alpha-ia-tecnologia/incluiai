@@ -1,9 +1,7 @@
-import { redirect } from "next/navigation";
 import { History, LockKeyhole, RefreshCw, ShieldAlert, Trash2, Users } from "lucide-react";
 import { Assurances } from "@/components/explain";
-import { db } from "@/lib/prisma";
-import { requireStudentPage } from "@/lib/auth";
-import { canManageCard, loadCardView } from "@/lib/student-card";
+import { requireStudentPage } from "@/lib/page-context";
+import { loadCardView } from "@/lib/student-card";
 import { formatDate } from "@/lib/format";
 import { removeCardPhoto, rotateStudentCard, uploadCardPhoto } from "@/actions/student-card";
 import { Card, PageHeader } from "@/components/ui";
@@ -16,11 +14,8 @@ import { dangerButtonCls, quietButtonCls } from "@/components/form-styles";
 export const dynamic = "force-dynamic";
 
 export default async function StudentCardPage({ params }: { params: Promise<{ id: string }> }) {
-  const prisma = await db();
   const { id } = await params;
-  const user = await requireStudentPage(id, "Carteirinha");
-  const student = await prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true, schoolId: true } });
-  if (!canManageCard(user, student.schoolId, id)) redirect(`/estudantes/${id}`);
+  const { student } = await requireStudentPage(id, "Carteirinha", { tab: "carteirinha" });
   const view = await loadCardView(id);
   const firstName = student.name.split(" ")[0];
 

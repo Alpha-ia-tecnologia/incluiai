@@ -6,7 +6,7 @@ import { meetingQuestions } from "@/lib/materials";
 import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS, BARRIERS } from "@/lib/scale";
 import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
-import { canSeeClinicalDetail, canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
 import { guidanceForPlan, parseAccepted } from "@/lib/health-report";
 import { censusReference, specialEducationAnswer } from "@/lib/federal-guidance";
@@ -14,7 +14,7 @@ import type { FunctionalProfile } from "@prisma/client";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
 import { DataBoard, DataCard, StatusPill, SupportBars, SupportChart } from "@/components/data-viz";
 import { BarList } from "@/components/charts";
-import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, SupportSteps, TextChips, TREND_TONE } from "@/components/viz/student-viz";
+import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, TREND_TONE } from "@/components/viz/student-viz";
 import { TrendingDown, Minus, AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, CircleCheck, type LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ const NARROW_BARS = "lg:[&_li]:grid-cols-[minmax(0,1fr)_auto] lg:[&_li>span:nth-
 export default async function StudentOverview({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  await requireStudentPage(id, "Resumo");
+  const { can } = await requireStudentPage(id, "Resumo");
   const student = await prisma.student.findUniqueOrThrow({
     where: { id },
     include: {
@@ -52,11 +52,9 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
     },
   });
   const intersector = student.intersectorReports[0];
-  const user = await getCurrentUser();
-  const pedagogical = Boolean(user && canSeePedagogicalDetail(user.role));
   const caseSynthesis = parseCaseStudy(student.caseStudy?.content).sintese;
-  const reportGuidance = pedagogical ? guidanceForPlan(student.healthReports.filter((report) => report.reviewedAt).map((report) => parseAccepted(report.accepted))) : [];
-  const reportsToReview = user && canSeeClinicalDetail(user.role) ? student.healthReports.filter((report) => report.status === "lido" && !report.reviewedAt).length : 0;
+  const reportGuidance = guidanceForPlan(student.healthReports.filter((report) => report.reviewedAt).map((report) => parseAccepted(report.accepted)));
+  const reportsToReview = can.clinical ? student.healthReports.filter((report) => report.status === "lido" && !report.reviewedAt).length : 0;
 
 
   const activePlan = student.plans.find((p) => p.status === "ativo");
@@ -65,11 +63,9 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
     .filter((alert) => alert.kind !== "sem_registro" || Boolean(activePlan) || student.diaryEntries.length > 0);
   // Censo Escolar (orientação do INEP): o estudo de caso concluído ou o plano
   // ativo respaldam a declaração do estudante como público da educação especial.
-  const census = pedagogical
-    ? censusReference({ caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: Boolean(activePlan), specialEducation: specialEducationAnswer(parseCaseStudy(student.caseStudy?.content).publicoAlvo) })
-    : null;
+  const census = censusReference({ caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: Boolean(activePlan), specialEducation: specialEducationAnswer(parseCaseStudy(student.caseStudy?.content).publicoAlvo) });
   const worked = strategiesThatWorked(student.diaryEntries);
-  const workedCounts = pedagogical ? countItems(student.diaryEntries.map((entry) => entry.whatWorked), 8) : [];
+  const workedCounts = countItems(student.diaryEntries.map((entry) => entry.whatWorked), 8);
   const records = student.diaryEntries.length;
   const profile = student.profile;
   const interests = parseJson<string[]>(student.profile?.interests ?? null, []);
@@ -86,26 +82,24 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
-        {census ? (
-          census.backed ? (
-            <p className="flex items-start gap-2 rounded-2xl bg-green-soft px-4 py-3 text-sm text-green">
-              <CircleCheck size={16} aria-hidden className="mt-0.5 shrink-0" />
-              <span><span className="font-medium">Censo Escolar:</span> com registro de referência ({census.records.join(", ")}).</span>
+        {census.backed ? (
+          <p className="flex items-start gap-2 rounded-2xl bg-green-soft px-4 py-3 text-sm text-green">
+            <CircleCheck size={16} aria-hidden className="mt-0.5 shrink-0" />
+            <span><span className="font-medium">Censo Escolar:</span> com registro de referência ({census.records.join(", ")}).</span>
+          </p>
+        ) : (
+          <Card className="border-amber/20 bg-amber-soft/50">
+            <SectionTitle>Censo Escolar</SectionTitle>
+            <p className="text-sm leading-relaxed text-ink">
+              {census.pending
+                ? `${census.pending} Enquanto for assim, ele não serve de registro de referência para a declaração.`
+                : "Falta o registro de referência para declarar este estudante. O estudo de caso concluído já basta, e para concluir é preciso só a parte Essencial."}
             </p>
-          ) : (
-            <Card className="border-amber/20 bg-amber-soft/50">
-              <SectionTitle>Censo Escolar</SectionTitle>
-              <p className="text-sm leading-relaxed text-ink">
-                {census.pending
-                  ? `${census.pending} Enquanto for assim, ele não serve de registro de referência para a declaração.`
-                  : "Falta o registro de referência para declarar este estudante. O estudo de caso concluído já basta, e para concluir é preciso só a parte Essencial."}
-              </p>
-              <Link href={`/estudantes/${student.id}/estudo-de-caso${census.pending ? "?editar=1" : ""}`} className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-strong hover:underline">
-                {census.pending ? "Rever o estudo de caso" : student.caseStudy ? "Concluir o estudo de caso" : "Fazer o estudo de caso"} <ArrowRight size={15} aria-hidden />
-              </Link>
-            </Card>
-          )
-        ) : null}
+            <Link href={`/estudantes/${student.id}/estudo-de-caso${census.pending ? "?editar=1" : ""}`} className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-strong hover:underline">
+              {census.pending ? "Rever o estudo de caso" : student.caseStudy ? "Concluir o estudo de caso" : "Fazer o estudo de caso"} <ArrowRight size={15} aria-hidden />
+            </Link>
+          </Card>
+        )}
         {alerts.length > 0 ? (
           <Card className="border-coral/40 bg-coral-soft/40">
             <SectionTitle>O que precisa de atenção</SectionTitle>
@@ -134,7 +128,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 const insight = objectiveTrend(obj, student.diaryEntries);
                 const meta = TREND_META[insight.trend];
                 const Icon = meta.icon;
-                const points = pedagogical ? supportSeries(student.diaryEntries, obj.id).map((point) => ({ date: axisDate(point.date), value: point.value })) : [];
+                const points = supportSeries(student.diaryEntries, obj.id).map((point) => ({ date: axisDate(point.date), value: point.value }));
                 return (
                   <article key={obj.id} aria-label={`Objetivo: ${obj.action}`} className="dash-card min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -146,23 +140,16 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                       <span>→ apoio esperado:</span> <SupportPill level={obj.targetSupport} />
                       {obj.bnccCode ? <BnccTag code={obj.bnccCode} /> : null}
                     </div>
-                    {pedagogical ? (
-                      points.length >= 2 ? (
-                        <div className="mt-4">
-                          <ChartFrame>
-                            <SupportChart points={points} start={obj.currentSupport} target={obj.targetSupport} height={140} label={`Nível de apoio em ${points.length} registros de aula: ${obj.action}`} />
-                          </ChartFrame>
-                        </div>
-                      ) : points.length === 1 ? (
-                        <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-                          <span>Primeiro registro ({points[0].date}):</span> <SupportMeter level={points[0].value} />
-                        </p>
-                      ) : null
-                    ) : insight.lastSupportLevels.length > 0 ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-                        <span>Últimos registros:</span>
-                        <SupportSteps levels={insight.lastSupportLevels} label="Últimos níveis de apoio registrados, do mais antigo ao mais recente" />
+                    {points.length >= 2 ? (
+                      <div className="mt-4">
+                        <ChartFrame>
+                          <SupportChart points={points} start={obj.currentSupport} target={obj.targetSupport} height={140} label={`Nível de apoio em ${points.length} registros de aula: ${obj.action}`} />
+                        </ChartFrame>
                       </div>
+                    ) : points.length === 1 ? (
+                      <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                        <span>Primeiro registro ({points[0].date}):</span> <SupportMeter level={points[0].value} />
+                      </p>
                     ) : null}
                     <p className="mt-3 text-xs text-ink-soft">{insight.message}</p>
                   </article>
@@ -172,11 +159,11 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
           )}
         </div>
 
-        {(pedagogical && records > 0) || worked.length > 0 ? (
+        {records > 0 || worked.length > 0 ? (
           <div>
             <SectionTitle>Como foram as aulas</SectionTitle>
             <DataBoard>
-              {pedagogical && records > 0 ? (
+              {records > 0 ? (
                 <DataCard title="Participação e resultado das aulas" hint={`${records} ${records === 1 ? "registro de aula" : "registros de aula"}.`}>
                   <div className="grid min-w-0 gap-6 md:grid-cols-2">
                     <div className="min-w-0">
@@ -194,8 +181,8 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 </DataCard>
               ) : null}
               {worked.length > 0 ? (
-                <DataCard title="Estratégias que funcionaram" hint={pedagogical ? "Vezes marcada em “o que ajudou”." : "Marcadas em “o que ajudou”."}>
-                  {pedagogical ? <BarList rows={workedCounts} /> : <TextChips items={worked} />}
+                <DataCard title="Estratégias que funcionaram" hint="Vezes marcada em “o que ajudou”.">
+                  <BarList rows={workedCounts} />
                 </DataCard>
               ) : null}
             </DataBoard>
@@ -204,24 +191,22 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
       </div>
 
       <div className="space-y-5">
-        {pedagogical ? (
-          <Card>
-            <SectionTitle>Estudo de caso</SectionTitle>
-            {student.caseStudy?.status === "concluido" ? (
-              <p className="line-clamp-5 text-sm leading-relaxed text-ink">{caseSynthesis}</p>
-            ) : (
-              <p className="text-sm leading-relaxed text-ink-soft">{student.caseStudy ? "Em andamento." : "Ainda não feito."}</p>
-            )}
-            <Link href={`/estudantes/${id}/estudo-de-caso`} className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
-              {student.caseStudy?.status === "concluido" ? "Ver relatório completo" : student.caseStudy ? "Continuar estudo de caso" : "Fazer estudo de caso"}
+        <Card>
+          <SectionTitle>Estudo de caso</SectionTitle>
+          {student.caseStudy?.status === "concluido" ? (
+            <p className="line-clamp-5 text-sm leading-relaxed text-ink">{caseSynthesis}</p>
+          ) : (
+            <p className="text-sm leading-relaxed text-ink-soft">{student.caseStudy ? "Em andamento." : "Ainda não feito."}</p>
+          )}
+          <Link href={`/estudantes/${id}/estudo-de-caso`} className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
+            {student.caseStudy?.status === "concluido" ? "Ver relatório completo" : student.caseStudy ? "Continuar estudo de caso" : "Fazer estudo de caso"}
+          </Link>
+          {reportsToReview ? (
+            <Link href={`/estudantes/${id}/estudo-de-caso/laudos`} className="flex min-h-11 items-center gap-1.5 border-t border-line pt-2 text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
+              {reportsToReview} {reportsToReview === 1 ? "laudo com sugestões" : "laudos com sugestões"} para revisar <ArrowRight size={14} aria-hidden />
             </Link>
-            {reportsToReview ? (
-              <Link href={`/estudantes/${id}/estudo-de-caso/laudos`} className="flex min-h-11 items-center gap-1.5 border-t border-line pt-2 text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
-                {reportsToReview} {reportsToReview === 1 ? "laudo com sugestões" : "laudos com sugestões"} para revisar <ArrowRight size={14} aria-hidden />
-              </Link>
-            ) : null}
-          </Card>
-        ) : null}
+          ) : null}
+        </Card>
         {reportGuidance.length ? (
           <Card>
             <SectionTitle>Orientações dos laudos</SectionTitle>

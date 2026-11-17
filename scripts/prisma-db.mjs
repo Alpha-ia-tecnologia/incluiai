@@ -244,7 +244,7 @@ async function removeTestAccounts(db) {
 async function testAccounts(args) {
   generate();
   const { PrismaClient } = await import("@prisma/client");
-  const { ROLES } = await import("../src/lib/scale.ts");
+  const { ROLE_KEYS, roleLabel } = await import("../src/lib/roles.ts");
   const db = new PrismaClient();
   try {
     if (args.includes("--apagar")) return await removeTestAccounts(db);
@@ -257,7 +257,7 @@ async function testAccounts(args) {
       }));
     const password = temporaryPassword();
     const created = [];
-    for (const [role, label] of Object.entries(ROLES).filter(([role]) => role !== "plataforma")) {
+    for (const [role, label] of ROLE_KEYS.filter((role) => role !== "plataforma").map((role) => [role, roleLabel(role)])) {
       const email = `${role.replace("_", ".")}@${TEST_DOMAIN}`;
       const user = await db.user.create({
         data: {

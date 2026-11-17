@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, Sprout, Trash2 } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canSeeClinicalDetail, requireStudentPage } from "@/lib/auth";
-import { recordView } from "@/lib/access-log";
+import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
 import { REPORT_FIELDS, RETRY_STATUSES, isReadingStalled, parseAccepted, parseReading, reviewRows, type ReviewRow } from "@/lib/health-report";
 import { formatDate } from "@/lib/format";
@@ -54,13 +53,10 @@ export default async function HealthReportPage({
 }) {
   const prisma = await db();
   const { id, laudoId } = await params;
-  const user = await requireStudentPage(id);
-  if (!canSeeClinicalDetail(user.role)) redirect(`/estudantes/${id}/estudo-de-caso`);
-  await recordView(user, id, "Laudos do estudo de caso");
+  const { student } = await requireStudentPage(id, "Laudos do estudo de caso", { need: "clinical", otherwise: `/estudantes/${id}/estudo-de-caso` });
   const { revisado } = await searchParams;
 
-  const [student, report, caseStudy] = await Promise.all([
-    prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true } }),
+  const [report, caseStudy] = await Promise.all([
     prisma.healthReport.findUnique({
       where: { id: laudoId },
       select: {

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Printer, Scale, Users } from "lucide-react";
-import { canEditStudentRecord, canSeePedagogicalDetail, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { loadEvidence } from "@/lib/dossier";
 import { visibleTabs } from "@/lib/student-tab-list";
 import { PageHeader } from "@/components/ui";
@@ -15,11 +15,10 @@ export const dynamic = "force-dynamic";
 
 export default async function DossierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireStudentPage(id, "Dossiê de evidências");
-  if (!canSeePedagogicalDetail(user.role) || !isStaffOrNetwork(user.role)) redirect(`/estudantes/${id}`);
+  const { can } = await requireStudentPage(id, "Dossiê de evidências");
   const [evidence] = await loadEvidence({ id });
   if (!evidence) notFound();
-  const tabs = new Set(visibleTabs({ showCaseStudy: true, readOnly: !canEditStudentRecord(user.role) }).map((tab) => tab.slug));
+  const tabs = new Set(visibleTabs(can).map((tab) => tab.slug));
   const { ok, conferir, pendente } = evidence.summary;
   return (
     <>

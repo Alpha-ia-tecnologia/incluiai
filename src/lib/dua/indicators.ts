@@ -1,11 +1,9 @@
 import "server-only";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
+import { can, rolesWith } from "../roles";
 import { parseJson } from "../format";
 import { NO_BASE_TEXT, ratio, type AiBlock, type DuaIndicator } from "./domain";
-import { canSeeDuaIndicators } from "./access";
-
-const PLANNER_ROLES = ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"];
 
 export type DuaIndicatorsResult = {
   period: { start: Date | null; end: Date };
@@ -17,13 +15,13 @@ export type DuaIndicatorsResult = {
 
 export async function duaIndicators(user: SessionUser, scope: { start: Date | null; now: Date; schoolId: string | null; schoolName: string | null }): Promise<DuaIndicatorsResult | null> {
   const prisma = await db();
-  if (!canSeeDuaIndicators(user)) return null;
+  if (!can(user.role, "duaIndicators")) return null;
   const { start, now, schoolId } = scope;
   const range = start ? { gte: start, lte: now } : { lte: now };
   const planningScope = schoolId ? { schoolId } : {};
 
   const [enabled, cohort, applications, suggestions] = await Promise.all([
-    prisma.user.findMany({ where: { role: { in: PLANNER_ROLES }, ...(schoolId ? { schoolId } : {}) }, select: { id: true } }),
+    prisma.user.findMany({ where: { role: { in: rolesWith("planDua") }, ...(schoolId ? { schoolId } : {}) }, select: { id: true } }),
     prisma.duaPlanning.findMany({
       where: { ...planningScope, createdAt: range },
       select: { id: true, versions: { select: { validatedAt: true } }, applications: { select: { createdAt: true } } },

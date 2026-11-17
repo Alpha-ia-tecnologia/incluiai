@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { reportData } from "@/lib/reports";
 import { PrintButton } from "@/components/print-button";
 import { ReportView } from "@/components/reports/report-view";
@@ -12,8 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function PrintReportPage({ params }: { params: Promise<{ id: string; reportId: string }> }) {
   const prisma = await db();
   const { id, reportId } = await params;
-  const user = await requireStudentPage(id, "Impressão do relatório do período");
-  const report = await prisma.studentReport.findFirst({ where: { id: reportId, studentId: id, ...(canEditStudentRecord(user.role) ? {} : { status: "validado" }) } });
+  const { can } = await requireStudentPage(id, "Impressão do relatório do período");
+  const report = await prisma.studentReport.findFirst({ where: { id: reportId, studentId: id, ...(can.edit ? {} : { status: "validado" }) } });
   if (!report) notFound();
   return (
     <div className="max-w-3xl">

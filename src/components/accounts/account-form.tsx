@@ -6,12 +6,11 @@ import { Check, KeyRound, UserPlus } from "lucide-react";
 import type { AccountFormState } from "@/actions/users";
 import { choiceCls, hintCls, inputCls, labelCls, linkCls, primaryButtonCls, quietButtonCls } from "@/components/form-styles";
 import { PrintButton } from "@/components/print-button";
+import { accountSchool, can, isLinkedRole } from "@/lib/roles";
 
 type Option = { value: string; label: string };
 type StudentOption = { id: string; name: string; detail: string };
 type Defaults = { name: string; email: string; role: string; schoolId: string | null; studentIds: string[] };
-
-const LINKED = new Set(["familia", "terapeuta"]);
 
 export function AccountForm({ action, roles, schools, fixedSchool, students, defaults, mode }: {
   action: (previous: AccountFormState, formData: FormData) => Promise<AccountFormState>;
@@ -34,9 +33,9 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
   const id = useId();
   if (state.created) return <CreatedAccount created={state.created} onAnother={onAnother} />;
 
-  const linked = LINKED.has(role);
-  const needsSchool = !linked && role !== "secretaria";
-  const networkRole = role === "coordenacao" || role === "gestao";
+  const linked = isLinkedRole(role);
+  const needsSchool = accountSchool(role) !== "nenhuma";
+  const networkRole = accountSchool(role) === "opcional";
   const shown = students.filter((student) => !filter.trim() || student.name.toLowerCase().includes(filter.trim().toLowerCase()));
   return (
     <form action={submit} className="grid max-w-2xl gap-5">
@@ -78,7 +77,7 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
       {linked ? (
         <fieldset className="grid min-w-0 gap-3">
           <legend className={labelCls}>Estudantes vinculados</legend>
-          <p className={hintCls}>{role === "familia" ? "Marque os filhos desta família." : "Marque os estudantes deste terapeuta."} A pessoa vê só estes estudantes.</p>
+          <p className={hintCls}>{can(role, "familyPortal") ? "Marque os filhos desta família." : "Marque os estudantes deste terapeuta."} A pessoa vê só estes estudantes.</p>
           {students.length > 8 ? (
             <div>
               <label htmlFor={`${id}-filter`} className="sr-only">Buscar estudante pelo nome</label>

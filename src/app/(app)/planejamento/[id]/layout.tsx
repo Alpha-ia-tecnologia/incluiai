@@ -1,10 +1,7 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
-import { DuaError } from "@/lib/dua/shared";
-import { loadPlanning } from "@/lib/dua/plannings";
+import { planningContext } from "@/lib/page-context";
 import { SHARING_LABEL, type Sharing } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui";
@@ -13,16 +10,7 @@ import { ReviewBadge } from "@/components/dua/dua-ui";
 
 export default async function PlanningLayout({ children, params }: { children: ReactNode; params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  let loaded;
-  try {
-    loaded = await loadPlanning(user, id);
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
-  const { planning, current } = loaded;
+  const { planning, current } = await planningContext(id);
 
   return (
     <>

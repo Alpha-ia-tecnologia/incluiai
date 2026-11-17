@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isActivePath } from "@/lib/navigation";
 
 const TABS = [
   { slug: "", label: "Planejamento" },
@@ -16,7 +17,7 @@ export function PlanningTabs({ planningId }: { planningId: string }) {
   const pathname = usePathname();
   const base = `/planejamento/${planningId}`;
   const tabs = TABS.map((tab) => ({ ...tab, href: tab.slug ? `${base}/${tab.slug}` : base }));
-  const active = tabs.find((tab) => (tab.slug ? pathname === tab.href || pathname.startsWith(`${tab.href}/`) : pathname === base))?.href ?? base;
+  const active = tabs.find((tab) => isActivePath(pathname, tab.href, !tab.slug))?.href ?? base;
   return (
     <nav aria-label="Seções do planejamento" className="print:hidden">
       <ul className="flex flex-wrap gap-2">

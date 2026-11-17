@@ -1,5 +1,7 @@
 import { db } from "@/lib/prisma";
-import { canAccessStudent, canEditStudentRecord, canSeeClinicalDetail, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canWorkWithStudent } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { recordView } from "@/lib/access-log";
 import { unavailableResponse } from "@/lib/tenant";
 
@@ -15,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     where: { id },
     select: { studentId: true, fileName: true, mimeType: true, data: true, student: { select: { schoolId: true } } },
   });
-  if (!report || !canEditStudentRecord(user.role) || !canSeeClinicalDetail(user.role) || !canAccessStudent(user, report.student.schoolId, report.studentId)) {
+  if (!report || !can(user.role, "seeClinical") || !canWorkWithStudent(user, { id: report.studentId, schoolId: report.student.schoolId })) {
     return new Response("Laudo não encontrado.", { status: 404 });
   }
 

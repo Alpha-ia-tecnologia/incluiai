@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { canSeeClinicalDetail, requireStudentTeam, type SessionUser } from "@/lib/auth";
+import { requireStudentTeam, type SessionUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { recordChange } from "@/lib/access-log";
 import { parseCaseStudy } from "@/lib/case-study";
 import {
@@ -17,7 +18,7 @@ const reportPath = (studentId: string, reportId?: string) => `/estudantes/${stud
 
 async function requireReportTeam(studentId: string): Promise<SessionUser> {
   const user = await requireStudentTeam(studentId);
-  if (!canSeeClinicalDetail(user.role)) throw new Error("Laudos ficam visíveis só para o AEE e a coordenação.");
+  if (!can(user.role, "seeClinical")) throw new Error("Laudos ficam visíveis só para o AEE e a coordenação.");
   return user;
 }
 

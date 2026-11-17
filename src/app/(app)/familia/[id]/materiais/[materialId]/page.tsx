@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, getCurrentUser } from "@/lib/auth";
+import { requireFamilyPortal } from "@/lib/page-context";
+import { familyMaterialWhere } from "@/lib/policy";
 import { MaterialView } from "@/components/materials/material-view";
 import { PrintButton } from "@/components/print-button";
 
@@ -11,15 +12,12 @@ export const dynamic = "force-dynamic";
 export default async function FamilyMaterialPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const prisma = await db();
   const { id, materialId } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (user.role === "terapeuta") redirect("/terapeuta");
+  await requireFamilyPortal(id, "Material de apoio (portal da família)");
   const material = await prisma.material.findFirst({
-    where: { id: materialId, studentId: id, status: "aprovado" },
-    include: { images: { select: { cardIndex: true, altText: true, createdAt: true } }, student: { select: { schoolId: true } } },
+    where: { id: materialId, studentId: id, ...familyMaterialWhere },
+    include: { images: { select: { cardIndex: true, altText: true, createdAt: true } } },
   });
   if (!material) notFound();
-  if (!canAccessStudent(user, material.student.schoolId, id)) redirect("/");
   const objective = material.objectiveId
     ? await prisma.objective.findFirst({ where: { id: material.objectiveId, plan: { studentId: id } }, select: { description: true } })
     : null;

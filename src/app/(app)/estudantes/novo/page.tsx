@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { PageHeader } from "@/components/ui";
 import { StudentRegistrationChat } from "@/components/student-registration-chat";
 
@@ -10,7 +11,7 @@ export default async function NewStudentPage() {
   const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!isStaffOrNetwork(user.role)) redirect("/");
+  if (!can(user.role, "pedagogical")) redirect("/");
 
   const own = user.schoolId ? { schoolId: user.schoolId } : {};
   const [schools, classes] = await Promise.all([

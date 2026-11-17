@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft, FilePen, FileUp, Wand2 } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { aiAllowedFor } from "@/lib/consent";
 import { hasApiKey } from "@/lib/env";
 import { isAIEnabled } from "@/lib/agents/model";
@@ -19,8 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function AdaptTaskPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  const user = await requireStudentPage(id, "Adaptar atividade da turma");
-  if (!canEditStudentRecord(user.role)) redirect(`/estudantes/${id}`);
+  await requireStudentPage(id, "Adaptar atividade da turma", { tab: "atividades" });
   const [aiOn, objectives] = await Promise.all([
     aiAllowedFor(id),
     prisma.objective.findMany({ where: { plan: { studentId: id, status: "ativo" }, status: "ativo" }, select: { id: true, description: true }, orderBy: { createdAt: "asc" } }),

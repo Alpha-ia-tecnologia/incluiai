@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 const validStages = new Set([
   "educacao_infantil",
@@ -17,7 +18,7 @@ const isValidShift = (shift: string) => shift.length > 0 && shift.length <= 40;
 export async function createStudent(formData: FormData) {
   const prisma = await db();
   const user = await getCurrentUser();
-  if (!user || !isStaffOrNetwork(user.role)) {
+  if (!user || !can(user.role, "pedagogical")) {
     throw new Error("Você não tem permissão para cadastrar estudantes.");
   }
 

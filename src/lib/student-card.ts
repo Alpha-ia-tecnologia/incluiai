@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { db, platformDomain } from "./prisma";
 import { requestHost } from "./tenancy-core";
-import { canAccessStudent, canEditStudentRecord, type SessionUser } from "./auth";
+import type { SessionUser } from "./auth";
+import { canWorkWithStudent, isFamilyOf } from "./policy";
 import { CHANNELS, SHIFTS } from "./scale";
 import { parseJson } from "./format";
 import { cardHelp, formatPhone, hasHelp, newCardToken, type CardHelp } from "./student-card-core";
@@ -11,12 +12,7 @@ import { cardHelp, formatPhone, hasHelp, newCardToken, type CardHelp } from "./s
 export const PENDING_CARD_COOKIE = "carteirinha_pendente";
 export const cardPath = (token: string) => `/c/${token}`;
 
-export function canManageCard(user: SessionUser, schoolId: string, studentId: string): boolean {
-  return canEditStudentRecord(user.role) && canAccessStudent(user, schoolId, studentId);
-}
-export function canViewCard(user: SessionUser, schoolId: string, studentId: string): boolean {
-  return (user.role === "familia" && user.studentIds.includes(studentId)) || canManageCard(user, schoolId, studentId);
-}
+export const canViewCard = (user: SessionUser, student: { id: string; schoolId: string }): boolean => isFamilyOf(user, student.id) || canWorkWithStudent(user, student);
 
 // Endereço público da plataforma, para o QR: APP_URL em produção; sem ele, o do
 // pedido. Com vários municípios, sempre o do pedido (o endereço do município).

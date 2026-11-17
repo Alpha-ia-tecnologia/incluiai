@@ -1,5 +1,7 @@
 import { db } from "@/lib/prisma";
-import { canAccessStudent, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccessStudent, isFamilyMaterial } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { unavailableResponse } from "@/lib/tenant";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string; index: string }> }) {
@@ -16,10 +18,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     where: { materialId_cardIndex: { materialId: id, cardIndex } },
     include: { material: { select: { studentId: true, status: true, student: { select: { schoolId: true } } } } },
   });
-  if (!image || !canAccessStudent(user, image.material.student.schoolId, image.material.studentId)) {
+  if (!image || !canAccessStudent(user, { id: image.material.studentId, schoolId: image.material.student.schoolId })) {
     return new Response("Imagem não encontrada", { status: 404 });
   }
-  if (user.role === "terapeuta" || (user.role === "familia" && image.material.status !== "aprovado")) {
+  if (!can(user.role, "pedagogical") && !(can(user.role, "familyPortal") && isFamilyMaterial(image.material))) {
     return new Response("Imagem não encontrada", { status: 404 });
   }
   return new Response(new Uint8Array(image.data), {

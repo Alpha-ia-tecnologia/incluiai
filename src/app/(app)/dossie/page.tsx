@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { EyeOff, KeyRound } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
+import { studentScopeWhere } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { loadEvidence, type StudentEvidence } from "@/lib/dossier";
 import { itemTotals } from "@/lib/evidence";
 import { smallNumber } from "@/lib/assessment";
@@ -14,7 +16,6 @@ import { FederalGuidance } from "@/components/federal-guidance";
 
 export const dynamic = "force-dynamic";
 
-const SCHOOL_ROLES = new Set(["coordenacao", "gestao", "professor_aee"]);
 const FILTERS = [{ value: "", label: "Todos os estudantes" }, { value: "pendentes", label: "Só com pendências" }];
 
 function Totals({ students, network }: { students: StudentEvidence[]; network: boolean }) {
@@ -45,10 +46,10 @@ function Norms({ children }: { children?: ReactNode }) {
 export default async function SchoolDossierPage({ searchParams }: { searchParams: Promise<{ filtro?: string | string[] }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const network = user.role === "secretaria";
-  if (!network && !SCHOOL_ROLES.has(user.role)) redirect("/");
+  if (!can(user.role, "dossier")) redirect("/");
+  const network = !can(user.role, "seeNames");
   const filter = (await searchParams).filtro === "pendentes" ? "pendentes" : "";
-  const students = await loadEvidence(!network && user.schoolId ? { schoolId: user.schoolId } : {});
+  const students = await loadEvidence(studentScopeWhere(user));
   const clear = students.filter((student) => !student.summary.pendente).length;
 
   if (network) {

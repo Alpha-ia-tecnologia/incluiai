@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
-import { getCurrentUser, type SessionUser } from "@/lib/auth";
+import { assertStudentTeam, getCurrentUser, type SessionUser } from "@/lib/auth";
 import { DuaError } from "@/lib/dua/shared";
 import { DUA_PRINCIPLES, type DuaContent, type DuaPrinciple } from "@/lib/dua/domain";
 import { createPlanning, openNewVersion, returnToDraft, saveDraft, setCollaborators, setSharing, submitForReview, validateVersion, type SaveResult } from "@/lib/dua/plannings";
@@ -11,7 +11,7 @@ import { createApplication, registerEvidence, updateApplication } from "@/lib/du
 import { createMaterial, validateMaterial } from "@/lib/dua/materials";
 import { decideBlock, requestSuggestion } from "@/lib/dua/suggestions";
 import { saveAeeSession } from "@/lib/aee-sessions";
-import { studentInReach, loadPlanningFor } from "@/lib/dua/shared";
+import { loadPlanningFor } from "@/lib/dua/shared";
 
 export type DuaResult<T = undefined> =
   | { ok: true; value: T }
@@ -197,7 +197,7 @@ export async function removeDuaStudentVoice(input: { planningId: string; student
 export async function startStudentParticipation(input: { studentId: string; planningId?: string; title?: string }): Promise<DuaResult<{ planningId: string }>> {
   return run(async (user) => {
     const data = z.object({ studentId: id, planningId: id.optional(), title: text(160).optional() }).parse(input);
-    await studentInReach(user, data.studentId);
+    await assertStudentTeam(user, data.studentId);
     if (data.planningId) {
       await loadPlanningFor(user, data.planningId, "read");
       return { planningId: data.planningId };

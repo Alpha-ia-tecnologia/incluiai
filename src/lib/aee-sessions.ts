@@ -1,19 +1,15 @@
 import "server-only";
 import { db } from "./prisma";
-import type { SessionUser } from "./auth";
-import { assertStudentTeam } from "./records";
+import { assertStudentTeam, type SessionUser } from "./auth";
+import { can } from "./roles";
 import { AEE_SESSION_STATUSES, type AeeSessionStatus } from "./dua/domain";
 
 export type AeeSessionInput = { date: string; status: string; reason: string; note: string };
 
-const SESSION_ROLES = new Set(["professor_aee", "coordenacao", "gestao"]);
-
-export const canRecordAeeSession = (user: Pick<SessionUser, "role">) => SESSION_ROLES.has(user.role);
-
 export async function saveAeeSession(user: SessionUser, studentId: string, input: AeeSessionInput) {
   const prisma = await db();
   await assertStudentTeam(user, studentId);
-  if (!canRecordAeeSession(user)) throw new Error("A frequência do AEE é registrada pelo professor do AEE ou pela coordenação.");
+  if (!can(user.role, "recordAee")) throw new Error("A frequência do AEE é registrada pelo professor do AEE ou pela coordenação.");
   if (!AEE_SESSION_STATUSES.includes(input.status as AeeSessionStatus)) throw new Error("Escolha: realizado, falta ou cancelamento.");
   const date = /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? new Date(`${input.date}T12:00:00`) : new Date(Number.NaN);
   if (Number.isNaN(date.getTime())) throw new Error("Informe a data do atendimento.");

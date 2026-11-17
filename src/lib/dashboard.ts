@@ -3,7 +3,9 @@ import { bnccSkill } from "./bncc";
 import { componentLabel } from "./bncc-core";
 import { AREAS, compareAreas, reassessmentDue } from "./assessment";
 import { answersOf } from "./assessments";
-import { canAccessStudent, isNetworkRole, type SessionUser } from "./auth";
+import type { SessionUser } from "./auth";
+import { canAccessStudent, isFamilyOf, linkedStudentIds } from "./policy";
+import { can } from "./roles";
 import { objectiveTrend, studentAlerts, type StudentAlert, type Trend } from "./insights";
 import { getStudentNextStep } from "./student-journey";
 import { splitItems } from "./form-options";
@@ -155,7 +157,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const inPeriod = (date: Date) => (!start || date >= start) && date <= now;
   const createdAt = start ? { gte: start, lte: now } : { lte: now };
 
-  const network = isNetworkRole(user.role);
+  const network = can(user.role, "management");
   const schools = await prisma.school.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
   const requested = typeof options.school === "string" ? options.school : null;
   const schoolId = network ? (schools.some((school) => school.id === requested) ? requested : null) : user.schoolId;
@@ -182,8 +184,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     }),
     prisma.schoolClass.count({ where: schoolId ? { schoolId } : {} }),
     prisma.user.findMany({ select: { role: true, schoolId: true, studentId: true, studentLinks: { select: { studentId: true } } } })
-      // Vínculos de família e terapeuta (StudentLink; o campo antigo vale até o primeiro acesso).
-      .then((rows) => rows.map((row) => ({ role: row.role, schoolId: row.schoolId, studentIds: row.studentLinks.length ? row.studentLinks.map((link) => link.studentId) : row.studentId ? [row.studentId] : [] }))),
+      .then((rows) => rows.map((row) => ({ role: row.role, schoolId: row.schoolId, studentIds: linkedStudentIds(row) }))),
     prisma.accessLog.groupBy({ by: ["action"], where: { student: studentWhere, createdAt }, _count: { _all: true } }),
     prisma.accessLog.findMany({ where: { student: studentWhere, createdAt, role: { not: "sistema" } }, distinct: ["actor"], select: { actor: true } }),
     prisma.accessLog.count({ where: { student: studentWhere, createdAt, actor: "Agentes de IA" } }),
@@ -197,7 +198,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const total = students.length;
   const count = (test: (student: ScopedStudent) => boolean) => students.filter(test).length;
   const activePlanOf = (student: ScopedStudent) => student.plans.find((plan) => plan.status === "ativo");
-  const visible = (student: ScopedStudent) => canAccessStudent(user, student.schoolId, student.id);
+  const visible = (student: ScopedStudent) => canAccessStudent(user, student);
   const lastEntryOf = (student: ScopedStudent, objectiveId: string) => student.diaryEntries.findLast((entry) => entry.objectiveId === objectiveId);
 
   const entries = students.flatMap((student) => student.diaryEntries);
@@ -465,8 +466,8 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     },
     family: {
       notes: students.flatMap((student) => student.familyNotes).filter((note) => inPeriod(note.date)).length,
-      records: periodEntries.filter((entry) => entry.authorRole === "familia").length,
-      withAccess: count((student) => users.some((item) => item.role === "familia" && item.studentIds.includes(student.id))),
+      records: periodEntries.filter((entry) => can(entry.authorRole, "familyPortal")).length,
+      withAccess: count((student) => users.some((item) => isFamilyOf(item, student.id))),
       reports: reports.length,
       reportsInPeriod: reports.filter((report) => inPeriod(report.createdAt)).length,
       studentsWithReport: count((student) => student.intersectorReports.length > 0),

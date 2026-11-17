@@ -3,7 +3,8 @@
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { LoaderCircle, Sprout } from "lucide-react";
-import { SUPPORT_LEVELS, ROLES } from "@/lib/scale";
+import { SUPPORT_LEVELS } from "@/lib/scale";
+import { roleLabel, rolesWith } from "@/lib/roles";
 import { RECOMMENDATION_OPTIONS, WHAT_WORKED_OPTIONS } from "@/lib/form-options";
 import { VoiceNote } from "@/components/voice-note";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
@@ -20,7 +21,7 @@ const criterionChoices = [
   ["parcial", "Realizou uma parte"],
   ["nao", "Ainda não realizou o esperado"],
 ];
-const roleOptions = Object.entries(ROLES).filter(([value]) => value !== "familia" && value !== "terapeuta" && value !== "plataforma").map(([value, label]) => ({ value, label }));
+const roleOptions = rolesWith("pedagogical").map((value) => ({ value, label: roleLabel(value) }));
 
 export function DiaryForm({
   saveAction, studentId, objectives, activities, initialActivityId, initialObjectiveId,

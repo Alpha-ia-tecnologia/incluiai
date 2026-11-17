@@ -12,9 +12,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ stu
   if (!user) return new Response("Não autenticado.", { status: 401 });
   const student = await prisma.student.findUnique({
     where: { id: studentId },
-    select: { schoolId: true, consent: { select: { card: true } }, card: { select: { photo: true, photoMime: true } } },
+    select: { id: true, schoolId: true, consent: { select: { card: true } }, card: { select: { photo: true, photoMime: true } } },
   });
-  if (!student?.consent?.card || !student.card?.photo || !student.card.photoMime || !canViewCard(user, student.schoolId, studentId)) {
+  if (!student?.consent?.card || !student.card?.photo || !student.card.photoMime || !canViewCard(user, student)) {
     return new Response("Foto não encontrada.", { status: 404 });
   }
   return new Response(new Uint8Array(student.card.photo), {

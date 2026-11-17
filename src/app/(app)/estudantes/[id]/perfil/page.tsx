@@ -1,6 +1,5 @@
-﻿import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
-import { requireStudentPage, canEditStudentRecord } from "@/lib/auth";
+﻿import { db } from "@/lib/prisma";
+import { requireStudentPage } from "@/lib/page-context";
 import { upsertProfile } from "@/actions/profile";
 import { parseJson } from "@/lib/format";
 import { SUPPORT_LEVELS, CHANNELS, BARRIERS, SENSORY_AREAS, SENSORY_LABELS, SENSORY_VALUES } from "@/lib/scale";
@@ -41,8 +40,7 @@ export default async function ProfilePage({
 }) {
   const prisma = await db();
   const { id } = await params;
-  const viewer = await requireStudentPage(id, "Como aprende");
-  if (!canEditStudentRecord(viewer.role)) redirect(`/estudantes/${id}`);
+  await requireStudentPage(id, "Como aprende", { tab: "perfil" });
   const { modo, salvo } = await searchParams;
   const savedAt = typeof salvo === "string" && /^\d+$/.test(salvo) ? salvo : null;
   const [student, profile, caseStudy] = await Promise.all([

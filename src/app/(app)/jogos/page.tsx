@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, canEditStudentRecord, getCurrentUser, isSchoolStaff } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { studentScopeWhere } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { parseJson } from "@/lib/format";
 import { suggestedLevel, themeFromInterests } from "@/lib/games/games-core";
 import { GamesHub, type HubStudent } from "@/components/games/games-hub";
@@ -13,15 +15,13 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
   const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!canEditStudentRecord(user.role)) redirect("/");
+  if (!can(user.role, "editRecord")) redirect("/");
   const { estudante } = await searchParams;
-  const scoped = isSchoolStaff(user.role) && user.schoolId;
   const students: HubStudent[] = (await prisma.student.findMany({
-    where: { status: "ativo", ...(scoped ? { schoolId: user.schoolId! } : {}) },
-    select: { id: true, name: true, gradeYear: true, className: true, schoolId: true, profile: { select: { interests: true, readingSupport: true, mathSupport: true, organization: true } } },
+    where: { status: "ativo", ...studentScopeWhere(user) },
+    select: { id: true, name: true, gradeYear: true, className: true, profile: { select: { interests: true, readingSupport: true, mathSupport: true, organization: true } } },
     orderBy: { name: "asc" },
   }))
-    .filter((student) => canAccessStudent(user, student.schoolId, student.id))
     .map((student) => ({
       id: student.id,
       name: student.name,

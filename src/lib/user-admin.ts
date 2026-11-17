@@ -1,33 +1,21 @@
+import { accountSchool, assignableRoles, isLinkedRole, isRole } from "./roles.ts";
+
 export type AccountManager = { id: string; role: string; schoolId: string | null };
 export type ManagedAccount = { id: string; role: string; schoolId: string | null; linkedSchoolIds: string[] };
 
-export const LINKED_ROLES = ["familia", "terapeuta"] as const;
-export const isLinked = (role: string) => (LINKED_ROLES as readonly string[]).includes(role);
-const SCHOOL_BOUND = new Set(["professor_sala", "professor_aee", "apoio"]);
-
-export function assignableRoles(manager: Pick<AccountManager, "role">): string[] {
-  switch (manager.role) {
-    case "secretaria": return ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao", "secretaria"];
-    case "gestao": return ["professor_sala", "professor_aee", "apoio", "coordenacao", "familia", "terapeuta"];
-    case "coordenacao": return ["professor_sala", "professor_aee", "apoio", "familia", "terapeuta"];
-    default: return [];
-  }
-}
-
-export const isAccountManager = (role: string) => assignableRoles({ role }).length > 0;
-
 export function canManageAccount(manager: AccountManager, target: ManagedAccount): boolean {
   if (target.id === manager.id) return false;
-  if (!assignableRoles(manager).includes(target.role)) return false;
+  if (!isRole(target.role) || !assignableRoles(manager.role).includes(target.role)) return false;
   if (!manager.schoolId) return true;
-  return isLinked(target.role) ? target.linkedSchoolIds.includes(manager.schoolId) : target.schoolId === manager.schoolId;
+  return isLinkedRole(target.role) ? target.linkedSchoolIds.includes(manager.schoolId) : target.schoolId === manager.schoolId;
 }
 
 export function accountSchoolProblem(manager: AccountManager, role: string, schoolId: string | null): string | null {
-  if (isLinked(role)) return schoolId ? "Família e terapeuta são vinculados a estudantes, não a uma escola." : null;
-  if (role === "secretaria") return schoolId ? "A Secretaria é da rede, sem escola." : null;
+  if (isLinkedRole(role)) return schoolId ? "Família e terapeuta são vinculados a estudantes, não a uma escola." : null;
+  const school = accountSchool(role);
+  if (school === "nenhuma") return schoolId ? "A Secretaria é da rede, sem escola." : null;
   if (manager.schoolId && schoolId !== manager.schoolId) return "Você cria contas só na sua escola.";
-  if (!schoolId && SCHOOL_BOUND.has(role)) return "Escolha a escola.";
+  if (!schoolId && school === "obrigatoria") return "Escolha a escola.";
   return null;
 }
 

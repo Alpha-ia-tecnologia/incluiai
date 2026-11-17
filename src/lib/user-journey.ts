@@ -1,7 +1,9 @@
 import { PARTICIPATION_TEXT, PARTICIPATION_TONE, countItems, percentOf, supportSeries, supportTrend, weeklyCounts, type SeriesPoint, type Trend, type VizTone } from "./series";
 import { SUMMARY_VIEW_DETAILS } from "./access-log";
 import { db } from "./prisma";
-import { canAccessStudent, isNetworkRole, type SessionUser } from "./auth";
+import type { SessionUser } from "./auth";
+import { familyActivityWhere, studentScopeWhere } from "./policy";
+import { roleGroup, rolesWith, teachingContext, type Group } from "./roles";
 import { objectiveTrend } from "./insights";
 import { getStudentNextStep } from "./student-journey";
 import { firstName, formatDate, parseJson } from "./format";
@@ -104,24 +106,23 @@ const ratio = (done: number, total: number) => ({ done, total });
 export async function loadJourney(user: SessionUser, options: { studentId?: unknown } = {}): Promise<Journey> {
   const prisma = await db();
   const marks = new Map((await prisma.journeyMark.findMany({ where: { userId: user.id } })).map((mark) => [mark.key, mark.createdAt]));
-  if (user.role === "familia") return familyJourney(user, marks);
-  if (user.role === "terapeuta") return therapistJourney(user, marks);
-  if (user.role === "secretaria") return networkJourney(user, marks);
-  if (isNetworkRole(user.role)) return schoolJourney(user, marks);
-  return teacherJourney(user, marks, typeof options.studentId === "string" ? options.studentId : undefined);
+  return JOURNEYS[roleGroup(user.role)](user, marks, typeof options.studentId === "string" ? options.studentId : undefined);
 }
 
 type Marks = Map<string, Date>;
 
+const JOURNEYS: Record<Group, (user: SessionUser, marks: Marks, requestedId?: string) => Promise<Journey>> = {
+  professor: teacherJourney, escola: schoolJourney, rede: networkJourney, familia: familyJourney, terapeuta: therapistJourney, plataforma: teacherJourney,
+};
+
 async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: string): Promise<Journey> {
   const prisma = await db();
-  const aee = user.role === "professor_aee";
-  const candidates = await prisma.student.findMany({
-    where: { status: "ativo", ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
-    select: { id: true, name: true, schoolId: true },
+  const aee = teachingContext(user.role) === "aee";
+  const students = await prisma.student.findMany({
+    where: { status: "ativo", ...studentScopeWhere(user) },
+    select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
-  const students = candidates.filter((student) => canAccessStudent(user, student.schoolId, student.id));
   const welcome = {
     headline: `Boas-vindas, ${firstName(user.name)}!`,
     text: "Cada estudante tem seis capítulos, do estudo de caso ao registro das aulas. A plataforma lembra onde você parou.",
@@ -308,7 +309,7 @@ async function teamMilestones(ids: string[]): Promise<Milestone[]> {
 async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> {
   const prisma = await db();
   const now = new Date();
-  const where = { status: "ativo", ...(user.schoolId ? { schoolId: user.schoolId } : {}) };
+  const where = { status: "ativo", ...studentScopeWhere(user) };
   const [school, students] = await Promise.all([
     user.schoolId ? prisma.school.findUnique({ where: { id: user.schoolId }, select: { name: true } }) : null,
     prisma.student.findMany({
@@ -510,10 +511,10 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     where: { id: user.studentIds[0] },
     include: {
       plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" } } } },
-      activities: { where: { context: "casa", status: { in: ["aceita", "aplicada"] } }, select: { id: true } },
+      activities: { where: familyActivityWhere, select: { id: true } },
       familyNotes: { orderBy: { date: "asc" }, select: { note: true, date: true } },
       timeline: { where: { type: "conquista" }, orderBy: { date: "asc" }, select: { title: true, date: true } },
-      accessLogs: { where: { role: { notIn: ["familia", "terapeuta", "sistema"] } }, orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+      accessLogs: { where: { role: { in: rolesWith("pedagogical") } }, orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
     },
   });
   const name = firstName(s.name);
@@ -600,7 +601,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
   const reports = s.intersectorReports;
   const last = reports.at(-1);
   const seen = last ? await prisma.accessLog.findFirst({
-    where: { studentId: s.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: { gt: last.createdAt } },
+    where: { studentId: s.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { in: rolesWith("pedagogical") }, createdAt: { gt: last.createdAt } },
     orderBy: { createdAt: "asc" },
     select: { createdAt: true },
   }) : null;

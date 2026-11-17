@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CircleCheck, FileDown, Printer, Trash2 } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { taskContent } from "@/lib/adapted-tasks";
 import { printSettings } from "@/lib/task-adaptation";
 import { parseJson, formatDate } from "@/lib/format";
@@ -18,12 +18,12 @@ export const dynamic = "force-dynamic";
 export default async function AdaptedTaskPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const prisma = await db();
   const { id, taskId } = await params;
-  const user = await requireStudentPage(id, "Atividade adaptada");
+  const { can } = await requireStudentPage(id, "Atividade adaptada");
   const task = await prisma.adaptedTask.findFirst({ where: { id: taskId, studentId: id } });
   if (!task) notFound();
   const content = taskContent(task.content, task.title);
   const options = parseJson<string[]>(task.options, []);
-  const editing = task.status !== "aprovada" && canEditStudentRecord(user.role);
+  const editing = task.status !== "aprovada" && can.edit;
   const view = { highlight: options.includes("destacar_comando"), icons: options.includes("apoio_visual") };
   return (
     <div className="grid min-w-0 gap-6">

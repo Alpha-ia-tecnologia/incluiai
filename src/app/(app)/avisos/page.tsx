@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Bell } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { emailConfigured } from "@/lib/email";
 import { formatDate } from "@/lib/format";
 import { setNoticePrefs } from "@/actions/notifications";
@@ -41,7 +42,7 @@ export default async function NoticesPage() {
         )}
         <Card>
           <SectionTitle>Como receber os avisos</SectionTitle>
-          <NoticePrefsForm action={setNoticePrefs} notifyByEmail={prefs.notifyByEmail} weeklyCheckIn={prefs.weeklyCheckIn} emailOn={emailConfigured()} family={user.role === "familia"} />
+          <NoticePrefsForm action={setNoticePrefs} notifyByEmail={prefs.notifyByEmail} weeklyCheckIn={prefs.weeklyCheckIn} emailOn={emailConfigured()} family={can(user.role, "familyPortal")} />
         </Card>
       </div>
     </>

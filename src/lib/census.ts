@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
+import { can, roleScope } from "./roles";
 import { parseJson } from "./format";
 import { digitsOnly, identityKeys, parseEducacensoFile, specialEdPersons, type CensusPerson, type ParseStats } from "./educacenso";
 import { buildSyncPlan, censusCounts, regularOnlyIds, schoolFundebNote, sumCounts, toSnapshot, type AeeEstimate, type CensusCounts, type CoverageRow, type ReviewDecision, type SchoolInfo, type SyncPlan } from "./census-rules";
@@ -12,9 +13,11 @@ export const CENSUS_MAX_BYTES = 5 * 1024 * 1024;
 export type CensusAccess = { network: boolean; schoolId: string | null; canImport: boolean; canConfigure: boolean };
 
 export function censusAccess(user: SessionUser): CensusAccess | null {
-  if (user.role === "secretaria") return { network: true, schoolId: null, canImport: false, canConfigure: true };
-  if (user.role === "coordenacao" || user.role === "gestao") return { network: false, schoolId: user.schoolId, canImport: true, canConfigure: false };
-  return null;
+  const canImport = can(user.role, "importCensus");
+  const canConfigure = can(user.role, "configureCensus");
+  if (!canImport && !canConfigure) return null;
+  const network = roleScope(user.role) === "rede";
+  return { network, schoolId: network ? null : user.schoolId, canImport, canConfigure };
 }
 
 export function canOpenSchool(user: SessionUser, schoolId: string): boolean {

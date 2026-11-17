@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Printer, RefreshCw, Trash2 } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { refreshReportData, removeReportDraft, saveReport } from "@/actions/reports";
-import { canValidateReport, reportData } from "@/lib/reports";
+import { reportData } from "@/lib/reports";
 import { Card } from "@/components/ui";
 import { ReportView } from "@/components/reports/report-view";
 import { OpinionEditor } from "@/components/reports/report-forms";
@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function ReportPage({ params }: { params: Promise<{ id: string; reportId: string }> }) {
   const prisma = await db();
   const { id, reportId } = await params;
-  const user = await requireStudentPage(id, "Relatório do período");
-  const team = canEditStudentRecord(user.role);
+  const { can } = await requireStudentPage(id, "Relatório do período");
+  const team = can.edit;
   const report = await prisma.studentReport.findFirst({ where: { id: reportId, studentId: id, ...(team ? {} : { status: "validado" }) } });
   if (!report) notFound();
   const data = reportData(report.data);
@@ -41,7 +41,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </Card>
       {editing ? (
         <Card>
-          <OpinionEditor action={saveReport.bind(null, id, report.id)} opinion={report.opinion} canValidate={canValidateReport(user.role)} />
+          <OpinionEditor action={saveReport.bind(null, id, report.id)} opinion={report.opinion} canValidate={can.validateReports} />
           <details className="mt-6 rounded-2xl bg-surface-muted p-4">
             <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir este rascunho</summary>
             <p className="my-3 text-sm text-ink-soft">O rascunho e o parecer escrito saem. Os registros do período continuam na ficha.</p>

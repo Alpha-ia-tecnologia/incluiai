@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { getCurrentUser, hashPassword, type SessionUser } from "@/lib/auth";
 import { linkableStudents, managedAccount, recordAccountEvent, schoolsFor, type AccountRow } from "@/lib/accounts";
-import { EMAIL_RE, accountSchoolProblem, assignableRoles, isAccountManager, isLinked, mergeLinks, temporaryPassword } from "@/lib/user-admin";
-import { ROLES } from "@/lib/scale";
+import { EMAIL_RE, accountSchoolProblem, mergeLinks, temporaryPassword } from "@/lib/user-admin";
+import { assignableRoles, isAccountManager, isLinkedRole, isRole, roleLabel } from "@/lib/roles";
 
 export type AccountFormState = { error?: string; saved?: boolean; created?: { id: string; name: string; email: string; password: string }; values?: AccountInput };
 export type ResetState = { error?: string; password?: string };
@@ -40,8 +40,8 @@ async function checkAccount(manager: SessionUser, input: AccountInput, selfId?: 
   const prisma = await db();
   if (input.name.length < 3 || input.name.length > 120) return { error: "Escreva o nome da pessoa (de 3 a 120 caracteres)." } as const;
   if (!EMAIL_RE.test(input.email) || input.email.length > 160) return { error: "Confira o e-mail." } as const;
-  if (!assignableRoles(manager).includes(input.role)) return { error: "Escolha um perfil que você pode atribuir." } as const;
-  const linked = isLinked(input.role);
+  if (!isRole(input.role) || !assignableRoles(manager.role).includes(input.role)) return { error: "Escolha um perfil que você pode atribuir." } as const;
+  const linked = isLinkedRole(input.role);
   const schoolId = linked ? null : input.schoolId;
   const schoolProblem = accountSchoolProblem(manager, input.role, schoolId);
   if (schoolProblem) return { error: schoolProblem } as const;
@@ -62,7 +62,7 @@ export async function createAccount(_previous: AccountFormState, formData: FormD
   const input = readAccount(formData);
   const checked = await checkAccount(manager, input);
   if ("error" in checked) return { error: checked.error, values: input };
-  if (isLinked(input.role) && !checked.chosen.length) return { error: "Escolha pelo menos um estudante para vincular.", values: input };
+  if (isLinkedRole(input.role) && !checked.chosen.length) return { error: "Escolha pelo menos um estudante para vincular.", values: input };
   const password = temporaryPassword();
   const user = await prisma.user.create({
     data: {
@@ -72,7 +72,7 @@ export async function createAccount(_previous: AccountFormState, formData: FormD
     },
   });
   const where = checked.chosen.length ? `vinculada a ${firstNames(checked.chosen.map((link) => link.name))}` : checked.schoolId ? `na escola ${(await schoolsFor(manager)).find((school) => school.id === checked.schoolId)?.name ?? ""}` : "na rede";
-  await recordAccountEvent(user.id, manager, "criou a conta", `${ROLES[input.role] ?? input.role}, ${where}. Senha temporária entregue pela gestão.`);
+  await recordAccountEvent(user.id, manager, "criou a conta", `${roleLabel(input.role)}, ${where}. Senha temporária entregue pela gestão.`);
   revalidatePath("/usuarios");
   return { created: { id: user.id, name: user.name, email: user.email, password } };
 }
@@ -84,14 +84,14 @@ export async function updateAccount(id: string, _previous: AccountFormState, for
   const input = readAccount(formData);
   const checked = await checkAccount(manager, input, id);
   if ("error" in checked) return { error: checked.error, values: input };
-  const linked = isLinked(input.role);
-  const studentIds = linked ? mergeLinks(manager, isLinked(account.role) ? account.links : [], checked.chosen) : [];
+  const linked = isLinkedRole(input.role);
+  const studentIds = linked ? mergeLinks(manager, isLinkedRole(account.role) ? account.links : [], checked.chosen) : [];
   if (linked && !studentIds.length) return { error: "Mantenha pelo menos um estudante vinculado. Para tirar o acesso, desative a conta.", values: input };
 
   const changes: string[] = [];
   if (input.name !== account.name) changes.push(`nome: ${input.name}`);
   if (input.email !== account.email) changes.push(`e-mail: ${input.email}`);
-  if (input.role !== account.role) changes.push(`perfil: ${ROLES[account.role] ?? account.role} → ${ROLES[input.role] ?? input.role}`);
+  if (input.role !== account.role) changes.push(`perfil: ${roleLabel(account.role)} → ${roleLabel(input.role)}`);
   if (checked.schoolId !== account.schoolId) changes.push(checked.schoolId ? `escola: ${(await schoolsFor(manager)).find((school) => school.id === checked.schoolId)?.name ?? ""}` : "escola: rede");
   const before = account.links.map((link) => link.studentId).sort().join();
   const linksChanged = linked && studentIds.slice().sort().join() !== before;

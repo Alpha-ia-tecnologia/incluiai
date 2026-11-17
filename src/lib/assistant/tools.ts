@@ -4,12 +4,13 @@ import type { BetaRunnableTool } from "@anthropic-ai/sdk/lib/tools/BetaRunnableT
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { db } from "../prisma";
-import { canSeePedagogicalDetail, isNetworkRole, isStaffOrNetwork, type SessionUser } from "../auth";
+import { assertStudentTeam, type SessionUser } from "../auth";
+import { can, roleGroup, type Group } from "../roles";
+import { familyActivityWhere } from "../policy";
 import { loadPlanContext, profileText } from "../agents/context";
 import { buildActivityCards, createPlanDraft, saveSuggestedActivities } from "../agents/generate";
 import { objectiveTrend, studentAlerts } from "../insights";
 import { getStudentNextStep } from "../student-journey";
-import { assertStudentTeam } from "../records";
 import { MATERIAL_KINDS } from "../materials";
 import { createStudentMaterial } from "../material-generate";
 import { isImageGenerationEnabled } from "../images/openai-images";
@@ -112,8 +113,8 @@ const journeyInput = (student: {
   hasDiary: student.diaryEntries.length > 0,
 });
 
-function staffTools(ctx: ToolContext): BetaRunnableTool[] {
-  const network = isNetworkRole(ctx.user.role);
+function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean }): BetaRunnableTool[] {
+  const network = can(ctx.user.role, "management");
 
   const buscarEstudantes = define(ctx, "buscar_estudantes",
     "Lista os estudantes que a pessoa pode acompanhar, com marcador, id, turma, escola e próximo passo da jornada. Filtros opcionais por texto e por turma.",
@@ -365,7 +366,7 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
       if (args.atividadeId && !activity) throw new Error("Atividade não encontrada para este estudante.");
       const participation = { total: "participou de toda a atividade", parcial: "participou de parte", recusou: "recusou" }[args.participacao];
       const criterion = { sim: "atingiu o critério", parcial: "atingiu parcialmente", nao: "não atingiu o critério" }[args.criterio];
-      const authorRole = ["professor_sala", "professor_aee", "apoio"].includes(ctx.user.role) ? ctx.user.role : ctx.user.role;
+      const authorRole = ctx.user.role;
       const summary = `Registrar a aula de ${student.name}: ${participation}, apoio ${support(args.apoio)}, ${criterion}.${objective ? ` Objetivo: ${objective.action}.` : ""}${activity ? ` Atividade: ${activity.title} (passa a aplicada).` : ""}${args.observacao ? ` Observação: ${args.observacao}` : ""}`;
       return propose(ctx, "registrar_aula", summary, {
         studentId: id, objectiveId: objective?.id ?? null, activityId: activity?.id ?? null,
@@ -449,11 +450,11 @@ function staffTools(ctx: ToolContext): BetaRunnableTool[] {
         `- IA: Claude ${d.ai.providers.claude ? "ativo" : "não configurado"}, DeepSeek ${d.ai.providers.deepseek ? "ativo" : "não configurado"}, OpenAI ${d.ai.providers.openai ? "ativo" : "não configurado"}; planos propostos pela IA: ${d.ai.planProposals.ia}; atividades da IA: ${d.ai.activities.total}; imagens: ${d.ai.images}.`,
         network ? `- Escolas da rede: ${d.scope.schools.map((school) => `${ctx.privacy.schoolLabel(school.id)} (id ${school.id})`).join(", ")}.` : "",
         d.profile.caa.withoutResources ? `- Leitura para a gestão: ${d.profile.caa.withoutResources} de ${d.profile.caa.total} estudantes com comunicação alternativa ainda sem recursos de acessibilidade registrados.` : "",
-        d.attention.students.length && ctx.user.role !== "secretaria" ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERT_LABELS[kind].toLowerCase()).join(", ")}`).join("; ")}.` : "",
+        d.attention.students.length && withStudents ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERT_LABELS[kind].toLowerCase()).join(", ")}`).join("; ")}.` : "",
       ].filter(Boolean).join("\n");
     });
 
-  if (ctx.user.role === "secretaria") return [indicadores, buscarRecursos, datasInclusivas(ctx)];
+  if (!withStudents) return [indicadores, buscarRecursos, datasInclusivas(ctx)];
   return [
     buscarEstudantes, verEstudante, verAtividades, proximosPassosDua, proporPlano, gerarAtividades, criarMaterial,
     registrarAula, decidirAtividade, marcarObjetivo, buscarRecursos, indicadores, datasInclusivas(ctx),
@@ -484,7 +485,7 @@ function familyTools(ctx: ToolContext): BetaRunnableTool[] {
         where: { id: studentId },
         include: {
           plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" } } } },
-          activities: { where: { context: "casa", status: { in: ["aceita", "aplicada"] } }, orderBy: { createdAt: "desc" }, take: 5 },
+          activities: { where: familyActivityWhere, orderBy: { createdAt: "desc" }, take: 5 },
           timeline: { where: { type: "conquista" }, orderBy: { date: "desc" }, take: 5 },
           familyNotes: { orderBy: { date: "desc" }, take: 5 },
         },
@@ -552,11 +553,16 @@ function therapistTools(ctx: ToolContext): BetaRunnableTool[] {
   return [meuEstudante, enviarOrientacoes, datasInclusivas(ctx)];
 }
 
+const TOOLSETS: Record<Group, (ctx: ToolContext) => BetaRunnableTool[]> = {
+  professor: (ctx) => staffTools(ctx, { withStudents: true }),
+  escola: (ctx) => staffTools(ctx, { withStudents: true }),
+  rede: (ctx) => staffTools(ctx, { withStudents: false }),
+  familia: familyTools,
+  terapeuta: therapistTools,
+  plataforma: (ctx) => [datasInclusivas(ctx)],
+};
+
 export function buildTools(ctx: ToolContext): BetaRunnableTool[] {
-  const role = ctx.user.role;
-  if (role === "familia") return familyTools(ctx);
-  if (role === "terapeuta") return therapistTools(ctx);
-  if (isStaffOrNetwork(role) && canSeePedagogicalDetail(role)) return staffTools(ctx);
-  return [datasInclusivas(ctx)];
+  return TOOLSETS[roleGroup(ctx.user.role)](ctx);
 }
 

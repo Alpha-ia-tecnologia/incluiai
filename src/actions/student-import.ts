@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";
-import { isAccountManager } from "@/lib/user-admin";
+import { isAccountManager } from "@/lib/roles";
 import { IMPORT_MAX_BYTES, normalize, readStudentSheet, studentKey, type StudentImport } from "@/lib/student-import";
 
 type Line = { line: number; name: string };

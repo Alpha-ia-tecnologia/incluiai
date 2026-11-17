@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { Search, ShieldCheck, UserPlus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { manageableAccounts } from "@/lib/accounts";
-import { assignableRoles, isAccountManager } from "@/lib/user-admin";
-import { ROLES } from "@/lib/scale";
+import { accountSchool, assignableRoles, isAccountManager, isLinkedRole, roleLabel } from "@/lib/roles";
 import { formatDate } from "@/lib/format";
 import { PageHeader, Badge, ButtonLink, EmptyState } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
@@ -20,9 +19,9 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
   if (!user) redirect("/login");
   if (!isAccountManager(user.role)) redirect("/");
   const accounts = await manageableAccounts(user);
-  const roles = assignableRoles(user);
+  const roles = assignableRoles(user.role);
   const q = one(query.q).trim().toLowerCase();
-  const role = roles.includes(one(query.perfil)) ? one(query.perfil) : "";
+  const role = roles.find((value) => value === one(query.perfil)) ?? "";
   const status = ["ativas", "desativadas", "primeiro-acesso"].includes(one(query.situacao)) ? one(query.situacao) : "";
   const shown = accounts.filter((account) =>
     (!q || account.name.toLowerCase().includes(q) || account.email.includes(q))
@@ -37,7 +36,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader
         title="Pessoas e acessos"
-        lede={user.role === "secretaria" ? "Famílias e terapeutas são cadastrados pela escola." : undefined}
+        lede={roles.some(isLinkedRole) ? undefined : "Famílias e terapeutas são cadastrados pela escola."}
         actions={<ButtonLink href="/usuarios/nova"><UserPlus size={16} aria-hidden /> Nova conta</ButtonLink>}
       />
 
@@ -58,7 +57,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
           <label htmlFor="filtro-perfil" className={labelCls}>Perfil</label>
           <select id="filtro-perfil" name="perfil" defaultValue={role} className={inputCls}>
             <option value="">Todos</option>
-            {roles.map((value) => <option key={value} value={value}>{ROLES[value] ?? value}</option>)}
+            {roles.map((value) => <option key={value} value={value}>{roleLabel(value)}</option>)}
           </select>
         </div>
         <div className="min-w-0">
@@ -87,8 +86,8 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                   </h3>
                   <p className="break-all text-xs text-ink-soft">{account.email}</p>
                   <p className="mt-1 text-xs text-ink-soft">
-                    {ROLES[account.role] ?? account.role}
-                    {account.links.length ? ` · ${account.links.map((link) => link.name.split(" ")[0]).join(", ")}` : account.schoolName ? ` · ${account.schoolName}` : account.role !== "secretaria" ? " · Rede" : ""}
+                    {roleLabel(account.role)}
+                    {account.links.length ? ` · ${account.links.map((link) => link.name.split(" ")[0]).join(", ")}` : account.schoolName ? ` · ${account.schoolName}` : accountSchool(account.role) === "opcional" ? " · Rede" : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

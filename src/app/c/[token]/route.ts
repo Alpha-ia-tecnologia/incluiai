@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccessStudent, isTherapistOf, studentPathFor } from "@/lib/policy";
 import { recordView } from "@/lib/access-log";
 import { PENDING_CARD_COOKIE } from "@/lib/student-card";
 import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
@@ -28,12 +29,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   if (!card?.student.consent?.card) redirect("/carteirinha/inativa");
   const { studentId, student } = card;
 
-  let destination: string | null = null;
-  if (user.role === "familia" && user.studentIds.includes(studentId)) destination = `/familia/${studentId}`;
-  else if (user.role === "terapeuta" && user.studentIds.includes(studentId) && student.consent?.therapistLink) destination = "/terapeuta";
-  else if (isStaffOrNetwork(user.role) && canAccessStudent(user, student.schoolId, studentId)) destination = `/estudantes/${studentId}`;
-  if (!destination) redirect("/carteirinha/sem-acesso");
+  const reachable = canAccessStudent(user, { id: studentId, schoolId: student.schoolId }) && (!isTherapistOf(user, studentId) || student.consent?.therapistLink);
+  if (!reachable) redirect("/carteirinha/sem-acesso");
 
   await recordView(user, studentId, "Código QR da carteirinha");
-  redirect(destination);
+  redirect(studentPathFor(user, studentId));
 }

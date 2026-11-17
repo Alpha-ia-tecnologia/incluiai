@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { answersOf } from "@/lib/assessments";
 import { applyAssessment } from "@/actions/assessments";
 import { Card, PageHeader } from "@/components/ui";
@@ -14,8 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function ApplyAssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  const user = await requireStudentPage(id, "Aplicar sondagem");
-  if (!canEditStudentRecord(user.role)) redirect(`/estudantes/${id}/sondagem`);
+  await requireStudentPage(id, "Aplicar sondagem", { need: "edit", otherwise: `/estudantes/${id}/sondagem` });
   const latest = await prisma.assessment.findFirst({ where: { studentId: id }, orderBy: { appliedAt: "desc" } });
   return (
     <>

@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { DuaError, loadPlanningFor } from "@/lib/dua/shared";
+import { planningContext } from "@/lib/page-context";
 import { taskContent } from "@/lib/adapted-tasks";
 import { PrintButton } from "@/components/print-button";
 import { AdaptedView } from "@/components/adapted/adapted-view";
@@ -13,14 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function PrintLevelPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const prisma = await db();
   const { id, taskId } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  try {
-    await loadPlanningFor(user, id, "read");
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
+  await planningContext(id);
   const task = await prisma.adaptedTask.findFirst({ where: { id: taskId, planningId: id } });
   if (!task) notFound();
   return (

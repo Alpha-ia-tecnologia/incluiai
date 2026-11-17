@@ -1,13 +1,14 @@
 import "server-only";
 import { db } from "../prisma";
-import type { SessionUser } from "../auth";
+import { assertStudentTeam, type SessionUser } from "../auth";
+import { canWorkWithStudent } from "../policy";
 import { formatDate, parseJson } from "../format";
 import {
   APPLICATION_CONTEXTS, CRITERION_STATUSES, EXECUTION_STATES, followUpSuggestions, observationOf, resultFromCriteria,
   type ApplicationContext, type CriterionStatus, type DuaContent, type DuaSupportData, type EvidenceObservation, type ExecutionState, type FollowUpSuggestion,
 } from "./domain";
-import { planningAccess } from "./access";
-import { DuaError, audit, canWorkWithStudent, clip, contentOf, dateFromInput, loadPlanningFor, studentInReach, studentLog } from "./shared";
+import { planningAccess, type PlanningAccess } from "./access";
+import { DuaError, audit, clip, contentOf, dateFromInput, loadPlanningFor, studentLog } from "./shared";
 
 type Person = { id: string; name: string };
 
@@ -63,14 +64,16 @@ export async function createApplication(user: SessionUser, planningId: string, i
   return application.id;
 }
 
+const canManageApplication = (user: SessionUser, access: PlanningAccess, application: { createdById: string; responsibles: string }) =>
+  access.edit || application.createdById === user.id || parseJson<Person[]>(application.responsibles, []).some((person) => person.id === user.id);
+
 async function loadApplicationFor(user: SessionUser, applicationId: string) {
   const prisma = await db();
   const application = await prisma.duaApplication.findUnique({ where: { id: applicationId }, include: { planning: true, version: true } });
   if (!application) throw new DuaError("Aplicação não encontrada.", "nao_encontrado");
   const access = planningAccess(user, application.planning);
   if (!access.read) throw new DuaError("Aplicação não encontrada.", "nao_encontrado");
-  const responsible = parseJson<Person[]>(application.responsibles, []).some((person) => person.id === user.id) || application.createdById === user.id;
-  return { application, access, canManage: access.edit || responsible };
+  return { application, access, canManage: canManageApplication(user, access, application) };
 }
 
 export async function updateApplication(user: SessionUser, applicationId: string, revision: number, input: { state: string; notes?: string; addParticipantIds: string[]; removeParticipantIds: string[] }) {
@@ -105,7 +108,7 @@ export type EvidenceInput = {
 export async function registerEvidence(user: SessionUser, applicationId: string, studentId: string, input: EvidenceInput) {
   const prisma = await db();
   const { application } = await loadApplicationFor(user, applicationId);
-  const student = await studentInReach(user, studentId);
+  const student = await assertStudentTeam(user, studentId);
   if (!parseJson<string[]>(application.participantIds, []).includes(studentId)) throw new DuaError("Este estudante não está entre os participantes da aplicação.");
   if (application.state === "cancelada") throw new DuaError("A aplicação foi cancelada: não há evidência a registrar.");
   const content = contentOf(application.version);
@@ -237,7 +240,7 @@ export async function listApplications(user: SessionUser, planningId: string): P
       hiddenParticipants: ids.filter((id) => !visible.has(id)).length,
       evidences: row.evidences.filter((evidence) => visible.has(evidence.studentId)).map((evidence) => evidenceView(evidence, content)),
       content,
-      canManage: access.edit || row.createdById === user.id || responsibles.some((person) => person.id === user.id),
+      canManage: canManageApplication(user, access, row),
     };
   });
 }
@@ -246,7 +249,7 @@ export type StudentEvidenceView = EvidenceView & { planningId: string; planningT
 
 export async function listStudentEvidence(user: SessionUser, studentId: string): Promise<StudentEvidenceView[]> {
   const prisma = await db();
-  await studentInReach(user, studentId);
+  await assertStudentTeam(user, studentId);
   const rows = await prisma.duaEvidence.findMany({
     where: { studentId },
     include: { student: { select: { name: true } }, application: { include: { version: { select: { content: true } }, planning: { select: { id: true, title: true, ownerId: true, schoolId: true, sharing: true, collaborators: true } } } } },

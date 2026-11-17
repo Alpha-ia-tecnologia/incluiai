@@ -109,17 +109,5 @@ export const TIMELINE_TYPES: Record<string, string> = {
   familia: "Família",
 };
 
-export const ROLES: Record<string, string> = {
-  professor_sala: "Professor(a) da sala comum",
-  professor_aee: "Professor(a) do AEE",
-  apoio: "Profissional de apoio",
-  coordenacao: "Coordenação pedagógica",
-  gestao: "Gestão escolar",
-  secretaria: "Secretaria de Educação",
-  familia: "Família",
-  terapeuta: "Terapeuta (rede de saúde)",
-  plataforma: "Administração da plataforma",
-};
-
 export const AI_DISCLAIMER =
   "Sugestão para análise do profissional: não substitui avaliação pedagógica ou clínica.";

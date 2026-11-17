@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isNetworkRole } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 async function requireNetworkUser() {
   const user = await getCurrentUser();
-  if (!user || !isNetworkRole(user.role)) {
+  if (!user || !can(user.role, "management")) {
     throw new Error("Apenas coordenação, gestão ou Secretaria podem gerir cadastros.");
   }
   return user;

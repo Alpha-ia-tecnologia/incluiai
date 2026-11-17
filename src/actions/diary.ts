@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { isFamilyActivity, isFamilyOf } from "@/lib/policy";
 import { homeActivityNote } from "@/lib/user-journey";
 import { saveDiaryEntry, saveFamilyNote } from "@/lib/records";
 
@@ -18,7 +19,7 @@ export async function createDiaryEntry(studentId: string, formData: FormData) {
     note: String(formData.get("note") ?? ""),
     whatWorked: String(formData.get("whatWorked") ?? ""),
     recommendation: String(formData.get("recommendation") ?? ""),
-    authorRole: String(formData.get("authorRole") ?? "professor_sala"),
+    authorRole: String(formData.get("authorRole") ?? user.role),
   });
 
   revalidatePath("/estudantes/[id]", "layout");
@@ -31,7 +32,7 @@ export async function markHomeActivityDone(activityId: string) {
   const prisma = await db();
   const user = await getCurrentUser();
   const activity = await prisma.activity.findUnique({ where: { id: activityId }, select: { studentId: true, title: true, context: true, status: true } });
-  if (!user || !activity || user.role !== "familia" || !user.studentIds.includes(activity.studentId) || activity.context !== "casa" || !["aceita", "aplicada"].includes(activity.status)) {
+  if (!user || !activity || !isFamilyOf(user, activity.studentId) || !isFamilyActivity(activity)) {
     throw new Error("Você não tem permissão para esta ação.");
   }
   await prisma.familyNote.create({ data: { studentId: activity.studentId, note: homeActivityNote(activity.title), author: "Família" } });

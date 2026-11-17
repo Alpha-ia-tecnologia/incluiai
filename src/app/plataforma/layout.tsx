@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Building2, LogOut, Plus, Sprout } from "lucide-react";
 import { requirePlatformUser } from "@/lib/auth";
-import { ROLES } from "@/lib/scale";
+import { roleLabel } from "@/lib/roles";
 import { logout } from "@/actions/auth";
 import { NavLink } from "@/components/nav-link";
 
@@ -24,7 +24,7 @@ export default async function PlatformLayout({ children }: { children: ReactNode
         </nav>
         <div className="mt-6 border-t border-navy-line pt-4">
           <p className="truncate text-base font-medium">{user.name}</p>
-          <p className="mt-1 text-sm text-on-navy-soft">{ROLES[user.role]}</p>
+          <p className="mt-1 text-sm text-on-navy-soft">{roleLabel(user.role)}</p>
           <form action={logout} className="mt-3"><button type="submit" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-base text-on-navy-soft hover:bg-navy-hover hover:text-on-navy"><LogOut size={20} aria-hidden /> Sair da plataforma</button></form>
         </div>
       </aside>

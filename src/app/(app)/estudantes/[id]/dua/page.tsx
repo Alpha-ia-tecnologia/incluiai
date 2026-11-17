@@ -1,9 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import { HandHelping, Layers, Lightbulb, ShieldCheck, UserCheck, Users } from "lucide-react";
-import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage } from "@/lib/auth";
-import { canPlanDua } from "@/lib/dua/access";
-import { DuaError } from "@/lib/dua/shared";
+import { orNotFound, requireStudentPage } from "@/lib/page-context";
 import { listPlannings } from "@/lib/dua/plannings";
 import { listStudentSupports } from "@/lib/dua/supports";
 import { listStudentEvidence, studentFollowUp, type StudentEvidenceView } from "@/lib/dua/applications";
@@ -35,25 +32,13 @@ const RESULT_TEXT: Record<"sim" | "parcial" | "nao", string> = {
 
 export default async function StudentDuaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id, "Atividades com DUA");
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (!canSeePedagogicalDetail(user.role) || !canPlanDua(user)) redirect(`/estudantes/${id}`);
-
-  let data;
-  try {
-    const [plannings, supports, evidence, followUp] = await Promise.all([
-      listPlannings(user),
-      listStudentSupports(user, id),
-      listStudentEvidence(user, id),
-      studentFollowUp(user, id),
-    ]);
-    data = { plannings, supports, evidence, followUp };
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
-  const { plannings, supports, evidence, followUp } = data;
+  const { user } = await requireStudentPage(id, "Atividades com DUA", { tab: "dua" });
+  const [plannings, supports, evidence, followUp] = await orNotFound(Promise.all([
+    listPlannings(user),
+    listStudentSupports(user, id),
+    listStudentEvidence(user, id),
+    studentFollowUp(user, id),
+  ]));
   const planningOptions = plannings.map((planning) => ({
     id: planning.id,
     label: `${planning.title}${planning.className ? ` · ${planning.className}` : ""} (versão ${planning.version}, ${REVIEW_STATE_LABEL[planning.state].toLowerCase()})`,

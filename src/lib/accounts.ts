@@ -1,9 +1,11 @@
 import "server-only";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
-import { canManageAccount, isLinked, type ManagedAccount } from "./user-admin";
+import { canManageAccount, type ManagedAccount } from "./user-admin";
+import { linkedStudentIds, studentScopeWhere } from "./policy";
+import { assignableRoles, isLinkedRole } from "./roles";
 
-type Actor = Pick<SessionUser, "id" | "name" | "role">;
+type Actor = { id: string; name: string; role: string };
 
 export async function recordAccountEvent(userId: string, actor: Actor, action: string, detail?: string): Promise<void> {
   const prisma = await db();
@@ -13,7 +15,7 @@ export async function recordAccountEvent(userId: string, actor: Actor, action: s
 const accountSelect = {
   id: true, name: true, email: true, role: true, schoolId: true, studentId: true, createdAt: true,
   deactivatedAt: true, mustChangePassword: true, totpEnabledAt: true, lastLoginAt: true,
-  studentLinks: { select: { studentId: true, student: { select: { name: true, schoolId: true } } }, orderBy: { createdAt: "asc" as const } },
+  studentLinks: { select: { studentId: true }, orderBy: { createdAt: "asc" as const } },
 };
 
 export async function findAccounts(where: object = {}) {
@@ -22,15 +24,16 @@ export async function findAccounts(where: object = {}) {
     prisma.user.findMany({ where, select: accountSelect, orderBy: { name: "asc" } }),
     prisma.school.findMany({ select: { id: true, name: true } }),
   ]);
-  const legacy = rows.flatMap((row) => (row.studentId && !row.studentLinks.length ? [row.studentId] : []));
-  const legacyStudents = legacy.length ? await prisma.student.findMany({ where: { id: { in: legacy } }, select: { id: true, name: true, schoolId: true } }) : [];
+  const linked = new Map(rows.map((row) => [row.id, linkedStudentIds(row)]));
+  const students = new Map((await prisma.student.findMany({ where: { id: { in: [...new Set([...linked.values()].flat())] } }, select: { id: true, name: true, schoolId: true } })).map((student) => [student.id, student]));
   return rows.map((row) => {
-    const links = row.studentLinks.length
-      ? row.studentLinks.map((link) => ({ studentId: link.studentId, name: link.student.name, schoolId: link.student.schoolId }))
-      : legacyStudents.filter((student) => student.id === row.studentId).map((student) => ({ studentId: student.id, name: student.name, schoolId: student.schoolId }));
+    const links = (linked.get(row.id) ?? []).flatMap((studentId) => {
+      const student = students.get(studentId);
+      return student ? [{ studentId, name: student.name, schoolId: student.schoolId }] : [];
+    });
     const managed: ManagedAccount = { id: row.id, role: row.role, schoolId: row.schoolId, linkedSchoolIds: [...new Set(links.map((link) => link.schoolId))] };
     const schoolName = schools.find((school) => school.id === row.schoolId)?.name ?? null;
-    return { ...row, schoolName, links: isLinked(row.role) ? links : ([] as typeof links), managed };
+    return { ...row, schoolName, links: isLinkedRole(row.role) ? links : ([] as typeof links), managed };
   });
 }
 
@@ -52,9 +55,9 @@ export async function schoolsFor(manager: SessionUser) {
 
 export async function linkableStudents(manager: SessionUser) {
   const prisma = await db();
-  if (manager.role === "secretaria") return [];
+  if (!assignableRoles(manager.role).some(isLinkedRole)) return [];
   return prisma.student.findMany({
-    where: { status: "ativo", ...(manager.schoolId ? { schoolId: manager.schoolId } : {}) },
+    where: { status: "ativo", ...studentScopeWhere(manager) },
     select: { id: true, name: true, gradeYear: true, className: true, schoolId: true },
     orderBy: { name: "asc" },
   });

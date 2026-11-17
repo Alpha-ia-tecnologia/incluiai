@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Sprout } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canSeePedagogicalDetail, getCurrentUser, requireStudentPage, canSeeClinicalDetail, canEditStudentRecord } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { saveCaseStudy } from "@/actions/case-study";
 import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, ESSENTIAL_GROUPS, parseCaseStudy, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
 import { splitItems } from "@/lib/form-options";
@@ -60,16 +60,10 @@ export default async function CaseStudyPage({
 }) {
   const prisma = await db();
   const { id } = await params;
-  await requireStudentPage(id, "Estudo de caso");
+  const { student, can } = await requireStudentPage(id, "Estudo de caso");
   const { editar, salvo, faltaAee, concluido } = await searchParams;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (!canSeePedagogicalDetail(user.role)) redirect(`/estudantes/${id}`);
-
-  const clinical = canSeeClinicalDetail(user.role);
-  const [student, caseStudy, activePlan, healthReports] = await Promise.all([
-    prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true } }),
-    prisma.caseStudy.findUnique({ where: { studentId: id } }),
+  const clinical = can.clinical;
+  const [caseStudy, activePlan, healthReports] = await Promise.all([    prisma.caseStudy.findUnique({ where: { studentId: id } }),
     prisma.plan.findFirst({ where: { studentId: id, status: "ativo" }, select: { id: true } }),
     clinical ? prisma.healthReport.findMany({ where: { studentId: id }, select: { status: true, reviewedAt: true } }) : Promise.resolve([]),
   ]);
@@ -81,7 +75,7 @@ export default async function CaseStudyPage({
     <p className="mb-6 rounded-xl bg-surface-muted px-4 py-3 text-sm leading-relaxed text-ink-soft">Os campos de saúde, diagnóstico informado, acompanhamentos fora da escola e com quem o estudante mora ficam visíveis só para o AEE e a coordenação.</p>
   );
   const concluded = caseStudy?.status === "concluido";
-  const canEdit = canEditStudentRecord(user.role);
+  const canEdit = can.edit;
   const firstName = student.name.split(" ")[0];
   const reportsNote = clinical && canEdit ? <HealthReportsNote studentId={id} reports={healthReports} /> : null;
 

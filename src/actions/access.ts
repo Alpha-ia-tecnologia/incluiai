@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { NOMINAL_ACCESS_HOURS, canAccessStudent, getCurrentUser, needsNominalJustification } from "@/lib/auth";
+import { NOMINAL_ACCESS_HOURS, getCurrentUser } from "@/lib/auth";
+import { canAccessStudent } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { recordChange } from "@/lib/access-log";
 
 export type NominalAccessState = { error?: string };
@@ -12,8 +14,8 @@ export async function requestNominalAccess(studentId: string, _previous: Nominal
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });
-  if (!student || !canAccessStudent(user, student.schoolId, student.id)) return { error: "Estudante não encontrado no seu acesso." };
-  if (!needsNominalJustification(user.role)) redirect(`/estudantes/${studentId}`);
+  if (!student || !canAccessStudent(user, student)) return { error: "Estudante não encontrado no seu acesso." };
+  if (can(user.role, "seeNames")) redirect(`/estudantes/${studentId}`);
   const reason = String(formData.get("reason") ?? "").trim();
   const detail = String(formData.get("detail") ?? "").trim();
   if (!reason) return { error: "Escolha o motivo do acesso." };

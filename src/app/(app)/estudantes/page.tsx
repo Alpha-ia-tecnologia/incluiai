@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isSchoolStaff, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { studentScopeWhere } from "@/lib/policy";
+import { can, isAccountManager } from "@/lib/roles";
 import { getStudentNextStep } from "@/lib/student-journey";
 import { generateBatchForClass } from "@/actions/activities";
 import { SHIFTS } from "@/lib/scale";
@@ -9,7 +11,6 @@ import { ChoiceField } from "@/components/choice-field";
 import { LESSON_TOPIC_OPTIONS } from "@/lib/form-options";
 import { PageHero, Badge, EmptyState } from "@/components/ui";
 import { primaryButtonCls, primaryOnNavyCls, quietButtonCls, secondaryOnNavyCls } from "@/components/form-styles";
-import { isAccountManager } from "@/lib/user-admin";
 import { Character } from "@/components/character";
 import { StepTrack } from "@/components/viz/step-track";
 import { JOURNEY_STEPS } from "@/lib/dashboard";
@@ -32,10 +33,9 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
   const lote = first(params.lote);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!isStaffOrNetwork(user.role)) redirect("/");
-  const scoped = isSchoolStaff(user.role) && user.schoolId;
+  if (!can(user.role, "pedagogical")) redirect("/");
   const allStudents = await prisma.student.findMany({
-    where: scoped ? { schoolId: user.schoolId! } : {},
+    where: studentScopeWhere(user),
     include: {
       school: true,
       caseStudy: { select: { status: true } },
@@ -74,7 +74,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     return { key: step.key, label: `${step.step}. ${step.label}`, value, detail: pct === null ? undefined : `${pct}%` };
   });
   const inRoutine = rows.filter((row) => row.next.step === 5 && row.steps[4].done).length;
-  const nominal = user.role !== "secretaria";
+  const nominal = can(user.role, "seeNames");
   const searching = query.length >= 3;
   const listed = nominal || searching ? rows : [];
   const title = action === "registrar" ? "Para quem você quer registrar a aula?" : action === "preparar" ? "Para quem vamos preparar uma atividade?" : action === "acompanhar" ? "Quem você quer acompanhar?" : "Estudantes";

@@ -1,7 +1,9 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { db } from "../prisma";
-import type { SessionUser } from "../auth";
+import { STUDENT_FORBIDDEN, assertStudentTeam, type SessionUser } from "../auth";
+import { canWorkWithStudent } from "../policy";
+import { can } from "../roles";
 import { parseJson } from "../format";
 import { BARRIERS, CHANNELS, supportInfo } from "../scale";
 import { CASE_STUDY_FIELDS, parseCaseStudy } from "../case-study";
@@ -9,10 +11,8 @@ import {
   BARRIER_STATUSES, STUDENT_VOICE_KINDS, VOICE_ORIGINS, supportProblems,
   type DuaSupportData, type PlanLink, type ProfileRef, type StudentVoiceEntry,
 } from "./domain";
-import { planningAccess } from "./access";
-import { DuaError, STUDENT_FORBIDDEN, audit, canWorkWithStudent, clip, loadPlanningFor, studentInReach, studentLog } from "./shared";
-
-const VALIDATORS = new Set(["professor_sala", "professor_aee", "coordenacao", "gestao"]);
+import { planningAccess, type PlanningAccess } from "./access";
+import { DuaError, audit, clip, loadPlanningFor, studentLog } from "./shared";
 
 const CASE_STUDY_REFS = ["barreiras", "potencialidades", "aprendeMelhor", "gostaEscola", "achaDificil", "comoSeSente", "comunicacaoEscola", "recursos"];
 
@@ -20,7 +20,7 @@ const list = (value: string | null | undefined) => parseJson<string[]>(value, []
 
 export async function profileReferences(user: SessionUser, studentId: string): Promise<ProfileRef[]> {
   const prisma = await db();
-  await studentInReach(user, studentId);
+  await assertStudentTeam(user, studentId);
   const [profile, caseStudy] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId } }),
     prisma.caseStudy.findUnique({ where: { studentId } }),
@@ -64,7 +64,7 @@ export async function profileReferences(user: SessionUser, studentId: string): P
 
 export async function planObjectives(user: SessionUser, studentId: string) {
   const prisma = await db();
-  await studentInReach(user, studentId);
+  await assertStudentTeam(user, studentId);
   const objectives = await prisma.objective.findMany({
     where: { plan: { studentId, status: "ativo" } },
     select: { id: true, planId: true, description: true, status: true },
@@ -111,7 +111,7 @@ async function buildSupportData(user: SessionUser, studentId: string, input: Sup
 export async function createSupport(user: SessionUser, planningId: string, studentId: string, input: SupportInput) {
   const prisma = await db();
   const { planning, access } = await loadPlanningFor(user, planningId, "read");
-  const student = await studentInReach(user, studentId);
+  const student = await assertStudentTeam(user, studentId);
   const data = await buildSupportData(user, studentId, input, null, access.owner ? "professor" : "colaboracao");
   const problems = supportProblems(data);
   if (!data.support && !data.barrier.description) throw new DuaError("Descreva ao menos a barreira ou o apoio planejado.", "invalido", problems);
@@ -123,15 +123,18 @@ export async function createSupport(user: SessionUser, planningId: string, stude
   return support.id;
 }
 
+const supportRights = (user: SessionUser, access: PlanningAccess, responsibleId: string) => {
+  const responsible = responsibleId === user.id;
+  return { edit: access.edit || responsible, validate: access.validate || (responsible && can(user.role, "validateDua")) };
+};
+
 async function loadSupportFor(user: SessionUser, supportId: string, need: "edit" | "validate") {
   const prisma = await db();
   const support = await prisma.duaSupport.findUnique({ where: { id: supportId }, include: { planning: true, student: { select: { id: true, schoolId: true, name: true } } } });
   if (!support) throw new DuaError("Apoio não encontrado.", "nao_encontrado");
   const access = planningAccess(user, support.planning);
   if (!access.read || !canWorkWithStudent(user, support.student)) throw new DuaError("Apoio não encontrado.", "nao_encontrado");
-  const responsible = support.responsibleId === user.id;
-  const allowed = need === "edit" ? access.edit || responsible : access.validate || (responsible && VALIDATORS.has(user.role));
-  if (!allowed) throw new DuaError(STUDENT_FORBIDDEN, "sem_permissao");
+  if (!supportRights(user, access, support.responsibleId)[need]) throw new DuaError(STUDENT_FORBIDDEN, "sem_permissao");
   return { support, access, data: parseJson<DuaSupportData>(support.data, null as never) };
 }
 
@@ -195,7 +198,7 @@ export type SupportView = {
 
 function viewOf(user: SessionUser, row: { id: string; planningId: string; data: string; state: string; revision: number; responsibleId: string; responsibleName: string; validatedByName: string | null; validatedAt: Date | null; updatedAt: Date; planning: { title: string; ownerId: string; schoolId: string | null; sharing: string; collaborators: string }; student: { id: string; name: string } }): SupportView {
   const access = planningAccess(user, row.planning);
-  const responsible = row.responsibleId === user.id;
+  const rights = supportRights(user, access, row.responsibleId);
   return {
     id: row.id,
     planningId: row.planningId,
@@ -208,8 +211,8 @@ function viewOf(user: SessionUser, row: { id: string; planningId: string; data: 
     validatedByName: row.validatedByName,
     validatedAt: row.validatedAt,
     updatedAt: row.updatedAt,
-    canEdit: access.read && (access.edit || responsible),
-    canValidate: access.read && (access.validate || (responsible && VALIDATORS.has(user.role))),
+    canEdit: access.read && rights.edit,
+    canValidate: access.read && rights.validate,
     canOpenPlanning: access.read,
   };
 }
@@ -227,7 +230,7 @@ export async function listSupports(user: SessionUser, planningId: string): Promi
 
 export async function listStudentSupports(user: SessionUser, studentId: string): Promise<SupportView[]> {
   const prisma = await db();
-  const student = await studentInReach(user, studentId);
+  const student = await assertStudentTeam(user, studentId);
   const rows = await prisma.duaSupport.findMany({
     where: { studentId },
     include: { planning: { select: { title: true, ownerId: true, schoolId: true, sharing: true, collaborators: true } } },

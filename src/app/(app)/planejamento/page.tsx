@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, CircleCheck, LockKeyhole, Search, Sparkles, UserCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { canPlanDua, canSeeDuaIndicators } from "@/lib/dua/access";
+import { can } from "@/lib/roles";
 import { classOptions, listPlannings } from "@/lib/dua/plannings";
 import { REVIEW_STATE_LABEL, SHARING_LABEL, type ReviewState } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
@@ -32,7 +32,7 @@ const QUESTIONS = [
 export default async function PlanningListPage({ searchParams }: { searchParams: Promise<{ q?: string; meus?: string; reaproveitar?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!canPlanDua(user)) redirect(canSeeDuaIndicators(user) ? "/painel#dua" : "/");
+  if (!can(user.role, "planDua")) redirect(can(user.role, "duaIndicators") ? "/painel#dua" : "/");
   const params = await searchParams;
   const query = (params.q ?? "").slice(0, 120);
   const mine = params.meus === "1";

@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ArrowRight } from "lucide-react";
 import { HatchedDonut, Legend, SIGNAL, StackedBar, SupportScale } from "@/components/charts";
 import { supportColor, withSegmentColors, type Tone } from "@/components/data-viz";
 import { criterionSplit, participationSplit, percentOf, type Trend } from "@/lib/series";
@@ -32,27 +31,6 @@ export function SupportMeter({ level, showName = true }: { level: number; showNa
         <span className={showName ? "text-ink-soft" : "sr-only"}> · {info.label}</span>
       </span>
     </span>
-  );
-}
-
-export function SupportSteps({ levels, label }: { levels: ReadonlyArray<number>; label: string }) {
-  return (
-    <ol aria-label={label} className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2">
-      {levels.map((level, index) => (
-        <li key={index} className="inline-flex items-center gap-1.5">
-          {index ? <ArrowRight size={12} aria-hidden className="text-ink-soft" /> : null}
-          <SupportMeter level={level} showName={false} />
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-export function TextChips({ items }: { items: ReadonlyArray<string> }) {
-  return (
-    <ul className="flex min-w-0 flex-wrap gap-1.5">
-      {items.map((item) => <li key={item} className="max-w-full break-words rounded-full bg-signal-lime-soft px-3 py-1.5 text-xs font-medium text-ink">{item}</li>)}
-    </ul>
   );
 }
 

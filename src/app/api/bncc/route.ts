@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccessStudent } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { BNCC, bnccSkill } from "@/lib/bncc";
 import { scopeFor, searchSkills, suggestSkills, type BnccScope, type BnccSkill } from "@/lib/bncc-core";
 import { unavailableResponse } from "@/lib/tenant";
@@ -12,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (unavailable) return unavailable;
   const prisma = await db();
   const user = await getCurrentUser();
-  if (!user || !isStaffOrNetwork(user.role)) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
+  if (!user || !can(user.role, "pedagogical")) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   const params = request.nextUrl.searchParams;
   const codes = params.get("codigos");
   if (codes) return NextResponse.json(codes.split(",").slice(0, 20).map(bnccSkill).filter((skill) => skill !== null).map(view));
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
   const studentId = params.get("estudante");
   if (studentId) {
     const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true, stage: true, gradeYear: true, birthDate: true } });
-    if (!student || !canAccessStudent(user, student.schoolId, student.id)) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
+    if (!student || !canAccessStudent(user, student)) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
     scope = scopeFor(student);
   }
   const suggest = params.get("sugerir");

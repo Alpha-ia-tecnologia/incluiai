@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, KeyRound, LockKeyhole, UserPlus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { linkableStudents, schoolsFor } from "@/lib/accounts";
-import { assignableRoles, isAccountManager } from "@/lib/user-admin";
 import { createAccount } from "@/actions/users";
-import { ROLES } from "@/lib/scale";
+import { assignableRoles, isAccountManager, roleLabel } from "@/lib/roles";
 import { PageHeader, Card } from "@/components/ui";
 import { AccountForm } from "@/components/accounts/account-form";
 import { linkCls } from "@/components/form-styles";
@@ -35,7 +34,7 @@ export default async function NewAccountPage() {
         <AccountForm
           mode="create"
           action={createAccount}
-          roles={assignableRoles(user).map((value) => ({ value, label: ROLES[value] ?? value }))}
+          roles={assignableRoles(user.role).map((value) => ({ value, label: roleLabel(value) }))}
           schools={schools}
           fixedSchool={Boolean(user.schoolId)}
           students={students.map((student) => ({ id: student.id, name: student.name, detail: `${student.gradeYear} · ${student.className}` }))}

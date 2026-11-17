@@ -4,24 +4,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { isEssentialTab, visibleTabs } from "@/lib/student-tab-list";
+import { isEssentialTab, visibleTabs, type StudentTabAccess } from "@/lib/student-tab-list";
+import { isActivePath } from "@/lib/navigation";
 
 type Fade = "start" | "end" | "both" | undefined;
 
-export function StudentTabs({ studentId, showCaseStudy, showDua = showCaseStudy, readOnly = false }: { studentId: string; showCaseStudy: boolean; showDua?: boolean; readOnly?: boolean }) {
+export function StudentTabs({ studentId, can }: { studentId: string; can: StudentTabAccess }) {
   const pathname = usePathname();
   const stripRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLAnchorElement>(null);
   const [fade, setFade] = useState<Fade>(undefined);
   const base = `/estudantes/${studentId}`;
-  const allTabs = visibleTabs({ showCaseStudy, showDua, readOnly }).map((tab) => ({
+  const allTabs = visibleTabs(can).map((tab) => ({
     ...tab,
     href: tab.slug ? `${base}/${tab.slug}` : base,
   }));
-  const activeHref = allTabs.find((tab) => tab.slug
-    ? pathname === tab.href || pathname.startsWith(`${tab.href}/`)
-    : pathname === base)?.href ?? base;
-  const split = showCaseStudy && !readOnly;
+  const activeHref = allTabs.find((tab) => isActivePath(pathname, tab.href, !tab.slug))?.href ?? base;
+  const split = can.edit;
   const tabs = split ? allTabs.filter((tab) => isEssentialTab(tab.slug) || tab.href === activeHref) : allTabs;
   const moreTabs = split ? allTabs.filter((tab) => !isEssentialTab(tab.slug)) : [];
 

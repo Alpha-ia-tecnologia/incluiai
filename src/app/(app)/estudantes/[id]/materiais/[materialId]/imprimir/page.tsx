@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { PrintButton } from "@/components/print-button";
 import { MaterialView } from "@/components/materials/material-view";
 
@@ -12,8 +12,6 @@ export default async function PrintMaterialPage({ params }: { params: Promise<{ 
   const prisma = await db();
   const { id, materialId } = await params;
   await requireStudentPage(id, "Impressão de material");
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
   const material = await prisma.material.findFirst({
     where: { id: materialId, studentId: id },
     include: { images: { select: { cardIndex: true, altText: true, createdAt: true } } },

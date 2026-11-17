@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, canEditStudentRecord, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccessStudent } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { recordView } from "@/lib/access-log";
 import { parseJson } from "@/lib/format";
 import {
@@ -21,14 +23,14 @@ export default async function PlayPage({ params, searchParams }: { params: Promi
   if (!isGameKey(jogo)) notFound();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!canEditStudentRecord(user.role)) redirect("/");
+  if (!can(user.role, "editRecord")) redirect("/");
   const student = query.estudante
     ? await prisma.student.findUnique({
       where: { id: query.estudante },
       select: { id: true, name: true, schoolId: true, profile: { select: { interests: true, readingSupport: true, mathSupport: true, organization: true } } },
     })
     : null;
-  if (query.estudante && (!student || !canAccessStudent(user, student.schoolId, student.id))) redirect("/jogos");
+  if (query.estudante && (!student || !canAccessStudent(user, student))) redirect("/jogos");
 
   const level = isLevel(query.nivel) ? query.nivel : suggestedLevel(student?.profile ?? null);
   const theme = isThemeKey(query.tema) ? query.tema : themeFromInterests(parseJson<string[]>(student?.profile?.interests ?? null, []));

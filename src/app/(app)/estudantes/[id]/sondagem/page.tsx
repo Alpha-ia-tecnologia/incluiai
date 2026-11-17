@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ClipboardCheck, Lightbulb, RotateCcw, ShieldCheck, TrendingUp } from "lucide-react";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
 import { db } from "@/lib/prisma";
-import { canEditStudentRecord, canSeePedagogicalDetail, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { answersOf } from "@/lib/assessments";
 import { ITEMS, compareAreas, objectiveSuggestions, observed, reassessmentDue, referenceLabel, referenceYear, AREA_LABEL } from "@/lib/assessment";
 import { supportInfo } from "@/lib/scale";
@@ -19,9 +18,8 @@ export const dynamic = "force-dynamic";
 export default async function AssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  const user = await requireStudentPage(id, "Sondagem");
-  if (!canSeePedagogicalDetail(user.role) || !isStaffOrNetwork(user.role)) redirect(`/estudantes/${id}`);
-  const team = canEditStudentRecord(user.role);
+  const { can } = await requireStudentPage(id, "Sondagem");
+  const team = can.edit;
   const assessments = await prisma.assessment.findMany({ where: { studentId: id }, orderBy: { appliedAt: "asc" } });
   const baseline = assessments[0];
   const latest = assessments.at(-1);

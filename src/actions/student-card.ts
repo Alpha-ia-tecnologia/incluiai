@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";
 import { recordChange } from "@/lib/access-log";
-import { canManageCard, canViewCard, rotateCardToken } from "@/lib/student-card";
+import { canViewCard, rotateCardToken } from "@/lib/student-card";
+import { canWorkWithStudent, isFamilyOf } from "@/lib/policy";
 import { MAX_CARD_PHOTO_BYTES, MAX_CARD_PHOTO_MB, normalizePhone, sniffCardPhoto, stripPhotoMetadata } from "@/lib/student-card-core";
 import { FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
 
@@ -13,15 +14,15 @@ export type CardFormState = { error?: string; saved?: boolean };
 async function loadCardStudent(studentId: string) {
   const prisma = await db();
   const user = await getCurrentUser();
-  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true, consent: { select: { card: true } }, card: { select: { id: true } } } });
+  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true, consent: { select: { card: true } }, card: { select: { id: true } } } });
   if (!user || !student) throw new Error("Estudante não encontrado.");
   if (!student.consent?.card || !student.card) throw new Error("A família ainda não autorizou a carteirinha.");
-  return { user, schoolId: student.schoolId };
+  return { user, student };
 }
 
 async function requireCardManager(studentId: string): Promise<SessionUser> {
-  const { user, schoolId } = await loadCardStudent(studentId);
-  if (!canManageCard(user, schoolId, studentId)) throw new Error("Você não tem permissão para fazer a carteirinha deste estudante.");
+  const { user, student } = await loadCardStudent(studentId);
+  if (!canWorkWithStudent(user, student)) throw new Error("Você não tem permissão para fazer a carteirinha deste estudante.");
   return user;
 }
 
@@ -57,8 +58,8 @@ export async function removeCardPhoto(studentId: string) {
 }
 
 export async function rotateStudentCard(studentId: string) {
-  const { user, schoolId } = await loadCardStudent(studentId);
-  if (!canViewCard(user, schoolId, studentId)) throw new Error("Você não tem permissão para trocar o código desta carteirinha.");
+  const { user, student } = await loadCardStudent(studentId);
+  if (!canViewCard(user, student)) throw new Error("Você não tem permissão para trocar o código desta carteirinha.");
   await rotateCardToken(studentId);
   await recordChange(user, studentId, "trocou", "Código da carteirinha (o anterior deixou de valer)");
   refresh(studentId);
@@ -67,7 +68,7 @@ export async function rotateStudentCard(studentId: string) {
 export async function saveCardPreferences(studentId: string, _state: CardFormState, formData: FormData): Promise<CardFormState> {
   const prisma = await db();
   const { user } = await loadCardStudent(studentId);
-  if (user.role !== "familia" || !user.studentIds.includes(studentId)) throw new Error("Só a família escolhe o que aparece na carteirinha.");
+  if (!isFamilyOf(user, studentId)) throw new Error("Só a família escolhe o que aparece na carteirinha.");
   const showHelp = formData.get("mostrarComoAjudar") === "on";
   const showEmergency = formData.get("mostrarContato") === "on";
   const name = String(formData.get("contatoNome") ?? "").trim().replace(/\s+/g, " ").slice(0, 60);

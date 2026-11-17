@@ -2,6 +2,7 @@ import "server-only";
 import { notifyFamily } from "./notifications";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
+import { can } from "./roles";
 import { recordChange } from "./access-log";
 import { bnccSkill } from "./bncc";
 import { parseCaseStudy } from "./case-study";
@@ -76,8 +77,6 @@ export async function collectReportData(studentId: string, start: string, end: s
 export const reportData = (stored: string): ReportData => JSON.parse(stored) as ReportData;
 export const periodLabel = (data: Pick<ReportData, "period">) => `${brDate(data.period.start)} a ${brDate(data.period.end)}`;
 
-export const canValidateReport = (role: string) => role === "professor_aee" || role === "coordenacao";
-
 export async function createReport(user: SessionUser, studentId: string, start: string, end: string) {
   const prisma = await db();
   const data = await collectReportData(studentId, start, end);
@@ -113,7 +112,7 @@ export async function refreshReport(user: SessionUser, studentId: string, report
 
 export async function validateReport(user: SessionUser, studentId: string, reportId: string): Promise<string | null> {
   const prisma = await db();
-  if (!canValidateReport(user.role)) return "Quem valida o relatório é o professor do AEE ou a coordenação.";
+  if (!can(user.role, "validateReports")) return "Quem valida o relatório é o professor do AEE ou a coordenação.";
   const report = await draftFor(studentId, reportId);
   const problem = opinionProblem(report.opinion);
   if (problem) return problem;

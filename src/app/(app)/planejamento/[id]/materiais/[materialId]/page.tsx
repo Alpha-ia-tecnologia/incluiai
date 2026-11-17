@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
-import { DuaError } from "@/lib/dua/shared";
-import { getMaterial, type MaterialView } from "@/lib/dua/materials";
+import { orNotFound, planningContext } from "@/lib/page-context";
+import { getMaterial } from "@/lib/dua/materials";
 import { DRAFT_NOTICE } from "@/lib/dua/domain";
 import { PrintButton } from "@/components/print-button";
 import { MaterialMetaList, materialMeta } from "@/components/dua/materials/material-meta";
@@ -12,15 +11,8 @@ export const dynamic = "force-dynamic";
 
 export default async function MaterialPrintPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const { id, materialId } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  let material: MaterialView;
-  try {
-    material = await getMaterial(user, materialId);
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
+  const { user } = await planningContext(id);
+  const material = await orNotFound(getMaterial(user, materialId));
   if (material.planningId !== id) notFound();
   const draft = material.state !== "validado";
   const large = material.format === "fonte_ampliada";

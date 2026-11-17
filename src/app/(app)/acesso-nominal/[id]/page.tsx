@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { NOMINAL_ACCESS_HOURS, canAccessStudent, getCurrentUser, hasNominalAccess, needsNominalJustification } from "@/lib/auth";
+import { NOMINAL_ACCESS_HOURS, activeGrant, getCurrentUser } from "@/lib/auth";
+import { canAccessStudent } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { requestNominalAccess } from "@/actions/access";
 import { Card, PageHeader } from "@/components/ui";
 import { NominalAccessForm } from "@/components/nominal-access-form";
@@ -13,10 +15,10 @@ export default async function NominalAccessPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!needsNominalJustification(user.role)) redirect(`/estudantes/${id}`);
+  if (can(user.role, "seeNames")) redirect(`/estudantes/${id}`);
   const student = await prisma.student.findUnique({ where: { id }, select: { id: true, name: true, schoolId: true, className: true, school: { select: { name: true } } } });
-  if (!student || !canAccessStudent(user, student.schoolId, student.id)) notFound();
-  if (await hasNominalAccess(user, student.id)) redirect(`/estudantes/${student.id}`);
+  if (!student || !canAccessStudent(user, student)) notFound();
+  if (await activeGrant(user, student.id)) redirect(`/estudantes/${student.id}`);
 
   return (
     <div className="max-w-2xl">

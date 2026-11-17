@@ -10,16 +10,17 @@ import { currentBrand } from "@/lib/tenant";
 import { LoginForm } from "@/components/login-form";
 import { PlatformLogin } from "@/components/plataforma/platform-login";
 import { Character } from "@/components/character";
+import { roleLabel } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
 const PROFILES = [
-  { role: "secretaria", label: "Secretaria de Educação", scope: "A rede inteira e os indicadores", icon: Building2, color: "var(--sky-soft)" },
-  { role: "coordenacao", label: "Coordenação pedagógica", scope: "Os estudantes e o painel da escola", icon: School, color: "var(--sage-soft)" },
-  { role: "professor_sala", label: "Professor(a) da sala comum", scope: "A turma e o planejamento com DUA", icon: GraduationCap, color: "var(--teal-soft)" },
-  { role: "professor_aee", label: "Professor(a) do AEE", scope: "Estudo de caso, plano e atendimentos", icon: BookOpen, color: "var(--peach-soft)" },
-  { role: "terapeuta", label: "Terapeuta (rede de saúde)", scope: "O perfil funcional do paciente", icon: Heart, color: "var(--rose-soft)" },
-  { role: "familia", label: "Família", scope: "O acompanhamento do filho(a)", icon: Users, color: "var(--brand-soft)" },
+  { role: "secretaria", scope: "A rede inteira e os indicadores", icon: Building2, color: "var(--sky-soft)" },
+  { role: "coordenacao", scope: "Os estudantes e o painel da escola", icon: School, color: "var(--sage-soft)" },
+  { role: "professor_sala", scope: "A turma e o planejamento com DUA", icon: GraduationCap, color: "var(--teal-soft)" },
+  { role: "professor_aee", scope: "Estudo de caso, plano e atendimentos", icon: BookOpen, color: "var(--peach-soft)" },
+  { role: "terapeuta", scope: "O perfil funcional do paciente", icon: Heart, color: "var(--rose-soft)" },
+  { role: "familia", scope: "O acompanhamento do filho(a)", icon: Users, color: "var(--brand-soft)" },
 ];
 
 export default async function LoginPage() {
@@ -35,9 +36,10 @@ export default async function LoginPage() {
   const demo = demoAccounts.length > 0;
   const fromCard = Boolean((await cookies()).get(PENDING_CARD_COOKIE)?.value);
   const cards = PROFILES.flatMap((profile) => {
-    if (!demo) return [{ ...profile, key: profile.role, detail: profile.scope }];
+    const label = roleLabel(profile.role);
+    if (!demo) return [{ ...profile, label, key: profile.role, detail: profile.scope }];
     const account = demoAccounts.find((item) => item.role === profile.role);
-    return account ? [{ ...profile, key: account.email, detail: account.email }] : [];
+    return account ? [{ ...profile, label, key: account.email, detail: account.email }] : [];
   });
 
   return (

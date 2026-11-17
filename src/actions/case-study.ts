@@ -3,24 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, canEditStudentRecord, canSeeClinicalDetail, getCurrentUser } from "@/lib/auth";
+import { requireStudentTeam } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, RETIRED_CASE_FIELDS, conductedByAee, missingToConclude, parseCaseStudy, type CaseStudyContent } from "@/lib/case-study";
 
 const MAX_LENGTH = 3000;
 
 export async function saveCaseStudy(studentId: string, formData: FormData) {
   const prisma = await db();
-  const user = await getCurrentUser();
-  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });
-  if (
-    !user || !student ||
-    !canEditStudentRecord(user.role) ||
-    !canAccessStudent(user, student.schoolId, student.id)
-  ) {
-    throw new Error("Você não tem permissão para editar o estudo de caso deste estudante.");
-  }
-
-  const clinical = canSeeClinicalDetail(user.role);
+  const user = await requireStudentTeam(studentId);
+  const clinical = can(user.role, "seeClinical");
   const previous = parseCaseStudy((await prisma.caseStudy.findUnique({ where: { studentId }, select: { content: true } }))?.content);
   const stored = clinical ? null : previous;
   const content: CaseStudyContent = {};

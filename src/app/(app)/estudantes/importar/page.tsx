@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldCheck, UserCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { schoolsFor } from "@/lib/accounts";
-import { isAccountManager } from "@/lib/user-admin";
+import { isAccountManager } from "@/lib/roles";
 import { PageHeader, Card, SectionTitle } from "@/components/ui";
 import { StudentImportForm } from "@/components/student-import-form";
 import { linkCls } from "@/components/form-styles";

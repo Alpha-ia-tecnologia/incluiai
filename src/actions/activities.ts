@@ -4,7 +4,9 @@ import { imagesAllowedFor } from "@/lib/consent";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, canEditStudentRecord, getCurrentUser, requireStudentTeam } from "@/lib/auth";
+import { getCurrentUser, requireStudentTeam } from "@/lib/auth";
+import { canAccessSchool } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { decideActivity } from "@/lib/records";
 import { buildActivityCards, saveSuggestedActivities } from "@/lib/agents/generate";
 import { createActivityImage } from "@/lib/images/save";
@@ -61,7 +63,7 @@ export async function generateBatchForClass(formData: FormData) {
   const lessonTopic = String(formData.get("lessonTopic") ?? "").trim();
   if (!schoolId || !className) throw new Error("Selecione a turma.");
   const user = await getCurrentUser();
-  if (!user || !canEditStudentRecord(user.role) || !canAccessStudent(user, schoolId, "")) {
+  if (!user || !can(user.role, "editRecord") || !canAccessSchool(user, schoolId)) {
     throw new Error("Você não tem permissão para planejar com esta turma.");
   }
 

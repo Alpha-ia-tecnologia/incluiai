@@ -1,18 +1,13 @@
 import { notifyFamily, notifyTeam } from "./notifications";
 import { db } from "./prisma";
-import { canAccessStudent, canEditStudentRecord, type SessionUser } from "./auth";
+import { assertStudentTeam, type SessionUser } from "./auth";
+import { canAccessStudent, isTherapistOf } from "./policy";
+import { can, isLinkedRole } from "./roles";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
 import { recordChange } from "./access-log";
 
-export async function assertStudentTeam(user: SessionUser, studentId: string) {
-  const prisma = await db();
-  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true, name: true } });
-  if (!student || !canEditStudentRecord(user.role) || !canAccessStudent(user, student.schoolId, student.id)) {
-    throw new Error("Você não tem permissão para esta ação com este estudante.");
-  }
-  return student;
-}
+export { assertStudentTeam } from "./auth";
 
 export async function assertCaseStudyConcluded(studentId: string) {
   const prisma = await db();
@@ -46,7 +41,7 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
     if (!activity) throw new Error("Atividade não encontrada para este estudante.");
   }
   const authorRole = input.authorRole.trim().slice(0, 60);
-  if (!authorRole || ["familia", "terapeuta"].includes(authorRole)) throw new Error("Escolha o seu papel neste registro.");
+  if (!authorRole || isLinkedRole(authorRole)) throw new Error("Escolha o seu papel neste registro.");
   const entry = await prisma.diaryEntry.create({
     data: {
       studentId,
@@ -73,7 +68,7 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
 export async function saveFamilyNote(user: SessionUser, studentId: string, note: string, author: string) {
   const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });
-  if (!student || !canAccessStudent(user, student.schoolId, student.id) || user.role === "terapeuta") {
+  if (!student || !canAccessStudent(user, student) || !(can(user.role, "pedagogical") || can(user.role, "familyPortal"))) {
     throw new Error("Você não tem permissão para registrar observações deste estudante.");
   }
   const text = note.trim();
@@ -93,7 +88,7 @@ export type IntersectorReportInput = {
 
 export async function saveIntersectorReport(user: SessionUser, studentId: string, input: IntersectorReportInput) {
   const prisma = await db();
-  if (user.role !== "terapeuta" || !user.studentIds.includes(studentId)) {
+  if (!isTherapistOf(user, studentId)) {
     throw new Error("Só o terapeuta vinculado ao estudante pode enviar orientações.");
   }
   const consent = await prisma.consent.findUnique({ where: { studentId }, select: { therapistLink: true } });
@@ -105,7 +100,7 @@ export async function saveIntersectorReport(user: SessionUser, studentId: string
     data: { studentId, type: "atendimento", title: "Relatório de Articulação Intersetorial", description: `Registrado por ${user.name} (rede de saúde).` },
   });
   await prisma.accessLog.create({
-    data: { studentId, actor: user.name, role: "terapeuta", action: "criou", detail: "Relatório de articulação intersetorial" },
+    data: { studentId, actor: user.name, role: user.role, action: "criou", detail: "Relatório de articulação intersetorial" },
   });
   await notifyTeam(studentId, "terapeuta_relatorio", `/estudantes/${studentId}`);
   return report;

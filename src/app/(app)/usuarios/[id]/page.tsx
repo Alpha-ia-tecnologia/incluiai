@@ -4,9 +4,8 @@ import { ArrowLeft, History, RotateCcw, ShieldCheck, UserCheck, UserX } from "lu
 import { db } from "@/lib/prisma";
 import { getCurrentUser, twoFactorRequired } from "@/lib/auth";
 import { linkableStudents, managedAccount, schoolsFor } from "@/lib/accounts";
-import { assignableRoles, isAccountManager } from "@/lib/user-admin";
 import { resetAccountPassword, resetAccountTwoFactor, setAccountActive, updateAccount } from "@/actions/users";
-import { ROLES } from "@/lib/scale";
+import { assignableRoles, isAccountManager, roleLabel } from "@/lib/roles";
 import { formatDate } from "@/lib/format";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { AccountForm } from "@/components/accounts/account-form";
@@ -36,7 +35,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <Link href="/usuarios" className={`mb-4 inline-flex min-h-11 items-center gap-2 text-sm ${linkCls}`}><ArrowLeft size={16} aria-hidden /> Pessoas e acessos</Link>
-      <PageHeader title={account.name} lede={`${ROLES[account.role] ?? account.role} · ${account.email}`} />
+      <PageHeader title={account.name} lede={`${roleLabel(account.role)} · ${account.email}`} />
       <div className="mb-6 flex flex-wrap gap-2">
         {active ? <Badge tone="green">Ativa</Badge> : <Badge>Desativada em {formatDate(account.deactivatedAt!)}</Badge>}
         {account.mustChangePassword && active ? <Badge tone="amber">Primeiro acesso pendente</Badge> : null}
@@ -53,7 +52,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
           <AccountForm
             mode="edit"
             action={updateAccount.bind(null, id)}
-            roles={assignableRoles(user).map((value) => ({ value, label: ROLES[value] ?? value }))}
+            roles={assignableRoles(user.role).map((value) => ({ value, label: roleLabel(value) }))}
             schools={schools}
             fixedSchool={Boolean(user.schoolId)}
             students={students.map((student) => ({ id: student.id, name: student.name, detail: `${student.gradeYear} · ${student.className}` }))}
@@ -113,7 +112,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             <ol className="grid gap-3">
               {events.map((event) => (
                 <li key={event.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
-                  <p className="text-sm text-ink"><strong className="font-medium">{event.actorName}</strong> ({ROLES[event.actorRole] ?? event.actorRole}) {event.action}</p>
+                  <p className="text-sm text-ink"><strong className="font-medium">{event.actorName}</strong> ({roleLabel(event.actorRole)}) {event.action}</p>
                   {event.detail ? <p className="mt-0.5 text-sm text-ink-soft">{event.detail}</p> : null}
                   <p className="mt-0.5 text-xs text-ink-soft"><time dateTime={event.createdAt.toISOString()}>{when(event.createdAt)}</time></p>
                 </li>

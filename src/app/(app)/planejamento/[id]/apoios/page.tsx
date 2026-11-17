@@ -1,11 +1,10 @@
 import Form from "next/form";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import { ArrowRight, BadgeCheck, LockKeyhole, ShieldCheck } from "lucide-react";
-import { getCurrentUser, type SessionUser } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
+import { planningContext } from "@/lib/page-context";
 import { isAIEnabled } from "@/lib/agents/model";
-import { DuaError, studentsInReach } from "@/lib/dua/shared";
-import { loadPlanning } from "@/lib/dua/plannings";
+import { studentsInReach } from "@/lib/dua/shared";
 import { listSuggestions } from "@/lib/dua/suggestions";
 import { listSupports, planObjectives, profileReferences } from "@/lib/dua/supports";
 import { formatDate } from "@/lib/format";
@@ -26,38 +25,22 @@ function todayInput() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-async function optionsFor(user: SessionUser, studentId: string): Promise<StudentOptions | null> {
-  try {
-    const [refs, objectives] = await Promise.all([profileReferences(user, studentId), planObjectives(user, studentId)]);
-    return {
-      profileOptions: refs.map((ref) => ({ field: ref.field, label: ref.label, value: ref.value, source: ref.source, version: ref.version, dateLabel: ref.updatedAt ? formatDate(ref.updatedAt) : "sem data" })),
-      objectives: objectives.map((objective) => ({ id: objective.id, description: objective.description, status: objective.status })),
-    };
-  } catch (error) {
-    if (error instanceof DuaError) return null;
-    throw error;
-  }
+async function optionsFor(user: SessionUser, studentId: string): Promise<StudentOptions> {
+  const [refs, objectives] = await Promise.all([profileReferences(user, studentId), planObjectives(user, studentId)]);
+  return {
+    profileOptions: refs.map((ref) => ({ field: ref.field, label: ref.label, value: ref.value, source: ref.source, version: ref.version, dateLabel: ref.updatedAt ? formatDate(ref.updatedAt) : "sem data" })),
+    objectives: objectives.map((objective) => ({ id: objective.id, description: objective.description, status: objective.status })),
+  };
 }
 
 export default async function SupportsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ estudante?: string | string[]; todos?: string | string[] }> }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  const { user, planning } = await planningContext(id);
   const wanted = first(query.estudante);
-
-  let data;
-  try {
-    const { planning } = await loadPlanning(user, id);
-    const [supports, suggestions, everyone] = await Promise.all([listSupports(user, id), listSuggestions(user, id), studentsInReach(user)]);
-    const selected = everyone.find((student) => student.id === wanted) ?? null;
-    const studentIds = [...new Set([...supports.filter((support) => support.canEdit).map((support) => support.student.id), ...(selected ? [selected.id] : [])])];
-    const options = new Map(await Promise.all(studentIds.map(async (studentId) => [studentId, await optionsFor(user, studentId)] as const)));
-    data = { planning, supports, suggestions, everyone, selected, options };
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
-  const { planning, supports, suggestions, everyone, selected, options } = data;
+  const [supports, suggestions, everyone] = await Promise.all([listSupports(user, id), listSuggestions(user, id), studentsInReach(user)]);
+  const selected = everyone.find((student) => student.id === wanted) ?? null;
+  const studentIds = [...new Set([...supports.filter((support) => support.canEdit).map((support) => support.student.id), ...(selected ? [selected.id] : [])])];
+  const options = new Map(await Promise.all(studentIds.map(async (studentId) => [studentId, await optionsFor(user, studentId)] as const)));
 
   const className = planning.className;
   const classmates = className ? everyone.filter((student) => student.className === className) : everyone;

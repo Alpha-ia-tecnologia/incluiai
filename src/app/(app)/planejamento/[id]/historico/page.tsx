@@ -1,11 +1,9 @@
-import { notFound, redirect } from "next/navigation";
 import { ChevronDown, EyeOff, GitBranch, Link2, Lock } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
-import { DuaError } from "@/lib/dua/shared";
-import { collaboratorOptions, loadPlanning, planningHistory } from "@/lib/dua/plannings";
+import { planningContext } from "@/lib/page-context";
+import { collaboratorOptions, planningHistory } from "@/lib/dua/plannings";
 import { EXECUTION_STATE_LABEL, REVIEW_STATE_LABEL, type ExecutionState, type ReviewState } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
-import { ROLES } from "@/lib/scale";
+import { roleLabel } from "@/lib/roles";
 import { Card, SectionTitle } from "@/components/ui";
 import { ReviewBadge } from "@/components/dua/dua-ui";
 import { VersionSummary } from "@/components/dua/history/version-summary";
@@ -27,7 +25,6 @@ const OBJECT_TYPE_LABEL: Record<string, string> = {
 };
 
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
-const roleLabel = (role: string) => ROLES[role] ?? role;
 
 const detailText = (action: string, detail: string | null) => {
   if (!detail) return null;
@@ -37,18 +34,8 @@ const detailText = (action: string, detail: string | null) => {
 
 export default async function HistoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  let data;
-  try {
-    const loaded = await loadPlanning(user, id);
-    const [history, options] = await Promise.all([planningHistory(user, id), loaded.access.share ? collaboratorOptions(user, id) : Promise.resolve([])]);
-    data = { ...loaded, history, options };
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
-  const { planning, access, history, options } = data;
+  const { user, planning, access } = await planningContext(id);
+  const [history, options] = await Promise.all([planningHistory(user, id), access.share ? collaboratorOptions(user, id) : Promise.resolve([])]);
 
   const latestVersion = history.versions[0]?.version ?? null;
   const steps: VersionStep[] = [...history.versions].reverse().map((version) => ({

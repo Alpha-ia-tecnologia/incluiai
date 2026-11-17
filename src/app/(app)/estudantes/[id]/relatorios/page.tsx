@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CalendarRange, CircleCheck, FilePen, ShieldCheck, Users, Wand2 } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { canEditStudentRecord, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { newReport } from "@/actions/reports";
 import { currentSemester } from "@/lib/period-report";
 import { periodLabel, reportData } from "@/lib/reports";
@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  const user = await requireStudentPage(id, "Relatórios do período");
-  const team = canEditStudentRecord(user.role);
+  const { can } = await requireStudentPage(id, "Relatórios do período");
+  const team = can.edit;
   const reports = await prisma.studentReport.findMany({
     where: { studentId: id, ...(team ? {} : { status: "validado" }) },
     orderBy: [{ periodEnd: "desc" }, { createdAt: "desc" }],

@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { registerResourceUse } from "@/actions/resources";
 import { CONTEXTS, STAGES } from "@/lib/scale";
 import { parseJson } from "@/lib/format";
@@ -31,7 +32,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!isStaffOrNetwork(user.role)) redirect("/");
+  if (!can(user.role, "pedagogical")) redirect("/");
 
   const resource = await prisma.resource.findUnique({
     where: { id },

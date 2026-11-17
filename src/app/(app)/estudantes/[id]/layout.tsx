@@ -1,16 +1,14 @@
 ﻿import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, canAccessStudent, canEditStudentRecord, canSeePedagogicalDetail, hasNominalAccess, needsNominalJustification } from "@/lib/auth";
+import { studentContext } from "@/lib/page-context";
 import { ageFrom } from "@/lib/format";
 import { STAGES, SHIFTS } from "@/lib/scale";
 import { Badge } from "@/components/ui";
 import { StudentTabs } from "@/components/student-tabs";
 import { StudentJourney, StudentNextStepLink } from "@/components/student-journey";
 import { StudentHead } from "@/components/student-head";
-import { canPlanDua } from "@/lib/dua/access";
 
 export default async function StudentLayout({
   children,
@@ -21,24 +19,8 @@ export default async function StudentLayout({
 }) {
   const prisma = await db();
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const student = await prisma.student.findUnique({
-    where: { id },
-    include: { school: true },
-  });
-  if (!student) notFound();
-  if (!canAccessStudent(user, student.schoolId, student.id)) redirect("/");
-  if (user.role === "familia") redirect(`/familia/${student.id}`);
-  if (user.role === "terapeuta") redirect("/terapeuta");
-  if (!(await hasNominalAccess(user, student.id))) redirect(`/acesso-nominal/${student.id}`);
-
-  const showJourney = canSeePedagogicalDetail(user.role);
-  const readOnly = !canEditStudentRecord(user.role);
-  const grant = needsNominalJustification(user.role)
-    ? await prisma.accessGrant.findFirst({ where: { userId: user.id, studentId: student.id, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: "desc" }, select: { expiresAt: true } })
-    : null;
-  const progress = showJourney ? await prisma.student.findUniqueOrThrow({
+  const { student, grant, can } = await studentContext(id);
+  const progress = can.edit ? await prisma.student.findUniqueOrThrow({
     where: { id },
     select: {
       caseStudy: { select: { status: true } },
@@ -91,9 +73,9 @@ export default async function StudentLayout({
               </div>
             ) : null}
           </div>
-          {journey && !readOnly ? <StudentNextStepLink progress={journey} /> : null}
+          {journey ? <StudentNextStepLink progress={journey} /> : null}
         </div>
-        <StudentTabs studentId={student.id} showCaseStudy={showJourney} showDua={showJourney && canPlanDua(user)} readOnly={readOnly} />
+        <StudentTabs studentId={student.id} can={{ edit: can.edit, dua: can.dua }} />
       </StudentHead>
 
       {grant ? (
@@ -101,7 +83,7 @@ export default async function StudentLayout({
           Acesso de leitura com motivo registrado, válido até {grant.expiresAt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}. A família vê este acesso; a Secretaria não altera a ficha.
         </p>
       ) : null}
-      {journey && !readOnly ? <StudentJourney progress={journey} /> : null}
+      {journey ? <StudentJourney progress={journey} /> : null}
 
       {children}
     </>

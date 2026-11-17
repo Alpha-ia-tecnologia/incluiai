@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { taskContent } from "@/lib/adapted-tasks";
 import { printSettings } from "@/lib/task-adaptation";
 import { parseJson } from "@/lib/format";

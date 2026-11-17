@@ -2,6 +2,8 @@ import "server-only";
 import { currentTenant, db } from "./prisma";
 import { addressOf } from "./tenant";
 import type { SessionUser } from "./auth";
+import { isFamilyOf } from "./policy";
+import { rolesWith } from "./roles";
 import { emailConfigured, sendEmail } from "./email";
 import { cleanCheckIn, noticeEmail, noticeTitle, weekStart, type NoticeKind } from "./family-contact";
 
@@ -29,7 +31,7 @@ const userFields = { id: true, email: true, notifyByEmail: true, deactivatedAt: 
 
 export async function notifyFamily(studentId: string, kind: NoticeKind, href: string) {
   const prisma = await db();
-  const users = await prisma.user.findMany({ where: { role: "familia", studentLinks: { some: { studentId } } }, select: userFields });
+  const users = await prisma.user.findMany({ where: { role: { in: rolesWith("familyPortal") }, studentLinks: { some: { studentId } } }, select: userFields });
   await deliver(users, studentId, kind, href);
 }
 
@@ -37,7 +39,7 @@ export async function notifyTeam(studentId: string, kind: NoticeKind, href: stri
   const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
   if (!student) return;
-  const users = await prisma.user.findMany({ where: { role: { in: ["professor_aee", "coordenacao"] }, schoolId: student.schoolId }, select: userFields });
+  const users = await prisma.user.findMany({ where: { role: { in: rolesWith("teamNotices") }, schoolId: student.schoolId }, select: userFields });
   await deliver(users, studentId, kind, href);
 }
 
@@ -50,7 +52,7 @@ export async function unreadNotices(userId: string): Promise<{ unread: number; l
 
 export async function saveCheckIn(user: SessionUser, studentId: string, answers: string[], note: string): Promise<string | null> {
   const prisma = await db();
-  if (user.role !== "familia" || !user.studentIds.includes(studentId)) return "Só a família do estudante responde a pergunta da semana.";
+  if (!isFamilyOf(user, studentId)) return "Só a família do estudante responde a pergunta da semana.";
   const clean = cleanCheckIn(answers, note);
   if ("error" in clean) return clean.error;
   const week = weekStart();

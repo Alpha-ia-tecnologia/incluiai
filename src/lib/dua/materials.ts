@@ -1,15 +1,15 @@
 import "server-only";
 import { db } from "../prisma";
-import type { SessionUser } from "../auth";
+import { STUDENT_FORBIDDEN, type SessionUser } from "../auth";
+import { canWorkWithStudent } from "../policy";
+import { can } from "../roles";
 import { parseJson } from "../format";
 import {
   MATERIAL_ACCESSIBILITY, MATERIAL_FORMATS, MATERIAL_FORMAT_LABEL, buildActivityScript, buildSupportScript,
   type DuaSupportData, type MaterialFormat, type MaterialScope, type MaterialSection,
 } from "./domain";
 import { planningAccess } from "./access";
-import { DuaError, STUDENT_FORBIDDEN, audit, canWorkWithStudent, clip, contentOf, loadPlanningFor, studentLog } from "./shared";
-
-const VALIDATORS = new Set(["professor_sala", "professor_aee", "coordenacao", "gestao"]);
+import { DuaError, audit, clip, contentOf, loadPlanningFor, studentLog } from "./shared";
 
 export type MaterialInput = { versionNumber: number; format: string; purpose: string; scope: string; supportId: string; resourceId: string };
 
@@ -84,13 +84,8 @@ async function loadMaterialFor(user: SessionUser, materialId: string) {
 
 export async function validateMaterial(user: SessionUser, materialId: string, revision: number) {
   const prisma = await db();
-  const { material, access } = await loadMaterialFor(user, materialId);
-  let allowed = access.validate;
-  if (!allowed && material.supportId) {
-    const support = await prisma.duaSupport.findUnique({ where: { id: material.supportId }, select: { responsibleId: true } });
-    allowed = support?.responsibleId === user.id && VALIDATORS.has(user.role);
-  }
-  if (!allowed) throw new DuaError("Você não pode validar este material.", "sem_permissao");
+  const { material } = await loadMaterialFor(user, materialId);
+  if (!(await canValidateMaterial(user, material))) throw new DuaError("Você não pode validar este material.", "sem_permissao");
   const version = await prisma.duaPlanningVersion.findUnique({ where: { planningId_version: { planningId: material.planningId, version: material.versionNumber } }, select: { state: true } });
   if (version?.state !== "validado") throw new DuaError("Valide antes a versão do planejamento de onde o material saiu.");
   const updated = await prisma.duaMaterial.updateMany({ where: { id: materialId, revision }, data: { state: "validado", validatedAt: new Date(), validatedById: user.id, validatedByName: user.name, revision: { increment: 1 } } });
@@ -126,7 +121,7 @@ type MaterialRow = Awaited<ReturnType<typeof loadMaterialFor>>["material"];
 async function canValidateMaterial(user: SessionUser, row: MaterialRow) {
   const prisma = await db();
   if (planningAccess(user, row.planning).validate) return true;
-  if (!row.supportId || !VALIDATORS.has(user.role)) return false;
+  if (!row.supportId || !can(user.role, "validateDua")) return false;
   const support = await prisma.duaSupport.findUnique({ where: { id: row.supportId }, select: { responsibleId: true } });
   return support?.responsibleId === user.id;
 }

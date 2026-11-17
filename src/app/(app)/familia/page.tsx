@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { canAccessStudent, getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { landingFor, studentScopeWhere } from "@/lib/policy";
+import { can } from "@/lib/roles";
 import { PageHero, Card } from "@/components/ui";
 import { ArrowRight } from "lucide-react";
 
@@ -11,15 +13,14 @@ export default async function FamilyPortalIndex() {
   const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const family = user.role === "familia";
-  if (family && user.studentIds.length === 1) redirect(`/familia/${user.studentIds[0]}`);
-  if (family ? !user.studentIds.length : !isStaffOrNetwork(user.role) || user.role === "secretaria") redirect("/");
-  const candidates = await prisma.student.findMany({
-    where: family ? { id: { in: user.studentIds } } : { status: "ativo", ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
+  const family = can(user.role, "familyPortal");
+  if (family && landingFor(user) !== "/familia") redirect(landingFor(user));
+  if (!family && (!can(user.role, "pedagogical") || !can(user.role, "seeNames"))) redirect("/");
+  const students = await prisma.student.findMany({
+    where: { ...(family ? {} : { status: "ativo" }), ...studentScopeWhere(user) },
     include: { school: true },
     orderBy: { name: "asc" },
   });
-  const students = candidates.filter((student) => canAccessStudent(user, student.schoolId, student.id));
 
   return (
     <>

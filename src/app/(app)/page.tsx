@@ -6,7 +6,9 @@ import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
 import { Character } from "@/components/character";
 import { EmptyState } from "@/components/ui";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isSchoolStaff } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { landingFor, studentScopeWhere } from "@/lib/policy";
+import { can, isLinkedRole } from "@/lib/roles";
 import { studentAlerts } from "@/lib/insights";
 import { getStudentNextStep } from "@/lib/student-journey";
 import { loadJourney } from "@/lib/user-journey";
@@ -25,15 +27,14 @@ export default async function SchoolDashboard() {
   if (!user) redirect("/login");
   const pendingCard = (await cookies()).get(PENDING_CARD_COOKIE)?.value;
   if (pendingCard && CARD_TOKEN_PATTERN.test(pendingCard)) redirect(cardPath(pendingCard));
-  if (["familia", "terapeuta"].includes(user.role) && !user.studentIds.length) {
+  if (isLinkedRole(user.role) && !user.studentIds.length) {
     return <><h1 className="mb-6 font-display text-3xl font-bold tracking-tight">Boas-vindas, {firstName(user.name)}</h1><EmptyState character="care" title="Seu acesso ainda precisa ser vinculado a um estudante" hint="Peça à equipe da escola para conferir seu cadastro. Depois disso, o acompanhamento aparecerá aqui." action={<Link className="task-action" href="/ajuda">Consultar a ajuda</Link>} /></>;
   }
-  if (user.role === "familia") redirect(user.studentIds.length === 1 ? `/familia/${user.studentIds[0]}` : "/familia");
-  if (user.role === "terapeuta") redirect("/terapeuta");
+  if (landingFor(user) !== "/") redirect(landingFor(user));
   const journey = await loadJourney(user);
-  const scoped = isSchoolStaff(user.role) && user.schoolId;
+  const scope = studentScopeWhere(user);
   const students = await prisma.student.findMany({
-    where: { status: "ativo", ...(scoped ? { schoolId: user.schoolId! } : {}) },
+    where: { status: "ativo", ...scope },
     include: {
       school: true,
       caseStudy: { select: { status: true } },
@@ -67,8 +68,8 @@ export default async function SchoolDashboard() {
   })).filter((item) => item.alerts.length);
   const today = todayInBrazil();
   const upcomingDates = upcomingEvents(today).slice(0, 3);
-  const managing = ["secretaria", "gestao"].includes(user.role);
-  const nominal = user.role !== "secretaria";
+  const managing = can(user.role, "adminTasks");
+  const nominal = can(user.role, "seeNames");
   const tasks = managing ? [
     { title: "Acompanhar a rede", href: "/painel", icon: School, color: "bg-sky-soft", accent: "text-sky-ink" },
     { title: "Consultar um estudante", href: "/estudantes?acao=acompanhar", icon: Users, color: "bg-peach-soft", accent: "text-peach-ink" },
@@ -156,7 +157,7 @@ export default async function SchoolDashboard() {
                   <article key={student.id} className="flex flex-col rounded-2xl border border-line bg-paper-raised p-5">
                     <h3 className="text-base font-medium"><Link href={`/estudantes/${student.id}`} className="inline-flex min-h-11 items-center hover:underline">{student.name}</Link></h3>
                     <p className="text-sm text-ink-soft">{student.gradeYear} · {student.className} · {student.diaryEntries[0] ? `último registro ${formatDateShort(student.diaryEntries[0].date)}` : "sem registros de aula"}</p>
-                    {scoped ? null : <p className="mt-1 text-xs leading-relaxed text-ink-soft">{student.school.name}</p>}
+                    {scope.schoolId ? null : <p className="mt-1 text-xs leading-relaxed text-ink-soft">{student.school.name}</p>}
                     <RecentLessons name={firstName(student.name)} entries={student.diaryEntries} />
                     <Link href={next.href} className="task-action task-action-secondary mt-4 sm:mt-auto">{next.label} <ArrowRight size={16} className="shrink-0" aria-hidden /></Link>
                   </article>

@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
-import { Home, Users, Layers, Route, Sparkles, BarChart3, Library, Heart, ShieldCheck, Stethoscope, LogOut, School, Sprout, ChevronDown, CircleHelp, CalendarDays, UserCog, FolderCheck, ClipboardList, Shapes } from "lucide-react";
+import { ShieldCheck, LogOut, Sprout, ChevronDown, CircleHelp } from "lucide-react";
 import { NavLink } from "./nav-link";
+import { NAV_ICONS } from "./nav-icons";
 import { MobileNavigation } from "./mobile-navigation";
 import { getNavigation } from "@/lib/navigation";
 import { logout } from "@/actions/auth";
-import { ROLES } from "@/lib/scale";
+import { roleLabel } from "@/lib/roles";
 import { firstName } from "@/lib/format";
 import type { SessionUser } from "@/lib/auth";
 import type { MunicipalityBrand } from "@/lib/tenant";
@@ -16,8 +17,6 @@ import { AssistantPopup } from "./assistant/assistant-popup";
 import { NavigationProgress } from "./navigation-progress";
 import { TextSizeControl } from "./text-size-control";
 import { NoticeBell } from "./notice-bell";
-
-const ICONS = { home: Home, students: Users, planning: Layers, journey: Route, assistant: Sparkles, resources: Library, calendar: CalendarDays, network: BarChart3, schools: School, accounts: UserCog, family: Heart, care: Stethoscope, help: CircleHelp, evidence: FolderCheck, census: ClipboardList, games: Shapes };
 
 export function Shell({ user, notices = { unread: 0, latest: null }, brand = null, children }: { user: SessionUser; notices?: { unread: number; latest: string | null }; brand?: MunicipalityBrand | null; children: ReactNode }) {
   const initials = user.name.replace(/\([^)]*\)/g, " ").split(/\s+/).filter((part) => /^\p{L}/u.test(part) && !part.includes(".")).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || user.name[0];
@@ -40,7 +39,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
         )}
         <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1.5">
           {links.map((link, index) => {
-            const Icon = ICONS[link.icon];
+            const Icon = NAV_ICONS[link.icon];
             const groupStart = link.section === "management" && links[index - 1]?.section !== "management";
             return <div key={link.href}>
               {groupStart ? <p className="mb-2 mt-5 px-3.5 text-sm font-medium text-on-navy-soft">Gestão da rede</p> : null}
@@ -51,7 +50,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
         <div className="mt-6 border-t border-navy-line pt-4">
           <Link href="/conta/seguranca" className="mb-3 flex min-h-6 items-center gap-2 text-sm text-on-navy-soft hover:text-on-navy"><ShieldCheck size={17} aria-hidden /> Segurança da conta</Link>
           <p className="truncate text-base font-medium">{user.name}</p>
-          <p className="mt-1 text-sm text-on-navy-soft">{ROLES[user.role] ?? user.role}</p>
+          <p className="mt-1 text-sm text-on-navy-soft">{roleLabel(user.role)}</p>
           <form action={logout} className="mt-3"><button type="submit" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-base text-on-navy-soft hover:bg-navy-hover hover:text-on-navy"><LogOut size={20} aria-hidden /> Sair da plataforma</button></form>
         </div>
       </aside>
@@ -71,7 +70,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
                 <span className="shell-user-name max-w-24 truncate">{firstName(user.name)}</span><ChevronDown size={14} aria-hidden />
               </summary>
               <div className="absolute right-0 top-full mt-2 w-60 rounded-2xl border border-line bg-paper-raised p-4 shadow-e2">
-                <p className="text-sm font-medium">{user.name}</p><p className="mt-1 text-xs text-ink-soft">{ROLES[user.role] ?? user.role}</p>
+                <p className="text-sm font-medium">{user.name}</p><p className="mt-1 text-xs text-ink-soft">{roleLabel(user.role)}</p>
                 <Link href="/ajuda" className="mt-3 flex min-h-11 items-center gap-2 rounded-lg p-2 text-sm hover:bg-brand-soft"><CircleHelp size={18} aria-hidden /> Ajuda e primeiros passos</Link>
                 <Link href="/conta/seguranca" className="flex min-h-11 items-center gap-2 rounded-lg p-2 text-sm hover:bg-brand-soft"><ShieldCheck size={18} aria-hidden /> Segurança da conta</Link>
                 <div className="mt-2 border-t border-line px-2 pt-3"><TextSizeControl /></div>

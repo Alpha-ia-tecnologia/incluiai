@@ -1,7 +1,8 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { db } from "../prisma";
-import { canAccessStudent, canEditStudentRecord, type SessionUser } from "../auth";
+import type { SessionUser } from "../auth";
+import { canWorkWithStudent, studentScopeWhere } from "../policy";
 import { parseJson } from "../format";
 import { normalizeContent, suggestionBasis, type DuaContent } from "./domain";
 import { planningAccess, type PlanningAccess } from "./access";
@@ -15,7 +16,6 @@ export class DuaError extends Error {
 
 export const NOT_FOUND = "Planejamento não encontrado.";
 export const FORBIDDEN = "Você não tem permissão para esta ação neste planejamento.";
-export const STUDENT_FORBIDDEN = "Você não tem permissão para esta ação com este estudante.";
 
 export type Need = keyof Omit<PlanningAccess, "owner">;
 
@@ -38,17 +38,7 @@ export async function latestVersion(planningId: string) {
 
 export const contentOf = (version: { content: string }): DuaContent => normalizeContent(parseJson<Partial<DuaContent> | null>(version.content, null));
 
-export function canWorkWithStudent(user: SessionUser, student: { id: string; schoolId: string }) {
-  return canEditStudentRecord(user.role) && canAccessStudent(user, student.schoolId, student.id);
-}
-
-export async function studentInReach(user: SessionUser, studentId: string) {
-  const prisma = await db();
-  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, name: true, schoolId: true, className: true } });
-  if (!student) throw new DuaError("Estudante não encontrado.", "nao_encontrado");
-  if (!canWorkWithStudent(user, student)) throw new DuaError(STUDENT_FORBIDDEN, "sem_permissao");
-  return student;
-}
+export { canWorkWithStudent } from "../policy";
 
 export async function audit(user: SessionUser, planningId: string, action: string, objectType: string, extra: { objectId?: string; versionNumber?: number; detail?: string } = {}) {
   const prisma = await db();
@@ -57,7 +47,7 @@ export async function audit(user: SessionUser, planningId: string, action: strin
   });
 }
 
-export async function studentLog(user: SessionUser, studentId: string, action: "criou" | "editou" | "visualizou" | "enviou", detail: string) {
+export async function studentLog(user: { name: string; role: string }, studentId: string, action: "criou" | "editou" | "visualizou" | "enviou", detail: string) {
   const prisma = await db();
   await prisma.accessLog.create({ data: { studentId, actor: user.name, role: user.role, action, detail } });
 }
@@ -77,7 +67,7 @@ export const clip = (value: unknown, max: number) => String(value ?? "").trim().
 export async function studentsInReach(user: SessionUser, filter: { className?: string | null } = {}) {
   const prisma = await db();
   const rows = await prisma.student.findMany({
-    where: { status: "ativo", ...(user.schoolId && user.role !== "secretaria" ? { schoolId: user.schoolId } : {}), ...(filter.className ? { className: filter.className } : {}) },
+    where: { status: "ativo", ...studentScopeWhere(user), ...(filter.className ? { className: filter.className } : {}) },
     select: { id: true, name: true, schoolId: true, className: true, gradeYear: true },
     orderBy: { name: "asc" },
   });

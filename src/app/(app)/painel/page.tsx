@@ -4,16 +4,16 @@ import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowRight, ArrowUpRight, CalendarDays, Check, CircleSlash, Lightbulb, Scale, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
-import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import {
   ALERT_LABELS, GAUGES, PERIODS, loadDashboard, parseGauge, parsePeriod,
   type DashboardGauge, type DashboardPeriod,
 } from "@/lib/dashboard";
-import { ROLES, supportInfo } from "@/lib/scale";
+import { supportInfo } from "@/lib/scale";
+import { can, roleLabel } from "@/lib/roles";
 import { firstName, formatDate, formatDateShort } from "@/lib/format";
 import { CALENDAR_THEMES, MONTH_SHORT, monthParam, relativeLabel, todayInBrazil, upcomingEvents } from "@/lib/commemorative-dates";
 import { duaIndicators } from "@/lib/dua/indicators";
-import { canPlanDua } from "@/lib/dua/access";
 import { AI_BLOCK_DECISION_LABEL } from "@/lib/dua/domain";
 import { EmptyState } from "@/components/ui";
 import { primaryButtonCls } from "@/components/form-styles";
@@ -29,7 +29,6 @@ import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
-const ROLE_LABELS: Record<string, string> = { ...ROLES, terapeuta: "Terapeuta" };
 const ACCESS_LABELS: Record<string, string> = { visualizou: "Consultas", criou: "Inclusões", editou: "Alterações", enviou: "Envios à IA de reserva (DeepSeek)" };
 const SHORT_ALERTS: Record<string, string> = { sem_registro: "Sem registro há 7+ dias", plano_vencido: "Revisão vencida", sem_plano: "Sem plano", queda_participacao: "Queda de participação" };
 
@@ -141,7 +140,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const filters = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!isStaffOrNetwork(user.role)) redirect("/");
+  if (!can(user.role, "pedagogical")) redirect("/");
   await recordJourneyMark(user.id, "painel");
 
   const period = parsePeriod(filters.periodo);
@@ -257,7 +256,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const participationTotal = participation.reduce((sum, segment) => sum + segment.value, 0);
   const statusSegments = withSegmentColors(act.byStatus);
   const tableRows = a.students.slice(0, 8);
-  const nominal = user.role !== "secretaria";
+  const nominal = can(user.role, "seeNames");
   const schoolRows = nominal ? [] : [...a.students.reduce((map, student) => {
     const row = map.get(student.school) ?? { school: student.school, students: 0, withAlerts: 0, noPlan: 0, overdue: 0 };
     row.students += 1;
@@ -614,7 +613,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
               <div className="dash-card">
                 <CardHeader title="Quem registrou" />
-                <BarList rows={r.byAuthor.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} />
+                <BarList rows={r.byAuthor.map((row) => ({ ...row, label: roleLabel(row.key, { short: true }) }))} />
               </div>
               <div className="dash-card xl:col-span-3">
                 <CardHeader title="Estratégias que mais funcionaram" hint={`Marcadas em “o que funcionou” · ${periodText}`} />
@@ -692,7 +691,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       { icon: CircleSlash, text: "Sem base, nunca 0%" },
                     ]}
                   />
-                  {canPlanDua(user) ? <Link href="/planejamento" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink underline">Abrir o planejamento <ArrowRight size={15} aria-hidden /></Link> : null}
+                  {can(user.role, "planDua") ? <Link href="/planejamento" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink underline">Abrir o planejamento <ArrowRight size={15} aria-hidden /></Link> : null}
                 </div>
               }
             >
@@ -824,7 +823,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="grid gap-3.5 lg:grid-cols-2">
                 <div className="dash-card">
                   <CardHeader title="Pessoas com acesso" hint={scope.schoolId ? "Equipe da escola, famílias e terapeutas dos estudantes" : "Todos os usuários da rede"} />
-                  <BarList rows={team.byRole.map((row) => ({ ...row, label: ROLE_LABELS[row.key] ?? row.key }))} empty="Nenhum usuário cadastrado." />
+                  <BarList rows={team.byRole.map((row) => ({ ...row, label: roleLabel(row.key, { short: true }) }))} empty="Nenhum usuário cadastrado." />
                 </div>
                 <div className="dash-card">
                   <CardHeader title="Acessos registrados" hint={`${plural(team.actors, "pessoa acessou", "pessoas acessaram")} dados de estudantes · ${periodText}`} />

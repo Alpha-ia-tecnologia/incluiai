@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
-import { canSeePedagogicalDetail, getCurrentUser, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
-import { canRecordAeeSession, listAeeSessions } from "@/lib/aee-sessions";
+import { requireStudentPage } from "@/lib/page-context";
+import { listAeeSessions } from "@/lib/aee-sessions";
 import { AEE_SESSION_STATUSES, AEE_SESSION_STATUS_LABEL, type AeeSessionStatus } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
@@ -24,13 +23,9 @@ function todayInput() {
 
 export default async function AeeSessionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireStudentPage(id, "Atendimentos AEE");
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (!canSeePedagogicalDetail(user.role) || !isStaffOrNetwork(user.role)) redirect(`/estudantes/${id}`);
-
+  const { user, can } = await requireStudentPage(id, "Atendimentos AEE", { tab: "atendimentos-aee" });
   const { sessions, summary } = await listAeeSessions(user, id);
-  const canRecord = canRecordAeeSession(user);
+  const canRecord = can.recordAee;
   const total = AEE_SESSION_STATUSES.reduce((sum, status) => sum + summary[status], 0);
   const series = AEE_SESSION_STATUSES.map((status) => ({ key: status, label: AEE_SESSION_STATUS_LABEL[status], color: SEGMENT_COLORS[status] }));
   const months = sessionsByMonth(sessions, 6).map((month) => ({ label: month.label, title: month.title, counts: { realizado: month.realizado, falta: month.falta, cancelamento: month.cancelamento } }));

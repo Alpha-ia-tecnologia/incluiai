@@ -1,4 +1,5 @@
-import { PLATFORM_ROLE } from "./tenancy-core.ts";
+import { familyPortalPath } from "./policy.ts";
+import { can, isAccountManager } from "./roles.ts";
 
 export type NavigationItem = {
   href: string;
@@ -9,26 +10,25 @@ export type NavigationItem = {
   section?: "routine" | "management" | "help";
 };
 
-const PLANNER_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]);
+export const isActivePath = (pathname: string, href: string, exact = false): boolean =>
+  pathname === href || (!exact && pathname.startsWith(`${href}/`));
 
 export function getNavigation(role: string, studentIds: string[] = []): NavigationItem[] {
-  if (role === PLATFORM_ROLE) return [];
   const help: NavigationItem = { href: "/ajuda", label: "Ajuda e primeiros passos", shortLabel: "Ajuda", icon: "help", section: "help" };
   const calendar: NavigationItem = { href: "/calendario", label: "Calendário inclusivo", shortLabel: "Calendário", icon: "calendar", section: "routine" };
   const journey: NavigationItem = { href: "/jornada", label: "Minha jornada", shortLabel: "Jornada", icon: "journey", section: "routine" };
   const assistant: NavigationItem = { href: "/assistente", label: "Assistente", shortLabel: "Assistente", icon: "assistant", section: "routine" };
-  if (role === "familia") {
+  if (can(role, "familyPortal")) {
+    const one = studentIds.length === 1;
     return [
-      studentIds.length === 1
-        ? { href: `/familia/${studentIds[0]}`, label: "Acompanhar meu filho", shortLabel: "Meu filho", icon: "family", section: "routine" }
-        : { href: "/familia", label: "Acompanhar meus filhos", shortLabel: "Meus filhos", icon: "family", section: "routine" },
+      { href: familyPortalPath(studentIds), label: one ? "Acompanhar meu filho" : "Acompanhar meus filhos", shortLabel: one ? "Meu filho" : "Meus filhos", icon: "family", section: "routine" },
       journey,
       assistant,
       calendar,
       help,
     ];
   }
-  if (role === "terapeuta") {
+  if (can(role, "intersectorReports")) {
     return [
       { href: "/terapeuta", label: "Orientações para a escola", shortLabel: "Orientações", icon: "care", section: "routine" },
       journey,
@@ -37,29 +37,22 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
       help,
     ];
   }
+  if (!can(role, "pedagogical")) return [];
   const links: NavigationItem[] = [
     { href: "/", label: "Início", shortLabel: "Início", icon: "home", exact: true, section: "routine" },
     { href: "/estudantes", label: "Estudantes", shortLabel: "Estudantes", icon: "students", section: "routine" },
     journey,
-    ...(PLANNER_ROLES.has(role) ? [{ href: "/planejamento", label: "Planejamento com DUA", shortLabel: "Planejamento", icon: "planning", section: "routine" } satisfies NavigationItem] : []),
+    ...(can(role, "planDua") ? [{ href: "/planejamento", label: "Planejamento com DUA", shortLabel: "Planejamento", icon: "planning", section: "routine" } satisfies NavigationItem] : []),
     assistant,
     { href: "/recursos", label: "Atividades e recursos", shortLabel: "Recursos", icon: "resources", section: "routine" },
-    ...(PLANNER_ROLES.has(role) ? [{ href: "/jogos", label: "Jogos educativos", shortLabel: "Jogos", icon: "games", section: "routine" } satisfies NavigationItem] : []),
+    ...(can(role, "editRecord") ? [{ href: "/jogos", label: "Jogos educativos", shortLabel: "Jogos", icon: "games", section: "routine" } satisfies NavigationItem] : []),
     calendar,
   ];
-  const dashboard: NavigationItem = { href: "/painel", label: "Painel de indicadores", shortLabel: "Painel", icon: "network" };
-  const dossier: NavigationItem = { href: "/dossie", label: "Dossiê de evidências", shortLabel: "Dossiê", icon: "evidence" };
-  if (["secretaria", "gestao", "coordenacao"].includes(role)) {
-    links.push(
-      { ...dashboard, section: "management" },
-      { ...dossier, section: "management" },
-      { href: "/censo", label: "Censo Escolar", shortLabel: "Censo", icon: "census", section: "management" },
-      { href: "/cadastros", label: "Escolas e turmas", shortLabel: "Cadastros", icon: "schools", section: "management" },
-      { href: "/usuarios", label: "Pessoas e acessos", shortLabel: "Acessos", icon: "accounts", section: "management" },
-    );
-  } else {
-    links.push({ ...dashboard, section: "routine" });
-    if (role === "professor_aee") links.push({ ...dossier, section: "routine" });
-  }
+  const section = can(role, "management") ? "management" : "routine";
+  links.push({ href: "/painel", label: "Painel de indicadores", shortLabel: "Painel", icon: "network", section });
+  if (can(role, "dossier")) links.push({ href: "/dossie", label: "Dossiê de evidências", shortLabel: "Dossiê", icon: "evidence", section });
+  if (can(role, "importCensus") || can(role, "configureCensus")) links.push({ href: "/censo", label: "Censo Escolar", shortLabel: "Censo", icon: "census", section: "management" });
+  if (can(role, "management")) links.push({ href: "/cadastros", label: "Escolas e turmas", shortLabel: "Cadastros", icon: "schools", section: "management" });
+  if (isAccountManager(role)) links.push({ href: "/usuarios", label: "Pessoas e acessos", shortLabel: "Acessos", icon: "accounts", section: "management" });
   return [...links, help];
 }

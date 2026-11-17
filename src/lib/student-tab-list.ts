@@ -15,12 +15,14 @@ export const STUDENT_TABS = [
   { slug: "carteirinha", label: "Carteirinha" },
 ];
 
-const PEDAGOGICAL_ONLY = new Set(["estudo-de-caso", "sondagem", "dua", "atendimentos-aee", "dossie"]);
-const READ_ONLY_TABS = new Set(["", "estudo-de-caso", "sondagem", "ppi", "atendimentos-aee", "linha-do-tempo", "materiais", "relatorios", "dossie"]);
+const READ_ONLY_TABS = new Set(["", "estudo-de-caso", "sondagem", "ppi", "linha-do-tempo", "materiais", "relatorios", "dossie"]);
 
 const ESSENTIAL_TABS = new Set(["", "estudo-de-caso", "ppi", "diario", "dossie"]);
 export const isEssentialTab = (slug: string) => ESSENTIAL_TABS.has(slug);
 
-export function visibleTabs({ showCaseStudy, showDua = showCaseStudy, readOnly = false }: { showCaseStudy: boolean; showDua?: boolean; readOnly?: boolean }) {
-  return STUDENT_TABS.filter((tab) => (showCaseStudy || !PEDAGOGICAL_ONLY.has(tab.slug)) && (showDua || tab.slug !== "dua") && (!readOnly || READ_ONLY_TABS.has(tab.slug)));
-}
+export type StudentTabAccess = { edit: boolean; dua: boolean };
+
+export const visibleTabs = (can: StudentTabAccess) =>
+  STUDENT_TABS.filter((tab) => (can.edit || READ_ONLY_TABS.has(tab.slug)) && (can.dua || tab.slug !== "dua"));
+
+export const isTabVisible = (slug: string, can: StudentTabAccess) => visibleTabs(can).some((tab) => tab.slug === slug);

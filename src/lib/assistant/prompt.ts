@@ -1,4 +1,4 @@
-import { canSeePedagogicalDetail, isNetworkRole, isStaffOrNetwork } from "../auth";
+import { roleGroup, type Group, type Role } from "../roles";
 
 // O texto é estável dentro de uma conversa, para o cache de prompt e para os
 // blocos de raciocínio do modelo continuarem válidos ao longo da conversa.
@@ -39,6 +39,14 @@ Conceitos da plataforma:
 - Materiais acessíveis: rotina visual, história social e prancha de comunicação, gerados a partir do perfil.
 - A IA (agentes) propõe planos e atividades; o motor de regras responde quando a IA está desligada. Toda proposta mostra como foi feita. A família vê quem acessou os dados do estudante.`;
 
+const AGGREGATE_TOOLS = `- buscar_recursos: banco municipal de recursos e atividades.
+- indicadores: números do painel (jornada, avisos, aulas, atividades, IA) para o recorte da pessoa.
+- datas_inclusivas: próximas datas comemorativas com ideias para a turma.`;
+
+const NETWORK_TOOLS = `O que você pode fazer com as ferramentas:
+${AGGREGATE_TOOLS}
+Você não abre o acompanhamento de estudantes: responda com contagens e tendências. Para um estudante específico, indique a busca em [Estudantes](/estudantes); abrir a ficha pede o motivo do acesso.`;
+
 const STAFF_TOOLS = `O que você pode fazer com as ferramentas:
 - buscar_estudantes: lista os estudantes que a pessoa pode ver, com o marcador, o id e o próximo passo. Use quando não souber a qual estudante a pessoa se refere ou para ter uma visão geral.
 - ver_estudante: resumo completo de um estudante (jornada, avisos, plano e objetivos com ids e tendência, como aprende, registros, atividades, família e saúde). Use antes de responder sobre um estudante específico.
@@ -48,9 +56,7 @@ const STAFF_TOOLS = `O que você pode fazer com as ferramentas:
 - gerar_atividades: cria 3 sugestões de atividade (sala comum, AEE e casa) para um objetivo e um conteúdo da aula. Demora de 1 a 3 minutos (com imagens, cerca de 1 minuto a mais) e tem custo. Exige o id do objetivo e o conteúdo da aula: se faltar, pergunte antes de chamar.
 - criar_material: cria um material de apoio a partir do perfil (rotina visual, passo a passo, história social, prancha de comunicação, quadro de escolhas ou autorregulação), com 2 a 3 atividades para aplicar. Passe o tema (a situação) e use imagens=true quando a pessoa pedir imagem, figura ou desenho.
 - registrar_aula, decidir_atividade e marcar_objetivo: preparam uma ação que só acontece depois que a pessoa confirma em um cartão na tela. Depois de chamar uma delas, diga em uma frase que o cartão está pronto para confirmação e não chame a mesma ferramenta de novo para o mesmo pedido.
-- buscar_recursos: banco municipal de recursos e atividades.
-- indicadores: números do painel (jornada, avisos, aulas, atividades, IA) para o recorte da pessoa.
-- datas_inclusivas: próximas datas comemorativas com ideias para a turma.
+${AGGREGATE_TOOLS}
 
 Como trabalhar:
 - Para pedidos sobre um estudante, primeiro consulte ver_estudante; responda com o que os dados mostram e indique o próximo passo com link.
@@ -82,14 +88,15 @@ const FORMAT = `Formato das respostas:
 - Antes de uma operação demorada (propor_plano, gerar_atividades), avise em uma frase que vai levar alguns minutos.
 - Se não conseguir fazer algo, diga o que a pessoa pode fazer na plataforma e onde.`;
 
-export function buildSystemPrompt(role: string): string {
-  const parts = [IDENTITY, PRINCIPLES, PRIVACY, PLATFORM];
-  if (role === "familia") parts.push(FAMILY_TOOLS);
-  else if (role === "terapeuta") parts.push(THERAPIST_TOOLS);
-  else if (isStaffOrNetwork(role) && canSeePedagogicalDetail(role)) {
-    parts.push(STAFF_TOOLS);
-    if (isNetworkRole(role)) parts.push(NETWORK_EXTRA);
-  }
-  parts.push(FORMAT);
-  return parts.join("\n\n");
+const TOOLS_BY_GROUP: Record<Group, string[]> = {
+  professor: [STAFF_TOOLS],
+  escola: [STAFF_TOOLS, NETWORK_EXTRA],
+  rede: [NETWORK_TOOLS, NETWORK_EXTRA],
+  familia: [FAMILY_TOOLS],
+  terapeuta: [THERAPIST_TOOLS],
+  plataforma: [],
+};
+
+export function buildSystemPrompt(role: Role): string {
+  return [IDENTITY, PRINCIPLES, PRIVACY, PLATFORM, ...TOOLS_BY_GROUP[roleGroup(role)], FORMAT].join("\n\n");
 }

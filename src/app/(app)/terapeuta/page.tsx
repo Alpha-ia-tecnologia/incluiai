@@ -4,6 +4,7 @@ import { studentConsent } from "@/lib/consent";
 import { SUMMARY_VIEW_DETAILS } from "@/lib/access-log";
 import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { can, rolesWith } from "@/lib/roles";
 import { createIntersectorReport } from "@/actions/intersector";
 import { loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
@@ -29,7 +30,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
   const prisma = await db();
   const [user, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!user) redirect("/login");
-  if (user.role !== "terapeuta" || !user.studentIds.length) redirect("/");
+  if (!can(user.role, "intersectorReports") || !user.studentIds.length) redirect("/");
   const asked = Array.isArray(query.estudante) ? query.estudante[0] : query.estudante;
   const studentId = asked && user.studentIds.includes(asked) ? asked : user.studentIds[0];
   await recordJourneyMark(user.id, "terapeuta_inicio");
@@ -62,7 +63,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
   const seenAt = await Promise.all(reports.map((report, index) => {
     const newer = index > 0 ? reports[index - 1].createdAt : null;
     return prisma.accessLog.findFirst({
-      where: { studentId: student.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { notIn: ["familia", "terapeuta", "sistema"] }, createdAt: newer ? { gt: report.createdAt, lte: newer } : { gt: report.createdAt } },
+      where: { studentId: student.id, detail: { in: SUMMARY_VIEW_DETAILS }, role: { in: rolesWith("pedagogical") }, createdAt: newer ? { gt: report.createdAt, lte: newer } : { gt: report.createdAt } },
       orderBy: { createdAt: "asc" },
       select: { createdAt: true },
     }).then((log) => log?.createdAt ?? null);

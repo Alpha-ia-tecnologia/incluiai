@@ -3,11 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import {
-  canAccessStudent,
-  getCurrentUser,
-  canEditStudentRecord,
-} from "@/lib/auth";
+import { requireStudentTeam } from "@/lib/auth";
 
 const SUPPORT_FIELDS = [
   "readingSupport",
@@ -34,19 +30,7 @@ function csvToJson(value: FormDataEntryValue | null): string {
 
 export async function upsertProfile(studentId: string, formData: FormData) {
   const prisma = await db();
-  const user = await getCurrentUser();
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-    select: { id: true, schoolId: true },
-  });
-  if (
-    !user ||
-    !student ||
-    !canEditStudentRecord(user.role) ||
-    !canAccessStudent(user, student.schoolId, student.id)
-  ) {
-    throw new Error("Você não tem permissão para editar este perfil.");
-  }
+  const user = await requireStudentTeam(studentId);
 
   const interests = csvToJson(formData.get("interests"));
   if ((JSON.parse(interests) as string[]).length === 0) {

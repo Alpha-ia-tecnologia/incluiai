@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import { CircleCheck, EyeOff, FileDown, Printer, Target } from "lucide-react";
 import { db } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { planningContext } from "@/lib/page-context";
 import { hasApiKey } from "@/lib/env";
 import { isAIEnabled } from "@/lib/agents/model";
-import { DuaError, loadPlanningFor } from "@/lib/dua/shared";
 import { taskContent } from "@/lib/adapted-tasks";
 import { LEVEL_LABEL, type LevelKey } from "@/lib/task-adaptation";
 import { formatDate } from "@/lib/format";
@@ -23,15 +21,8 @@ const ORDER: LevelKey[] = ["mais_apoio", "padrao", "desafio"];
 
 export default async function LevelsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lote?: string }> }) {
   const prisma = await db();
-  const [{ id }, query, user] = await Promise.all([params, searchParams, getCurrentUser()]);
-  if (!user) redirect("/login");
-  let access;
-  try {
-    ({ access } = await loadPlanningFor(user, id, "read"));
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const { access } = await planningContext(id);
   const tasks = await prisma.adaptedTask.findMany({ where: { planningId: id }, orderBy: { createdAt: "desc" } });
   const batches = [...new Map(tasks.map((task) => [task.batchId, task])).values()];
   const batchId = batches.some((task) => task.batchId === query.lote) ? query.lote : batches[0]?.batchId;

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canPlanDua, canSeeDuaIndicators, collaboratorIds, planningAccess, readablePlanningsWhere } from "./access.ts";
+import { collaboratorIds, planningAccess, readablePlanningsWhere } from "./access.ts";
+import { can } from "../roles.ts";
 
 const user = (id, role, schoolId = "escola-1") => ({ id, role, schoolId });
 const planning = (extra = {}) => ({ ownerId: "marcos", schoolId: "escola-1", sharing: "privado", collaborators: "[]", ...extra });
@@ -37,11 +38,11 @@ test("compartilhado: outra escola não lê", () => {
 
 test("família, terapeuta e secretaria não planejam nem leem planejamentos", () => {
   for (const role of ["familia", "terapeuta", "secretaria"]) {
-    assert.equal(canPlanDua({ role }), false, role);
+    assert.equal(can(role, "planDua"), false, role);
     const own = planning({ ownerId: "x", sharing: "compartilhado", collaborators: JSON.stringify([{ id: "x" }]) });
     assert.deepEqual(planningAccess(user("x", role), own), NONE, role);
   }
-  for (const role of ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]) assert.equal(canPlanDua({ role }), true, role);
+  for (const role of ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]) assert.equal(can(role, "planDua"), true, role);
 });
 
 test("profissional de apoio edita, mas não valida", () => {
@@ -60,8 +61,8 @@ test("compartilhar: só o responsável ou a coordenação", () => {
 });
 
 test("indicadores: coordenação, gestão e secretaria", () => {
-  for (const role of ["coordenacao", "gestao", "secretaria"]) assert.equal(canSeeDuaIndicators({ role }), true, role);
-  for (const role of ["professor_sala", "professor_aee", "apoio", "familia", "terapeuta"]) assert.equal(canSeeDuaIndicators({ role }), false, role);
+  for (const role of ["coordenacao", "gestao", "secretaria"]) assert.equal(can(role, "duaIndicators"), true, role);
+  for (const role of ["professor_sala", "professor_aee", "apoio", "familia", "terapeuta"]) assert.equal(can(role, "duaIndicators"), false, role);
 });
 
 test("colaboradores: JSON inválido ou sem id não dá acesso", () => {

@@ -1,9 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import { CircleCheck, FileText, Layers, ListChecks, Printer, ShieldCheck } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
-import { DuaError } from "@/lib/dua/shared";
-import { loadPlanning } from "@/lib/dua/plannings";
+import { planningContext } from "@/lib/page-context";
 import { libraryOptions, listMaterials } from "@/lib/dua/materials";
 import { listSupports } from "@/lib/dua/supports";
 import { REVIEW_STATE_LABEL } from "@/lib/dua/domain";
@@ -20,18 +17,8 @@ const shorten = (value: string, max = 80) => (value.length > max ? `${value.slic
 
 export default async function MaterialsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  let data;
-  try {
-    const loaded = await loadPlanning(user, id);
-    const [materials, supports, library] = await Promise.all([listMaterials(user, id), listSupports(user, id), libraryOptions()]);
-    data = { ...loaded, materials, supports, library };
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
-  const { planning, access, versions, materials, supports, library } = data;
+  const { user, planning, access, versions } = await planningContext(id);
+  const [materials, supports, library] = await Promise.all([listMaterials(user, id), listSupports(user, id), libraryOptions()]);
   const editableSupports = supports.filter((item) => item.canEdit).map((item) => ({ id: item.id, label: `${item.student.name} — ${shorten(item.data?.support || "apoio sem descrição")}` }));
   const canCreate = access.edit || editableSupports.length > 0;
   const versionState = new Map(versions.map((item) => [item.version, item.state]));

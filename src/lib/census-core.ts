@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db, forEachMunicipality } from "./prisma";
 import { parseJson } from "./format";
+import { rolesWith } from "./roles";
 import { identityKeys } from "./educacenso";
 import { DEFAULT_MONITOR, inWindow, networkAeeEstimate, nextRun, verifyCoverage, type Coverage, type MonitorConfig, type PlatformStudent, type SchoolInfo, type SnapshotPerson } from "./census-rules";
 
@@ -73,7 +74,7 @@ export async function runVerification(trigger: "agendada" | "manual", actorName:
     },
   });
   for (const result of results.filter((item) => item.pending > 0 && item.pending !== before.get(item.schoolId))) {
-    const users = await prisma.user.findMany({ where: { role: { in: ["coordenacao", "gestao"] }, schoolId: result.schoolId, deactivatedAt: null }, select: { id: true } });
+    const users = await prisma.user.findMany({ where: { role: { in: rolesWith("importCensus") }, schoolId: result.schoolId, deactivatedAt: null }, select: { id: true } });
     const title = `Censo: ${result.pending} ${result.pending === 1 ? "estudante do AEE" : "estudantes do AEE"} com pendência na ${result.school}`;
     if (users.length) await prisma.notification.createMany({ data: users.map((user) => ({ userId: user.id, kind: "censo_pendencias", title, href: "/censo" })) });
   }

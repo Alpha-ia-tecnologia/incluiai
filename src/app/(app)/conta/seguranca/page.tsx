@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/format";
 import { cancelTwoFactorSetup, disableTwoFactor, endOtherSessions, regenerateRecoveryCodes, startTwoFactorSetup } from "@/actions/two-factor";
 import { changeOwnPassword } from "@/actions/account";
 import { PasswordForm } from "@/components/password-form";
-import { ROLES } from "@/lib/scale";
+import { roleLabel } from "@/lib/roles";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
@@ -135,7 +135,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
             <ol className="grid gap-3">
               {events.map((event) => (
                 <li key={event.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
-                  <p className="text-sm text-ink">{event.actorId === session.id ? "Você" : <><strong className="font-medium">{event.actorName}</strong> ({ROLES[event.actorRole] ?? event.actorRole})</>} {event.action}</p>
+                  <p className="text-sm text-ink">{event.actorId === session.id ? "Você" : <><strong className="font-medium">{event.actorName}</strong> ({roleLabel(event.actorRole)})</>} {event.action}</p>
                   {event.detail ? <p className="mt-0.5 text-sm text-ink-soft">{event.detail}</p> : null}
                   <p className="mt-0.5 text-xs text-ink-soft">{formatDate(event.createdAt)}</p>
                 </li>

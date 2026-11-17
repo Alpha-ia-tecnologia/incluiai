@@ -4,7 +4,8 @@ import { textContains } from "@/lib/db-text";
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { labelCls, primaryButtonCls } from "@/components/form-styles";
 import { HowToRead } from "@/components/explain";
@@ -37,7 +38,7 @@ export default async function ResourcesPage({
   const filters = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!isStaffOrNetwork(user.role)) redirect("/");
+  if (!can(user.role, "pedagogical")) redirect("/");
   await recordJourneyMark(user.id, "recursos");
   const q = filters.q?.trim() ?? "";
   const resources = await prisma.resource.findMany({

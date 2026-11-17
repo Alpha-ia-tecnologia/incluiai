@@ -1,7 +1,8 @@
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isNetworkRole } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { createSchool, createClass, deleteClass } from "@/actions/admin";
 import { SHIFTS } from "@/lib/scale";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState, ButtonLink } from "@/components/ui";
@@ -22,7 +23,7 @@ export default async function RegistriesPage() {
   const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!isNetworkRole(user.role)) redirect("/");
+  if (!can(user.role, "management")) redirect("/");
   await recordJourneyMark(user.id, "cadastros");
 
   const schools = await prisma.school.findMany({

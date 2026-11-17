@@ -3,9 +3,8 @@ import { ConsentNote } from "@/components/consent-note";
 import { aiAllowedFor, imagesAllowedFor } from "@/lib/consent";
 import Image from "next/image";
 import type { Activity } from "@prisma/client";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { requireStudentPage, canEditStudentRecord } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { generateActivities, acceptActivity, rejectActivity } from "@/actions/activities";
 import { parseJson, formatDate } from "@/lib/format";
 import { CONTEXTS, ACTIVITY_STATUS } from "@/lib/scale";
@@ -172,8 +171,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
 export default async function ActivitiesPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  const viewer = await requireStudentPage(id, "Atividades");
-  if (!canEditStudentRecord(viewer.role)) redirect(`/estudantes/${id}`);
+  await requireStudentPage(id, "Atividades", { tab: "atividades" });
   const [profile, objectives, activities] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id } }),
     prisma.objective.findMany({

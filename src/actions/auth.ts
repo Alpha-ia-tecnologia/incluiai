@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { db, isPlatformArea } from "@/lib/prisma";
-import { PLATFORM_ROLE } from "@/lib/tenancy-core";
+import { isPlatformRole } from "@/lib/roles";
 import { createSession, destroySession, loginAllowed, loginStep, recordLoginAttempt, verifyPasswordOrDummy } from "@/lib/auth";
 import { homeAfterLogin } from "@/lib/tenant";
 
@@ -15,7 +15,7 @@ export async function login(_prev: unknown, formData: FormData): Promise<{ error
     return { error: "Muitas tentativas com este e-mail. Aguarde 15 minutos ou peça ajuda à coordenação." };
   }
   const found = await prisma.user.findUnique({ where: { email } });
-  const user = found && (found.role === PLATFORM_ROLE) === (await isPlatformArea()) ? found : null;
+  const user = found && isPlatformRole(found.role) === (await isPlatformArea()) ? found : null;
   const ok = verifyPasswordOrDummy(password, user?.passwordHash ?? null);
   await recordLoginAttempt(email, ok);
   if (!user || !ok) return { error: "E-mail ou senha inválidos." };

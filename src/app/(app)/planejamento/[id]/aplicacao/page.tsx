@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import { CalendarCheck, CalendarDays, CalendarX, Eye, Scale, Users } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
-import { DuaError, studentsInReach } from "@/lib/dua/shared";
-import { loadPlanning } from "@/lib/dua/plannings";
+import { planningContext } from "@/lib/page-context";
+import { teachingContext } from "@/lib/roles";
+import { studentsInReach } from "@/lib/dua/shared";
 import { listApplications } from "@/lib/dua/applications";
 import { CRITERION_STATUSES, CRITERION_STATUS_LABEL, isObserved } from "@/lib/dua/domain";
 import { formatDate } from "@/lib/format";
@@ -22,18 +21,8 @@ const today = () => inputDate(new Date());
 
 export default async function ApplicationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  let data;
-  try {
-    const loaded = await loadPlanning(user, id);
-    const [applications, students] = await Promise.all([listApplications(user, id), studentsInReach(user)]);
-    data = { ...loaded, applications, students };
-  } catch (error) {
-    if (error instanceof DuaError) notFound();
-    throw error;
-  }
-  const { planning, versions, validated, applications, students } = data;
+  const { user, planning, versions, validated } = await planningContext(id);
+  const [applications, students] = await Promise.all([listApplications(user, id), studentsInReach(user)]);
   const versionInfo = new Map(versions.map((item) => [item.version, item]));
   const validatedOptions = validated.map((item) => {
     const info = versionInfo.get(item.version);
@@ -86,7 +75,7 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
             planningId={planning.id}
             versions={validatedOptions}
             defaultClassName={planning.className ?? ""}
-            defaultContext={user.role === "professor_aee" ? "aee" : "sala_comum"}
+            defaultContext={teachingContext(user.role) ?? "sala_comum"}
             today={today()}
             students={students}
           />

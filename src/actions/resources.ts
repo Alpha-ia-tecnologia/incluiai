@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, isStaffOrNetwork } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 export async function registerResourceUse(resourceId: string, activityId: string, formData: FormData) {
   const prisma = await db();
   const user = await getCurrentUser();
-  if (!user || !isStaffOrNetwork(user.role)) {
+  if (!user || !can(user.role, "pedagogical")) {
     throw new Error("Apenas a equipe escolar pode registrar aplicações.");
   }
   const worked = String(formData.get("worked")) === "sim";

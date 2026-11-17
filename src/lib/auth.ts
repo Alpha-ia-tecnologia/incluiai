@@ -4,9 +4,9 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { db, isPlatformArea } from "./prisma";
-import { recordView } from "./access-log";
 import { LOGIN_WINDOW_MS, MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, loginBlocked, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
-import { PLATFORM_ROLE } from "./tenancy-core";
+import { can, isLinkedRole, isPlatformRole, isRole, type Role } from "./roles";
+import { canAccessStudent as canReachStudent, canWorkWithStudent, linkedStudentIds } from "./policy";
 
 const SESSION_COOKIE = "incluiedu_session";
 // Cookie só por HTTPS em produção; SESSION_COOKIE_SECURE=0 libera o teste local
@@ -99,7 +99,7 @@ export function loginStep(user: { role: string; mustChangePassword: boolean; tot
 }
 
 export function twoFactorRequired(role: string): boolean {
-  return process.env.REQUIRE_2FA === "1" && (role === PLATFORM_ROLE || isStaffOrNetwork(role));
+  return process.env.REQUIRE_2FA === "1" && can(role, "twoFactor");
 }
 
 export async function destroySession(): Promise<void> {
@@ -114,7 +114,7 @@ export type SessionUser = {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: Role;
   schoolId: string | null;
   studentIds: string[];
 };
@@ -132,32 +132,29 @@ const sessionUser = cache(async (): Promise<SessionUser | null> => {
     await prisma.session.deleteMany({ where: { id: session.id } });
     return null;
   }
-  if (session.mfaPending || session.user.mustChangePassword || (twoFactorRequired(session.user.role) && !session.user.totpEnabledAt)) return null;
+  const { user } = session;
+  const role = user.role;
+  if (!isRole(role) || session.mfaPending || user.mustChangePassword || (twoFactorRequired(role) && !user.totpEnabledAt)) return null;
   if (shouldTouchSession(session.lastSeenAt, now)) await prisma.session.update({ where: { id: session.id }, data: { lastSeenAt: now } });
-  const user = session.user;
-  let studentIds = user.studentLinks.map((link) => link.studentId);
-  if (!studentIds.length && user.studentId && isLinkedRole(user.role)) {
+  const linked = isLinkedRole(role);
+  if (linked && !user.studentLinks.length && user.studentId) {
     await prisma.studentLink.upsert({
       where: { userId_studentId: { userId: user.id, studentId: user.studentId } },
       create: { userId: user.id, studentId: user.studentId },
       update: {},
     }).catch(() => null);
-    studentIds = [user.studentId];
   }
-  return {
-    id: user.id, name: user.name, email: user.email,
-    role: user.role, schoolId: user.schoolId, studentIds: isLinkedRole(user.role) ? studentIds : [],
-  };
+  return { id: user.id, name: user.name, email: user.email, role, schoolId: user.schoolId, studentIds: linked ? linkedStudentIds(user) : [] };
 });
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const user = await sessionUser();
-  return user?.role === PLATFORM_ROLE ? null : user;
+  return user && !isPlatformRole(user.role) ? user : null;
 }
 
 export async function getPlatformUser(): Promise<SessionUser | null> {
   const user = await sessionUser();
-  return user?.role === PLATFORM_ROLE ? user : null;
+  return user && isPlatformRole(user.role) ? user : null;
 }
 
 export async function requirePlatformUser(): Promise<SessionUser> {
@@ -167,78 +164,26 @@ export async function requirePlatformUser(): Promise<SessionUser> {
   return user;
 }
 
-// O layout sozinho não basta: em navegação parcial ele não roda de novo.
-export async function requireStudentPage(studentId: string, section?: string): Promise<SessionUser> {
-  const prisma = await db();
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
-  if (!student) notFound();
-  if (!canAccessStudent(user, student.schoolId, studentId)) redirect("/");
-  if (user.role === "familia") redirect(`/familia/${studentId}`);
-  if (user.role === "terapeuta") redirect("/terapeuta");
-  if (!(await hasNominalAccess(user, studentId))) redirect(`/acesso-nominal/${studentId}`);
-  if (section) await recordView(user, studentId, section);
-  return user;
-}
-
-export function canSeeClinicalDetail(role: string): boolean {
-  return role === "professor_aee" || role === "coordenacao";
-}
-
-export function canEditStudentRecord(role: string): boolean {
-  return isStaffOrNetwork(role) && canSeePedagogicalDetail(role) && role !== "secretaria";
-}
-
 export const NOMINAL_ACCESS_HOURS = 8;
-export function needsNominalJustification(role: string): boolean {
-  return role === "secretaria";
-}
-export async function hasNominalAccess(user: SessionUser, studentId: string): Promise<boolean> {
+export async function activeGrant(user: SessionUser, studentId: string): Promise<{ expiresAt: Date } | null> {
   const prisma = await db();
-  if (!needsNominalJustification(user.role)) return true;
-  const grant = await prisma.accessGrant.findFirst({ where: { userId: user.id, studentId, expiresAt: { gt: new Date() } }, select: { id: true } });
-  return Boolean(grant);
+  return prisma.accessGrant.findFirst({ where: { userId: user.id, studentId, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: "desc" }, select: { expiresAt: true } });
 }
 
-const NETWORK_ROLES = new Set(["secretaria", "gestao", "coordenacao"]);
-const SCHOOL_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]);
+export const canAccessStudent = (user: SessionUser, schoolId: string, studentId: string): boolean => canReachStudent(user, { id: studentId, schoolId });
 
-export function canAccessStudent(user: SessionUser, studentSchoolId: string, studentId: string): boolean {
-  if (user.role === "secretaria") return true;
-  if (isLinkedRole(user.role)) return user.studentIds.includes(studentId);
-  if (SCHOOL_ROLES.has(user.role)) {
-    return !user.schoolId || user.schoolId === studentSchoolId;
-  }
-  return false;
-}
+export const STUDENT_FORBIDDEN = "Você não tem permissão para esta ação com este estudante.";
 
-export function isNetworkRole(role: string): boolean {
-  return NETWORK_ROLES.has(role);
-}
-
-export function isSchoolStaff(role: string): boolean {
-  return SCHOOL_ROLES.has(role);
-}
-
-export function isLinkedRole(role: string): boolean {
-  return role === "familia" || role === "terapeuta";
-}
-
-export function isStaffOrNetwork(role: string): boolean {
-  return SCHOOL_ROLES.has(role) || NETWORK_ROLES.has(role);
-}
-
-export function canSeePedagogicalDetail(role: string): boolean {
-  return role !== "terapeuta" && role !== "familia" && role !== PLATFORM_ROLE;
+export async function assertStudentTeam(user: SessionUser, studentId: string) {
+  const prisma = await db();
+  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, name: true, schoolId: true, className: true } });
+  if (!student || !canWorkWithStudent(user, student)) throw new Error(STUDENT_FORBIDDEN);
+  return student;
 }
 
 export async function requireStudentTeam(studentId: string): Promise<SessionUser> {
-  const prisma = await db();
   const user = await getCurrentUser();
-  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true } });
-  if (!user || !student || !canEditStudentRecord(user.role) || !canAccessStudent(user, student.schoolId, student.id)) {
-    throw new Error("Você não tem permissão para esta ação com este estudante.");
-  }
+  if (!user) throw new Error(STUDENT_FORBIDDEN);
+  await assertStudentTeam(user, studentId);
   return user;
 }

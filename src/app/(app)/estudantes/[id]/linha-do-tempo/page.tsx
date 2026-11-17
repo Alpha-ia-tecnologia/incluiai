@@ -1,9 +1,8 @@
 ﻿import Link from "next/link";
 import { db } from "@/lib/prisma";
-import { getCurrentUser, canSeePedagogicalDetail, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { formatDate } from "@/lib/format";
 import { TIMELINE_TYPES } from "@/lib/scale";
-import { DuaError } from "@/lib/dua/shared";
 import { listStudentEvidence } from "@/lib/dua/applications";
 import { listAeeSessions } from "@/lib/aee-sessions";
 import { AEE_SESSION_STATUS_LABEL, OBSERVATION_LABEL, type AeeSessionStatus } from "@/lib/dua/domain";
@@ -70,28 +69,18 @@ function groupByMonth(entries: ReadonlyArray<Entry>) {
   return groups;
 }
 
-async function withinReach<T>(work: () => Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await work();
-  } catch (error) {
-    if (error instanceof DuaError || (error instanceof Error && /permissão/i.test(error.message))) return fallback;
-    throw error;
-  }
-}
 
 export default async function TimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  await requireStudentPage(id, "Evolução");
-  const user = await getCurrentUser();
-  const pedagogical = user && canSeePedagogicalDetail(user.role) ? user : null;
+  const { user, can } = await requireStudentPage(id, "Evolução");
   const [events, evidences, sessions] = await Promise.all([
     prisma.timelineEvent.findMany({
       where: { studentId: id },
       orderBy: { date: "desc" },
     }),
-    pedagogical ? withinReach(() => listStudentEvidence(pedagogical, id), []) : Promise.resolve([]),
-    pedagogical ? withinReach(async () => (await listAeeSessions(pedagogical, id)).sessions, []) : Promise.resolve([]),
+    can.edit ? listStudentEvidence(user, id) : [],
+    can.edit ? listAeeSessions(user, id).then((result) => result.sessions) : [],
   ]);
 
   const entries: Entry[] = [

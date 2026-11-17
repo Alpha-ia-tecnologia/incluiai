@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { canSeePedagogicalDetail, isStaffOrNetwork, requireStudentPage } from "@/lib/auth";
+import { requireStudentPage } from "@/lib/page-context";
 import { loadEvidence } from "@/lib/dossier";
 import { formatDate } from "@/lib/format";
 import { PrintButton } from "@/components/print-button";
@@ -12,8 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PrintDossierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireStudentPage(id, "Impressão do dossiê de evidências");
-  if (!canSeePedagogicalDetail(user.role) || !isStaffOrNetwork(user.role)) redirect(`/estudantes/${id}`);
+  const { user } = await requireStudentPage(id, "Impressão do dossiê de evidências");
   const [evidence] = await loadEvidence({ id });
   if (!evidence) notFound();
   const { ok, conferir, pendente } = evidence.summary;

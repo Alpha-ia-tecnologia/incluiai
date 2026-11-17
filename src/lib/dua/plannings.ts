@@ -2,12 +2,13 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
+import { can, rolesWith } from "../roles";
 import { parseJson } from "../format";
 import {
   BARRIER_CATEGORIES, BARRIER_STATUSES, DUA_PRINCIPLES, collectiveCopy, emptyDuaContent, emptyStrategyDetails, normalizeContent, validationProblems,
   type DuaContent, type DuaOrigin, type OriginKind, type ReviewState, type Sharing,
 } from "./domain";
-import { canPlanDua, collaboratorIds, planningAccess, readablePlanningsWhere } from "./access";
+import { collaboratorIds, planningAccess, readablePlanningsWhere } from "./access";
 import { validBnccCode } from "../bncc";
 import { DuaError, NOT_FOUND, audit, clip, contentOf, latestVersion, loadPlanningFor } from "./shared";
 
@@ -39,7 +40,7 @@ function matches(content: DuaContent, query: string) {
 
 export async function listPlannings(user: SessionUser, filters: { query?: string; mine?: boolean } = {}): Promise<PlanningSummary[]> {
   const prisma = await db();
-  if (!canPlanDua(user)) return [];
+  if (!can(user.role, "planDua")) return [];
   const rows = await prisma.duaPlanning.findMany({
     where: readablePlanningsWhere(user),
     include: { versions: { select: { version: true, state: true, content: true }, orderBy: { version: "desc" } }, _count: { select: { applications: true } } },
@@ -84,7 +85,7 @@ async function checkedClassName(user: SessionUser, className: string) {
 
 export async function createPlanning(user: SessionUser, input: { title: string; className?: string; reuseFromId?: string }) {
   const prisma = await db();
-  if (!canPlanDua(user)) throw new DuaError("Seu perfil não planeja atividades com DUA.", "sem_permissao");
+  if (!can(user.role, "planDua")) throw new DuaError("Seu perfil não planeja atividades com DUA.", "sem_permissao");
   const title = clip(input.title, 160);
   if (title.length < 3) throw new DuaError("Dê um título à atividade (ao menos 3 letras).");
   const className = await checkedClassName(user, clip(input.className, 80));
@@ -269,7 +270,7 @@ export async function collaboratorOptions(user: SessionUser, planningId: string)
   const prisma = await db();
   const { planning } = await loadPlanningFor(user, planningId, "read");
   const users = await prisma.user.findMany({
-    where: { role: { in: ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"] }, id: { not: planning.ownerId }, ...(planning.schoolId ? { OR: [{ schoolId: planning.schoolId }, { schoolId: null }] } : {}) },
+    where: { role: { in: rolesWith("planDua") }, id: { not: planning.ownerId }, ...(planning.schoolId ? { OR: [{ schoolId: planning.schoolId }, { schoolId: null }] } : {}) },
     select: { id: true, name: true, role: true },
     orderBy: { name: "asc" },
   });
