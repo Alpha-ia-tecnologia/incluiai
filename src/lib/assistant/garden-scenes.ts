@@ -403,12 +403,20 @@ export function artFor(garden: Garden, ending: { outcome: GardenOutcome; finale:
   };
 }
 
+export const INLINE_SCENES: Readonly<Record<InlineScene, { family: GardenFamily; pool: TipPool }>> = {
+  plano: { family: "trelica", pool: "plano" },
+  atividades: { family: "botoes", pool: "atividades" },
+  imagem: { family: "folha", pool: "pratica" },
+  material: { family: "folha", pool: "pratica" },
+};
+
 export function inlineArt(scene: InlineScene, sun: number): ArtState {
+  const { family } = INLINE_SCENES[scene];
   return {
-    grown: 0, ties: 2, stem: scene === "atividades" ? 2 : 0, roots: NO_ROOTS, stones: 0,
-    trellis: scene === "plano", rungs: IDLE_RUNGS,
-    buds: scene === "atividades" ? CLOSED_BUDS : null,
-    side: scene === "imagem" || scene === "material" ? "folha" : null,
+    grown: 0, ties: 2, stem: family === "botoes" ? 2 : 0, roots: NO_ROOTS, stones: 0,
+    trellis: family === "trelica", rungs: IDLE_RUNGS,
+    buds: family === "botoes" ? CLOSED_BUDS : null,
+    side: family === "folha" ? "folha" : null,
     crown: "nenhum", stake: true, cloud: false, sun,
   };
 }

@@ -1,29 +1,10 @@
 "use client";
 
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useState } from "react";
 import { Square, Volume2 } from "lucide-react";
-import { SPEECH_RATES, pickVoice, speechChunks } from "@/lib/speech-text";
+import { SPEECH_RATES } from "@/lib/speech-text";
 import { inputBoxCls, BUTTON_CLS } from "@/components/form-styles";
-
-const NO_VOICES: SpeechSynthesisVoice[] = [];
-let voices = NO_VOICES;
-const voiceStore = {
-  subscribe(callback: () => void) {
-    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
-    if (!synth) return () => {};
-    const update = () => {
-      voices = synth.getVoices();
-      callback();
-    };
-    update();
-    synth.addEventListener("voiceschanged", update);
-    return () => synth.removeEventListener("voiceschanged", update);
-  },
-  get: () => voices,
-  server: () => NO_VOICES,
-};
-const supported = () => typeof window !== "undefined" && "speechSynthesis" in window;
-const noop = () => () => {};
+import { useSpeech } from "@/components/speech";
 
 function readableText(root: HTMLElement): string {
   const parts: string[] = [];
@@ -48,38 +29,24 @@ type Status = "parado" | "lendo" | "confirmar" | "sem-voz";
 const selectCls = `${inputBoxCls} w-auto`;
 
 export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; label?: string }) {
-  const available = useSyncExternalStore(noop, supported, () => false);
-  const list = useSyncExternalStore(voiceStore.subscribe, voiceStore.get, voiceStore.server);
+  const { available, voice, remote, speak, cancel } = useSpeech();
   const [status, setStatus] = useState<Status>("parado");
   const [rate, setRate] = useState(1);
   const [remoteOk, setRemoteOk] = useState(false);
   const id = useId();
 
-  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+  useEffect(() => cancel, [cancel]);
 
   if (!available) return null;
-  const { voice, remote } = pickVoice(list);
 
   const start = (confirmed = remoteOk) => {
     if (!voice) return setStatus("sem-voz");
     if (remote && !confirmed) return setStatus("confirmar");
     const root = document.getElementById(targetId);
-    const chunks = root ? speechChunks(readableText(root)) : [];
-    if (!chunks.length) return;
-    const synth = window.speechSynthesis;
-    synth.cancel();
-    chunks.forEach((chunk, index) => {
-      const utterance = new SpeechSynthesisUtterance(chunk);
-      utterance.voice = voice;
-      utterance.lang = voice.lang;
-      utterance.rate = rate;
-      if (index === chunks.length - 1) utterance.onend = () => setStatus("parado");
-      synth.speak(utterance);
-    });
-    setStatus("lendo");
+    if (root && speak(readableText(root), { rate, onEnd: () => setStatus("parado") })) setStatus("lendo");
   };
   const stop = () => {
-    window.speechSynthesis.cancel();
+    cancel();
     setStatus("parado");
   };
 
@@ -105,7 +72,7 @@ export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; lab
           </div>
         </div>
       ) : null}
-      {status === "sem-voz" ? <p role="alert" className="text-sm text-ink-soft">Este navegador não tem voz em português. Experimente outro navegador ou o leitor de tela do aparelho.</p> : null}
+      {status === "sem-voz" ? <p role="alert" className="text-sm text-surface-ink-soft">Este navegador não tem voz em português. Experimente outro navegador ou o leitor de tela do aparelho.</p> : null}
       <p role="status" className="sr-only">{status === "lendo" ? "Lendo em voz alta." : ""}</p>
     </div>
   );

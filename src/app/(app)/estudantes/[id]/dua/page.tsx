@@ -12,9 +12,9 @@ import { ReviewBadge } from "@/components/dua/badges";
 import { linkCls } from "@/components/form-styles";
 import { SupportSummary } from "@/components/dua/supports/support-summary";
 import { ParticipationStart } from "@/components/dua/student/participation-start";
-import { DataBoard, DataCard, DotStrip, TONE_COLOR, withSegmentColors } from "@/components/data-viz";
+import { BarList, DotStrip, StackedBar, Swatch, TONE_COLOR, withSegmentColors } from "@/components/viz/charts";
+import { DataBoard, DataCard } from "@/components/viz/cards";
 import { CONTEXTS, labelOf, toneOf, type Tone } from "@/lib/scale";
-import { BarList, StackedBar, Swatch } from "@/components/charts";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
 
 const resultTerm = (result: ApplicationResult) => CRITERION_STATUS[RESULT_STATUS[result]];

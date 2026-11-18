@@ -12,7 +12,7 @@ import type { SuggestionView } from "@/lib/dua/suggestions";
 import { FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
-import { newId } from "./step-objective";
+import { newId } from "./editor-steps";
 import { formatDateTime } from "@/lib/dates";
 
 type Props = {

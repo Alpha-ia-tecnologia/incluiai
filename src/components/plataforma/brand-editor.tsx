@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useId, useMemo, useRef, useState, useTransition, type CSSProperties } from "react";
 import { Check, Home, Layers, LoaderCircle, Sparkles, Sprout, TriangleAlert, Users } from "lucide-react";
 import { Badge } from "@/components/ui";
-import { StatusPill } from "@/components/data-viz";
+import { StatusPill } from "@/components/viz/charts";
 import { hintCls, inputCls, labelCls, linkCls, BUTTON_CLS } from "@/components/form-styles";
 import { DEFAULT_BRAND, derivePalette, normalizeHex } from "@/lib/branding/palette";
 import { LOGO_ACCEPT, LOGO_MAX_BYTES, LOGO_TOO_BIG } from "@/lib/branding/logo-core";

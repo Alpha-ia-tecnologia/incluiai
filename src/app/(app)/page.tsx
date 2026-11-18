@@ -15,7 +15,8 @@ import { loadJourney } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { firstName } from "@/lib/format";
 import { supportTrend, weeklyCounts } from "@/lib/series";
-import { DotStrip, MiniColumns, Sparkline, StatTile, StatusPill, TONE_COLOR } from "@/components/data-viz";
+import { ColumnChart, DotStrip, Sparkline, StatusPill, TONE_COLOR } from "@/components/viz/charts";
+import { StatTile } from "@/components/viz/cards";
 import { PARTICIPATION, TREND, labelOf, legendOf, toneOf } from "@/lib/scale";
 import { CALENDAR_THEMES, relativeLabel, upcomingEvents } from "@/lib/commemorative-dates";
 import { MONTH_SHORT, addDays, brDay, brYmd, dayStart, formatDateShort, monthKey, weekStart } from "@/lib/dates";
@@ -81,7 +82,7 @@ export default async function SchoolDashboard() {
   return (
     <div className="dashboard-grid">
       <div className="min-w-0">
-        {welcoming ? <JourneyWelcome journey={journey} /> : null}
+        {welcoming ? <JourneyWelcome journey={journey} hero /> : null}
         <section className="mb-7 flex items-center justify-between gap-4">
           <div className="min-w-0">
             {welcoming ? null : <p className="mb-3 text-sm text-ink-soft">Olá, {firstName(user.name)}.</p>}
@@ -100,7 +101,7 @@ export default async function SchoolDashboard() {
             <StatTile
               label="Registros nos últimos 7 dias"
               value={recentRecords}
-              chart={recordDates.length ? <MiniColumns points={weekly} label="Registros de aula por semana, nas últimas 8 semanas" /> : undefined}
+              chart={recordDates.length ? <ColumnChart compact rows={weekly} label="Registros de aula por semana, nas últimas 8 semanas" /> : undefined}
               hint={recordDates.length ? "Por semana, nas últimas 8." : undefined}
             />
             <StatTile

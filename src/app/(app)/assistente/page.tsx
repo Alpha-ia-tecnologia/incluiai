@@ -24,7 +24,6 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
         lede="Dúvidas, propostas de plano e atividades, registro de aulas e o painel."
       >
         <Assurances
-          onNavy
           label="Cuidados do assistente"
           items={[
             { icon: UserCheck, text: "Você confirma cada ação" },

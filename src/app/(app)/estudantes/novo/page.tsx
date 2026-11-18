@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { PageHeader } from "@/components/ui";
 import { StudentRegistrationChat } from "@/components/student-registration-chat";
+import { createStudentAction } from "@/actions/students";
 
 export default async function NewStudentPage() {
   const prisma = await db();
@@ -35,7 +36,7 @@ export default async function NewStudentPage() {
         title="Cadastrar estudante"
         lede="Uma conversa guiada. Você revisa tudo antes de criar o prontuário."
       />
-      <StudentRegistrationChat schools={schoolOptions} />
+      <StudentRegistrationChat schools={schoolOptions} action={createStudentAction} />
     </>
   );
 }

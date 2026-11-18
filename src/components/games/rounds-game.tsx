@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
-import type { GameControls } from "./types";
+import { FEEDBACK_PAUSE, useHint, type GameControls } from "./game-controls";
 
 export type RoundView = {
   id: string;
@@ -16,28 +16,13 @@ export function RoundsGame({ rounds, controls, optionsClass }: { rounds: RoundVi
   const [index, setIndex] = useState(0);
   const [tried, setTried] = useState<string[]>([]);
   const [right, setRight] = useState(false);
-  const [hinted, setHinted] = useState(false);
   const round = rounds[index];
-  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { onInstruction, onHint, registerHint } = controls;
+  const { onInstruction } = controls;
+  const [hinted, clearHint] = useHint(controls, false, () => (right ? null : true));
 
   useEffect(() => {
     if (round) onInstruction(round.instruction);
   }, [onInstruction, round]);
-
-  useEffect(() => {
-    registerHint(() => {
-      if (right) return;
-      setHinted(true);
-      onHint();
-      if (hintTimer.current) clearTimeout(hintTimer.current);
-      hintTimer.current = setTimeout(() => setHinted(false), 2000);
-    });
-  }, [registerHint, right, onHint]);
-  useEffect(() => () => {
-    registerHint(null);
-    if (hintTimer.current) clearTimeout(hintTimer.current);
-  }, [registerHint]);
 
   if (!round) return null;
 
@@ -45,17 +30,17 @@ export function RoundsGame({ rounds, controls, optionsClass }: { rounds: RoundVi
     if (right || tried.includes(option.value)) return;
     if (option.value === round.answer) {
       setRight(true);
-      setHinted(false);
+      clearHint();
       controls.onProgress(index + 1);
       controls.onFeedback(`Isso! ${option.label}.`, `Isso! ${option.label}.`);
-      setTimeout(() => {
-        if (index + 1 >= rounds.length) controls.onFinish();
-        else {
+      if (index + 1 >= rounds.length) controls.onFinish();
+      else {
+        setTimeout(() => {
           setIndex(index + 1);
           setTried([]);
           setRight(false);
-        }
-      }, 1000);
+        }, FEEDBACK_PAUSE);
+      }
       return;
     }
     setTried([...tried, option.value]);

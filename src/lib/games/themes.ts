@@ -1,21 +1,5 @@
-export const GAME_KEYS = ["memoria", "sequencia", "associacao", "emocoes"] as const;
-export type GameKey = (typeof GAME_KEYS)[number];
-export const isGameKey = (value: unknown): value is GameKey => GAME_KEYS.includes(value as GameKey);
-
-export const LEVELS = ["facil", "medio", "desafio"] as const;
-export type Level = (typeof LEVELS)[number];
-export const isLevel = (value: unknown): value is Level => LEVELS.includes(value as Level);
-export const LEVEL_LABEL: Record<Level, string> = { facil: "Fácil", medio: "Médio", desafio: "Desafio" };
-export const photoLevel = (level: Level): 1 | 2 => (level === "facil" ? 1 : 2);
-
-export const GAMES: Record<GameKey, { title: string; skill: string }> = {
-  memoria: { title: "Memória por temas", skill: "Atenção e memória" },
-  sequencia: { title: "Sequência da rotina", skill: "Organização da rotina" },
-  associacao: { title: "Associação", skill: "Leitura e quantidade" },
-  emocoes: { title: "Emoções", skill: "Comunicação e emoções" },
-};
-
-export type Pic = { key: string; label: string };
+import { pairDeck, shuffle, withDistractors, type MemoryCard, type RandomSource } from "./mechanics.ts";
+import type { FullScreenId, Level, Pic } from "./registry.ts";
 
 export const THEMES = {
   animais: { label: "Animais", items: [["cachorro", "Cachorro"], ["gato", "Gato"], ["peixe", "Peixe"], ["passaro", "Pássaro"], ["coelho", "Coelho"], ["tartaruga", "Tartaruga"], ["esquilo", "Esquilo"], ["caracol", "Caracol"]] },
@@ -53,21 +37,10 @@ export function suggestedLevel(profile: { readingSupport: number; mathSupport: n
   return average >= 3.5 ? "facil" : average >= 2 ? "medio" : "desafio";
 }
 
-export function shuffle<T>(items: readonly T[], random: () => number = Math.random): T[] {
-  const out = [...items];
-  for (let index = out.length - 1; index > 0; index -= 1) {
-    const other = Math.floor(random() * (index + 1));
-    [out[index], out[other]] = [out[other], out[index]];
-  }
-  return out;
-}
-
 export const MEMORY_PAIRS: Record<Level, number> = { facil: 2, medio: 4, desafio: 6 };
-export type MemoryCard = { id: string; pic: Pic };
 
-export function memoryDeck(theme: ThemeKey, level: Level, random: () => number = Math.random): MemoryCard[] {
-  const pics = shuffle(themePics(theme), random).slice(0, MEMORY_PAIRS[level]);
-  return shuffle(pics.flatMap((pic) => [{ id: `${pic.key}-1`, pic }, { id: `${pic.key}-2`, pic }]), random);
+export function memoryDeck(theme: ThemeKey, level: Level, random: RandomSource = Math.random): MemoryCard<Pic>[] {
+  return pairDeck(shuffle(themePics(theme), random).slice(0, MEMORY_PAIRS[level]), (pic) => pic.key, random);
 }
 
 type Routine = { label: string; steps: Pic[]; facil: number[]; medio: number[] };
@@ -120,23 +93,22 @@ export const QUANTITY_MAX: Record<Level, number> = { facil: 3, medio: 5, desafio
 
 export type AssociationMode = "palavra" | "quantidade";
 export const isAssociationMode = (value: unknown): value is AssociationMode => value === "palavra" || value === "quantidade";
-export type ChoiceRound = { id: string; pic: Pic; count: number; options: string[]; answer: string };
+export type PictureRound = { id: string; pic: Pic; count: number; options: string[]; answer: string };
 
-function targets<T>(items: readonly T[], random: () => number): T[] {
+function targets<T>(items: readonly T[], random: RandomSource): T[] {
   const out: T[] = [];
   while (out.length < ROUNDS) out.push(...shuffle(items, random).filter((item, index) => !(index === 0 && item === out.at(-1))));
   return out.slice(0, ROUNDS);
 }
 
-export function wordRounds(theme: ThemeKey, level: Level, random: () => number = Math.random): ChoiceRound[] {
+export function wordRounds(theme: ThemeKey, level: Level, random: RandomSource = Math.random): PictureRound[] {
   const pics = themePics(theme);
-  return targets(pics, random).map((pic, index) => {
-    const distractors = shuffle(pics.filter((item) => item.key !== pic.key), random).slice(0, OPTION_COUNT[level] - 1);
-    return { id: `r${index}`, pic, count: 1, answer: pic.label, options: shuffle([pic, ...distractors], random).map((item) => item.label) };
-  });
+  return targets(pics, random).map((pic, index) => (
+    { id: `r${index}`, pic, count: 1, answer: pic.label, options: withDistractors(pic, pics.filter((item) => item.key !== pic.key), OPTION_COUNT[level], random).map((item) => item.label) }
+  ));
 }
 
-export function quantityRounds(theme: ThemeKey, level: Level, random: () => number = Math.random): ChoiceRound[] {
+export function quantityRounds(theme: ThemeKey, level: Level, random: RandomSource = Math.random): PictureRound[] {
   const max = QUANTITY_MAX[level];
   const numbers = Array.from({ length: max }, (_, index) => index + 1);
   const counts = targets(numbers, random);
@@ -167,32 +139,36 @@ export const SITUATIONS: { text: string; icon: string; emotion: Emotion }[] = [
 
 export type EmotionRound = { id: string; text: string; icon: string; answer: Emotion; options: Emotion[] };
 
-export function emotionRounds(level: Level, random: () => number = Math.random): EmotionRound[] {
+export function emotionRounds(level: Level, random: RandomSource = Math.random): EmotionRound[] {
   const options = EMOTION_OPTIONS[level];
   const pool = SITUATIONS.filter((item) => options.includes(item.emotion));
   return targets(pool, random).map((item, index) => ({ id: `r${index}`, text: item.text, icon: item.icon, answer: item.emotion, options }));
 }
 
-export type GameResult = { done: number; total: number; hints: number; retries: number };
+export type GameData =
+  | { game: "memoria"; deck: MemoryCard<Pic>[] }
+  | { game: "sequencia"; routine: string; steps: Pic[]; order: number[] }
+  | { game: "associacao"; mode: AssociationMode; rounds: PictureRound[] }
+  | { game: "emocoes"; rounds: EmotionRound[] };
 
-export function gameNote(title: string, level: Level, detail: string | null, result: GameResult, unit: string): string {
-  const parts = [
-    `${result.done} de ${result.total} ${unit}`,
-    result.hints ? `${result.hints} ${result.hints === 1 ? "dica" : "dicas"}` : "sem dica",
-    result.retries ? `${result.retries} ${result.retries === 1 ? "tentativa a mais" : "tentativas a mais"}` : null,
-  ].filter(Boolean);
-  return `Jogo: ${title} (${LEVEL_LABEL[level].toLowerCase()}${detail ? `, ${detail}` : ""}). ${parts.join(" · ")}.`;
-}
+export type SessionChoices = { level: Level; theme: ThemeKey; routine?: string; mode?: string };
 
-export function sessionNote(game: GameKey, level: Level, detail: string | null, result: GameResult): string {
-  return gameNote(GAMES[game].title, level, detail, result, game === "memoria" ? "pares" : game === "sequencia" ? "etapas" : "rodadas");
-}
-
-export function suggestedRecord(result: GameResult): { participation: "total" | "parcial"; criterionMet: "sim" | "parcial" | "nao"; supportLevel: number } {
-  const finished = result.done >= result.total;
-  return {
-    participation: finished ? "total" : "parcial",
-    criterionMet: finished && result.hints === 0 ? "sim" : finished ? "parcial" : "nao",
-    supportLevel: result.hints === 0 && result.retries <= 1 ? 1 : result.hints <= 2 ? 2 : 3,
-  };
+export function fullScreenSession(game: FullScreenId, { level, theme, routine, mode }: SessionChoices, random: RandomSource = Math.random): { data: GameData; detail: string | null } {
+  if (game === "memoria") return { data: { game, deck: memoryDeck(theme, level, random) }, detail: THEMES[theme].label };
+  if (game === "sequencia") {
+    const key = isRoutineKey(routine) ? routine : "maos";
+    const steps = routineSteps(key, level);
+    const indexes = steps.map((_, index) => index);
+    let order = shuffle(indexes, random);
+    while (order.every((value, index) => value === index)) order = shuffle(indexes, random);
+    return { data: { game, routine: ROUTINES[key].label, steps, order }, detail: ROUTINES[key].label };
+  }
+  if (game === "associacao") {
+    const byWord = !isAssociationMode(mode) || mode === "palavra";
+    return {
+      data: { game, mode: byWord ? "palavra" : "quantidade", rounds: byWord ? wordRounds(theme, level, random) : quantityRounds(theme, level, random) },
+      detail: `${byWord ? "Figura e palavra" : "Quantidade e número"} · ${THEMES[theme].label}`,
+    };
+  }
+  return { data: { game, rounds: emotionRounds(level, random) }, detail: null };
 }

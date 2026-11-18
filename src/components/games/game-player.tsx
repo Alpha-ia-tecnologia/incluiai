@@ -2,31 +2,21 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Flag, Lightbulb, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { Character } from "@/components/character";
 import { BUTTON_CLS } from "@/components/form-styles";
-import {
-  EMOTION_LABEL, GAMES, LEVEL_LABEL, sessionNote,
-  type AssociationMode, type ChoiceRound, type EmotionRound, type GameKey, type GameResult, type Level, type MemoryCard, type Pic,
-} from "@/lib/games/games-core";
+import { useSpeech } from "@/components/speech";
+import { LEVEL_LABEL, gameById, gameNote, type FullScreenGame, type GameResult, type Level } from "@/lib/games/registry";
+import { EMOTION_LABEL, type GameData } from "@/lib/games/themes";
 import { GameRecordForm } from "./game-record-form";
-import { GamePictogram } from "./game-pictogram";
-import { EmotionFace } from "./emotion-face";
+import { GamePhoto } from "./game-photo";
 import { MemoryGame } from "./memory-game";
 import { SequenceGame } from "./sequence-game";
 import { RoundsGame, type RoundView } from "./rounds-game";
-import { useSpeech } from "./use-speech";
-import type { GameControls } from "./types";
+import { FEEDBACK_PAUSE, GAME_SPEECH_RATE, type GameControls } from "./game-controls";
 
-export type GameData =
-  | { game: "memoria"; deck: MemoryCard[] }
-  | { game: "sequencia"; routine: string; steps: Pic[]; order: number[] }
-  | { game: "associacao"; mode: AssociationMode; rounds: ChoiceRound[] }
-  | { game: "emocoes"; rounds: EmotionRound[] };
-
-const UNIT: Record<GameKey, [string, string]> = { memoria: ["par", "pares"], sequencia: ["etapa", "etapas"], associacao: ["rodada", "rodadas"], emocoes: ["rodada", "rodadas"] };
-const TONE: Record<GameKey, string> = { memoria: "bg-sky-soft text-sky-ink", sequencia: "bg-teal-soft text-teal-ink", associacao: "bg-peach-soft text-peach-ink", emocoes: "bg-rose-soft text-rose-ink" };
+const PALETTE: Record<FullScreenGame["tone"], string> = { sky: "bg-sky-soft text-sky-ink", teal: "bg-teal-soft text-teal-ink", peach: "bg-peach-soft text-peach-ink", rose: "bg-rose-soft text-rose-ink" };
 
 function totalOf(data: GameData) {
   return data.game === "memoria" ? data.deck.length / 2 : data.game === "sequencia" ? data.steps.length : data.rounds.length;
@@ -42,7 +32,7 @@ function roundsOf(data: Extract<GameData, { game: "associacao" | "emocoes" }>): 
         instruction: `${round.text} Como você se sentiria?`,
         prompt: (
           <>
-            <span className="flex size-36 items-center justify-center rounded-full bg-rose-soft text-rose-ink"><GamePictogram name={round.icon} size={132} /></span>
+            <span className="flex size-36 items-center justify-center rounded-full bg-rose-soft text-rose-ink"><GamePhoto name={round.icon} size={132} /></span>
             <p className="max-w-xl text-2xl font-medium leading-snug text-ink">{round.text}</p>
             <p className="text-base text-ink-soft">Como você se sentiria?</p>
           </>
@@ -50,7 +40,7 @@ function roundsOf(data: Extract<GameData, { game: "associacao" | "emocoes" }>): 
         options: round.options.map((emotion) => ({
           value: emotion,
           label: EMOTION_LABEL[emotion],
-          content: <><EmotionFace emotion={emotion} size={112} className="text-rose-ink" /><span className="text-xl font-medium">{EMOTION_LABEL[emotion]}</span></>,
+          content: <><GamePhoto name={`emocao-${emotion}`} size={112} className="text-rose-ink" /><span className="text-xl font-medium">{EMOTION_LABEL[emotion]}</span></>,
         })),
       })),
     };
@@ -64,13 +54,13 @@ function roundsOf(data: Extract<GameData, { game: "associacao" | "emocoes" }>): 
       instruction: byWord ? `Qual é o nome desta figura? ${round.options.join(", ")}.` : "Quantos tem? Conte e toque no número.",
       prompt: byWord ? (
         <>
-          <span className="flex size-40 items-center justify-center rounded-full bg-peach-soft text-peach-ink"><GamePictogram name={round.pic.key} size={148} /></span>
+          <span className="flex size-40 items-center justify-center rounded-full bg-peach-soft text-peach-ink"><GamePhoto name={round.pic.key} size={148} /></span>
           <p className="text-base text-ink-soft">Qual é o nome desta figura?</p>
         </>
       ) : (
         <>
           <ul aria-label={`${round.count} ${round.count === 1 ? "figura" : "figuras"}`} className="flex max-w-xl flex-wrap justify-center gap-3 rounded-3xl bg-peach-soft p-5 text-peach-ink">
-            {Array.from({ length: round.count }, (_, index) => <li key={index}><GamePictogram name={round.pic.key} size={52} /></li>)}
+            {Array.from({ length: round.count }, (_, index) => <li key={index}><GamePhoto name={round.pic.key} size={52} /></li>)}
           </ul>
           <p className="text-base text-ink-soft">Quantos tem?</p>
         </>
@@ -92,15 +82,18 @@ export function GamePlayer({ data, level, detail, student, replayHref }: {
   student: { id: string; firstName: string } | null;
 }) {
   const router = useRouter();
-  const { available, speak } = useSpeech();
+  const { available, speak: say, cancel } = useSpeech();
+  const speak = useCallback((text: string) => say(text, { rate: GAME_SPEECH_RATE }), [say]);
   const [soundOn, setSoundOn] = useState(true);
   const [instruction, setInstruction] = useState("");
   const [feedback, setFeedback] = useState("");
   const [result, setResult] = useState<GameResult>({ done: 0, total: totalOf(data), hints: 0, retries: 0 });
   const hintHandler = useRef<(() => void) | null>(null);
   const [finished, setFinished] = useState(false);
-  const game = data.game;
-  const [one, many] = UNIT[game];
+  const game = gameById(data.game);
+  const [one, many] = game.unit;
+
+  useEffect(() => cancel, [cancel]);
 
   const onFeedback = useCallback((text: string, spoken?: string) => {
     setFeedback(text);
@@ -111,7 +104,7 @@ export function GamePlayer({ data, level, detail, student, replayHref }: {
     onHint: useCallback(() => setResult((current) => ({ ...current, hints: current.hints + 1 })), []),
     onRetry: useCallback(() => setResult((current) => ({ ...current, retries: current.retries + 1 })), []),
     onProgress: useCallback((done: number) => setResult((current) => ({ ...current, done })), []),
-    onFinish: useCallback(() => setFinished(true), []),
+    onFinish: useCallback(() => { setTimeout(() => setFinished(true), FEEDBACK_PAUSE); }, []),
     onFeedback,
     onInstruction: useCallback((text: string) => setInstruction(text), []),
   };
@@ -125,10 +118,10 @@ export function GamePlayer({ data, level, detail, student, replayHref }: {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-2">
           <Link href={backHref} className={`${BUTTON_CLS.quiet} !px-3`}><ArrowLeft size={18} aria-hidden /> Sair</Link>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-semibold text-ink sm:text-xl">{GAMES[game].title}</h1>
+            <h1 className="truncate text-base font-semibold text-ink sm:text-xl">{game.title}</h1>
             <p className="truncate text-sm text-ink-soft">{[LEVEL_LABEL[level], detail, student ? `com ${student.firstName}` : null].filter(Boolean).join(" · ")}</p>
           </div>
-          <p className={`rounded-full px-3 py-1.5 text-sm font-medium tabular-nums ${TONE[game]}`} aria-live="polite">
+          <p className={`rounded-full px-3 py-1.5 text-sm font-medium tabular-nums ${PALETTE[game.tone]}`} aria-live="polite">
             {result.done} de {result.total} {result.total === 1 ? one : many}
           </p>
           {!finished ? (
@@ -166,11 +159,11 @@ export function GamePlayer({ data, level, detail, student, replayHref }: {
 }
 
 function GameEnd({ game, level, detail, result, student, backHref, onReplay }: {
-  game: GameKey; level: Level; detail: string | null; result: GameResult; student: { id: string; firstName: string } | null;
+  game: FullScreenGame; level: Level; detail: string | null; result: GameResult; student: { id: string; firstName: string } | null;
   backHref: string; onReplay: () => void;
 }) {
   const complete = result.done >= result.total;
-  const [one, many] = UNIT[game];
+  const [one, many] = game.unit;
   const again = (
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={onReplay} className={BUTTON_CLS.secondary}><RotateCcw size={16} aria-hidden /> Jogar de novo</button>
@@ -189,7 +182,7 @@ function GameEnd({ game, level, detail, result, student, backHref, onReplay }: {
         </ul>
         {student ? null : <div className="mt-2">{again}</div>}
       </section>
-      {student ? <GameRecordForm student={student} result={result} note={sessionNote(game, level, detail, result)} actions={again} /> : null}
+      {student ? <GameRecordForm student={student} result={result} note={gameNote(game, level, detail, result)} actions={again} /> : null}
     </div>
   );
 }

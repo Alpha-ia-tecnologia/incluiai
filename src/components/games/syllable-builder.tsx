@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { isCorrectAnswer, type SyllableRound } from "@/lib/games";
+import { isCorrectAnswer, type SyllableRound } from "@/lib/games/objects";
 import styles from "./games.module.css";
 
 export function SyllableBuilder({ round, hint, solved, onAnswer, onEdit }: {

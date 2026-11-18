@@ -6,13 +6,21 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import { ArrowUp, Check, CircleAlert, CircleHelp, Expand, LoaderCircle, MessageSquarePlus, MessageSquareText, Sparkles, Sprout, Trash2, X } from "lucide-react";
 import type { ActionView, AssistantEvent, ConversationDetail, ConversationView, MessageView, ToolStep } from "@/lib/assistant/types";
 import type { GardenOutcome } from "@/lib/assistant/garden-scenes";
-import { doneLabel } from "@/lib/assistant/catalog";
-import { GardenWait } from "@/components/garden-wait/garden-wait";
+import { conversationHref, doneLabel } from "@/lib/assistant/catalog";
+import { ChatWait } from "@/components/garden-wait/garden-wait";
 import { Character } from "@/components/character";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Markdown } from "./markdown";
 
 type Live = { text: string; steps: ToolStep[] };
+// Estado do turno para o botão flutuante; globals.css desenha a marca pelo data-activity.
+export type AssistantActivity = "ocupado" | "pronto" | "aviso" | "interrompida";
+
+const LOCAL_ID_PREFIX = { envio: "local-", erro: "erro-", interrompida: "interrompida-" } as const;
+type LocalMessage = keyof typeof LOCAL_ID_PREFIX;
+const localId = (kind: LocalMessage) => `${LOCAL_ID_PREFIX[kind]}${Date.now()}`;
+const isLocal = (message: { id: string }, kind: LocalMessage) => message.id.startsWith(LOCAL_ID_PREFIX[kind]);
+
 const NO_STEPS: ToolStep[] = [];
 const INTERRUPTED = "A conexão caiu antes de a resposta chegar. Ela continua sendo preparada e fica salva nesta conversa.";
 
@@ -24,7 +32,7 @@ type Props = {
   conversations?: ConversationView[];
   studentId?: string | null;
   onClose?: () => void;
-  onActivity?: (activity: "ocupado" | "pronto" | "aviso" | "interrompida") => void;
+  onActivity?: (activity: AssistantActivity) => void;
 };
 
 const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -83,6 +91,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
   const [settledId, setSettledId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
   const newConversationRef = useRef<HTMLButtonElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
   const announced = useRef("");
@@ -139,10 +148,13 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
     setError(null);
     announce("");
     pinned.current = true;
-    if (layout === "page") window.history.replaceState(null, "", "/assistente");
-    // Depois de aplicar o estado: numa conversa longa o campo ainda está desligado.
-    window.setTimeout(() => inputRef.current?.focus(), 0);
+    if (layout === "page") window.history.replaceState(null, "", conversationHref());
+    setFocusRequest((count) => count + 1);
   }, [announce, layout]);
+
+  useEffect(() => {
+    if (focusRequest) inputRef.current?.focus();
+  }, [focusRequest]);
 
   const open = useCallback(async (id: string) => {
     if (live) return;
@@ -164,7 +176,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
       setError(null);
       announce("");
       pinned.current = true;
-      if (layout === "page") window.history.replaceState(null, "", `/assistente?c=${id}`);
+      if (layout === "page") window.history.replaceState(null, "", conversationHref(id));
     } catch (caught) {
       if (seq !== loadSeq.current) return;
       recheckFocus.current = false;
@@ -187,7 +199,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
       case "conversation":
         setConversation(event.conversation);
         setList((items) => (items.some((item) => item.id === event.conversation.id) ? items : [event.conversation, ...items]));
-        if (layout === "page") window.history.replaceState(null, "", `/assistente?c=${event.conversation.id}`);
+        if (layout === "page") window.history.replaceState(null, "", conversationHref(event.conversation.id));
         break;
       case "text":
         setLive((current) => ({ text: (current?.text ?? "") + event.delta, steps: current?.steps ?? [] }));
@@ -216,7 +228,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
         onActivity?.("pronto");
         break;
       case "error":
-        setMessages((items) => [...items, { id: `erro-${Date.now()}`, role: "sistema", text: event.message, steps: [], createdAt: new Date().toISOString() }]);
+        setMessages((items) => [...items, { id: localId("erro"), role: "sistema", text: event.message, steps: [], createdAt: new Date().toISOString() }]);
         setTurnEnd("erro");
         setLive(null);
         onActivity?.("aviso");
@@ -232,7 +244,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
     setLoadingId(null);
     setError(null);
     setInput("");
-    setMessages((items) => [...items, { id: `local-${Date.now()}`, role: "usuario", text, steps: [], createdAt: new Date().toISOString() }]);
+    setMessages((items) => [...items, { id: localId("envio"), role: "usuario", text, steps: [], createdAt: new Date().toISOString() }]);
     setTurnEnd(null);
     setLive({ text: "", steps: [] });
     pinned.current = true;
@@ -247,7 +259,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
     };
     const interrupt = () => {
       ended = true;
-      setMessages((items) => [...items, { id: `interrompida-${Date.now()}`, role: "sistema", text: INTERRUPTED, steps: [], createdAt: new Date().toISOString() }]);
+      setMessages((items) => [...items, { id: localId("interrompida"), role: "sistema", text: INTERRUPTED, steps: [], createdAt: new Date().toISOString() }]);
       setTurnEnd("interrompida");
       setLive(null);
       onActivity?.("interrompida");
@@ -342,7 +354,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
   const empty = messages.length === 0 && !live;
   const lastMessage = messages.at(-1);
   const replyMissing = !live && !!conversation && lastMessage?.role === "usuario";
-  const dropAt = messages.findLastIndex((message) => message.id.startsWith("interrompida-"));
+  const dropAt = messages.findLastIndex((message) => isLocal(message, "interrompida"));
   const dropOpen = dropAt >= 0 && !messages.slice(dropAt + 1).some((message) => message.role === "assistente");
   const recheck = conversation && !live ? (
     <button
@@ -403,8 +415,8 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
               ) : message.role === "sistema" ? (
                 <div className="mx-auto max-w-[90%] rounded-xl bg-surface-muted px-3 py-2 text-center text-xs leading-relaxed text-ink-soft">
                   <Markdown text={message.text} />
-                  {index === messages.length - 1 && message.id.startsWith("erro-") && !live && !dropOpen ? <button type="button" onClick={retry} className="mt-1 inline-flex min-h-11 items-center rounded-full px-3 font-medium text-brand-strong underline underline-offset-4 hover:bg-paper-raised">Usar a mesma mensagem</button> : null}
-                  {index === messages.length - 1 && (message.id.startsWith("interrompida-") || dropOpen) ? recheck : null}
+                  {index === messages.length - 1 && isLocal(message, "erro") && !live && !dropOpen ? <button type="button" onClick={retry} className="mt-1 inline-flex min-h-11 items-center rounded-full px-3 font-medium text-brand-strong underline underline-offset-4 hover:bg-paper-raised">Usar a mesma mensagem</button> : null}
+                  {index === messages.length - 1 && (isLocal(message, "interrompida") || dropOpen) ? recheck : null}
                 </div>
               ) : (
                 <div className="flex items-start gap-3">
@@ -435,8 +447,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
   );
 
   const garden = (
-    <GardenWait
-      variant="faixa"
+    <ChatWait
       active={!!live}
       steps={live?.steps ?? NO_STEPS}
       writing={!!live?.text}
@@ -490,7 +501,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
           <div className="flex shrink-0 items-center gap-1">
             <button type="button" onClick={reset} disabled={!!live} aria-label="Nova conversa" title="Nova conversa" className="flex size-9 items-center justify-center rounded-full text-ink-soft hover:bg-surface-muted disabled:opacity-50"><MessageSquarePlus size={18} aria-hidden /></button>
             <Link
-              href={conversation ? `/assistente?c=${conversation.id}` : "/assistente"}
+              href={conversationHref(conversation?.id)}
               onClick={(event) => { if (live) event.preventDefault(); }}
               aria-disabled={live ? "true" : undefined}
               aria-label="Abrir em página inteira"

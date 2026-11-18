@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isTextScale, pickVoice, speechChunks } from "./speech-text.ts";
+import { pickVoice, speechChunks } from "./speech-text.ts";
 
 const voice = (name, lang, localService, isDefault = false) => ({ name, lang, localService, default: isDefault });
 
@@ -27,10 +27,4 @@ test("trechos curtos: frases, parágrafos e frases longas demais", () => {
   assert.ok(parts.every((part) => part.length <= 60));
   assert.equal(parts.join(" "), long.trim());
   assert.deepEqual(speechChunks("   \n  "), []);
-});
-
-test("tamanho do texto", () => {
-  assert.equal(isTextScale("2"), true);
-  assert.equal(isTextScale("4"), false);
-  assert.equal(isTextScale(null), false);
 });

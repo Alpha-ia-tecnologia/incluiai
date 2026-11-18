@@ -236,6 +236,7 @@ export const OBSERVATION: Record<EvidenceObservation, Term> = {
   sem_oportunidade: CRITERION_STATUS.sem_oportunidade,
   nao_registrado: CRITERION_STATUS.nao_registrado,
 };
+export const isDocumented = (evidence: { observation: string } | undefined) => evidence !== undefined && evidence.observation !== "nao_registrado";
 
 export type ApplicationResult = "sim" | "parcial" | "nao";
 export const RESULT_STATUS: Record<ApplicationResult, CriterionStatus> = { sim: "demonstrado", parcial: "parcial", nao: "ainda_nao_demonstrado" };

@@ -15,6 +15,7 @@ import { IMPORT_TEMPLATE } from "./src/lib/student-import.ts";
 import { CONTENT_ID } from "./src/lib/landmarks.ts";
 import { VLIBRAS_CHECKED_VERSION, VLIBRAS_ROOT } from "./src/lib/vlibras-core.ts";
 import { LOGIN_MAX_FAILURES, SESSION_COOKIE } from "./src/lib/session-core.ts";
+import { TEXT_SCALES } from "./src/lib/text-scale.ts";
 
 const ONLY_WAIT = process.env.E2E_ONLY === "espera";
 const PAID = process.env.E2E_PAGO === "1";
@@ -1106,17 +1107,20 @@ if (!ONLY_WAIT) {
     const hasRead = await page.evaluate(() => [...document.querySelectorAll("button")].some((button) => button.textContent.includes("Ouvir esta página")));
     check("acessibilidade: botão Ouvir no portal da família", hasRead);
     // O botão visível (o do menu com o nome fica fechado); repete até a página ficar interativa.
-    const pick = (label) => until(page, (name) => {
+    // 16 px: o tamanho padrão da raiz no navegador, sobre o qual valem as porcentagens da escala.
+    const [standard, largest] = [TEXT_SCALES[0], TEXT_SCALES.at(-1)];
+    const pxOf = (scale) => `${(16 * (parseFloat(scale.fontSize) || 100)) / 100}px`;
+    const pick = (scale) => until(page, (name, value) => {
       [...document.querySelectorAll(`button[aria-label="${name}"]`)].find((button) => button.checkVisibility())?.click();
-      return name === "Texto maior" ? document.documentElement.dataset.textScale === "3" : !document.documentElement.dataset.textScale;
-    }, { timeout: 15000, polling: 500 }, label);
-    await pick("Texto maior");
+      return value ? document.documentElement.dataset.textScale === value : !document.documentElement.dataset.textScale;
+    }, { timeout: 15000, polling: 500 }, scale.label, scale.fontSize ? scale.value : "");
+    await pick(largest);
     const scaled = await page.evaluate(() => document.documentElement.dataset.textScale);
     await page.reload({ waitUntil: "networkidle2" });
-    const kept = await page.evaluate(() => ({ scale: document.documentElement.dataset.textScale, pressed: document.querySelector('button[aria-label="Texto maior"]')?.getAttribute("aria-pressed"), size: getComputedStyle(document.documentElement).fontSize }));
-    check("acessibilidade: texto maior vale na hora e depois de recarregar", scaled === "3" && kept.scale === "3" && kept.pressed === "true" && kept.size === "20px", JSON.stringify({ scaled, ...kept }));
-    await pick("Texto no tamanho padrão");
-    check("acessibilidade: volta ao tamanho padrão", await page.evaluate(() => !document.documentElement.dataset.textScale && getComputedStyle(document.documentElement).fontSize === "16px"));
+    const kept = await page.evaluate((name) => ({ scale: document.documentElement.dataset.textScale, pressed: document.querySelector(`button[aria-label="${name}"]`)?.getAttribute("aria-pressed"), size: getComputedStyle(document.documentElement).fontSize }), largest.label);
+    check("acessibilidade: texto maior vale na hora e depois de recarregar", scaled === largest.value && kept.scale === largest.value && kept.pressed === "true" && kept.size === pxOf(largest), JSON.stringify({ scaled, ...kept }));
+    await pick(standard);
+    check("acessibilidade: volta ao tamanho padrão", await page.evaluate((size) => !document.documentElement.dataset.textScale && getComputedStyle(document.documentElement).fontSize === size, pxOf(standard)));
     // Sem voz em português no Chrome de teste, o botão explica em vez de falhar calado.
     await clickByText(page, "Ouvir esta página");
     const reaction = await until(page, () => ["Parar a leitura", "não tem voz em português", "só tem voz pela internet"].some((text) => document.body.innerText.includes(text)), { timeout: 5000 });

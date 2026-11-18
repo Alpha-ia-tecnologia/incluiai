@@ -1,22 +1,19 @@
 ﻿import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { upsertProfile } from "@/actions/profile";
-import { parseJson, readList, firstName } from "@/lib/format";
-import { SUPPORT_LEVELS, CHANNELS, BARRIERS, SENSORY_AREAS, SENSORY_LABELS, SENSORY_VALUES } from "@/lib/scale";
-import { SUPPORT_FIELD_LABEL, profileSuggestionsFromStudy } from "@/lib/functional-profile";
+import { firstName, parseJson, readList, splitItems } from "@/lib/format";
+import { SUPPORT_LEVELS, SENSORY_AREAS, SENSORY_LABELS } from "@/lib/scale";
+import { SUPPORT_FIELD_LABEL, profileAnswers, profileList, profileMinutes, profileOptions, profileSuggestionsFromStudy } from "@/lib/functional-profile";
+import type { ChatAnswers } from "@/lib/guided-chat";
 import { ButtonLink, PageHeader, Card, SectionTitle } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { ProfileChat } from "@/components/profile-chat";
-import type { ProfileAnswers } from "@/components/profile-chat";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ActionForm } from "@/components/action-form";
-import { ATTENTION_MINUTES, CALMING_OPTIONS, EARLY_SIGN_OPTIONS, INTEREST_OPTIONS, STRENGTH_OPTIONS, TASK_TOLERANCE_MINUTES, TRIGGER_OPTIONS } from "@/lib/form-options";
 import { parseCaseStudy } from "@/lib/case-study";
 import { MessageSquareText, ListChecks } from "lucide-react";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 import { param, readProfileSaved, type SearchParams } from "@/lib/search-params";
-
-const channelOptions = Object.entries(CHANNELS).map(([value, label]) => ({ value, label }));
 
 function SupportSelect({ name, label, defaultValue }: { name: string; label: string; defaultValue: number }) {
   return (
@@ -55,46 +52,14 @@ export default async function ProfilePage({
   const hasSuggestions = Boolean(suggested.expressiveChannel || suggested.interests.length || suggested.barriers.length || suggested.strengths);
   const sensory = parseJson<Record<string, string>>(p?.sensoryProfile ?? null, {});
   const barriers = readList(p?.barriers ?? null);
-  const csv = (v: string | null | undefined) => readList(v ?? null).join(", ");
   const upsert = upsertProfile.bind(null, id);
-  const initialAnswers: ProfileAnswers = p
-    ? {
-        expressiveChannel: p.expressiveChannel,
-        receptiveChannel: p.receptiveChannel,
-        commandSteps: String(p.commandSteps),
-        readingSupport: String(p.readingSupport),
-        writingSupport: String(p.writingSupport),
-        mathSupport: String(p.mathSupport),
-        attentionMinutes: String(p.attentionMinutes),
-        peerInteraction: String(p.peerInteraction),
-        adultInteraction: String(p.adultInteraction),
-        groupWork: String(p.groupWork),
-        feeding: String(p.feeding),
-        hygiene: String(p.hygiene),
-        mobility: String(p.mobility),
-        organization: String(p.organization),
-        sens_auditiva: sensory.auditiva ?? "tipica",
-        sens_visual: sensory.visual ?? "tipica",
-        sens_tatil: sensory.tatil ?? "tipica",
-        sens_vestibular: sensory.vestibular ?? "tipica",
-        sens_proprioceptiva: sensory.proprioceptiva ?? "tipica",
-        fineMotor: String(p.fineMotor),
-        grossMotor: String(p.grossMotor),
-        usesWheelchairOrOrthosis: p.usesWheelchairOrOrthosis ? "sim" : "nao",
-        triggers: csv(p.triggers),
-        earlySigns: csv(p.earlySigns),
-        calmingStrategies: csv(p.calmingStrategies),
-        bestShift: p.bestShift,
-        taskToleranceMinutes: String(p.taskToleranceMinutes),
-        interests: csv(p.interests),
-        barriers,
-        strengths: p.strengths ?? "",
-      }
+  const initialAnswers: ChatAnswers = p
+    ? profileAnswers(p)
     : {
         ...(suggested.expressiveChannel ? { expressiveChannel: suggested.expressiveChannel } : {}),
-        ...(suggested.interests.length ? { interests: suggested.interests.join(", ") } : {}),
+        ...(suggested.interests.length ? { interests: suggested.interests } : {}),
         ...(suggested.barriers.length ? { barriers: suggested.barriers } : {}),
-        ...(suggested.strengths ? { strengths: suggested.strengths.replace(/;\s*/g, ", ") } : {}),
+        ...(suggested.strengths ? { strengths: splitItems(suggested.strengths) } : {}),
       };
   const suggestionNote = hasSuggestions ? (
     <p className="mb-4 max-w-3xl rounded-xl bg-sky-soft px-4 py-3 text-xs leading-relaxed text-sky-ink">
@@ -156,14 +121,12 @@ export default async function ProfilePage({
           <Card>
             <SectionTitle>Comunicação</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-3">
-              <ChoiceField name="expressiveChannel" label="Como se comunica" options={channelOptions} defaultValue={p?.expressiveChannel ?? "fala"} required />
-              <ChoiceField name="receptiveChannel" label="Como compreende melhor" options={channelOptions} defaultValue={p?.receptiveChannel ?? "fala"} required />
+              <ChoiceField name="expressiveChannel" label="Como se comunica" options={profileOptions("expressiveChannel")} defaultValue={p?.expressiveChannel ?? "fala"} required />
+              <ChoiceField name="receptiveChannel" label="Como compreende melhor" options={profileOptions("receptiveChannel")} defaultValue={p?.receptiveChannel ?? "fala"} required />
               <div>
                 <label htmlFor="commandSteps" className={labelCls}>Quantas etapas compreende por vez</label>
                 <select id="commandSteps" name="commandSteps" defaultValue={p?.commandSteps ?? 1} className={inputCls}>
-                  <option value={1}>1 etapa</option>
-                  <option value={2}>2 etapas</option>
-                  <option value={3}>3 etapas</option>
+                  {profileOptions("commandSteps").map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </div>
             </div>
@@ -175,7 +138,7 @@ export default async function ProfilePage({
               <SupportSelect name="readingSupport" label={SUPPORT_FIELD_LABEL.readingSupport} defaultValue={p?.readingSupport ?? 2} />
               <SupportSelect name="writingSupport" label={SUPPORT_FIELD_LABEL.writingSupport} defaultValue={p?.writingSupport ?? 2} />
               <SupportSelect name="mathSupport" label={SUPPORT_FIELD_LABEL.mathSupport} defaultValue={p?.mathSupport ?? 2} />
-              <ChoiceField name="attentionMinutes" label="Tempo de atenção" options={ATTENTION_MINUTES} defaultValue={String(p?.attentionMinutes ?? 10)} required otherType="number" otherMin={1} otherMax={120} otherPlaceholder="Minutos" />
+              <ChoiceField name="attentionMinutes" label="Tempo de atenção" options={profileOptions("attentionMinutes")} defaultValue={String(p?.attentionMinutes ?? 10)} required {...profileMinutes("attentionMinutes")} otherPlaceholder="Minutos" />
             </div>
           </Card>
 
@@ -199,7 +162,7 @@ export default async function ProfilePage({
                 <div key={area}>
                   <label htmlFor={`sens_${area}`} className={labelCls}>{SENSORY_LABELS[area]}</label>
                   <select id={`sens_${area}`} name={`sens_${area}`} defaultValue={sensory[area] ?? "tipica"} className={inputCls}>
-                    {Object.entries(SENSORY_VALUES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {profileOptions(`sens_${area}`).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </div>
               ))}
@@ -218,35 +181,34 @@ export default async function ProfilePage({
             <SectionTitle>Bem-estar e ritmo</SectionTitle>
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <MultiChoiceField name="triggers" label="O que causa desconforto" options={TRIGGER_OPTIONS} defaultValue={readList(p?.triggers ?? null)} separator="," />
+                <MultiChoiceField name="triggers" label="O que causa desconforto" options={profileOptions("triggers")} defaultValue={readList(p?.triggers ?? null)} {...profileList("triggers")} />
               </div>
               <div className="sm:col-span-2">
-                <MultiChoiceField name="earlySigns" label="Como demonstra que precisa de uma pausa" options={EARLY_SIGN_OPTIONS} defaultValue={readList(p?.earlySigns ?? null)} separator="," />
+                <MultiChoiceField name="earlySigns" label="Como demonstra que precisa de uma pausa" options={profileOptions("earlySigns")} defaultValue={readList(p?.earlySigns ?? null)} {...profileList("earlySigns")} />
               </div>
               <div className="sm:col-span-2">
-                <MultiChoiceField name="calmingStrategies" label="Estratégias que acalmam" options={CALMING_OPTIONS} defaultValue={readList(p?.calmingStrategies ?? null)} separator="," />
+                <MultiChoiceField name="calmingStrategies" label="Estratégias que acalmam" options={profileOptions("calmingStrategies")} defaultValue={readList(p?.calmingStrategies ?? null)} {...profileList("calmingStrategies")} />
               </div>
               <div>
                 <label htmlFor="bestShift" className={labelCls}>Melhor turno</label>
                 <select id="bestShift" name="bestShift" defaultValue={p?.bestShift ?? "manha"} className={inputCls}>
-                  <option value="manha">Manhã</option>
-                  <option value="tarde">Tarde</option>
+                  {profileOptions("bestShift").map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </div>
-              <ChoiceField name="taskToleranceMinutes" label="Tempo de participação na atividade" options={TASK_TOLERANCE_MINUTES} defaultValue={String(p?.taskToleranceMinutes ?? 15)} required otherType="number" otherMin={1} otherMax={120} otherPlaceholder="Minutos" />
+              <ChoiceField name="taskToleranceMinutes" label="Tempo de participação na atividade" options={profileOptions("taskToleranceMinutes")} defaultValue={String(p?.taskToleranceMinutes ?? 15)} required {...profileMinutes("taskToleranceMinutes")} otherPlaceholder="Minutos" />
             </div>
           </Card>
 
           <Card className="border-amber/50">
             <SectionTitle>Do que o estudante gosta</SectionTitle>
-            <MultiChoiceField name="interests" label="Escolha de 3 a 5 temas *" options={INTEREST_OPTIONS} defaultValue={p ? readList(p.interests) : suggested.interests} required separator="," />
+            <MultiChoiceField name="interests" label="Escolha de 3 a 5 temas *" options={profileOptions("interests")} defaultValue={p ? readList(p.interests) : suggested.interests} required {...profileList("interests")} />
           </Card>
 
           <Card>
             <SectionTitle>Dificuldades e pontos fortes</SectionTitle>
             <div className="space-y-5">
-              <MultiChoiceField name="barriers" label="O que dificulta a participação" options={Object.entries(BARRIERS).map(([value, label]) => ({ value, label }))} defaultValue={p ? barriers : suggested.barriers} submit="multiple" />
-              <MultiChoiceField name="strengths" label="O que faz bem e o que ajuda a participar" options={STRENGTH_OPTIONS} defaultValue={p ? p.strengths ?? "" : suggested.strengths} />
+              <MultiChoiceField name="barriers" label="O que dificulta a participação" options={profileOptions("barriers")} defaultValue={p ? barriers : suggested.barriers} {...profileList("barriers")} />
+              <MultiChoiceField name="strengths" label="O que faz bem e o que ajuda a participar" options={profileOptions("strengths")} defaultValue={p ? p.strengths ?? "" : suggested.strengths} {...profileList("strengths")} />
             </div>
           </Card>
 

@@ -9,7 +9,7 @@ import { linesToList, listToLines } from "@/lib/form-options";
 import { Field } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, linkCls, textareaCls } from "@/components/form-styles";
 import { OriginBadge } from "./badges";
-import { newId, type StepProps } from "./step-objective";
+import { newId, type StepProps } from "./editor-steps";
 import { SuggestionReview } from "./suggestion-review";
 
 export function StepOptions({ content, update, readOnly, planningId, access, suggestions, aiOn, flush, supportsCount }: StepProps & { planningId: string; access: PlanningAccess; suggestions: SuggestionView[]; aiOn: boolean; flush: () => Promise<void>; supportsCount: number }) {

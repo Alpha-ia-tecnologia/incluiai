@@ -8,8 +8,9 @@ import { PARTICIPATION, CRITERION_MET, TREND, shortOf, toneOf } from "@/lib/scal
 import { roleLabel } from "@/lib/roles";
 import { supportSeries, supportTrend, weeklyCounts } from "@/lib/series";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
-import { DataBoard, DataCard, MiniColumns, StatTile, StatusPill, SupportChart } from "@/components/data-viz";
-import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter } from "@/components/viz/student-viz";
+import { ColumnChart, StatusPill } from "@/components/viz/charts";
+import { DataBoard, DataCard, StatTile } from "@/components/viz/cards";
+import { ChartFrame, CriterionBar, ParticipationDonut, SupportChart, SupportMeter } from "@/components/viz/student-viz";
 import { DiaryForm } from "@/components/diary-form";
 
 export default async function DiaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ activityId?: string | string[] }> }) {
@@ -98,7 +99,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
                 label="Registros nas últimas 8 semanas"
                 value={recentRecords}
                 hint={`${entries.length} no total · último em ${formatDate(entries[0].date)}.`}
-                chart={<MiniColumns points={weeks} label="Registros de aula por semana, nas últimas 8 semanas" />}
+                chart={<ColumnChart compact rows={weeks} label="Registros de aula por semana, nas últimas 8 semanas" />}
               />
             </div>
           </DataBoard>

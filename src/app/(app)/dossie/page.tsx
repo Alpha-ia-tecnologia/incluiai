@@ -9,7 +9,7 @@ import { loadEvidence, type StudentEvidence } from "@/lib/dossier";
 import { itemTotals } from "@/lib/evidence";
 import { smallNumber } from "@/lib/assessment";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
-import { DataBoard, StatTile } from "@/components/data-viz";
+import { DataBoard, StatTile } from "@/components/viz/cards";
 import { EvidenceBadge } from "@/components/dossier/evidence-list";
 import { Assurances, HowToRead } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";

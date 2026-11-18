@@ -9,8 +9,8 @@ import { listStudentEvidence } from "@/lib/dua/applications";
 import { listAeeSessions } from "@/lib/aee-sessions";
 import { OBSERVATION } from "@/lib/dua/domain";
 import { PageHeader, Badge, EmptyState } from "@/components/ui";
-import { CountChips, DataBoard, DataCard } from "@/components/data-viz";
-import { ColumnChart } from "@/components/charts";
+import { ColumnChart, CountChips } from "@/components/viz/charts";
+import { DataBoard, DataCard } from "@/components/viz/cards";
 import {
   ClipboardList, FileText, HeartHandshake, Users, ArrowLeftRight,
   AlertTriangle, Trophy, Package, Layers, CalendarCheck, CalendarX, House, type LucideIcon,
@@ -99,7 +99,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
           <h2 className="sr-only">Resumo do histórico</h2>
           <DataBoard className="mb-8 max-w-2xl">
             <DataCard title="Eventos por mês" hint={`${lastYear ? plural(lastYear, "evento", "eventos") : "Nenhum evento"} nos últimos 12 meses · ${entries.length} no total.`}>
-              {lastYear ? <ColumnChart rows={months} caption="Eventos por mês, nos últimos 12 meses" /> : null}
+              {lastYear ? <ColumnChart rows={months} label="Eventos por mês, nos últimos 12 meses" /> : null}
               <div className={lastYear ? "mt-4" : ""}>
                 <h4 className="mb-2 text-xs font-medium text-ink-soft">Por tipo, em todo o histórico</h4>
                 <CountChips items={typeCounts} tone="neutral" unit="" />

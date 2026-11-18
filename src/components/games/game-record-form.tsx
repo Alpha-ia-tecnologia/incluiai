@@ -4,7 +4,7 @@ import { startTransition, useActionState, useMemo, type FormEvent, type ReactNod
 import { LoaderCircle, Sprout } from "lucide-react";
 import { choiceCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 import { SUPPORT_LEVELS } from "@/lib/scale";
-import { suggestedRecord, type GameResult } from "@/lib/games/games-core";
+import { suggestedRecord, type GameResult } from "@/lib/games/registry";
 import { recordGameSession } from "@/actions/games";
 import { FormResult } from "@/components/form-kit";
 

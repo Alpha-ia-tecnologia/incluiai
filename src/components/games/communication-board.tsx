@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, RotateCcw, Volume2 } from "lucide-react";
-import { GAME_OBJECTS, objectById, type GameObjectId } from "@/lib/games";
+import { GAME_OBJECTS, objectById, type GameObjectId } from "@/lib/games/objects";
+import { useSpeech } from "@/components/speech";
+import { GAME_SPEECH_RATE } from "./game-controls";
 import styles from "./communication-board.module.css";
 
 const INTENTIONS = [
@@ -20,7 +22,7 @@ export function CommunicationBoard({ onClose }: { onClose: () => void }) {
   const [audioMessage, setAudioMessage] = useState("");
   const title = useRef<HTMLHeadingElement>(null);
   const pictureTitle = useRef<HTMLHeadingElement>(null);
-  const activeSpeech = useRef<SpeechSynthesisUtterance | null>(null);
+  const { available, speak: say, cancel: cancelSpeech } = useSpeech();
   const selected = selectedId ? objectById(selectedId) : null;
   const prefix = INTENTIONS.find((item) => item.id === intention)!.label;
   const phrase = selected
@@ -29,26 +31,10 @@ export function CommunicationBoard({ onClose }: { onClose: () => void }) {
       : `${prefix} ${selected.article === "a" ? "uma" : "um"} ${selected.label.toLocaleLowerCase("pt-BR")}`
     : `${prefix}…`;
 
-  function cancelSpeech() {
-    if (activeSpeech.current) {
-      activeSpeech.current.onerror = null;
-      activeSpeech.current.onend = null;
-      activeSpeech.current = null;
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    }
-  }
-
   useEffect(() => {
     title.current?.focus();
-    return () => {
-      if (activeSpeech.current) {
-        activeSpeech.current.onerror = null;
-        activeSpeech.current.onend = null;
-        activeSpeech.current = null;
-        if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-      }
-    };
   }, []);
+  useEffect(() => cancelSpeech, [cancelSpeech]);
 
   function changeIntention(next: Intention) {
     cancelSpeech();
@@ -71,25 +57,12 @@ export function CommunicationBoard({ onClose }: { onClose: () => void }) {
 
   function speak() {
     if (!selected) return;
-    cancelSpeech();
-    if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+    if (!available) {
       setAudioMessage("O áudio não está disponível neste navegador. Sua frase continua escrita na tela.");
       return;
     }
-    const speech = new SpeechSynthesisUtterance(phrase);
-    speech.lang = "pt-BR";
-    speech.rate = 0.85;
-    speech.onerror = (event) => {
-      if (event.error !== "interrupted" && event.error !== "canceled") {
-        setAudioMessage("Não foi possível ouvir a frase. Você pode mostrar as imagens ou ler a frase com alguém.");
-      }
-    };
-    speech.onend = () => {
-      if (activeSpeech.current === speech) activeSpeech.current = null;
-    };
-    activeSpeech.current = speech;
     setAudioMessage("");
-    window.speechSynthesis.speak(speech);
+    say(phrase, { rate: GAME_SPEECH_RATE, onError: () => setAudioMessage("Não foi possível ouvir a frase. Você pode mostrar as imagens ou ler a frase com alguém.") });
   }
 
   return (

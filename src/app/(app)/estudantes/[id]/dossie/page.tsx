@@ -5,7 +5,7 @@ import { requireStudentPage } from "@/lib/page-context";
 import { loadEvidence } from "@/lib/dossier";
 import { visibleTabs } from "@/lib/student-tab-list";
 import { PageHeader } from "@/components/ui";
-import { DataBoard, StatTile } from "@/components/data-viz";
+import { DataBoard, StatTile } from "@/components/viz/cards";
 import { EvidenceList } from "@/components/dossier/evidence-list";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, HowToRead } from "@/components/explain";

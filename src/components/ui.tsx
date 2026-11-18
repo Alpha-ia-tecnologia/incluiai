@@ -20,7 +20,12 @@ export function PageHeader({ title, lede, actions, level = 1 }: { title: string;
   );
 }
 
-export function PageHero({ title, lede, eyebrow, character, actions, children, preload = false }: {
+const HERO_LAYOUT = {
+  page: { section: "mb-8 gap-y-3 p-5 sm:items-center sm:gap-x-8 sm:p-8", title: "text-2xl", actions: "mt-5", character: "w-14 sm:w-32 lg:w-40" },
+  standalone: { section: "mx-auto w-full max-w-3xl items-center gap-6 p-6 sm:p-10", title: "text-3xl", actions: "mt-6", character: "w-28 justify-self-center sm:w-40" },
+};
+
+export function PageHero({ title, lede, eyebrow, character, actions, children, preload = false, standalone = false }: {
   title: string;
   lede?: ReactNode;
   eyebrow?: ReactNode;
@@ -28,17 +33,19 @@ export function PageHero({ title, lede, eyebrow, character, actions, children, p
   actions?: ReactNode;
   children?: ReactNode;
   preload?: boolean;
+  standalone?: boolean;
 }) {
+  const layout = HERO_LAYOUT[standalone ? "standalone" : "page"];
   return (
-    <section className="page-hero surface-navy mb-8 grid min-w-0 gap-y-3 rounded-3xl p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-8 sm:p-8">
+    <section className={`page-hero surface-navy grid min-w-0 rounded-3xl sm:grid-cols-[minmax(0,1fr)_auto] ${layout.section}`}>
       <div className="min-w-0 sm:row-start-1">
         {eyebrow ? <p className="mb-2 flex items-center gap-2 text-sm font-medium text-on-navy-soft">{eyebrow}</p> : null}
-        <h1 className="font-display text-2xl font-bold leading-[1.15] tracking-tight text-on-navy sm:text-4xl">{title}</h1>
+        <h1 className={`font-display ${layout.title} font-bold leading-[1.15] tracking-tight text-on-navy sm:text-4xl`}>{title}</h1>
         {lede ? <div className="mt-3 max-w-2xl text-sm leading-relaxed text-on-navy-soft sm:text-base">{lede}</div> : null}
-        {actions ? <div className="mt-5 flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? <div className={`${layout.actions} flex flex-wrap gap-2`}>{actions}</div> : null}
         {children ? <div className="mt-5">{children}</div> : null}
       </div>
-      <Character variant={character} className="row-start-1 w-14 sm:col-start-2 sm:w-32 lg:w-40" preload={preload} />
+      <Character variant={character} className={`row-start-1 sm:col-start-2 ${layout.character}`} preload={preload} />
     </section>
   );
 }

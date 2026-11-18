@@ -159,3 +159,4 @@ export function toolGuide(group: Group): string[] {
 }
 
 export const CONVERSATION_PARAM = "c";
+export const conversationHref = (id?: string | null) => (id ? `/assistente?${CONVERSATION_PARAM}=${encodeURIComponent(id)}` : "/assistente");

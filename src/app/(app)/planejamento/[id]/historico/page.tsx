@@ -9,8 +9,8 @@ import { Card, SectionTitle } from "@/components/ui";
 import { ReviewBadge } from "@/components/dua/badges";
 import { VersionSummary } from "@/components/dua/history/version-summary";
 import { CollaboratorsForm } from "@/components/dua/history/collaborators-form";
-import { DataBoard, DataCard } from "@/components/data-viz";
-import { VersionSteps, type VersionStep } from "@/components/viz/version-steps";
+import { DataBoard, DataCard } from "@/components/viz/cards";
+import { type VersionStep, VersionSteps } from "./version-steps";
 import { Assurances, HowToRead } from "@/components/explain";
 
 const OBJECT_TYPE_LABEL: Record<string, string> = {

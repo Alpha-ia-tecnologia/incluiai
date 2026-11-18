@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { useFormStatus } from "react-dom";
 import { LoaderCircle } from "lucide-react";
-import { GardenWait, type InlineScene } from "@/components/garden-wait/garden-wait";
+import { InlineWait, type InlineScene } from "@/components/garden-wait/garden-wait";
 import { inlineCaption } from "@/lib/assistant/garden-scenes";
 
 // O App Router usa o React que vem com o Next (next/dist/compiled/react-dom), em que atualizações de estado
@@ -60,7 +60,7 @@ export function PendingButton({ children, pendingText, className = "", disabled 
           <p ref={statusRef} role="status" aria-live="polite" className="sr-only" data-testid="pending-status" />
           {pending ? (
             <WaitCard keyboardFocus={focusInCard}>
-              <GardenWait variant="inline" scene={wait} withImages={withImages} announce={announce} />
+              <InlineWait scene={wait} withImages={withImages} announce={announce} />
             </WaitCard>
           ) : null}
         </>

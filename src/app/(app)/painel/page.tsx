@@ -21,13 +21,11 @@ import { AI_BLOCK_DECISION } from "@/lib/dua/domain";
 import { EmptyState } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, HowToRead } from "@/components/explain";
-import {
-  BarList, ColumnChart, HatchedDonut, HatchedGauge, Legend, MonthGrid, SIGNAL, StackedBar, SupportScale, type ChartSegment,
-} from "@/components/charts";
-import { RingStat, StatTile, StatusPill, TONE_CLASSES, TONE_COLOR, TrendBadge, withSegmentColors } from "@/components/data-viz";
+import { BarList, type ChartSegment, ColumnChart, HatchedDonut, Legend, Meter, RingStat, SIGNAL, ShareRing, StackedBar, StatusPill, TONE_CLASSES, TONE_COLOR, withSegmentColors } from "@/components/viz/charts";
+import { StatTile } from "@/components/viz/cards";
+import { SCALE_MARKER, SupportScale } from "@/components/viz/student-viz";
+import { HatchedGauge, MonthGrid, TrendBadge } from "./charts";
 import type { Tone } from "@/lib/scale";
-import { ShareRing } from "@/components/viz/share-ring";
-import { UsageMeter } from "@/components/viz/usage-meter";
 import { Character } from "@/components/character";
 import { PrintButton } from "@/components/print-button";
 
@@ -332,10 +330,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </div>
                 </div>
                 <p className="mx-auto mt-4 max-w-sm text-xs text-on-navy-soft">{gauge.context}</p>
-                <HowToRead onNavy className="mx-auto max-w-sm">{gauge.definition}</HowToRead>
+                <HowToRead className="mx-auto max-w-sm">{gauge.definition}</HowToRead>
                 {scope.network
-                  ? <a href="#atencao" className="pill-action pill-action-on-navy mx-auto mt-5 max-w-sm">Ver estudantes com avisos</a>
-                  : <Link href="/estudantes?acao=registrar" className="pill-action pill-action-on-navy mx-auto mt-5 max-w-sm">Registrar uma aula</Link>}
+                  ? <a href="#atencao" className="pill-action mx-auto mt-5 max-w-sm">Ver estudantes com avisos</a>
+                  : <Link href="/estudantes?acao=registrar" className="pill-action mx-auto mt-5 max-w-sm">Registrar uma aula</Link>}
               </section>
 
               <div className="order-2 grid min-w-0 grid-cols-2 gap-3.5 xl:order-none 2xl:grid-cols-3">
@@ -478,7 +476,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       <p className="mt-1 text-xs text-ink-soft">Média de {plural(support.objectives, "objetivo", "objetivos")} com registro</p>
                       <SupportScale initial={support.initial} latest={support.latest} target={support.target} />
                       <dl className="mt-4 flex min-w-0 flex-wrap gap-1.5">
-                        {([["No início", support.initial, "rounded-full border-2 border-ink-strong bg-white"], ["Agora", support.latest, "rounded-full bg-ink-strong"], ["Meta", support.target, "rotate-45 rounded-[2px] border-2 border-ink-strong bg-white"]] as const).map(([label, value, marker]) => (
+                        {([["No início", support.initial, SCALE_MARKER.initial], ["Agora", support.latest, SCALE_MARKER.latest], ["Meta", support.target, SCALE_MARKER.target]] as const).map(([label, value, marker]) => (
                           <div key={label} className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-1.5 rounded-full bg-surface-muted/70 py-1.5 pl-2.5 pr-3 text-xs">
                             <dt className="inline-flex items-center gap-1.5 self-center text-ink-soft"><span aria-hidden className={`inline-block size-2.5 shrink-0 ${marker}`} />{label}</dt>
                             <dd className="font-display font-bold text-base leading-none tracking-tight text-ink tabular-nums">{decimal(value, { fixed: true })}</dd>
@@ -555,7 +553,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <AiStat label="Planos propostos pela IA" value={ai.planProposals.ia} detail={`${plural(ai.planProposals.regras, "proposto", "propostos")} pelo motor de regras`} />
                 <AiStat label="Propostas aguardando revisão" value={ai.draftsPending} detail={ai.draftsPending ? "o professor decide" : "nenhuma pendente"} />
                 <AiStat label="Atividades criadas pela IA" value={ai.activities.total} wide detail={ai.activities.adhesion === null ? "Adesão: sem atividades avaliadas para calcular." : `Adesão de ${ai.activities.adhesion}%: ${ai.activities.used} de ${plural(ai.activities.decided, "avaliada foi aceita ou aplicada", "avaliadas foram aceitas ou aplicadas")}.`}>
-                  {ai.activities.adhesion !== null ? <UsageMeter value={ai.activities.adhesion} max={100} /> : null}
+                  {ai.activities.adhesion !== null ? <Meter value={ai.activities.adhesion} max={100} /> : null}
                 </AiStat>
                 <AiStat label="Imagens geradas" value={ai.images} />
                 <AiStat label="Envios à IA de reserva" value={ai.deepseekSends} />
@@ -603,7 +601,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="grid gap-3.5 xl:grid-cols-3">
               <div className="dash-card xl:col-span-2">
                 <CardHeader title={r.weekly ? "Registros por semana" : "Registros por mês"} hint={`${PERIODS[period]}.`} />
-                {r.series.some((row) => row.value > 0) ? <ColumnChart rows={r.series} caption={r.weekly ? "Registros de aula por semana" : "Registros de aula por mês"} /> : <p className="text-sm text-ink-soft">Nenhum registro de aula · {periodText}.</p>}
+                {r.series.some((row) => row.value > 0) ? <ColumnChart rows={r.series} label={r.weekly ? "Registros de aula por semana" : "Registros de aula por mês"} /> : <p className="text-sm text-ink-soft">Nenhum registro de aula · {periodText}.</p>}
               </div>
               <div className="dash-card">
                 <CardHeader title="Quem registrou" />
@@ -786,7 +784,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                             <span className="min-w-0 group-hover:underline">{item.title}</span>
                             <span className="ml-auto flex shrink-0 items-center gap-2 text-xs tabular-nums text-ink-soft">{plural(item.uses, "uso", "usos")}{item.positive !== null ? <StatusPill tone={item.positive >= 70 ? "good" : item.positive >= 40 ? "mid" : "alert"}>{item.positive}% bom resultado</StatusPill> : null}</span>
                           </span>
-                          <UsageMeter value={item.uses} max={topUses} className="mt-2" />
+                          <Meter value={item.uses} max={topUses} className="mt-2" />
                         </Link>
                       </li>
                     ))}

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import { Character } from "@/components/character";
 import { BUTTON_CLS } from "@/components/form-styles";
+import { HEAD_PART } from "@/components/student-head-parts";
 import { JOURNEY_STEPS, LAST_STEP, getStudentNextStep, type StudentJourneyInput } from "@/lib/student-journey";
 
 export function StudentJourney({ progress }: { progress: StudentJourneyInput }) {
@@ -53,13 +54,13 @@ export function StudentNextStepLink({ progress }: { progress: StudentJourneyInpu
   const next = getStudentNextStep(progress);
   if (pathname === next.href) {
     return (
-      <span className="student-head-detail inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-paper-raised px-3 text-xs font-medium text-brand-strong">
+      <span className={`${HEAD_PART.detail} inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-paper-raised px-3 text-xs font-medium text-brand-strong`}>
         <Check size={14} aria-hidden /> Você está no próximo passo
       </span>
     );
   }
   return (
-    <Link href={next.href} title={next.description} className={`student-head-cta ${BUTTON_CLS.primary} max-w-full shrink-0`}>
+    <Link href={next.href} title={next.description} className={`${HEAD_PART.cta} ${BUTTON_CLS.primary} max-w-full shrink-0`}>
       <span className="sr-only">Próximo passo: </span>{next.label} <ArrowRight size={16} aria-hidden />
     </Link>
   );

@@ -8,12 +8,10 @@ export const linkCls = "font-medium text-brand-strong underline underline-offset
 
 const buttonBase = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-60";
 export const BUTTON_CLS = {
-  primary: `${buttonBase} bg-brand px-5 py-2.5 text-white hover:bg-brand-strong`,
-  secondary: `${buttonBase} bg-brand-soft px-5 py-2.5 text-brand-strong hover:bg-lilac`,
+  primary: `${buttonBase} bg-action px-5 py-2.5 text-on-action hover:bg-action-hover`,
+  secondary: `${buttonBase} bg-action-soft px-5 py-2.5 text-action-ink inset-ring inset-ring-action-soft-line hover:bg-action-soft-hover`,
   quiet: `${buttonBase} border border-line bg-paper-raised px-4 py-2.5 text-ink hover:border-ink-soft`,
   danger: `${buttonBase} px-4 py-2.5 text-coral hover:bg-coral-soft`,
   dangerOutline: `${buttonBase} border border-coral/40 bg-paper-raised px-4 py-2.5 text-coral hover:bg-coral-soft`,
-  primaryOnNavy: `${buttonBase} bg-accent-sky px-5 py-2.5 text-ink-strong hover:bg-on-navy`,
-  secondaryOnNavy: `${buttonBase} border border-navy-line bg-navy-hover px-5 py-2.5 text-on-navy hover:bg-navy-line`,
 };
 export type ButtonVariant = keyof typeof BUTTON_CLS;

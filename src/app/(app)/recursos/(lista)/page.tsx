@@ -12,9 +12,7 @@ import { Character } from "@/components/character";
 import { STAGES } from "@/lib/scale";
 import { COMPLEXITY_LABELS, RESOURCE_TYPES, resourcePresentation, resourceTypeLabel } from "@/lib/resource-bank";
 import { ArrowUpRight, Search, ListChecks } from "lucide-react";
-import { RingStat } from "@/components/data-viz";
-import { SIGNAL } from "@/components/charts";
-import { UsageMeter } from "@/components/viz/usage-meter";
+import { Meter, RingStat, SIGNAL } from "@/components/viz/charts";
 import { percentOf } from "@/lib/series";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -125,7 +123,7 @@ export default async function ResourcesPage({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-ink">{successRate === null ? "Sem aplicações registradas" : `${successRate}% de boa resposta`}<span className="font-normal text-ink/75">{successRate === null ? "" : ` · ${r.positiveOutcomes} de ${r.timesUsed}`}</span></p>
-                        <UsageMeter value={r.timesUsed} max={mostUsed} track="bg-white/70" className="mt-1.5" />
+                        <Meter value={r.timesUsed} max={mostUsed} track="bg-white/70" className="mt-1.5" />
                         <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink/75">
                           <span>Aplicado {r.timesUsed}x na rede</span>
                           <span className="inline-flex items-center gap-1.5"><ListChecks size={13} aria-hidden /> {r._count.activities} atividades</span>

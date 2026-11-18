@@ -2,8 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   EMOTION_OPTIONS, MEMORY_PAIRS, OPTION_COUNT, QUANTITY_MAX, ROUNDS, ROUTINES, ROUTINE_KEYS, SITUATIONS, THEME_KEYS,
-  emotionRounds, gameNote, memoryDeck, photoLevel, quantityRounds, routineSteps, sessionNote, shuffle, suggestedLevel, suggestedRecord, themeFromInterests, themePics, wordRounds,
-} from "./games-core.ts";
+  emotionRounds, memoryDeck, quantityRounds, routineSteps, suggestedLevel, themeFromInterests, themePics, wordRounds,
+} from "./themes.ts";
+import { shuffle } from "./mechanics.ts";
+import { gameById, gameNote, suggestedRecord } from "./registry.ts";
 
 function seeded(seed) {
   let a = seed;
@@ -36,7 +38,7 @@ test("memória: dois de cada figura, quantidade pelo nível", () => {
     assert.equal(deck.length, pairs * 2);
     assert.equal(new Set(deck.map((card) => card.id)).size, deck.length);
     const counts = new Map();
-    for (const card of deck) counts.set(card.pic.key, (counts.get(card.pic.key) ?? 0) + 1);
+    for (const card of deck) counts.set(card.key, (counts.get(card.key) ?? 0) + 1);
     assert.ok([...counts.values()].every((n) => n === 2));
   }
 });
@@ -105,10 +107,10 @@ test("tema pelos interesses e nível pelo apoio", () => {
 });
 
 test("fim do jogo: nota curta e registro sugerido para o professor conferir", () => {
-  assert.equal(sessionNote("memoria", "facil", "Animais", { done: 2, total: 2, hints: 1, retries: 0 }), "Jogo: Memória por temas (fácil, Animais). 2 de 2 pares · 1 dica.");
-  assert.equal(sessionNote("emocoes", "medio", null, { done: 5, total: 5, hints: 0, retries: 2 }), "Jogo: Emoções (médio). 5 de 5 rodadas · sem dica · 2 tentativas a mais.");
-  assert.equal(gameNote("Vamos contar", "desafio", null, { done: 5, total: 5, hints: 2, retries: 1 }, "rodadas"), "Jogo: Vamos contar (desafio). 5 de 5 rodadas · 2 dicas · 1 tentativa a mais.");
-  assert.deepEqual(["facil", "medio", "desafio"].map(photoLevel), [1, 2, 2]);
+  assert.equal(gameNote(gameById("memoria"), "facil", "Animais", { done: 2, total: 2, hints: 1, retries: 0 }), "Jogo: Memória por temas (fácil, Animais). 2 de 2 pares · 1 dica.");
+  assert.equal(gameNote(gameById("emocoes"), "medio", null, { done: 5, total: 5, hints: 0, retries: 2 }), "Jogo: Emoções (médio). 5 de 5 rodadas · sem dica · 2 tentativas a mais.");
+  assert.equal(gameNote(gameById("contar"), "desafio", null, { done: 5, total: 5, hints: 2, retries: 1 }), "Jogo: Vamos contar (desafio). 5 de 5 rodadas · 2 dicas · 1 tentativa a mais.");
+  assert.equal(gameNote(gameById("rotina"), "facil", null, { done: 3, total: 3, hints: 0, retries: 0 }), "Jogo: Minha rotina em passos (fácil). 3 de 3 passos · sem dica.");
   assert.deepEqual(suggestedRecord({ done: 5, total: 5, hints: 0, retries: 0 }), { participation: "total", criterionMet: "sim", supportLevel: 1 });
   assert.deepEqual(suggestedRecord({ done: 5, total: 5, hints: 2, retries: 3 }), { participation: "total", criterionMet: "parcial", supportLevel: 2 });
   assert.deepEqual(suggestedRecord({ done: 2, total: 5, hints: 4, retries: 1 }), { participation: "parcial", criterionMet: "nao", supportLevel: 3 });

@@ -29,7 +29,7 @@ export default {
       await t.scrollTo({ css: "[aria-label='Filtrar jogos por habilidade']" }, "start");
       await t.click({ text: "Memória", in: "[aria-label='Filtrar jogos por habilidade']", exact: true }, { wait: false });
     });
-    await t.say("Escolha um jogo e clique em Vamos jogar.", () => t.click({ css: "#play-memoria" }, { wait: false }));
+    await t.say("Escolha um jogo e clique em Vamos jogar.", () => t.click({ css: "#play-pares" }, { wait: false }));
     await t.pause(500);
 
     await t.say("A instrução aparece na tela, e também pode ser ouvida.", () => t.point("Ouvir instrução", { hold: 900 }));

@@ -5,12 +5,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { canAccessStudent } from "@/lib/policy";
 import { can } from "@/lib/roles";
 import { recordView } from "@/lib/audit";
-import { readList } from "@/lib/format";
-import {
-  GAMES, ROUTINES, THEMES, emotionRounds, isAssociationMode, isGameKey, isLevel, isRoutineKey, isThemeKey, memoryDeck, quantityRounds,
-  routineSteps, shuffle, suggestedLevel, themeFromInterests, wordRounds,
-} from "@/lib/games/games-core";
-import { GamePlayer, type GameData } from "@/components/games/game-player";
+import { firstName, readList } from "@/lib/format";
+import { gameById, isFullScreenId, isLevel } from "@/lib/games/registry";
+import { fullScreenSession, isThemeKey, suggestedLevel, themeFromInterests } from "@/lib/games/themes";
+import { GamePlayer } from "@/components/games/game-player";
 
 export const metadata: Metadata = { title: "Jogo · IncluiEdu" };
 
@@ -19,7 +17,7 @@ type Query = { estudante?: string; nivel?: string; tema?: string; rotina?: strin
 export default async function PlayPage({ params, searchParams }: { params: Promise<{ jogo: string }>; searchParams: Promise<Query> }) {
   const prisma = await db();
   const [{ jogo }, query] = await Promise.all([params, searchParams]);
-  if (!isGameKey(jogo)) notFound();
+  if (!isFullScreenId(jogo)) notFound();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!can(user.role, "editRecord")) redirect("/");
@@ -33,29 +31,9 @@ export default async function PlayPage({ params, searchParams }: { params: Promi
 
   const level = isLevel(query.nivel) ? query.nivel : suggestedLevel(student?.profile ?? null);
   const theme = isThemeKey(query.tema) ? query.tema : themeFromInterests(readList(student?.profile?.interests ?? null));
-  let data: GameData;
-  let detail: string | null;
-  if (jogo === "memoria") {
-    data = { game: "memoria", deck: memoryDeck(theme, level) };
-    detail = THEMES[theme].label;
-  } else if (jogo === "sequencia") {
-    const routine = isRoutineKey(query.rotina) ? query.rotina : "maos";
-    const steps = routineSteps(routine, level);
-    const indexes = steps.map((_, index) => index);
-    let order = shuffle(indexes);
-    while (order.every((value, index) => value === index)) order = shuffle(indexes);
-    data = { game: "sequencia", routine: ROUTINES[routine].label, steps, order };
-    detail = ROUTINES[routine].label;
-  } else if (jogo === "associacao") {
-    const mode = isAssociationMode(query.modo) ? query.modo : "palavra";
-    data = { game: "associacao", mode, rounds: mode === "palavra" ? wordRounds(theme, level) : quantityRounds(theme, level) };
-    detail = `${mode === "palavra" ? "Figura e palavra" : "Quantidade e número"} · ${THEMES[theme].label}`;
-  } else {
-    data = { game: "emocoes", rounds: emotionRounds(level) };
-    detail = null;
-  }
+  const { data, detail } = fullScreenSession(jogo, { level, theme, routine: query.rotina, mode: query.modo });
 
-  if (student) await recordView(user, student.id, `Jogos educativos: ${GAMES[jogo].title}`);
+  if (student) await recordView(user, student.id, `Jogos educativos: ${gameById(jogo).title}`);
   const replay = new URLSearchParams(Object.entries(query).filter(([key, value]) => key !== "partida" && typeof value === "string") as [string, string][]);
   replay.set("partida", crypto.randomUUID().slice(0, 8));
   return (
@@ -65,7 +43,7 @@ export default async function PlayPage({ params, searchParams }: { params: Promi
       data={data}
       level={level}
       detail={detail}
-      student={student ? { id: student.id, firstName: student.name.split(" ")[0] } : null}
+      student={student ? { id: student.id, firstName: firstName(student.name) } : null}
     />
   );
 }

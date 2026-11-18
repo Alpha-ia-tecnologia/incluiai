@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, useSync
 import { Droplet, Pause, Play } from "lucide-react";
 import type { ToolStep } from "@/lib/assistant/types";
 import {
-  FINALE_MIN_SECONDS, LONG_THRESHOLDS, TIP_POOLS, TURN_THRESHOLDS,
+  FINALE_MIN_SECONDS, INLINE_SCENES, LONG_THRESHOLDS, TIP_POOLS, TURN_THRESHOLDS,
   artFor, chatCaption, deriveGarden, endingCaption, inlineArt, inlineCaption, inlineThresholds, inlineTypical, longBudget, sunAngle,
   type ArtState, type GardenOutcome, type InlineScene, type TipPool,
 } from "@/lib/assistant/garden-scenes";
@@ -14,7 +14,6 @@ import styles from "./garden-wait.module.css";
 export type { InlineScene };
 
 type ChatProps = {
-  variant: "faixa";
   active: boolean;
   steps: ToolStep[];
   writing: boolean;
@@ -24,12 +23,7 @@ type ChatProps = {
   announce: (text: string) => void;
   returnFocusTo: () => HTMLElement | null;
 };
-type InlineProps = { variant: "inline"; scene: InlineScene; withImages: boolean; announce: (text: string) => void };
-export type GardenWaitProps = ChatProps | InlineProps;
-
-export const GardenWait = memo(function GardenWait(props: GardenWaitProps) {
-  return props.variant === "inline" ? <InlineWait {...props} /> : <ChatWait {...props} />;
-});
+type InlineProps = { scene: InlineScene; withImages: boolean; announce: (text: string) => void };
 
 // ---- tempo ----------------------------------------------------------------
 // <html data-espera-escala="20"> acelera os relógios nos testes de navegador.
@@ -165,7 +159,7 @@ function PauseButton({ paused }: { paused: boolean }) {
 type Ending = { outcome: GardenOutcome; finale: boolean; stage: "final" | "recolhendo"; awaiting: number };
 type Memory = { active: boolean; turn: number; steps: ToolStep[]; writing: boolean; ending: Ending | null };
 
-function ChatWait({ active, steps, writing, outcome, awaiting, layout, announce, returnFocusTo }: Omit<ChatProps, "variant">) {
+export const ChatWait = memo(function ChatWait({ active, steps, writing, outcome, awaiting, layout, announce, returnFocusTo }: ChatProps) {
   const [mem, setMem] = useState<Memory>({ active: false, turn: 0, steps, writing, ending: null });
   const visible = mem.active || mem.ending !== null;
   const turnBucket = useBucket(visible ? `turno-${mem.turn}` : null, TURN_THRESHOLDS);
@@ -250,14 +244,14 @@ function ChatWait({ active, steps, writing, outcome, awaiting, layout, announce,
       <p className="sr-only" aria-live="polite" data-testid="espera-dica">{tip ?? ""}</p>
     </div>
   );
-}
+});
 
-function InlineWait({ scene, withImages, announce }: Omit<InlineProps, "variant">) {
+export const InlineWait = memo(function InlineWait({ scene, withImages, announce }: InlineProps) {
   const bucket = useBucket("formulario", inlineThresholds(scene, withImages));
   const caption = inlineCaption(scene, bucket, withImages);
   const paused = usePaused();
   const entering = useEntrance(1);
-  const watering = useWatering(scene === "imagem" || scene === "material" ? "pratica" : scene, "formulario");
+  const watering = useWatering(INLINE_SCENES[scene].pool, "formulario");
   const rootRef = useRef<HTMLDivElement>(null);
   useOffscreen(rootRef);
   useEffect(() => { if (caption.late) announce(caption.late); }, [caption.late, announce]);
@@ -269,7 +263,7 @@ function InlineWait({ scene, withImages, announce }: Omit<InlineProps, "variant"
       data-testid="espera-jardim"
       data-variant="inline"
       data-state="aguardando"
-      data-scene={scene === "plano" ? "trelica" : scene === "atividades" ? "botoes" : "folha"}
+      data-scene={INLINE_SCENES[scene].family}
       data-elapsed={bucket}
       data-paused={paused ? "true" : "false"}
       data-respira="true"
@@ -289,4 +283,4 @@ function InlineWait({ scene, withImages, announce }: Omit<InlineProps, "variant"
       <p className="sr-only" aria-live="polite" data-testid="espera-dica">{watering.tip ?? ""}</p>
     </div>
   );
-}
+});

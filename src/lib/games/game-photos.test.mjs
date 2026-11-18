@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { THEMES, ROUTINES, SITUATIONS } from "./games-core.ts";
+import { THEMES, ROUTINES, SITUATIONS } from "./themes.ts";
 import { GAME_PHOTOS } from "./game-photos.ts";
 
 const keys = [...new Set([...Object.values(THEMES).flatMap((theme) => theme.items.map(([key]) => key)), ...Object.values(ROUTINES).flatMap((routine) => routine.steps.map((step) => step.key)), ...SITUATIONS.map((situation) => situation.icon), ...["feliz", "triste", "bravo", "medo"].map((emotion) => `emocao-${emotion}`)])];

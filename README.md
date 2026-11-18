@@ -201,7 +201,7 @@ Todos os jogos ficam numa só página, `/jogos`, com filtro por habilidade (comu
 
 1. **Escolher:** o estudante (opcional) e o nível. Com um estudante, o nível (fácil, médio ou desafio) vem sugerido pelo apoio registrado no "Como aprende", e o tema das figuras, pelo primeiro interesse dele que combina com um tema. O professor pode trocar os dois. Sem estudante, os jogos funcionam igual, só sem o registro.
 2. **Jogar:** 19 jogos com fotografias.
-   - **Na própria página** (`src/lib/games.ts`): memória em pares, encontre a imagem, vamos contar, o que vem depois, cores, rotina em passos, primeira letra, imagem e palavra, juntar para contar, para que serve, classificar, comparar grupos, monte a palavra, quantos ficaram e número que falta. Têm dois níveis: o fácil vira "com mais apoio"; o médio e o desafio, "mais desafios".
+   - **Na própria página** (`src/lib/games/objects.ts`): memória em pares, encontre a imagem, vamos contar, o que vem depois, cores, rotina em passos, primeira letra, imagem e palavra, juntar para contar, para que serve, classificar, comparar grupos, monte a palavra, quantos ficaram e número que falta. Têm dois níveis: o fácil vira "com mais apoio"; o médio e o desafio, "mais desafios".
    - **Em tela cheia** (`/jogar/[jogo]`, sem o menu da plataforma), com tema ou rotina à escolha:
      - **Memória por temas:** de 2 a 6 pares.
      - **Sequência da rotina:** lavar as mãos, chegar na sala, hora do lanche, ir ao banheiro. São 3 etapas no fácil, 4 no médio e a rotina inteira no desafio.
@@ -214,10 +214,10 @@ Todos os jogos ficam numa só página, `/jogos`, com filtro por habilidade (comu
 - Sem tempo limite e sem pontuação que compare estudantes.
 - Errar não pune: a opção errada só pede outra tentativa.
 - A **Dica** é do professor e conta no registro.
-- A instrução é falada pela voz do aparelho e não traz dado pessoal.
+- A instrução é falada pela voz do aparelho (a mesma escolha de voz do botão Ouvir, `src/components/speech.ts`) e não traz dado pessoal.
 - Nada sai da plataforma.
 - As figuras são imagens geradas e guardadas na plataforma (`public/images/games/`, ver `docs/game-assets.md`): nenhuma é foto de pessoa real.
-- Regras puras em `src/lib/games/games-core.ts`, com testes.
+- Cada jogo é uma entrada em `src/lib/games/registry.ts` (título, categorias, motor, tela, como conta no registro, dica e prévia), que a página e a lib leem; as rodadas ficam em `objects.ts` (fotografias da página) e `themes.ts` (temas, rotinas e emoções da tela cheia), sobre o mesmo `mechanics.ts` (embaralhar, pares de cartas, opções com distratores). Regras puras, com testes.
 
 ## Adaptar a atividade ou a prova da turma
 
@@ -448,8 +448,8 @@ O objetivo do Plano de ensino e o planejamento com DUA ligam-se a habilidades da
 
 ## Acessibilidade de leitura
 
-- **Ouvir:** os materiais de apoio e o portal da família têm um botão que lê o conteúdo em voz alta, com três velocidades. Usa a voz do próprio navegador e prefere uma que roda no aparelho; se só houver voz pela internet (o texto iria ao serviço do navegador), pede confirmação antes, como no ditado. Regras puras em `src/lib/speech-text.ts`.
-- **Tamanho do texto:** padrão, grande (112,5%) ou maior (125%), no menu com o nome e no portal da família. Fica guardado no navegador e vale na tela e na impressão; com o texto ampliado, palavras longas quebram para nada passar da largura do celular. As cores e os tokens não mudam.
+- **Ouvir:** os materiais de apoio e o portal da família têm um botão que lê o conteúdo em voz alta, com três velocidades. Usa a voz do próprio navegador e prefere uma que roda no aparelho; se só houver voz pela internet (o texto iria ao serviço do navegador), pede confirmação antes, como no ditado. Regras puras em `src/lib/speech-text.ts`; a voz é escolhida em `src/components/speech.ts`, o mesmo módulo dos jogos.
+- **Tamanho do texto:** padrão, grande (112,5%) ou maior (125%), no menu com o nome e no portal da família (`src/lib/text-scale.ts`, de onde sai também o script que aplica o tamanho antes da primeira pintura). Fica guardado no navegador e vale na tela e na impressão; com o texto ampliado, palavras longas quebram para nada passar da largura do celular. As cores e os tokens não mudam.
 
 ## Tradução para Libras (VLibras)
 
@@ -536,7 +536,7 @@ A trilha sonora de fundo é `scripts/tutoriais/trilha.flac`. Ela entra uns 16 dB
 - `activity-engine.ts` — geração dos 3 cartões pelo motor de regras (usada sem IA ou quando a IA falha)
 - `assistant/` — assistente com agente (laço de ferramentas do SDK da Anthropic, com transmissão): `prompt.ts` (instruções estáveis por perfil), `tools.ts` (ferramentas com permissão conferida no servidor), `privacy.ts` (pseudônimos por conversa, restaurados só na tela), `agent.ts` (um turno: histórico só com acréscimos, para os blocos de raciocínio continuarem válidos), `store.ts` (conversas e execução das ações confirmadas). Rotas em `app/api/assistente/`
 - `user-journey.ts` — jornada por perfil: capítulos calculados dos dados (estudo de caso, perfil, plano, atividade, registro, revisão; painel, planos, revisões, registros, família e saúde; atividades de casa e conquistas; orientações e leitura pela escola) e marcos de visita em `JourneyMark`
-- `dashboard.ts` — indicadores do painel: escopo por perfil, períodos (30 e 90 dias, ano, histórico) e contagens a partir dos registros, sem inferência sobre o estudante; os gráficos ficam em `components/charts.tsx`, sem biblioteca (medidor e rosca listrados, barras com textura, escala de apoio e grade de meses), com os sinais lima, amarelo e laranja definidos em `globals.css`
+- `dashboard.ts` — indicadores do painel: escopo por perfil, períodos (30 e 90 dias, ano, histórico) e contagens a partir dos registros, sem inferência sobre o estudante; os gráficos ficam em `components/viz/` (o kit: barras, colunas, roscas, anéis, linha e cartões; a escala de apoio em `viz/student-viz.tsx`) e os que só o painel usa (medidor e grade de meses) em `app/(app)/painel/charts.tsx`, sem biblioteca, com os sinais lima, amarelo e laranja definidos em `globals.css`
 - `agents/` — agentes de IA orquestrados com LangGraph:
   - `plan-graph.ts` — **plano (PAEE, PEI e objetivos)**: Analista do caso → em paralelo, Agente do PAEE (art. 10), Agente do PEI (art. 11, com os nomes do Censo) e Planejador do PPI (objetivos) → Revisor pedagógico, que devolve só a parte reprovada (uma correção) → finalização determinística, que confere os nomes com as listas do formulário. Testado sem chamar a API em `plan-agents.test.mjs`. Do estudo de caso, "Público da educação especial" segue para a IA só como sim, em avaliação ou não, sem a categoria. A proposta fica em `PlanDraft` até o professor revisar, escolher os objetivos e ativar
   - `activity-graph.ts` — **atividades**: agentes da sala comum, do AEE e da família em paralelo → Revisor (Claude + checagens das regras) → refaz só as reprovadas (1 rodada); pendências restantes aparecem no cartão
@@ -550,7 +550,7 @@ A trilha sonora de fundo é `scripts/tutoriais/trilha.flac`. Ela entra uns 16 dB
 - `material-content.ts` (puro, com testes) — os 6 tipos de material de apoio, o conteúdo (cartões com descrição do pictograma, como preparar e usar, atividades para aplicar com o que registrar depois, porquê de cada adaptação), as verificações e o motor de regras; `material-generate.ts` — geração pela IA (`agents/material-agent.ts`) ou pelas regras, aprovação, imagens por cartão (`images/material-images.ts`) e "levar para Atividades"
 - `agents/material-agent.ts` — os agentes do material de apoio, em grafo: o Criador de materiais faz os cartões; os agentes da sala comum, do AEE e da família criam, em paralelo, a atividade que aplica os cartões em cada contexto; o Revisor do material confere a aderência ao pedido, ao objetivo do plano, ao perfil e às regras de adaptação e devolve só a parte reprovada (uma correção; o que sobrar vira ponto para o professor conferir). Testado sem chamar a API em `material-agent.test.mjs`
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
-- `games/games-core.ts` (puro, com testes) — jogos educativos: temas, rotinas, rodadas, nível sugerido pelo apoio e a nota do registro
+- `games/registry.ts`, `games/mechanics.ts`, `games/objects.ts`, `games/themes.ts` (puros, com testes) — jogos educativos: o registro dos 19 jogos com níveis e a nota do registro, as mecânicas comuns, as rodadas de fotografias e as de tela cheia (temas, rotinas, emoções, nível sugerido pelo apoio)
 - `student-card-core.ts` (puro, com testes) e `student-card.ts` — carteirinha digital: código do QR, foto sem metadados, telefone, "Como me ajudar" e quem vê ou faz a carteirinha
 - `health-reports-core.ts` (puro) e `health-reports.ts` — laudos do estudo de caso: arquivos aceitos, campos que a leitura pode sugerir, revisão e junção ao estudo de caso; `agents/health-report-reader.ts` — extração do texto do PDF, anonimização própria de laudo e leitura pelo Claude
 - `auth.ts` — sessão, hash e controle de acesso por perfil

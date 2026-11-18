@@ -1,16 +1,10 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { isTextScale, type TextScale } from "@/lib/speech-text";
+import { TEXT_SCALES, TEXT_SCALE_KEY, applyTextScale, isTextScale, type TextScale } from "@/lib/text-scale";
 
-export const TEXT_SCALE_KEY = "incluiedu-texto";
-export const TEXT_SCALE_SCRIPT = `try{var s=localStorage.getItem("${TEXT_SCALE_KEY}");if(s==="2"||s==="3")document.documentElement.dataset.textScale=s}catch(e){}`;
 const EVENT = "incluiedu-texto";
-
-const apply = (value: TextScale) => {
-  if (value === "1") delete document.documentElement.dataset.textScale;
-  else document.documentElement.dataset.textScale = value;
-};
+const apply = (value: TextScale) => applyTextScale(document.documentElement, value);
 
 function subscribe(callback: () => void) {
   const fromStorage = (event: StorageEvent) => {
@@ -30,13 +24,9 @@ const current = (): TextScale => {
   return isTextScale(value) ? value : "1";
 };
 
-const OPTIONS: { value: TextScale; label: string; size: string }[] = [
-  { value: "1", label: "Texto no tamanho padrão", size: "text-sm" },
-  { value: "2", label: "Texto grande", size: "text-base" },
-  { value: "3", label: "Texto maior", size: "text-lg" },
-];
+const BUTTON_TEXT = ["text-sm", "text-base", "text-lg"];
 
-export function TextSizeControl({ onNavy = false }: { onNavy?: boolean } = {}) {
+export function TextSizeControl() {
   const scale = useSyncExternalStore(subscribe, current, () => "1" as TextScale);
   const choose = (value: TextScale) => {
     apply(value);
@@ -49,15 +39,15 @@ export function TextSizeControl({ onNavy = false }: { onNavy?: boolean } = {}) {
   };
   return (
     <div role="group" aria-label="Tamanho do texto" className="flex items-center gap-1 print:hidden">
-      <span aria-hidden className={`mr-1 text-xs ${onNavy ? "text-on-navy-soft" : "text-ink-soft"}`}>Texto</span>
-      {OPTIONS.map((option) => (
+      <span aria-hidden className="mr-1 text-xs text-surface-ink-soft">Texto</span>
+      {TEXT_SCALES.map((option, index) => (
         <button
           key={option.value}
           type="button"
           aria-label={option.label}
           aria-pressed={scale === option.value}
           onClick={() => choose(option.value)}
-          className={`flex min-h-11 min-w-11 items-center justify-center rounded-full font-medium transition-colors ${option.size} ${scale === option.value ? (onNavy ? "bg-accent-sky text-ink-strong" : "bg-brand text-white") : "bg-surface-muted text-ink hover:bg-line"}`}
+          className={`flex min-h-11 min-w-11 items-center justify-center rounded-full font-medium transition-colors ${BUTTON_TEXT[index]} ${scale === option.value ? "bg-action text-on-action" : "bg-surface-muted text-ink hover:bg-line"}`}
         >
           A
         </button>

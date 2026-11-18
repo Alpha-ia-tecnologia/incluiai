@@ -5,7 +5,9 @@ import { getCurrentUser } from "@/lib/auth";
 import type { ReactNode } from "react";
 import { loadJourney, recordJourneyMark, type Chapter, type ImpactItem } from "@/lib/user-journey";
 import { PARTICIPATION, TREND, legendOf } from "@/lib/scale";
-import { CountChips, DataCard, DotStrip, MiniColumns, QuoteCard, RingStat, Sparkline, StatTile, StatusPill, TONE_COLOR } from "@/components/data-viz";
+import { ColumnChart, CountChips, DotStrip, RingStat, Sparkline, StatusPill, TONE_COLOR } from "@/components/viz/charts";
+import { DataCard, StatTile } from "@/components/viz/cards";
+import { QuoteCard } from "./quote-card";
 import { formatDate } from "@/lib/dates";
 import { Character } from "@/components/character";
 import { EmptyState } from "@/components/ui";
@@ -201,7 +203,7 @@ function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
   const viz = item.viz;
   let chart: ReactNode = null;
   let trend: ReactNode = null;
-  if (viz?.kind === "weekly") chart = <MiniColumns points={viz.points} label={`${item.label} por semana`} />;
+  if (viz?.kind === "weekly") chart = <ColumnChart compact rows={viz.points} label={`${item.label} por semana`} />;
   if (viz?.kind === "dots") chart = <DotStrip items={viz.items} label={`${item.label}: uma marca por aula`} legend={legendOf(PARTICIPATION)} />;
   if (viz?.kind === "support") {
     chart = <Sparkline values={viz.values} domain={[0, 5]} invert label={`${item.label}: ${viz.values.join(", ")} (0 é independente, 5 é apoio físico total)`} />;

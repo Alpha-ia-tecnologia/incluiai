@@ -10,9 +10,8 @@ import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
 import { NewApplicationForm } from "@/components/dua/applications/new-application-form";
 import { ApplicationCard } from "@/components/dua/applications/application-card";
-import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
-import { StackedBar } from "@/components/charts";
-import { ShareRing } from "@/components/viz/share-ring";
+import { ShareRing, StackedBar, withSegmentColors } from "@/components/viz/charts";
+import { DataBoard, DataCard, StatTile } from "@/components/viz/cards";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
 
 export default async function ApplicationsPage({ params }: { params: Promise<{ id: string }> }) {

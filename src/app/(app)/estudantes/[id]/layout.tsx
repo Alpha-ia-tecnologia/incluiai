@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui";
 import { StudentTabs } from "@/components/student-tabs";
 import { StudentJourney, StudentNextStepLink } from "@/components/student-journey";
 import { StudentHead } from "@/components/student-head";
+import { HEAD_PART } from "@/components/student-head-parts";
 import { JOURNEY_SELECT, journeyFacts } from "@/lib/student-journey";
 
 export default async function StudentLayout({
@@ -32,18 +33,18 @@ export default async function StudentLayout({
           </Link>
           <span
             aria-hidden
-            className="student-head-avatar flex size-12 shrink-0 items-center justify-center rounded-full font-display text-xl font-medium text-ink"
+            className={`${HEAD_PART.avatar} flex size-12 shrink-0 items-center justify-center rounded-full font-display text-xl font-medium text-ink`}
             style={{ backgroundColor: `oklch(88% 0.07 ${student.avatarHue})` }}
           >
             {student.name[0]}
           </span>
           <div className="min-w-0 flex-1 basis-64">
-            <h1 className="student-head-name font-display text-2xl font-medium leading-tight tracking-tight text-ink">{student.name}</h1>
-            <p className="student-head-detail mt-0.5 text-sm text-ink-soft">
+            <h1 className={`${HEAD_PART.name} font-display text-2xl font-medium leading-tight tracking-tight text-ink`}>{student.name}</h1>
+            <p className={`${HEAD_PART.detail} mt-0.5 text-sm text-ink-soft`}>
               {ageFrom(student.birthDate)} anos · {student.gradeYear} ({student.className}) · {SHIFTS[student.shift] ?? student.shift} · {STAGES[student.stage] ?? student.stage} · {student.school.name}
             </p>
             {student.aeeFrequency || student.supportProfessional || student.accessibilityNotes ? (
-              <div className="student-head-detail mt-2 flex min-w-0 flex-wrap gap-1.5">
+              <div className={`${HEAD_PART.detail} mt-2 flex min-w-0 flex-wrap gap-1.5`}>
                 {student.aeeFrequency ? <Badge tone="info">AEE {student.aeeFrequency}</Badge> : null}
                 {student.supportProfessional ? <Badge tone="good">Profissional de apoio</Badge> : null}
                 {student.accessibilityNotes ? <Badge tone="mid">{student.accessibilityNotes}</Badge> : null}

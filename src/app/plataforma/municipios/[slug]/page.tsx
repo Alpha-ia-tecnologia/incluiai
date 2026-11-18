@@ -38,7 +38,7 @@ export default async function MunicipalityPage({ params }: { params: Promise<{ s
         title={`${municipality.name} (${municipality.uf})`}
         lede={<>Cadastrado em {formatDate(municipality.createdAt)}. Banco <span className="font-mono">{municipality.dbName}</span>.</>}
         character="planning"
-        actions={status === "ativo" ? <a href={address} className={BUTTON_CLS.primaryOnNavy}>Abrir {address.replace(/^https?:\/\//, "")} <ExternalLink size={16} aria-hidden /></a> : null}
+        actions={status === "ativo" ? <a href={address} className={BUTTON_CLS.primary}>Abrir {address.replace(/^https?:\/\//, "")} <ExternalLink size={16} aria-hidden /></a> : null}
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">

@@ -20,15 +20,15 @@
 .preview { display: flex; align-items: center; justify-content: center; gap: 8px; height: 172px; padding: 22px; background: var(--surface-muted); overflow: hidden; }
 .previewPhoto { position: relative; min-width: 0; width: 30%; aspect-ratio: 1; background: var(--paper-raised); border-radius: 6px; overflow: hidden; }
 .objectPhoto { display: block; width: 100%; height: 100%; object-fit: contain; }
-.preview_memoria { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: center; gap: 8px; padding: 18px 29%; }
-.preview_memoria .previewPhoto { width: 100%; }
-.preview_sequencia { gap: 5px; padding-inline: 12px; }
-.preview_sequencia .previewPhoto { width: 19%; }
+.preview_pares { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: center; gap: 8px; padding: 18px 29%; }
+.preview_pares .previewPhoto { width: 100%; }
+.preview_fila { gap: 5px; padding-inline: 12px; }
+.preview_fila .previewPhoto { width: 19%; }
 .preview_contar .previewPhoto { width: 24%; }
 .previewNumber, .previewQuestion { display: grid; flex-shrink: 0; place-items: center; height: 42px; width: 34px; font-family: var(--font-archivo), sans-serif; font-size: 34px; font-weight: 800; }
-.preview_rotina { gap: 12px; }
-.preview_letras, .preview_palavras, .preview_silabas { gap: 24px; }
-.preview_letras .previewPhoto, .preview_palavras .previewPhoto, .preview_silabas .previewPhoto { width: 42%; }
+.preview_trio { gap: 12px; }
+.preview_palavra { gap: 24px; }
+.preview_palavra .previewPhoto { width: 42%; }
 .previewLetter, .previewWord { font-family: var(--font-archivo), sans-serif; font-stretch: 82%; font-size: 46px; font-weight: 800; }
 .previewWord { font-size: 30px; }
 .preview_somar { gap: 22px; }
@@ -206,13 +206,13 @@
   .gameCardCopy { padding: 16px; }
   .gameCard h3 { font-size: 24px; }
   .preview { height: 130px; padding: 14px; gap: 5px; }
-  .preview_memoria { padding: 12px 24%; }
+  .preview_pares { padding: 12px 24%; }
   .gameCard p { font-size: 14px; }
   .gameCard .skill { margin-top: 8px; font-size: 12px; }
   .previewNumber { width: 20px; font-size: 24px; }
-  .preview_sequencia { padding-inline: 8px; }
+  .preview_fila { padding-inline: 8px; }
   .previewQuestion { width: 15px; font-size: 24px; }
-  .preview_letras, .preview_palavras, .preview_silabas { gap: 12px; }
+  .preview_palavra { gap: 12px; }
   .previewLetter { font-size: 34px; }
   .previewWord { font-size: 18px; }
   .preview_somar { gap: 14px; }

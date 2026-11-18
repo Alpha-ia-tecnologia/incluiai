@@ -23,7 +23,7 @@ export default async function MunicipalitiesPage() {
         lede="Cada município tem o próprio endereço, o próprio banco de dados e a própria marca. Daqui você cadastra, acompanha a preparação e suspende ou reativa o acesso. Os dados dos estudantes ficam só no ambiente de cada município."
         character="planning"
         preload
-        actions={<Link href="/plataforma/novo" className={BUTTON_CLS.primaryOnNavy}><Plus size={16} aria-hidden /> Novo município</Link>}
+        actions={<Link href="/plataforma/novo" className={BUTTON_CLS.primary}><Plus size={16} aria-hidden /> Novo município</Link>}
       />
       {municipalities.length === 0 ? (
         <EmptyState title="Nenhum município cadastrado ainda" hint="Cadastre o primeiro: o ambiente fica pronto em cerca de um minuto, com o endereço e a primeira conta da Secretaria." action={<Link href="/plataforma/novo" className="task-action"><Plus size={18} aria-hidden /> Cadastrar o primeiro município</Link>} />

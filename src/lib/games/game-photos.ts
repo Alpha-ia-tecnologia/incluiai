@@ -4,6 +4,7 @@ export const GAME_PHOTOS: Record<string, string> = {
   "laranja": "/images/games/orange.webp",
   "livro": "/images/games/book.webp",
   "mochila": "/images/games/backpack.webp",
+  "bola": "/images/games/ball.webp",
   "cachorro": "/images/games/legacy/cachorro.webp",
   "gato": "/images/games/legacy/gato.webp",
   "peixe": "/images/games/legacy/peixe.webp",

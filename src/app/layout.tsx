@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Noto_Sans } from "next/font/google";
 import "./globals.css";
-import { TEXT_SCALE_SCRIPT } from "@/components/text-size-control";
+import { TEXT_SCALE_SCRIPT } from "@/lib/text-scale";
 import { VLibras } from "@/components/vlibras";
 import { currentTenant } from "@/lib/prisma";
 import { brandOf } from "@/lib/tenant";

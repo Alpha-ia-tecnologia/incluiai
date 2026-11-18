@@ -1,35 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import type { Pic } from "@/lib/games/games-core";
-import { GamePictogram } from "./game-pictogram";
-import type { GameControls } from "./types";
+import type { Pic } from "@/lib/games/registry";
+import { GamePhoto } from "./game-photo";
+import { useHint, type GameControls } from "./game-controls";
 
 export function SequenceGame({ routine, steps, order, controls }: { routine: string; steps: Pic[]; order: number[]; controls: GameControls }) {
   const [placed, setPlaced] = useState(0);
   const [tried, setTried] = useState<number | null>(null);
-  const [hinted, setHinted] = useState<number | null>(null);
-  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { onInstruction, onHint, registerHint } = controls;
+  const { onInstruction } = controls;
+  const [hinted, clearHint] = useHint<number | null>(controls, null, () => (placed < steps.length ? placed : null));
 
   useEffect(() => {
     onInstruction(placed === 0 ? `${routine}. O que vem primeiro?` : placed < steps.length ? `${routine}. O que vem depois de ${steps[placed - 1].label.toLowerCase()}?` : `${routine}. Pronto!`);
   }, [onInstruction, placed, routine, steps]);
-
-  useEffect(() => {
-    registerHint(() => {
-      if (placed >= steps.length) return;
-      setHinted(placed);
-      onHint();
-      if (hintTimer.current) clearTimeout(hintTimer.current);
-      hintTimer.current = setTimeout(() => setHinted(null), 2000);
-    });
-  }, [registerHint, placed, steps.length, onHint]);
-  useEffect(() => () => {
-    registerHint(null);
-    if (hintTimer.current) clearTimeout(hintTimer.current);
-  }, [registerHint]);
 
   function choose(index: number) {
     if (index < placed) return;
@@ -37,10 +22,10 @@ export function SequenceGame({ routine, steps, order, controls }: { routine: str
       const next = placed + 1;
       setPlaced(next);
       setTried(null);
-      setHinted(null);
+      clearHint();
       controls.onProgress(next);
       controls.onFeedback(`Isso! ${steps[index].label}.`, `Isso! ${steps[index].label}.`);
-      if (next === steps.length) setTimeout(controls.onFinish, 900);
+      if (next === steps.length) controls.onFinish();
       return;
     }
     setTried(index);
@@ -57,7 +42,7 @@ export function SequenceGame({ routine, steps, order, controls }: { routine: str
             <span className="text-sm font-medium">{index + 1}º</span>
             {index < placed ? (
               <>
-                <GamePictogram name={step.key} size={96} />
+                <GamePhoto name={step.key} size={96} />
                 <span className="flex items-center gap-1 text-base font-medium text-ink"><Check size={16} strokeWidth={3} className="text-green" aria-hidden /> {step.label}</span>
               </>
             ) : <span className="sr-only">vazio</span>}
@@ -73,7 +58,7 @@ export function SequenceGame({ routine, steps, order, controls }: { routine: str
               data-step={index}
               className={`flex min-h-36 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 bg-paper-raised p-3 text-teal-ink transition-colors hover:bg-teal-soft ${hinted === index ? "border-amber ring-4 ring-amber" : tried === index ? "border-amber" : "border-line"}`}
             >
-              <GamePictogram name={steps[index].key} size={128} />
+              <GamePhoto name={steps[index].key} size={128} />
               <span className="text-base font-medium text-ink">{steps[index].label}</span>
             </button>
           </li>

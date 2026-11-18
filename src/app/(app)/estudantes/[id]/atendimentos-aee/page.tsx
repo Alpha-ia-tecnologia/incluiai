@@ -4,11 +4,9 @@ import { AEE_SESSION_STATUS, AEE_SESSION_STATUSES, labelOf, toneOf } from "@/lib
 import { brDay, formatDate } from "@/lib/dates";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { AeeSessionForm } from "@/components/aee-session-form";
-import { DataBoard, DataCard, TONE_COLOR } from "@/components/data-viz";
-import { Swatch } from "@/components/charts";
+import { StackedColumns, Swatch, TONE_COLOR } from "@/components/viz/charts";
+import { DataBoard, DataCard, RingTile } from "@/components/viz/cards";
 import { percentOf, sessionsByMonth } from "@/lib/series";
-import { RingTile } from "@/components/viz/ring-tile";
-import { StackedColumns } from "@/components/viz/stacked-columns";
 import { Assurances, HowToRead } from "@/components/explain";
 import { MessageSquareText, NotebookPen } from "lucide-react";
 
@@ -60,7 +58,7 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
               </dl>
             </RingTile>
             <DataCard title="Atendimentos por mês" hint="Últimos 6 meses">
-              <StackedColumns rows={months} series={series} caption="Atendimentos AEE por mês e por situação, nos últimos 6 meses" empty="Nenhum atendimento registrado nos últimos 6 meses." />
+              <StackedColumns rows={months} series={series} label="Atendimentos AEE por mês e por situação, nos últimos 6 meses" empty="Nenhum atendimento registrado nos últimos 6 meses." />
               <HowToRead className="mt-2">Cada coluna separa o mês por situação. O número acima da coluna é o total do mês.</HowToRead>
             </DataCard>
           </DataBoard>

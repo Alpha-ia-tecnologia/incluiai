@@ -5,10 +5,7 @@ import type { DuaContent } from "@/lib/dua/domain";
 import { Field } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { BnccPicker } from "@/components/bncc-picker";
-
-export type StepProps = { content: DuaContent; update: (next: DuaContent) => void; readOnly: boolean };
-
-export const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+import { newId, type StepProps } from "./editor-steps";
 
 export function StepObjective({ content, update, readOnly }: StepProps) {
   const set = (patch: Partial<DuaContent>) => update({ ...content, ...patch });

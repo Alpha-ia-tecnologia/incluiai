@@ -16,8 +16,8 @@ import { studentAI } from "@/lib/agents/capabilities";
 import { generateActivityImage, removeActivityImage } from "@/actions/activity-images";
 import { ActivityImageForm } from "@/components/activity-image-form";
 import { activityImageUrl, imageWidthOf } from "@/lib/images/activity-image";
-import { DataBoard, DataCard, segmentsOf } from "@/components/data-viz";
-import { BarList, StackedBar } from "@/components/charts";
+import { BarList, StackedBar, segmentsOf } from "@/components/viz/charts";
+import { DataBoard, DataCard } from "@/components/viz/cards";
 
 type ActivityWithImage = Activity & { image: { altText: string; kind: string; createdAt: Date } | null };
 import { ChoiceField } from "@/components/choice-field";

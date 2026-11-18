@@ -32,9 +32,9 @@ import { listStudentSupports } from "@/lib/dua/supports";
 import { ReviewBadge } from "@/components/dua/badges";
 import { percentOf } from "@/lib/series";
 import { CLOSE_REASONS, reviewSummary, suggestedNextReview } from "@/lib/plan-lifecycle";
-import { DataBoard, DataCard, RingStat, StatusPill, TONE_COLOR, segmentsOf } from "@/components/data-viz";
-import { HatchedDonut, Legend } from "@/components/charts";
-import { ObjectiveScale } from "@/components/viz/student-viz";
+import { HatchedDonut, Legend, RingStat, StatusPill, TONE_COLOR, segmentsOf } from "@/components/viz/charts";
+import { DataBoard, DataCard } from "@/components/viz/cards";
+import { ObjectiveScale } from "./objective-scale";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 
 

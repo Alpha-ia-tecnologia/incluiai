@@ -1,4 +1,4 @@
-import { SIGNAL } from "@/components/charts";
+import { SIGNAL } from "@/components/viz/charts";
 import { clampSupport, supportInfo } from "@/lib/scale";
 
 const LEVELS = [5, 4, 3, 2, 1, 0];

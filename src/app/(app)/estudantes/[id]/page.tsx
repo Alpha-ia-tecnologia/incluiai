@@ -6,7 +6,7 @@ import { objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insig
 import { meetingQuestions } from "@/lib/meeting-questions";
 import { readList } from "@/lib/format";
 import { formatDate, formatDateShort } from "@/lib/dates";
-import { CHANNELS, BARRIERS, SHIFTS, TREND } from "@/lib/scale";
+import { CHANNELS, BARRIERS, SHIFTS, TREND, type Trend } from "@/lib/scale";
 import { countItems, supportSeries } from "@/lib/series";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
@@ -14,12 +14,13 @@ import { guidanceForPlan, parseAccepted, reportStatus } from "@/lib/health-repor
 import { censusReference } from "@/lib/federal-guidance";
 import { PROFILE_SUPPORT_GROUPS } from "@/lib/functional-profile";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
-import { DataBoard, DataCard, StatusPill, SupportBars, SupportChart } from "@/components/data-viz";
-import { BarList } from "@/components/charts";
-import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, TREND_ICON } from "@/components/viz/student-viz";
-import { AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, CircleCheck } from "lucide-react";
+import { BarList, StatusPill } from "@/components/viz/charts";
+import { DataBoard, DataCard } from "@/components/viz/cards";
+import { ChartFrame, CriterionBar, ParticipationDonut, SupportChart, SupportMeter } from "@/components/viz/student-viz";
+import { SupportBars } from "./support-bars";
+import { AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, CircleCheck, Minus, TrendingDown, type LucideIcon } from "lucide-react";
 
-const NARROW_BARS = "lg:[&_li]:grid-cols-[minmax(0,1fr)_auto] lg:[&_li>span:nth-child(2)]:col-span-2 lg:[&_li>span:nth-child(2)]:row-start-2";
+const TREND_ICON: Record<Trend, LucideIcon> = { avancando: TrendingDown, estavel: Minus, atencao: AlertTriangle, sem_dados: Minus };
 
 export default async function StudentOverview({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
@@ -245,7 +246,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 <ChevronDown size={18} aria-hidden className="shrink-0 text-ink-soft group-open:rotate-180 motion-safe:transition-transform" />
               </summary>
               <p className="mt-1 text-xs leading-relaxed text-ink-soft">0 (IND) é fazer sozinho; 5 (FIS-T), apoio físico total. Menos casas, menos apoio.</p>
-              <div className={`mt-4 space-y-4 ${NARROW_BARS}`}>
+              <div className="mt-4 space-y-4">
                 {PROFILE_SUPPORT_GROUPS.map((group) => (
                   <div key={group.title} className="min-w-0">
                     <h4 className="mb-2 text-xs font-medium text-ink-soft">{group.title}</h4>

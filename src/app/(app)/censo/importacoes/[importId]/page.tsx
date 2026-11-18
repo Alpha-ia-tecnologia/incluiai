@@ -10,7 +10,7 @@ import { STAGE_GROUPS } from "@/lib/educacenso";
 import { applyCensusImport, decideCensusPerson, discardCensusImport, undoCensusDecision } from "@/actions/census";
 import { ActionForm } from "@/components/action-form";
 import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
-import { DataBoard, StatTile } from "@/components/data-viz";
+import { DataBoard, StatTile } from "@/components/viz/cards";
 import { CensusApplyForm, CensusDecisionForm } from "@/components/census/census-forms";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, Steps } from "@/components/explain";

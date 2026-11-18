@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { Check, Lightbulb } from "lucide-react";
-import type { ClassificationGroupId, ClassificationRound, GameObjectId } from "@/lib/games";
+import { isCorrectClassification, type ClassificationGroupId, type ClassificationRound, type GameObjectId } from "@/lib/games/objects";
 import styles from "./classification-game.module.css";
 
 type ClassificationGameProps = {
@@ -35,7 +35,7 @@ export function ClassificationGame({ round, onComplete, onProgress, reduceMotion
 
   function classify(groupId: ClassificationGroupId) {
     if (!selected || placed[selected.id] || complete) return;
-    if (round.assignments[selected.id] !== groupId) {
+    if (!isCorrectClassification(round, selected.id, groupId)) {
       setFeedbackKind("hint");
       setFeedback("Vamos observar mais uma vez? Essa imagem vai para o outro grupo. Você pode pedir uma pista.");
       return;

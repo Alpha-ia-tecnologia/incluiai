@@ -12,10 +12,8 @@ import { PillLink } from "@/components/pill-link";
 import { NewPlanningForm } from "@/components/dua/new-planning-form";
 import { ReviewBadge } from "@/components/dua/badges";
 import { BUTTON_CLS, inputCls, labelCls } from "@/components/form-styles";
-import { DataBoard, DataCard, StatTile, segmentsOf, withSegmentColors } from "@/components/data-viz";
-import { StackedBar } from "@/components/charts";
-import { DonutSummary } from "@/components/viz/donut-summary";
-import { UsageMeter } from "@/components/viz/usage-meter";
+import { DonutSummary, Meter, StackedBar, segmentsOf, withSegmentColors } from "@/components/viz/charts";
+import { DataBoard, DataCard, StatTile } from "@/components/viz/cards";
 import { Assurances } from "@/components/explain";
 
 const REVIEW_ORDER: ReviewState[] = ["rascunho", "em_revisao", "validado"];
@@ -54,7 +52,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
         character="planning"
         title="Planejamento com DUA"
         lede="Desenho Universal para a Aprendizagem: formas diferentes de acessar, participar e mostrar o que aprendeu."
-        actions={<PillLink slug="dua" onNavy />}
+        actions={<PillLink slug="dua" />}
       />
 
       <div className="mb-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
@@ -96,7 +94,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
             <StatTile
               label="Aplicações registradas"
               value={totalApplications}
-              chart={<UsageMeter value={applied} max={all.length} />}
+              chart={<Meter value={applied} max={all.length} />}
               hint={`${applied} de ${plural(all.length, "planejamento", "planejamentos")} já ${applied === 1 ? "aplicado" : "aplicados"}. Mede uso, não aprendizagem.`}
             />
             <DataCard title="Compartilhamento">

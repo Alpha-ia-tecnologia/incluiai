@@ -1,12 +1,12 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useParams, useSelectedLayoutSegment } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { Sparkles, X } from "lucide-react";
 import type { ConversationDetail } from "@/lib/assistant/types";
-import { AssistantChat } from "./assistant-chat";
+import { AssistantChat, type AssistantActivity } from "./assistant-chat";
 
-type Activity = "livre" | "ocupado" | "pronto" | "aviso" | "interrompida";
+type Activity = "livre" | AssistantActivity;
 const FAB_LABELS: Record<Activity, string> = {
   livre: "Abrir o assistente",
   ocupado: "Abrir o assistente (resposta em preparo)",
@@ -14,6 +14,7 @@ const FAB_LABELS: Record<Activity, string> = {
   aviso: "Abrir o assistente (a resposta não veio)",
   interrompida: "Abrir o assistente (a conexão caiu)",
 };
+const STUDENT_ROUTES = new Set(["estudantes", "familia"]);
 const FAB_STATUS: Partial<Record<Activity, string>> = {
   pronto: "A resposta do assistente está pronta.",
   aviso: "O assistente não conseguiu responder. Abra o painel para ver o aviso.",
@@ -21,7 +22,8 @@ const FAB_STATUS: Partial<Record<Activity, string>> = {
 };
 
 export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; suggestions: string[] }) {
-  const pathname = usePathname();
+  const section = useSelectedLayoutSegment();
+  const { id } = useParams<{ id?: string }>();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [initial, setInitial] = useState<ConversationDetail | null | undefined>(undefined);
@@ -33,9 +35,8 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
   const activityRef = useRef(activity);
   const fabRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const offPage = pathname.startsWith("/assistente") || pathname === "/login";
-  const student = pathname.match(/^\/(?:estudantes|familia)\/([^/]+)/)?.[1];
-  const studentId = student && student !== "novo" ? student : null;
+  const offPage = section === "assistente";
+  const studentId = section && STUDENT_ROUTES.has(section) && id ? id : null;
   // O botão some sem blur do React, então o nome guardado também é liberado aqui.
   if (offPage && open) setOpen(false);
   if (offPage && heldActivity !== null) setHeldActivity(null);
@@ -50,7 +51,7 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
     openRef.current = open;
     activityRef.current = activity;
   }, [open, activity]);
-  const onActivity = useCallback((next: Exclude<Activity, "livre">) => {
+  const onActivity = useCallback((next: AssistantActivity) => {
     setActivity(next !== "ocupado" && openRef.current ? "livre" : next);
   }, []);
 

@@ -19,10 +19,15 @@ cartões brancos sobre um fundo cinza-azulado. Estas regras organizam o uso.
   Um bloco marinho por tela, além do menu: dois empilhados pesam.
   - Texto: `on-navy` (títulos, 12,8:1) e `on-navy-soft` (apoio, 8,6:1). Nunca
     `ink`, `ink-soft` nem `brand` sobre o marinho.
-  - Ação e item ativo: azul-claro (`accent-sky`) com texto `ink-strong`
-    (6,7:1): `BUTTON_CLS.primaryOnNavy`, `task-action-on-navy`, `pill-action-on-navy`.
-    A segunda ação usa `BUTTON_CLS.secondaryOnNavy`; o botão discreto serve como está.
+  - Ação e item ativo: azul-claro (`accent-sky`) com texto `ink-strong` (6,7:1).
   - Linhas e realce: `navy-line` e `navy-hover`.
+  - A classe `surface-navy` troca os papéis de cor (`surface-ink`,
+    `surface-ink-soft`, `surface-raised`, `surface-line`, `surface-good`,
+    `action`, `action-hover`, `on-action`, `action-soft`, `action-ink`), e os
+    componentes leem os papéis: `BUTTON_CLS.primary` e `.secondary`,
+    `task-action`, `pill-action`, `Assurances`, `HowToRead`, `PillLink` e
+    `TextSizeControl` ficam certos dentro do marinho sem nenhuma opção. O botão
+    discreto (`quiet`) e os selos continuam claros.
   - Foco do teclado em azul-claro (o azul da marca some no marinho).
   - No papel, a superfície vira fundo claro com texto escuro (regra de
     impressão em `globals.css`): não use cor fixa dentro dela.
@@ -37,7 +42,7 @@ cartões brancos sobre um fundo cinza-azulado. Estas regras organizam o uso.
 - **Verde, amarelo e laranja** (`signal-*`): só em dados e só para estado
   (bom, intermediário, atenção), sempre com o valor também em texto e com
   `ink-strong` por cima.
-- **Gráficos** (`src/components/charts.tsx`, objeto `SIGNAL`, que lê os tokens
+- **Gráficos** (`src/components/viz/charts.tsx`, objeto `SIGNAL`, que lê os tokens
   por nome):
   - quantidade sem juízo (contagens, usos, partes de um todo, etapas
     cumpridas): azul da marca (`SIGNAL.brand`), o padrão de barras, colunas,
@@ -88,8 +93,7 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
   - `primary`: a ação da tela;
   - `secondary`: azul-claro;
   - `quiet`: com borda, para cancelar, filtrar e navegar;
-  - `danger`: excluir; `dangerOutline`: excluir dentro de uma lista;
-  - `primaryOnNavy` e `secondaryOnNavy`: sobre o marinho.
+  - `danger`: excluir; `dangerOutline`: excluir dentro de uma lista.
 
   Não crie estilo local de campo ou botão.
 - **`src/components/form-kit.tsx`:** `Field` (rótulo, dica e
@@ -99,10 +103,8 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
 - **`src/components/ui.tsx`:**
   - `PageHeader`: `level={2}` para o título de uma aba dentro da ficha do
     estudante, que já tem o h1 com o nome;
-  - `PageHero`: faixa em marinho com o personagem, nas telas principais. O
-    que entra nela usa as versões sobre o marinho: `BUTTON_CLS.primaryOnNavy`,
-    `BUTTON_CLS.secondaryOnNavy`, `Assurances onNavy`, `HowToRead onNavy`,
-    `PillLink onNavy`, `TextSizeControl onNavy`;
+  - `PageHero`: faixa em marinho com o personagem, nas telas principais;
+    `standalone` quando ela é a página inteira (erro, "não encontrado", aviso);
   - `EmptyState`: com `character` e `action`;
   - `ButtonLink`;
   - `Card`, `Badge`, `SectionTitle`.
@@ -117,8 +119,7 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
     de servidor (`<form action={…}>` que revalida ou redireciona). No Next 16.2,
     a atualização depois da ação às vezes não chega à tela e o botão fica preso
     em "Preparando…".
-- **Avisos:** `src/components/status-page.tsx`, usado pelas páginas de erro e
-  de "não encontrado".
+- **Avisos:** `PageHero standalone`, nas páginas de erro e de "não encontrado".
 
 ## Menos texto
 

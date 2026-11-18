@@ -29,11 +29,10 @@ import { CardPreferencesForm } from "@/components/student-card-forms";
 import Link from "next/link";
 import { periodLabel, reportData } from "@/lib/reports";
 import { MaterialGalleryCard, materialSummary } from "@/components/materials/material-gallery";
-import { DataBoard, StatTile } from "@/components/data-viz";
-import { SIGNAL } from "@/components/charts";
+import { SIGNAL } from "@/components/viz/charts";
+import { DataBoard, RingTile, StatTile } from "@/components/viz/cards";
+import { SupportTrack } from "./support-track";
 import { percentOf } from "@/lib/series";
-import { RingTile } from "@/components/viz/ring-tile";
-import { SupportTrack } from "@/components/viz/support-track";
 import { Timeline } from "@/components/viz/timeline";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { activityImageUrl, imageWidthOf } from "@/lib/images/activity-image";
@@ -91,9 +90,9 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       <PageHero
         character="care"
         title={`Acompanhamento de ${firstName}`}
-        actions={<><ReadAloud targetId={CONTENT_ID} label="Ouvir esta página" /><TextSizeControl onNavy /></>}
+        actions={<><ReadAloud targetId={CONTENT_ID} label="Ouvir esta página" /><TextSizeControl /></>}
       />
-      {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} character={false} />) : null}
+      {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />) : null}
 
       {isFamily && prefs?.weeklyCheckIn ? (
         <Card className="mb-6 max-w-3xl border-brand/30" id="pergunta-da-semana">

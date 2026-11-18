@@ -1,5 +1,5 @@
 import type { Tenant } from "@/lib/prisma";
-import { StatusPage } from "@/components/status-page";
+import { PageHero } from "@/components/ui";
 
 export function TenantStatus({ tenant, domain }: { tenant: Tenant; domain: string }) {
   const municipality = tenant.kind === "municipio" ? tenant.municipality : null;
@@ -28,9 +28,7 @@ export function TenantStatus({ tenant, domain }: { tenant: Tenant; domain: strin
         };
   return (
     <main className="app-frame items-center justify-center px-4 py-10 sm:px-10 sm:py-16">
-      <StatusPage character={municipality?.status === "suspenso" ? "care" : "resources"} eyebrow={page.eyebrow} title={page.title} actions={null}>
-        <p>{page.text}</p>
-      </StatusPage>
+      <PageHero standalone character={municipality?.status === "suspenso" ? "care" : "resources"} eyebrow={page.eyebrow} title={page.title} lede={<p>{page.text}</p>} />
     </main>
   );
 }

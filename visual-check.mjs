@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { BASE, launchChrome, login, newSession, settle, until } from "./e2e-support.mjs";
 import { getNavigation } from "./src/lib/navigation.ts";
 import { STUDENT_TABS } from "./src/lib/student-tab-list.ts";
+import { TEXT_SCALE_KEY } from "./src/lib/text-scale.ts";
 import { parseTutorials, tutorialsForRole } from "./src/lib/tutorials-core.ts";
 import { sampleFile } from "./src/lib/educacenso.fixture.mjs";
 
@@ -22,7 +23,7 @@ const browser = await launchChrome();
 
 async function open(width) {
   const { page, errors } = await newSession(browser, { width, height: 900 });
-  if (SCALE) await page.evaluateOnNewDocument((value) => localStorage.setItem("incluiedu-texto", value), SCALE);
+  if (SCALE) await page.evaluateOnNewDocument((key, value) => localStorage.setItem(key, value), TEXT_SCALE_KEY, SCALE);
   return { page, errors };
 }
 

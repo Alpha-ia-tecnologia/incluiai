@@ -4,19 +4,15 @@ import Link from "next/link";
 import { CircleCheck, Send, Share2, Undo2 } from "lucide-react";
 import { returnDuaToDraft, setDuaSharing, submitDuaForReview, validateDuaVersion } from "@/actions/dua";
 import type { ActionResult } from "@/lib/action-result";
-import {
-  BARRIER_STATUS_LABEL, PRINCIPLE_LABEL, SHARING, strategiesWithoutBarrier, validationProblems,
-  type ReviewState,
-} from "@/lib/dua/domain";
+import { PRINCIPLE_LABEL, SHARING, strategiesWithoutBarrier, validationProblems, type ReviewState } from "@/lib/dua/domain";
 import { labelOf } from "@/lib/scale";
 import type { PlanningAccess } from "@/lib/dua/access";
 import { Field, FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, linkCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
 import { OriginBadge, ReviewBadge } from "./badges";
-import type { StepProps } from "./step-objective";
-
-const STEP_OF_FIELD = (field: string) => (field.startsWith("strategies") ? 2 : field.startsWith("barriers") ? 1 : 0);
+import { ContentSummary } from "./content-summary";
+import { stepOfField, type StepProps } from "./editor-steps";
 
 export function StepReview({ content, update, readOnly, planningId, access, version, state, sharing, hasValidated, ownerName, flush, revision, goTo }: StepProps & {
   planningId: string; access: PlanningAccess; version: number; state: ReviewState; sharing: string; hasValidated: boolean; ownerName: string;
@@ -48,7 +44,7 @@ export function StepReview({ content, update, readOnly, planningId, access, vers
           <ul className="mt-2 grid gap-1">
             {problems.map((problem) => (
               <li key={`${problem.field}-${problem.message}`}>
-                <button type="button" onClick={() => goTo(STEP_OF_FIELD(problem.field))} className="min-h-11 text-left underline underline-offset-4">{problem.message}</button>
+                <button type="button" onClick={() => goTo(stepOfField(problem.field))} className="min-h-11 text-left underline underline-offset-4">{problem.message}</button>
               </li>
             ))}
           </ul>
@@ -60,13 +56,9 @@ export function StepReview({ content, update, readOnly, planningId, access, vers
 
       <section aria-labelledby="sintese-titulo" className="grid min-w-0 gap-4">
         <h3 id="sintese-titulo" className="text-sm font-medium text-ink">Síntese do planejamento</h3>
-        <dl className="grid min-w-0 gap-3 text-sm">
-          <div><dt className="font-medium text-ink">Atividade</dt><dd className="text-ink-soft">{content.title || "Sem título"}</dd></div>
-          <div><dt className="font-medium text-ink">O que os estudantes precisam aprender</dt><dd className="text-ink-soft">{content.objective.learning || "Ainda não definido"}{content.objective.bnccCodes.length ? ` · BNCC ${content.objective.bnccCodes.join(", ")}` : ""}{content.objective.curriculum ? ` · ${content.objective.curriculum}` : ""}</dd></div>
-          <div><dt className="font-medium text-ink">Critérios observáveis</dt><dd><ul className="list-disc pl-5 text-ink-soft">{content.criteria.map((item) => <li key={item.id}>{item.description || "—"}</li>)}</ul></dd></div>
-          <div><dt className="font-medium text-ink">Barreiras consideradas</dt><dd><ul className="list-disc pl-5 text-ink-soft">{content.barriers.map((item) => <li key={item.id}>{item.description || "—"} <span className="text-xs">({BARRIER_STATUS_LABEL[item.status].toLowerCase()})</span></li>)}</ul></dd></div>
-          {content.context.organization || content.context.resources.length ? <div><dt className="font-medium text-ink">Organização e recursos</dt><dd className="text-ink-soft">{[content.context.organization, content.context.resources.join(", ")].filter(Boolean).join(" · ")}</dd></div> : null}
-        </dl>
+        <ContentSummary content={content}>
+          {content.context.organization || content.context.resources.length ? <div className="min-w-0"><dt className="font-medium text-ink">Organização e recursos</dt><dd className="break-words text-ink-soft">{[content.context.organization, content.context.resources.join(", ")].filter(Boolean).join(" · ")}</dd></div> : null}
+        </ContentSummary>
         <ol className="grid gap-3">
           {content.strategies.map((strategy, index) => (
             <li key={strategy.id} className="min-w-0 rounded-xl border border-line bg-paper-raised p-3 text-sm">

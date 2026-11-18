@@ -3,6 +3,7 @@ import { isAIEnabled } from "@/lib/agents/capabilities";
 import { listSuggestions } from "@/lib/dua/suggestions";
 import { listSupports } from "@/lib/dua/supports";
 import { DuaEditor } from "@/components/dua/editor";
+import { stepFromParam } from "@/components/dua/editor-steps";
 
 export default async function PlanningEditorPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ etapa?: string }> }) {
   const [{ id }, { etapa }] = await Promise.all([params, searchParams]);
@@ -25,7 +26,7 @@ export default async function PlanningEditorPage({ params, searchParams }: { par
       supportsCount={supports.length}
       suggestions={suggestions}
       aiOn={isAIEnabled()}
-      initialStep={Math.max(0, Number(etapa ?? 1) - 1) || 0}
+      initialStep={stepFromParam(etapa)}
     />
   );
 }

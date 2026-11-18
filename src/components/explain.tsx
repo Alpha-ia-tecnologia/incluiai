@@ -21,12 +21,12 @@ export function Steps({ items, label, className = "" }: { items: StepItem[]; lab
 
 export type AssuranceItem = { icon: LucideIcon; text: string };
 
-export function Assurances({ items, label, className = "", onNavy = false }: { items: AssuranceItem[]; label: string; className?: string; onNavy?: boolean }) {
+export function Assurances({ items, label, className = "" }: { items: AssuranceItem[]; label: string; className?: string }) {
   return (
     <ul aria-label={label} className={`flex flex-wrap gap-2 ${className}`}>
       {items.map(({ icon: Icon, text }) => (
-        <li key={text} className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${onNavy ? "border-navy-line bg-navy-hover text-on-navy" : "border-line bg-paper-raised text-ink"}`}>
-          <Icon size={15} aria-hidden className={`shrink-0 ${onNavy ? "text-signal-lime" : "text-green"}`} />
+        <li key={text} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-surface-line bg-surface-raised px-3 py-1.5 text-sm text-surface-ink">
+          <Icon size={15} aria-hidden className="shrink-0 text-surface-good" />
           {text}
         </li>
       ))}
@@ -34,15 +34,15 @@ export function Assurances({ items, label, className = "", onNavy = false }: { i
   );
 }
 
-export function HowToRead({ summary = "Como ler", children, className = "", onNavy = false }: { summary?: string; children: ReactNode; className?: string; onNavy?: boolean }) {
+export function HowToRead({ summary = "Como ler", children, className = "" }: { summary?: string; children: ReactNode; className?: string }) {
   return (
     <details className={`group ${className}`}>
-      <summary className={`inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full text-sm font-medium [&::-webkit-details-marker]:hidden ${onNavy ? "text-on-navy" : "text-brand-strong"}`}>
+      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full text-sm font-medium [&::-webkit-details-marker]:hidden text-action-ink">
         <Info size={15} aria-hidden className="shrink-0" />
         {summary}
         <ChevronDown size={15} aria-hidden className="shrink-0 group-open:rotate-180 motion-safe:transition-transform" />
       </summary>
-      <div className={`mt-1 max-w-prose text-sm leading-relaxed ${onNavy ? "text-on-navy-soft" : "text-ink-soft"}`}>{children}</div>
+      <div className="mt-1 max-w-prose text-sm leading-relaxed text-surface-ink-soft">{children}</div>
     </details>
   );
 }

@@ -3,7 +3,7 @@ import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { can, rolesWith } from "../roles";
 import { parseJson, readList } from "../format";
-import { NO_BASE_TEXT, ratio, type AiBlock, type DuaIndicator } from "./domain";
+import { NO_BASE_TEXT, isDocumented, ratio, type AiBlock, type DuaIndicator } from "./domain";
 
 export type DuaIndicatorsResult = {
   period: { start: Date | null; end: Date };
@@ -48,7 +48,7 @@ export async function duaIndicators(user: SessionUser, scope: { start: Date | nu
   for (const application of applications) {
     const participants = readList(application.participantIds);
     pairs += participants.length;
-    documented += participants.filter((id) => application.evidences.some((evidence) => evidence.studentId === id && evidence.observation !== "nao_registrado")).length;
+    documented += participants.filter((id) => application.evidences.some((evidence) => evidence.studentId === id && isDocumented(evidence))).length;
   }
 
   const decided = suggestions.flatMap((row) => parseJson<AiBlock[]>(row.blocks, [])).filter((block) => block.decision !== "pendente");

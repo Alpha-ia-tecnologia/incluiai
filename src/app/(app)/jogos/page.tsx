@@ -4,8 +4,8 @@ import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { studentScopeWhere } from "@/lib/policy";
 import { can } from "@/lib/roles";
-import { readList } from "@/lib/format";
-import { suggestedLevel, themeFromInterests } from "@/lib/games/games-core";
+import { firstName, readList } from "@/lib/format";
+import { suggestedLevel, themeFromInterests } from "@/lib/games/themes";
 import { GamesHub, type HubStudent } from "@/components/games/games-hub";
 
 export const metadata: Metadata = { title: "Jogos educativos · IncluiEdu" };
@@ -24,7 +24,7 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
     .map((student) => ({
       id: student.id,
       name: student.name,
-      firstName: student.name.split(" ")[0],
+      firstName: firstName(student.name),
       detail: `${student.gradeYear} · ${student.className}`,
       level: suggestedLevel(student.profile),
       theme: themeFromInterests(readList(student.profile?.interests ?? null)),

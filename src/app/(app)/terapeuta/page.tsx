@@ -19,7 +19,8 @@ import {
   SCHOOL_GUIDANCE_OPTIONS, SHARED_GOAL_OPTIONS, STRATEGIES_TO_TRY_OPTIONS,
 } from "@/lib/form-options";
 import { Check, FileText } from "lucide-react";
-import { DataBoard, MiniColumns, StatTile, StatusPill } from "@/components/data-viz";
+import { ColumnChart, StatusPill } from "@/components/viz/charts";
+import { DataBoard, StatTile } from "@/components/viz/cards";
 import { monthlyCounts } from "@/lib/series";
 import { Timeline } from "@/components/viz/timeline";
 import { param, type SearchParams } from "@/lib/search-params";
@@ -74,7 +75,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
         title="Articulação intersetorial"
         lede="Você vê só o perfil funcional e os relatórios de articulação. Os registros clínicos ficam no sistema de saúde."
       />
-      {journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} character={false} />}
+      {journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />}
       {switcher}
 
       <section aria-label="Seus relatórios" className="mb-6">
@@ -83,7 +84,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
             label="Relatórios enviados"
             value={reports.length}
             hint={latest ? `O último em ${formatDate(latest.createdAt)}. Por mês, nos últimos 6.` : undefined}
-            chart={reports.length ? <MiniColumns points={monthlyCounts(reports.map((report) => report.createdAt), 6)} label="Relatórios enviados por mês, nos últimos 6 meses" /> : undefined}
+            chart={reports.length ? <ColumnChart compact rows={monthlyCounts(reports.map((report) => report.createdAt), 6)} label="Relatórios enviados por mês, nos últimos 6 meses" /> : undefined}
           />
           <StatTile
             label="A escola recebeu"

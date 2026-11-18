@@ -36,7 +36,3 @@ export const SPEECH_RATES = [
   { value: 1, label: "Normal" },
   { value: 1.2, label: "Rápido" },
 ] as const;
-
-export const TEXT_SCALES = ["1", "2", "3"] as const;
-export type TextScale = (typeof TEXT_SCALES)[number];
-export const isTextScale = (value: unknown): value is TextScale => TEXT_SCALES.includes(value as TextScale);

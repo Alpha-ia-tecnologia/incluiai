@@ -63,7 +63,7 @@
   /* Painel de indicadores: sinais verde (bom), amarelo (intermediário) e
      laranja (atenção), as cores da apresentação, sempre com texto marinho
      escuro por cima (contraste ≥ 5:1).
-     Os gráficos usam os mesmos valores em src/components/charts.tsx. */
+     Os gráficos usam os mesmos valores em src/components/viz/charts.tsx. */
   --signal-lime: #7cb93a;
   --signal-lime-soft: #e8f3dc;
   --signal-yellow: #f5be0b;
@@ -72,6 +72,7 @@
   --signal-orange-soft: #fde3d8;
   --signal-orange-ink: #9a3412;
   --signal-track: #e3ecef;
+  --hatch: repeating-linear-gradient(120deg, rgb(0 0 0 / 0.1) 0 1.5px, transparent 1.5px 5px);
   --ink-strong: #06243a;
   /* Azul-claro da apresentação: faixas e gráficos, nunca texto. */
   --accent-sky: #4fb3e3;
@@ -141,6 +142,18 @@
   --color-signal-orange-ink: var(--signal-orange-ink);
   --color-signal-track: var(--signal-track);
   --color-ink-strong: var(--ink-strong);
+  --color-surface-ink: var(--surface-ink, var(--ink));
+  --color-surface-ink-soft: var(--surface-ink-soft, var(--ink-soft));
+  --color-surface-raised: var(--surface-raised, var(--paper-raised));
+  --color-surface-line: var(--surface-line, var(--line));
+  --color-surface-good: var(--surface-good, var(--green));
+  --color-action: var(--action, var(--brand));
+  --color-action-hover: var(--action-hover, var(--brand-strong));
+  --color-on-action: var(--on-action, #fff);
+  --color-action-soft: var(--action-soft, var(--brand-soft));
+  --color-action-soft-hover: var(--action-soft-hover, var(--lilac));
+  --color-action-soft-line: var(--action-soft-line, transparent);
+  --color-action-ink: var(--action-ink, var(--brand-strong));
   --font-sans: var(--font-noto);
   --font-display: var(--font-noto);
   --font-mono: var(--font-jetbrains);
@@ -178,9 +191,8 @@ select:not([multiple]):not([size]):disabled { opacity: 0.6; }
 /* Cabeçalho preso (ficha do estudante): o foco do teclado não some embaixo dele. */
 html { scroll-padding-top: var(--sticky-offset, 0px); }
 /* Tamanho do texto escolhido pela pessoa (menu com o nome, portal da família):
-   tudo o que está em rem cresce junto, na tela e na impressão. */
-html[data-text-scale="2"] { font-size: 112.5%; }
-html[data-text-scale="3"] { font-size: 125%; }
+   o tamanho vem de src/lib/text-scale.ts, no estilo do <html>, e tudo o que está
+   em rem cresce junto, na tela e na impressão. */
 /* Com o texto ampliado, palavra longa quebra em vez de empurrar a tela para o
    lado, e no celular o nome no menu fica só para o leitor de tela. */
 html[data-text-scale] body { overflow-wrap: anywhere; hyphens: auto; }
@@ -213,9 +225,18 @@ html[data-text-scale] .status-pill { white-space: normal; }
 }
 .rail-link:hover { background: var(--navy-hover); color: var(--on-navy); }
 .rail-link[aria-current="page"] { background: var(--accent-sky); color: var(--ink-strong); font-weight: 500; }
-/* Superfície marinho (menu lateral, boas-vindas): o foco do teclado troca o azul,
-   que some no marinho (2.2:1), pelo azul-claro (5.4:1). */
-.surface-navy { background: var(--navy); color: var(--on-navy); }
+/* Os papéis (--surface-*, --action*) não ficam no :root: o var() de uma propriedade
+   é resolvido no elemento que a declara, e a prévia da marca (plataforma) troca os
+   tokens num bloco interno.
+   O foco do teclado troca o azul, que some no marinho (2.2:1), pelo azul-claro (5.4:1). */
+.surface-navy {
+  background: var(--navy); color: var(--on-navy);
+  --surface-ink: var(--on-navy); --surface-ink-soft: var(--on-navy-soft);
+  --surface-raised: var(--navy-hover); --surface-line: var(--navy-line); --surface-good: var(--signal-lime);
+  /* A ação sobre o marinho: azul-claro com texto marinho escuro (6.7:1). */
+  --action: var(--accent-sky); --action-hover: var(--on-navy); --on-action: var(--ink-strong);
+  --action-soft: var(--navy-hover); --action-soft-hover: var(--navy-line); --action-soft-line: var(--navy-line); --action-ink: var(--on-navy);
+}
 .nav-rail :focus-visible, .surface-navy :focus-visible, .mobile-nav-item:focus-visible { outline-color: var(--accent-sky); }
 /* No papel, o marinho vira fundo claro com texto escuro: a impressão padrão não
    pinta fundos, e o texto branco sumiria. */
@@ -232,13 +253,10 @@ html[data-text-scale] .status-pill { white-space: normal; }
 .mobile-nav-item[aria-current="page"], .mobile-nav-item[data-active="true"] { background: var(--accent-sky); color: var(--ink-strong); font-weight: 500; }
 .mobile-menu { min-width: 0; flex: 1; }
 .mobile-menu-panel { position: fixed; left: 16px; right: 16px; bottom: calc(98px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 130px); overflow-y: auto; border: 1px solid var(--line); border-radius: 22px; padding: 18px; background: var(--paper-raised); box-shadow: var(--shadow-e2); }
-.task-action { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 12px 20px; background: var(--brand); color: white; font-size: 0.875rem; font-weight: 500; line-height: 1.4; text-align: center; transition: background 160ms ease; }
-.task-action:hover { background: var(--brand-strong); }
-.task-action-secondary { background: var(--brand-soft); color: var(--brand-strong); }
-.task-action-secondary:hover { background: var(--lilac); }
-/* A ação sobre o marinho: azul-claro com texto marinho escuro (6.7:1). */
-.task-action-on-navy { background: var(--accent-sky); color: var(--ink-strong); }
-.task-action-on-navy:hover { background: var(--on-navy); }
+.task-action { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 12px 20px; font-size: 0.875rem; font-weight: 500; line-height: 1.4; text-align: center; transition: background 160ms ease; @apply bg-action text-on-action; }
+.task-action:hover { @apply bg-action-hover; }
+.task-action-secondary { @apply bg-action-soft text-action-ink; }
+.task-action-secondary:hover { @apply bg-action-soft-hover; }
 /* O fim da página reserva o espaço do botão do Assistente, que nunca cobre o último item. */
 .app-content { min-width: 0; flex: 1; padding: 7px 32px 96px; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1fr) 296px; gap: 34px; }
@@ -254,11 +272,9 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
   .dash-board { border-radius: 30px; background: var(--surface-muted); padding: 14px; }
   .dash-card { border-radius: 22px; background: var(--paper-raised); padding: 20px; }
   .dash-hero { border-radius: 30px; }
-  .hatch { background-image: repeating-linear-gradient(120deg, rgb(0 0 0 / 0.1) 0 1.5px, transparent 1.5px 5px); }
-  .pill-action { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--brand); padding: 0 24px; color: white; font-size: 0.875rem; font-weight: 500; transition: background 160ms ease; }
-  .pill-action:hover { background: var(--brand-strong); }
-  .pill-action-on-navy { background: var(--accent-sky); color: var(--ink-strong); }
-  .pill-action-on-navy:hover { background: var(--on-navy); }
+  .hatch { background-image: var(--hatch); }
+  .pill-action { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 0 24px; font-size: 0.875rem; font-weight: 500; transition: background 160ms ease; @apply bg-action text-on-action; }
+  .pill-action:hover { @apply bg-action-hover; }
   .circle-link { display: inline-flex; width: 36px; height: 36px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); transition: background 160ms ease, color 160ms ease, border-color 160ms ease; }
   .circle-link:hover { border-color: var(--brand); background: var(--brand); color: white; }
   .stepper { display: grid; grid-template-columns: repeat(5, minmax(104px, 1fr)); }

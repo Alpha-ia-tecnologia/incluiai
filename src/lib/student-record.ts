@@ -1,5 +1,8 @@
 import type { Problem } from "./user-error.ts";
 import { brDay, brYmd } from "./dates.ts";
+import { SHIFTS, STAGES as STAGE_LABEL } from "./scale.ts";
+import { ACCESSIBILITY_NOTE_OPTIONS, AEE_FREQUENCY_OPTIONS, GRADES_BY_STAGE, GRADE_YEAR_OPTIONS } from "./form-options.ts";
+import { YES_NO, asOptions, type ChatField } from "./guided-chat.ts";
 
 export type StudentFields = {
   name: string;
@@ -116,3 +119,45 @@ export function readStudentRecord(fields: StudentFields, today: Date = new Date(
     problems,
   };
 }
+
+export type SchoolChoice = { value: string; label: string; classes: { name: string; gradeYear: string | null; shift: string }[] };
+type Registration = { schools: SchoolChoice[] };
+
+const STUDENT = "Dados do estudante";
+const GUARDIAN = "Responsável e apoios";
+const LATER = "Prefiro informar depois";
+const classesOf = (schoolId: unknown, { schools }: Registration) => schools.find((school) => school.value === schoolId)?.classes ?? [];
+
+export const STUDENT_FIELDS: ChatField<Registration>[] = [
+  { key: "name", section: STUDENT, label: "Nome completo", question: "Para começar, qual é o nome completo do estudante?", hint: "Use o nome registrado nos documentos escolares.", input: "text", placeholder: "Nome completo", required: true },
+  { key: "birthDate", section: STUDENT, label: "Data de nascimento", question: "Qual é a data de nascimento?", input: "date", required: true },
+  {
+    key: "schoolId", section: STUDENT, label: "Escola", question: "Em qual escola o estudante está matriculado?", input: "choice", required: true,
+    options: (_answers, { schools }) => schools,
+    onAnswer: (next, previous) => (next.schoolId === previous.schoolId ? next
+      : Object.fromEntries(Object.entries(next).filter(([key]) => !["className", "gradeYear", "shift"].includes(key)))),
+  },
+  { key: "stage", section: STUDENT, label: "Etapa", question: "Qual é a etapa de ensino?", input: "choice", options: Object.entries(STAGE_LABEL).map(([value, label]) => ({ value, label })), required: true },
+  {
+    key: "gradeYear", section: STUDENT, label: "Ano / série", question: "Em qual ano ou série está?", input: "choice", required: true,
+    options: (answers) => asOptions(GRADES_BY_STAGE[String(answers.stage)] ?? GRADE_YEAR_OPTIONS), other: { placeholder: "Ex.: Multisseriada" },
+  },
+  {
+    key: "className", section: STUDENT, label: "Turma", question: "Qual é a turma?", hint: "Escolha uma turma cadastrada na escola ou escreva o nome em Outro.", input: "choice", required: true,
+    options: (answers, registration) => classesOf(answers.schoolId, registration).map((item) => ({ value: item.name, label: item.name })), other: { placeholder: "Ex.: Turma Girassol" },
+    onAnswer: (next, _previous, registration) => {
+      const shift = classesOf(next.schoolId, registration).find((item) => item.name === next.className)?.shift;
+      return shift && !next.shift ? { ...next, shift } : next;
+    },
+  },
+  { key: "shift", section: STUDENT, label: "Turno", question: "Em qual turno estuda?", input: "choice", options: Object.entries(SHIFTS).map(([value, label]) => ({ value, label })), other: { placeholder: "Ex.: Noite" }, required: true },
+  { key: "guardianName", section: GUARDIAN, label: "Responsável", question: "Quem é o responsável pelo estudante?", input: "text", placeholder: "Nome completo do responsável", required: true },
+  { key: "guardianPhone", section: GUARDIAN, label: "Telefone", question: "Qual é o telefone do responsável?", input: "tel", placeholder: "(00) 00000-0000", skip: LATER },
+  { key: "aeeFrequency", section: GUARDIAN, label: "Frequência do atendimento", question: "Com qual frequência é atendido?", hint: "Atendimento Educacional Especializado.", input: "choice", options: asOptions(AEE_FREQUENCY_OPTIONS), other: { placeholder: "Ex.: 2 vezes por semana, à tarde" }, skip: LATER },
+  { key: "supportProfessional", section: GUARDIAN, label: "Profissional de apoio", question: "O estudante conta com profissional de apoio?", input: "choice", options: YES_NO, checkbox: true, required: true },
+  {
+    key: "accessibilityNotes", section: GUARDIAN, label: "Informações de acessibilidade", question: "Há alguma informação de acessibilidade importante?",
+    hint: "Marque o que se aplica. Registre apenas informações relevantes para a participação e aprendizagem.",
+    input: "chips", options: asOptions(ACCESSIBILITY_NOTE_OPTIONS), separator: ";", other: { placeholder: "Ex.: precisa sentar perto da porta" }, skip: "Não há informação a acrescentar",
+  },
+];

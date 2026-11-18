@@ -1,4 +1,4 @@
-import { SIGNAL } from "@/components/charts";
+import { SIGNAL } from "@/components/viz/charts";
 
 export type StepItem = { label: string; done: boolean };
 

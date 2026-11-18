@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import type { ApplicationView, EvidenceView } from "@/lib/dua/applications";
-import { EXECUTION_STATE, OBSERVATION } from "@/lib/dua/domain";
+import { EXECUTION_STATE, OBSERVATION, isDocumented } from "@/lib/dua/domain";
 import { CONTEXTS } from "@/lib/scale";
 import { brDay, formatDate } from "@/lib/dates";
 import { Badge, Card } from "@/components/ui";
@@ -8,7 +8,7 @@ import { ApplicationManager } from "./application-manager";
 import { EvidenceForm, type EvidenceDefaults } from "./evidence-form";
 import { EvidenceSummary } from "./evidence-summary";
 import type { StudentOption } from "./participant-picker";
-import { ShareRing } from "@/components/viz/share-ring";
+import { ShareRing } from "@/components/viz/charts";
 
 const summaryCls = "flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden";
 
@@ -34,10 +34,7 @@ export function ApplicationCard({ planningId, application, students }: { plannin
   const criteria = application.content.criteria.map(({ id, description }) => ({ id, description }));
   const strategies = application.content.strategies.map(({ id, description }) => ({ id, description }));
   const headingId = `aplicacao-${application.id}`;
-  const documented = application.participants.filter((person) => {
-    const observation = evidenceByStudent.get(person.id)?.observation;
-    return observation !== undefined && observation !== "nao_registrado";
-  }).length;
+  const documented = application.participants.filter((person) => isDocumented(evidenceByStudent.get(person.id))).length;
   const details = [
     { label: "Onde", value: CONTEXTS[application.context].long ?? CONTEXTS[application.context].label },
     { label: "Turma ou grupo", value: application.className ?? "" },

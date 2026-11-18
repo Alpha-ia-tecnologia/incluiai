@@ -9,7 +9,7 @@ import { STAGE_GROUPS } from "@/lib/educacenso";
 import { smallNumber } from "@/lib/assessment";
 import { saveCensusWindow, saveFndeCount, verifyCensusNow } from "@/actions/census";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
-import { DataBoard, StatTile } from "@/components/data-viz";
+import { DataBoard, StatTile } from "@/components/viz/cards";
 import { CensusVerifyForm, CensusWindowForm, FndeForm } from "@/components/census/census-forms";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";

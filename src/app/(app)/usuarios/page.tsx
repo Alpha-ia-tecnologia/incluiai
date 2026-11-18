@@ -6,7 +6,7 @@ import { manageableAccounts } from "@/lib/accounts";
 import { accountSchool, assignableRoles, isAccountManager, isLinkedRole, roleLabel } from "@/lib/roles";
 import { formatDate } from "@/lib/dates";
 import { PageHeader, Badge, ButtonLink, EmptyState } from "@/components/ui";
-import { DataBoard, StatTile } from "@/components/data-viz";
+import { DataBoard, StatTile } from "@/components/viz/cards";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 import { param, type SearchParams } from "@/lib/search-params";
 import { firstName } from "@/lib/format";

@@ -13,13 +13,7 @@ import { StepOptions } from "./step-options";
 import { StepReview } from "./step-review";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Character } from "@/components/character";
-
-export const STEPS = [
-  { key: "objetivo", label: "Objetivo e evidência" },
-  { key: "barreiras", label: "Contexto e barreiras" },
-  { key: "opcoes", label: "Opções e apoios" },
-  { key: "revisao", label: "Revisão para aplicação" },
-] as const;
+import { EDITOR_STEPS as STEPS, STEP_PARAM, stepToParam } from "./editor-steps";
 
 type SaveStatus = { kind: "salvo"; at: string | null } | { kind: "alterado" } | { kind: "salvando" } | { kind: "erro"; message: string } | { kind: "conflito"; byName: string; at: string; content: DuaContent; revision: number } | { kind: "validado"; message: string };
 
@@ -43,7 +37,7 @@ export type EditorProps = {
 export function DuaEditor(props: EditorProps) {
   const router = useRouter();
   const [content, setContent] = useState<DuaContent>(props.content);
-  const [step, setStep] = useState(Math.min(3, Math.max(0, props.initialStep)));
+  const [step, setStep] = useState(props.initialStep);
   const [status, setStatus] = useState<SaveStatus>({ kind: "salvo", at: props.updatedAt });
   const [opening, startOpening] = useTransition();
   const revision = useRef(props.revision);
@@ -119,7 +113,7 @@ export function DuaEditor(props: EditorProps) {
     if (firstRender.current) { firstRender.current = false; return; }
     headingRef.current?.focus();
     const url = new URL(window.location.href);
-    url.searchParams.set("etapa", String(step + 1));
+    url.searchParams.set(STEP_PARAM, stepToParam(step));
     window.history.replaceState(null, "", url);
   }, [step]);
 
@@ -170,7 +164,7 @@ export function DuaEditor(props: EditorProps) {
       <nav aria-label="Etapas do planejamento" className="mb-5">
         <ol className="grid gap-2 sm:grid-cols-4">
           {STEPS.map((item, index) => (
-            <li key={item.key} className="min-w-0">
+            <li key={item.label} className="min-w-0">
               <button
                 type="button"
                 onClick={() => setStep(index)}

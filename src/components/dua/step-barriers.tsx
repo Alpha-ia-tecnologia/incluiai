@@ -6,7 +6,7 @@ import { linesToList, listToLines } from "@/lib/form-options";
 import { Field } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { OriginBadge } from "./badges";
-import { newId, type StepProps } from "./step-objective";
+import { newId, type StepProps } from "./editor-steps";
 
 export function StepBarriers({ content, update, readOnly }: StepProps) {
   const setContext = (patch: Partial<typeof content.context>) => update({ ...content, context: { ...content.context, ...patch } });

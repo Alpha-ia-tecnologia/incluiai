@@ -6,7 +6,7 @@ import { ActionForm } from "@/components/action-form";
 import { dismissWelcome, startJourney } from "@/actions/journey";
 import type { ChapterTone, Journey } from "@/lib/user-journey";
 import { percentOf } from "@/lib/series";
-import { RingStat } from "@/components/data-viz";
+import { RingStat } from "@/components/viz/charts";
 
 // O texto *-ink sobre o *-soft correspondente passa de 4.5:1 (ver a paleta em globals.css).
 export const CHAPTER_CLASSES: Record<ChapterTone, { soft: string; ink: string; solid: string }> = {
@@ -28,15 +28,14 @@ export function JourneyBar({ journey }: { journey: Journey }) {
   );
 }
 
-export function JourneyWelcome({ journey, character = true }: { journey: Journey; character?: boolean }) {
+export function JourneyWelcome({ journey, hero = false }: { journey: Journey; hero?: boolean }) {
   const start = journey.current ?? journey.chapters[0];
-  const navy = character;
   return (
-    <section aria-labelledby="boas-vindas-titulo" className={`mb-7 overflow-hidden rounded-3xl p-5 sm:p-7 print:hidden ${navy ? "surface-navy" : "border border-line bg-paper-raised"}`}>
+    <section aria-labelledby="boas-vindas-titulo" className={`mb-7 overflow-hidden rounded-3xl p-5 sm:p-7 print:hidden ${hero ? "surface-navy" : "border border-line bg-paper-raised"}`}>
       <div className="flex items-start gap-5">
         <div className="min-w-0 flex-1">
-          <h2 id="boas-vindas-titulo" className={`font-display text-2xl font-medium leading-tight tracking-tight sm:text-3xl ${navy ? "text-on-navy" : "text-ink"}`}>{journey.welcome.headline}</h2>
-          <p className={`mt-2 max-w-2xl text-sm leading-relaxed sm:text-base ${navy ? "text-on-navy-soft" : "text-ink-soft"}`}>{journey.welcome.text}</p>
+          <h2 id="boas-vindas-titulo" className="font-display text-2xl font-medium leading-tight tracking-tight sm:text-3xl text-surface-ink">{journey.welcome.headline}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-surface-ink-soft sm:text-base">{journey.welcome.text}</p>
           {journey.chapters.length ? (
             <ol className="mt-5 grid gap-2 sm:grid-cols-3">
               {journey.chapters.slice(0, 3).map((chapter, index) => (
@@ -50,15 +49,15 @@ export function JourneyWelcome({ journey, character = true }: { journey: Journey
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {start ? (
               <ActionForm action={startJourney.bind(null, start.action.href)}>
-                <PendingButton className={`task-action ${navy ? "task-action-on-navy" : ""}`} pendingText="Abrindo o capítulo...">Começar: {start.action.label} <ArrowRight size={16} aria-hidden /></PendingButton>
+                <PendingButton className="task-action" pendingText="Abrindo o capítulo...">Começar: {start.action.label} <ArrowRight size={16} aria-hidden /></PendingButton>
               </ActionForm>
             ) : null}
             <ActionForm action={dismissWelcome}>
-              <button type="submit" className={`min-h-12 rounded-xl px-4 text-sm underline-offset-4 hover:underline ${navy ? "text-on-navy-soft hover:text-on-navy" : "text-ink-soft hover:text-ink"}`}>Agora não</button>
+              <button type="submit" className="min-h-12 rounded-xl px-4 text-sm text-surface-ink-soft underline-offset-4 hover:text-surface-ink hover:underline">Agora não</button>
             </ActionForm>
           </div>
         </div>
-        {character ? <Character variant={journey.character} className="hidden w-36 sm:block xl:w-44" /> : null}
+        {hero ? <Character variant={journey.character} className="hidden w-36 sm:block xl:w-44" /> : null}
       </div>
     </section>
   );

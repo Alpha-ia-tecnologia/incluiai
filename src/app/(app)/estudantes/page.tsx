@@ -13,7 +13,7 @@ import { LESSON_TOPIC_OPTIONS } from "@/lib/form-options";
 import { PageHero, Badge, EmptyState } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Character } from "@/components/character";
-import { StepTrack } from "@/components/viz/step-track";
+import { StepTrack } from "./step-track";
 import { percentOf } from "@/lib/series";
 import { ArrowLeft, ArrowRight, FileSpreadsheet, Layers, Plus, Search, Sprout } from "lucide-react";
 import { param, readActivitiesBatch, type SearchParams } from "@/lib/search-params";
@@ -72,8 +72,8 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         lede={action ? "Procure pelo nome ou escolha uma turma. Depois, selecione o estudante para continuar." : "Encontre um estudante e veja qual é o próximo passo do acompanhamento."}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link href="/estudantes/novo" className={BUTTON_CLS.primaryOnNavy}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>
-            {isAccountManager(user.role) ? <Link href="/estudantes/importar" className={BUTTON_CLS.secondaryOnNavy}><FileSpreadsheet size={18} aria-hidden /> Importar planilha</Link> : null}
+            <Link href="/estudantes/novo" className={BUTTON_CLS.primary}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>
+            {isAccountManager(user.role) ? <Link href="/estudantes/importar" className={BUTTON_CLS.secondary}><FileSpreadsheet size={18} aria-hidden /> Importar planilha</Link> : null}
           </div>
         }
       />
