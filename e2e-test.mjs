@@ -179,7 +179,8 @@ await section("acompanhamento de Dante", async () => {
     ["", DANTE_FIRST],
     ["/perfil", "Como aprende"],
     ["/ppi", "Plano de ensino (PAEE e PEI)"],
-    ["/atividades", "Preparar uma atividade"],
+    ["/atividades", "Atividade"],
+    ["/atividades/dua", "Atividade"],
     ["/diario", "Registrar aula ou atendimento"],
     ["/linha-do-tempo", "Evolução"],
     ["/materiais", "Materiais de apoio"],
@@ -203,6 +204,16 @@ await section("acompanhamento de Dante", async () => {
     await page.goto(`${BASE}${danteHref}/linha-do-tempo`, { waitUntil: "networkidle2" });
     const steps = await page.$$eval('[data-support-steps="full"] [role="img"]', (items) => items.map((item) => item.getAttribute("aria-label") ?? ""));
     check("evolução: degraus de apoio de cada objetivo, com a meta", steps.length >= 2 && steps.every((label) => label.includes("meta ")), JSON.stringify(steps));
+  }
+  {
+    await page.goto(`${BASE}${danteHref}/dua`, { waitUntil: "networkidle2" });
+    const dua = await page.evaluate(() => ({
+      path: location.pathname,
+      tab: document.querySelector('nav[aria-label="Seções do estudante"] a[aria-current="page"]')?.textContent.trim() ?? "",
+      view: document.querySelector('nav[aria-label="Vistas do passo Atividade"] a[aria-current="page"]')?.textContent.trim() ?? "",
+      content: document.body.innerText.includes("Planejar participação em atividade"),
+    }));
+    check("DUA: o endereço antigo leva à vista com DUA do passo Atividade", dua.path === `${danteHref}/atividades/dua` && dua.tab === "Atividade" && dua.view === "Planejar com DUA" && dua.content, JSON.stringify(dua));
   }
   {
     await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
@@ -516,7 +527,7 @@ if (!ONLY_WAIT) {
         banner: document.body.innerText.includes("Acesso de leitura com motivo registrado"),
         tabs: [...document.querySelectorAll('nav[aria-label="Seções do estudante"] a')].map((link) => link.textContent.trim()),
       }));
-      check("secretaria: ficha aberta só para leitura", record.banner && !record.tabs.includes("Registrar aula") && record.tabs.includes("Plano de ensino"), JSON.stringify(record));
+      check("secretaria: ficha aberta só para leitura", record.banner && !record.tabs.includes("Registro") && record.tabs.includes("Plano"), JSON.stringify(record));
       await page.goto(`${BASE}${danteHref}/diario`, { waitUntil: "networkidle2" });
       check("secretaria: aba de registro volta ao resumo", new URL(page.url()).pathname === danteHref, `url=${page.url()}`);
       const family = await newSession();
@@ -1342,7 +1353,7 @@ if (!ONLY_WAIT) {
     await login(page, "professor_aee");
     await page.goto(`${BASE}${danteHref}/atividades`, { waitUntil: "networkidle2" });
     const entry = await page.evaluate(() => [...document.querySelectorAll("a")].find((link) => link.textContent.includes("Adaptar a atividade da turma"))?.getAttribute("href"));
-    check("adaptar: atalho na aba Atividades", Boolean(entry));
+    check("adaptar: atalho no passo Atividade", Boolean(entry));
     await page.goto(`${BASE}${entry}`, { waitUntil: "networkidle2" });
     await page.click('input[name="kind"][value="prova"]');
     await page.type('input[name="title"]', "Prova de Ciências E2E");
@@ -1862,7 +1873,7 @@ if (!ONLY_WAIT) {
 
     await page.goto(`${BASE}/estudantes/${studentId}/diario`, { waitUntil: "networkidle2" });
     const diary = await textOf(page);
-    check("jogos: o registro aparece em Registrar aula", diary.includes(gameNote(gameById("memoria"), "facil", "Animais", { done: pairs, total: pairs, hints: 1, retries: 1 })));
+    check("jogos: o registro aparece em Registro", diary.includes(gameNote(gameById("memoria"), "facil", "Animais", { done: pairs, total: pairs, hints: 1, retries: 1 })));
     check("jogos: o registro do jogo de fotografias também", diary.includes(gameNote(gameById("encontre"), "facil", null, { done: findRounds, total: findRounds, hints: findRounds, retries: 1 })), diary.slice(0, 300));
 
     await page.goto(`${BASE}/jogar/emocoes?nivel=facil`, { waitUntil: "networkidle2" });

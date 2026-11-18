@@ -27,7 +27,7 @@ export function GameRecordForm({ student, result, note, actions }: {
   if (outcome?.ok) {
     return (
       <section className="grid justify-items-center gap-4 rounded-2xl bg-green-soft p-5 text-center">
-        <p role="status" className="flex items-center gap-2 text-base font-medium text-green"><Sprout size={18} aria-hidden className="sprout-mark" /> Aula registrada. Aparece em Registrar aula e na Evolução de {student.firstName}.</p>
+        <p role="status" className="flex items-center gap-2 text-base font-medium text-green"><Sprout size={18} aria-hidden className="sprout-mark" /> Aula registrada. Aparece em Registro e na Evolução de {student.firstName}.</p>
         {actions}
       </section>
     );

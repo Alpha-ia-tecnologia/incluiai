@@ -27,9 +27,9 @@ export function SendActivityButton({ studentId, materialId, index, title }: { st
   return (
     <form action={action} className="flex flex-wrap items-center gap-2 print:hidden">
       <PendingButton className={BUTTON_CLS.quiet} pendingText="Levando a atividade…" disabled={sent}>
-        <Send size={16} aria-hidden /> {sent ? "Já está em Atividades" : <>Levar para Atividades<span className="sr-only">: {title}</span></>}
+        <Send size={16} aria-hidden /> {sent ? "Já está em Atividade" : <>Levar para Atividade<span className="sr-only">: {title}</span></>}
       </PendingButton>
-      <div className={result ? "basis-full" : "contents"}><FormResult result={result} success="Atividade levada para Atividades, como sugestão para aceitar." /></div>
+      <div className={result ? "basis-full" : "contents"}><FormResult result={result} success="Levada para o passo Atividade, como sugestão para aceitar." /></div>
     </form>
   );
 }

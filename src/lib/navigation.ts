@@ -44,7 +44,7 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
     journey,
     ...(can(role, "planDua") ? [{ href: "/planejamento", label: "Planejamento com DUA", shortLabel: "Planejamento", icon: "planning", section: "routine" } satisfies NavigationItem] : []),
     assistant,
-    { href: "/recursos", label: "Atividades e recursos", shortLabel: "Recursos", icon: "resources", section: "routine" },
+    { href: "/recursos", label: "Banco de recursos", shortLabel: "Recursos", icon: "resources", section: "routine" },
     ...(can(role, "editRecord") ? [{ href: "/jogos", label: "Jogos educativos", shortLabel: "Jogos", icon: "games", section: "routine" } satisfies NavigationItem] : []),
     calendar,
   ];

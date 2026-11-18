@@ -257,7 +257,7 @@ Uma paleta fria e contida: marinho e azul estruturam tudo, o azul-claro marca a�
 
 No computador, a tela é uma moldura arredondada (32 px de canto, máx. 1680 px) sobre a névoa, com o menu marinho preso à esquerda (268 px) e o conteúdo à direita (32 px de respiro lateral, 96 px no fim para o botão do Assistente). O início usa uma coluna principal e uma lateral de 296 px em quadro cinza, que desce para baixo abaixo de 1280 px. Abaixo de 1024 px o menu vira a barra marinha flutuante no pé da tela (itens de 56 px) e, abaixo de 768 px, a moldura encosta nas bordas (8 px) e os cartões apertam o respiro (18 px). Nenhuma tela rola de lado a 320 px.
 
-O ritmo é de ferramenta: cartões de 20 a 22 px de respiro interno, grades com 22 a 34 px de intervalo, um próximo passo por tela. Na ficha do estudante, o cabeçalho fica preso no topo e encolhe para nome e abas ao rolar; as abas formam uma linha que rola de lado.
+O ritmo é de ferramenta: cartões de 20 a 22 px de respiro interno, grades com 22 a 34 px de intervalo, um próximo passo por tela. Na ficha do estudante, o cabeçalho fica preso no topo e encolhe para nome e abas ao rolar; as abas são fixas e seguem a trilha (Resumo | Estudo de caso · Plano · Como aprende · Atividade · Registro · Evolução | Mais), numa linha quando cabem e em grade de quatro (três no celular estreito) quando não, sem rolar de lado; no celular, com a página rolada, a grade vira a seção atual, que abre a lista.
 
 **The Um Próximo Passo Rule.** Cada tela da ficha tem uma só ação principal visível: o cartão de etapas no Resumo, o botão do cabeçalho nas outras abas.
 
@@ -266,7 +266,7 @@ O ritmo é de ferramenta: cartões de 20 a 22 px de respiro interno, grades com 
 O sistema é plano e por tons: profundidade vem do contraste entre névoa, papel, quadro cinza e cartão branco com borda fina, e do marinho como plano de ancoragem. Sombras são sopros de marinho, quase invisíveis, e servem a três casos: o realce de um cartão-link no hover, o que flutua (barra do celular, Assistente, menu do celular) e a moldura das telas de entrada. O foco dos campos é um halo azul-céu.
 
 ### Shadow Vocabulary
-- **Repouso** (`box-shadow: 0 2px 8px rgb(11 53 80 / 0.03)`): marcas pequenas sobre gráficos e trilhas, setas das abas, itens soltos sem borda (sugestões, materiais).
+- **Repouso** (`box-shadow: 0 2px 8px rgb(11 53 80 / 0.03)`): marcas pequenas sobre gráficos e trilhas, itens soltos sem borda (sugestões, materiais).
 - **Flutuante** (`box-shadow: 0 8px 24px rgb(11 53 80 / 0.08)`): cartão-link no hover (subindo 3 px), barra do celular, botão do Assistente, menu do celular.
 - **Halo de Foco** (`box-shadow: 0 0 0 4px rgb(79 179 227 / 0.35)`): campo com foco, junto da borda azul.
 - **Moldura** (`box-shadow: 0 24px 80px -36px rgb(11 53 80 / 0.24)`): telas de entrada e painel do Assistente.
@@ -308,7 +308,7 @@ Pílulas firmes e calmas, sempre com 44 px de altura mínima (`BUTTON_CLS` em `s
 ### Navigation
 - **Menu lateral:** marinho, canto 22 px, itens de 52 px com ícone, texto 16 px em `on-navy-soft`; hover com `navy-hover`; ativo em azul-céu com texto Marinho Profundo e peso 500.
 - **Celular:** a mesma linguagem numa barra marinha flutuante no pé (itens de 56 px, texto 12 px).
-- **Abas da ficha:** texto 14 px, 44 px de altura; ativa em Azul Ação Firme com um traço de 3 px em azul embaixo.
+- **Abas da ficha:** texto 14 px, 44 px de altura (48 px na grade, onde o rótulo pode ir em duas linhas); ativa em Azul Ação Firme, em peso 500, com um traço de 3 px em azul embaixo; numa seção do Mais, o próprio Mais fica marcado.
 - **Carregando:** barra azul de 3 px no topo a cada clique.
 
 ### Degraus de apoio (Signature Component)

@@ -2,41 +2,77 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { isEssentialTab, visibleTabs, type StudentTabAccess } from "@/lib/student-tab-list";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
+import { visibleTabs, type StudentTab, type StudentTabAccess } from "@/lib/student-tab-list";
 import { isActivePath } from "@/lib/navigation";
 
-type Fade = "start" | "end" | "both" | undefined;
+type Tab = StudentTab & { href: string };
 
 export function StudentTabs({ studentId, can }: { studentId: string; can: StudentTabAccess }) {
   const pathname = usePathname();
-  const stripRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef<HTMLAnchorElement>(null);
-  const [fade, setFade] = useState<Fade>(undefined);
   const base = `/estudantes/${studentId}`;
-  const allTabs = visibleTabs(can).map((tab) => ({
-    ...tab,
-    href: tab.slug ? `${base}/${tab.slug}` : base,
-  }));
-  const activeHref = allTabs.find((tab) => isActivePath(pathname, tab.href, !tab.slug))?.href ?? base;
-  const split = can.edit;
-  const tabs = split ? allTabs.filter((tab) => isEssentialTab(tab.slug) || tab.href === activeHref) : allTabs;
-  const moreTabs = split ? allTabs.filter((tab) => !isEssentialTab(tab.slug)) : [];
+  const tabs: Tab[] = visibleTabs(can).map((tab) => ({ ...tab, href: tab.slug ? `${base}/${tab.slug}` : base }));
+  const active = tabs.find((tab) => isActivePath(pathname, tab.href, !tab.slug)) ?? tabs[0];
+  const fixed = tabs.filter((tab) => tab.group !== "mais");
+  const more = tabs.filter((tab) => tab.group === "mais");
+  const cells = fixed.length + (more.length ? 1 : 0);
+  const firstStep = fixed.find((tab) => tab.group === "trilha");
+  const inMore = active.group === "mais";
 
+  return (
+    <nav aria-label="Seções do estudante" className="record-tabs print:hidden">
+      <ul className="record-tabs-grid" style={{ "--tabs-all": cells, "--tabs-half": Math.ceil(cells / 2) } as CSSProperties}>
+        {fixed.map((tab) => (
+          <li key={tab.href} className="record-tabs-cell" data-edge={tab === firstStep ? "" : undefined}>
+            <Link href={tab.href} aria-current={tab === active ? "page" : undefined} className="record-tab">{tab.label}</Link>
+          </li>
+        ))}
+        {more.length ? (
+          <li className="record-tabs-cell" data-edge="">
+            <SectionMenu
+              label="Mais seções do estudante"
+              items={more}
+              active={active}
+              align="end"
+              current={inMore}
+              trigger={<>Mais{inMore ? <span className="sr-only">, atual: {active.label}</span> : null}</>}
+            />
+          </li>
+        ) : null}
+      </ul>
+      <div className="record-tabs-switch">
+        <SectionMenu
+          label="Todas as seções do estudante"
+          items={tabs}
+          active={active}
+          align="start"
+          current
+          trigger={<><span className="sr-only">Seção atual: </span>{active.label}</>}
+        />
+      </div>
+    </nav>
+  );
+}
+
+type MenuProps = { label: string; items: Tab[]; active: Tab; align: "start" | "end"; current: boolean; trigger: ReactNode };
+
+function SectionMenu({ label, items, active, align, current, trigger }: MenuProps) {
+  const pathname = usePathname();
   const menuId = useId();
-  const moreRef = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [openAt, setOpenAt] = useState<string | null>(null);
-  const menuOpen = openAt === pathname;
+  const open = openAt === pathname;
+
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!open) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setOpenAt(null);
-      moreRef.current?.querySelector("button")?.focus();
+      ref.current?.querySelector("button")?.focus();
     };
     const onPointer = (event: PointerEvent) => {
-      if (!moreRef.current?.contains(event.target as Node)) setOpenAt(null);
+      if (!ref.current?.contains(event.target as Node)) setOpenAt(null);
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointer);
@@ -44,81 +80,24 @@ export function StudentTabs({ studentId, can }: { studentId: string; can: Studen
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointer);
     };
-  }, [menuOpen]);
-
-  const measure = useCallback(() => {
-    const strip = stripRef.current;
-    if (!strip) return;
-    const start = strip.scrollLeft > 2;
-    const end = strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 2;
-    setFade(start && end ? "both" : start ? "start" : end ? "end" : undefined);
-  }, []);
-
-  useEffect(() => {
-    const strip = stripRef.current;
-    const active = activeRef.current;
-    if (strip && active) {
-      const start = active.offsetLeft - 48;
-      const end = active.offsetLeft + active.offsetWidth + 48 - strip.clientWidth;
-      if (start < strip.scrollLeft) strip.scrollTo({ left: Math.max(0, start), behavior: "instant" });
-      else if (end > strip.scrollLeft) strip.scrollTo({ left: end, behavior: "instant" });
-    }
-    measure();
-  }, [activeHref, measure]);
-
-  useEffect(() => {
-    const strip = stripRef.current;
-    if (!strip) return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(strip);
-    return () => observer.disconnect();
-  }, [measure]);
-
-  const scrollBy = (direction: 1 | -1) => stripRef.current?.scrollBy({ left: direction * 240 });
-  const arrowCls = "absolute z-10 hidden size-9 items-center justify-center rounded-full border border-line bg-paper-raised text-ink-soft shadow-e1 hover:text-ink sm:flex";
+  }, [open]);
 
   return (
-    <nav aria-label="Seções do estudante" className="relative flex items-center border-b border-line print:hidden">
-      <div className="relative flex min-w-0 flex-1 items-center">
-      {fade === "start" || fade === "both" ? (
-        <button type="button" onClick={() => scrollBy(-1)} aria-label="Ver as seções anteriores" className={`${arrowCls} left-0`}>
-          <ChevronLeft size={18} aria-hidden />
-        </button>
+    <div ref={ref} className="relative h-full">
+      <button type="button" aria-expanded={open} aria-controls={menuId} onClick={() => setOpenAt(open ? null : pathname)} className="record-tab" data-current={current ? "true" : undefined}>
+        {trigger} <ChevronDown size={15} aria-hidden className={`shrink-0 ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open ? (
+        <ul id={menuId} aria-label={label} className={`record-tabs-menu absolute top-full z-30 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-paper-raised p-2 shadow-e2 ${align === "end" ? "right-0" : "left-0"}`}>
+          {items.map((tab, index) => (
+            <li key={tab.href} className={index > 0 && items[index - 1].group !== tab.group ? "mt-1 border-t border-line pt-1" : undefined}>
+              <Link href={tab.href} aria-current={tab === active ? "page" : undefined} className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink hover:bg-brand-soft aria-[current=page]:bg-brand-soft aria-[current=page]:font-medium aria-[current=page]:text-brand-strong">
+                {tab.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
       ) : null}
-      <div ref={stripRef} onScroll={measure} className="tab-strip min-w-0 flex-1" data-fade={fade}>
-        {tabs.map((tab) => {
-          const active = tab.href === activeHref;
-          return (
-            <Link key={tab.href} ref={active ? activeRef : undefined} href={tab.href} aria-current={active ? "page" : undefined} className="tab-link">
-              {tab.label}
-            </Link>
-          );
-        })}
-      </div>
-      {fade === "end" || fade === "both" ? (
-        <button type="button" onClick={() => scrollBy(1)} aria-label="Ver mais seções" className={`${arrowCls} right-0`}>
-          <ChevronRight size={18} aria-hidden />
-        </button>
-      ) : null}
-      </div>
-      {moreTabs.length ? (
-        <div ref={moreRef} className="relative shrink-0">
-          <button type="button" aria-expanded={menuOpen} aria-controls={menuId} onClick={() => setOpenAt(menuOpen ? null : pathname)} className="tab-link gap-1">
-            Mais <ChevronDown size={15} aria-hidden className={menuOpen ? "rotate-180" : undefined} />
-          </button>
-          {menuOpen ? (
-            <ul id={menuId} aria-label="Mais seções do estudante" className="absolute right-0 top-full z-30 mt-1 w-64 rounded-2xl border border-line bg-paper-raised p-2 shadow-e2">
-              {moreTabs.map((tab) => (
-                <li key={tab.href}>
-                  <Link href={tab.href} aria-current={tab.href === activeHref ? "page" : undefined} className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink hover:bg-brand-soft aria-[current=page]:bg-brand-soft aria-[current=page]:font-medium aria-[current=page]:text-brand-strong">
-                    {tab.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-    </nav>
+    </div>
   );
 }

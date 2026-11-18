@@ -11,15 +11,20 @@ type JourneyFacts = {
 };
 export type StudentJourneyInput = JourneyFacts & { id: string };
 
+// Cada passo tem um nome só, o mesmo nas abas, no Resumo, em Minha jornada, na
+// Ajuda e no Painel; um botão pode usar o verbo ("Registrar aula").
 export const JOURNEY_STEPS = [
-  { key: "estudo", step: 1, label: "Estudo de caso", action: "Estudo de caso", path: "estudo-de-caso", done: (facts: JourneyFacts) => facts.caseStudy === "concluido" },
-  { key: "plano", step: 2, label: "Plano e objetivo", action: "Planejar", path: "ppi", done: (facts: JourneyFacts) => facts.hasPlan && facts.hasObjective },
-  { key: "perfil", step: 3, label: "Perfil", action: "Conhecer", path: "perfil", done: (facts: JourneyFacts) => facts.hasProfile },
-  { key: "atividade", step: 4, label: "Atividade", action: "Preparar", path: "atividades", done: (facts: JourneyFacts) => facts.hasPreparedActivity },
-  { key: "registro", step: 5, label: "Registro de aula", action: "Registrar", path: "diario", done: (facts: JourneyFacts) => facts.hasDiary },
+  { key: "estudo", step: 1, label: "Estudo de caso", path: "estudo-de-caso", done: (facts: JourneyFacts) => facts.caseStudy === "concluido" },
+  { key: "plano", step: 2, label: "Plano", path: "ppi", done: (facts: JourneyFacts) => facts.hasPlan && facts.hasObjective },
+  { key: "perfil", step: 3, label: "Como aprende", path: "perfil", done: (facts: JourneyFacts) => facts.hasProfile },
+  { key: "atividade", step: 4, label: "Atividade", path: "atividades", done: (facts: JourneyFacts) => facts.hasPreparedActivity },
+  { key: "registro", step: 5, label: "Registro", path: "diario", done: (facts: JourneyFacts) => facts.hasDiary },
 ] as const;
 type JourneyStep = (typeof JOURNEY_STEPS)[number];
 export const LAST_STEP = JOURNEY_STEPS.length;
+// Evolução fecha a trilha sem se concluir: é onde a equipe vê o que mudou.
+export const EVOLUTION_STEP = { key: "evolucao", step: LAST_STEP + 1, label: "Evolução", path: "linha-do-tempo" } as const;
+export const TRAIL_STEPS = [...JOURNEY_STEPS, EVOLUTION_STEP] as const;
 export const STEP = Object.fromEntries(JOURNEY_STEPS.map((step) => [step.key, step.step])) as Record<JourneyStep["key"], number>;
 
 export const JOURNEY_SELECT = {
@@ -91,7 +96,7 @@ export function getStudentNextStep(input: StudentJourneyInput): StudentNextStep 
   if (!input.hasProfile) {
     return {
       href: `${base}/perfil`,
-      label: "Conhecer o estudante",
+      label: "Contar como aprende",
       description: "Antes de preparar atividades, conte como ele se comunica, do que gosta e quais apoios ajudam.",
       step: STEP.perfil,
     };

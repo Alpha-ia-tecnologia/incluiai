@@ -32,7 +32,7 @@ Fora desse recorte, a resposta é "não encontrado". A permissão é conferida a
   4. Revisão para aplicação.
 - **Abas do planejamento**: Apoios individuais (`/apoios`), Aplicação e evidências (`/aplicacao`), Materiais (`/materiais`) e Versões e histórico (`/historico`, com os colaboradores).
 - **No estudante**:
-  - aba "Atividades com DUA" (`/estudantes/[id]/dua`): planejar a participação numa atividade, ver apoios, evidências e próximos passos;
+  - passo Atividade, vista "Planejar com DUA" (`/estudantes/[id]/atividades/dua`; o endereço antigo `/dua` redireciona): planejar a participação numa atividade, ver apoios, evidências e próximos passos;
   - aba "Atendimentos AEE" (`/estudantes/[id]/atendimentos-aee`): frequência do AEE;
   - a linha do tempo mostra as evidências e a frequência.
 - **Painel** (`/painel#dua`): "Planejamento com DUA — uso e documentação", para coordenação, gestão e secretaria.
@@ -73,14 +73,14 @@ Testes: `npm run test:unit` (unitários, `src/lib/**/*.test.mjs`) e `npm run tes
 
 | Requisito | Onde | Como é conferido |
 |---|---|---|
-| RF01 Entrada "Planejar atividade com DUA", pelo planejamento e pelo estudante, no mesmo planejamento | `/planejamento` (`new-planning-form.tsx`); aba "Atividades com DUA" (`startStudentParticipation`) | E2E 8a (criação pelo planejamento). Entrada pelo estudante: conferência na tela |
+| RF01 Entrada "Planejar atividade com DUA", pelo planejamento e pelo estudante, no mesmo planejamento | `/planejamento` (`new-planning-form.tsx`); vista "Planejar com DUA" do passo Atividade (`startStudentParticipation`) | E2E 8a (criação pelo planejamento). Entrada pelo estudante: conferência na tela |
 | RF02 Formulário em quatro etapas, rascunho incompleto e validação | `editor.tsx`, `step-*.tsx`; `validationProblems`, `saveDraft`, `validateVersion` | `domain.test.mjs` (validação); E2E 8b–8e |
 | RF03 Opções ligadas a barreira, princípio, recursos e critério | `step-options.tsx`; `validationProblems` | `domain.test.mjs` (referência a barreira ou critério removido); E2E 8d |
 | RF04 Apoios individuais com acesso restrito | `/planejamento/[id]/apoios`; `supports.ts`, `supportProblems` | `domain.test.mjs` (objetivo individual exige justificativa e vínculo); recorte: conferência na tela |
 | RF05 Sugestões para revisão e validação para aplicação | `suggestion-review.tsx`; `suggestions.ts`, `checks.ts`, `validateVersion` | `checks.test.mjs`; `domain.test.mjs` (`suggestionStateAfter`); E2E 8e (validação) |
 | RF06 Materiais a partir da versão | `/planejamento/[id]/materiais`; `materials.ts`, `buildActivityScript`, `buildSupportScript` | `domain.test.mjs` (formatos); impressão como RASCUNHO: conferência na tela |
 | RF07 Aplicação e evidências | `/planejamento/[id]/aplicacao`; `applications.ts`, `resultFromCriteria`, `observationOf` | `domain.test.mjs`; um registro por estudante e aplicação: `@@unique` em `DuaEvidence` |
-| RF08 Próximos passos com base e pendência | aba "Atividades com DUA"; ferramenta `proximos_passos_dua`; `followUpSuggestions`, `studentFollowUp` | `domain.test.mjs` (sugestões e limite de 6); `garden-scenes.test.mjs` (rótulos da ferramenta) |
+| RF08 Próximos passos com base e pendência | vista "Planejar com DUA"; ferramenta `proximos_passos_dua`; `followUpSuggestions`, `studentFollowUp` | `domain.test.mjs` (sugestões e limite de 6); `garden-scenes.test.mjs` (rótulos da ferramenta) |
 | CA01 Planejar sem estudo de caso, diagnóstico, laudo, PAEE ou PEI | `/planejamento` | E2E 8a–8e: o professor cria e valida sem estudante vinculado |
 | CA02 Plano de ensino só com estudo de caso concluído, inclusive a proposta | `records.ts`, `actions/plan.ts`, `actions/plan-ai.ts`, `agents/generate.ts`, `/estudantes/[id]/ppi` | E2E 8f (veja a nota abaixo); conferência na tela |
 | CA03 Sem pedir IA, o professor planeja, revisa, valida, aplica e registra evidências | editor; aplicação e evidências; sugestões pelas regras (opcionais) | E2E 8 roda só com os exemplos da tela; jornada no navegador (abaixo); `checks.test.mjs` (regras para todo tipo de barreira) |
@@ -117,7 +117,7 @@ Testes: `npm run test:unit` (unitários, `src/lib/**/*.test.mjs`) e `npm run tes
   - aplicação;
   - materiais e impressão;
   - histórico;
-  - abas "Atividades com DUA" e "Atendimentos AEE";
+  - vista "Planejar com DUA" e aba "Atendimentos AEE";
   - linha do tempo;
   - plano de ensino.
 - **320 px:** nenhuma dessas telas tem rolagem horizontal.

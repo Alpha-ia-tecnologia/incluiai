@@ -224,7 +224,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
       await recordView(ctx.user, id, "Assistente: próximos passos das atividades com DUA");
       const label = ctx.privacy.studentLabel(id);
       const notice = "Recomendações para a equipe revisar. Recomendação não é decisão profissional, e decisão não é resultado observado: a equipe decide o que fazer, e o resultado só existe quando for observado e registrado.";
-      const page = `Página: /estudantes/${id}/dua (atividades com DUA do estudante)`;
+      const page = `Página: /estudantes/${id}/atividades/dua (passo Atividade, planejar com DUA)`;
       if (!suggestions.length) {
         return `Nenhum próximo passo sugerido para ${label} nas atividades com DUA: ainda não há evidência registrada, ou os registros não apontam o que retomar. Não conclua nada sobre a aprendizagem a partir disso.\n${notice}\n${page}`;
       }
@@ -514,7 +514,7 @@ type Performer<K extends ProposalKind> = (user: SessionUser, args: ProposalArgs<
 const PERFORMERS: { [K in ProposalKind]: Performer<K> } = {
   registrar_aula: async (user, args) => {
     await saveDiaryEntry(user, args.studentId, args);
-    return `Registro da aula salvo. Veja em [Registrar aula](/estudantes/${args.studentId}/diario).`;
+    return `Registro da aula salvo. Veja em [Registro](/estudantes/${args.studentId}/diario).`;
   },
   decidir_atividade: async (user, args) => {
     const activity = await decideActivity(user, args.studentId, args.activityId, args.decision, args.reason);
@@ -524,7 +524,7 @@ const PERFORMERS: { [K in ProposalKind]: Performer<K> } = {
   },
   marcar_objetivo: async (user, args) => {
     await setObjectiveStatus(user, args.studentId, args.objectiveId, args.status);
-    return `Objetivo marcado como ${OBJECTIVE_STATUS[args.status].label.toLowerCase()}. Veja em [Plano de ensino](/estudantes/${args.studentId}/ppi).`;
+    return `Objetivo marcado como ${OBJECTIVE_STATUS[args.status].label.toLowerCase()}. Veja em [Plano](/estudantes/${args.studentId}/ppi).`;
   },
   contar_conquista: async (user, args) => {
     await saveFamilyNote(user, args.studentId, args.note, args.author);

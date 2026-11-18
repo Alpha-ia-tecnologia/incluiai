@@ -399,7 +399,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           ) : (
             <p className="text-sm leading-relaxed text-ink-soft">
               Nenhum apoio com DUA ligado ainda.{" "}
-              <Link href={`/estudantes/${id}/dua`} className="font-medium text-brand-strong underline underline-offset-4">Planejar a participação em uma atividade</Link>
+              <Link href={`/estudantes/${id}/atividades/dua`} className="font-medium text-brand-strong underline underline-offset-4">Planejar a participação em uma atividade</Link>
             </p>
           )}
           <Assurances className="mt-4" label="Sobre os apoios das atividades" items={[{ icon: ShieldCheck, text: "Apoios de atividade não mudam o plano" }]} />

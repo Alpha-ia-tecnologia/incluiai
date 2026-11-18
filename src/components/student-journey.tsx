@@ -6,7 +6,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { Character } from "@/components/character";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { HEAD_PART } from "@/components/student-head-parts";
-import { JOURNEY_STEPS, LAST_STEP, getStudentNextStep, type StudentJourneyInput } from "@/lib/student-journey";
+import { LAST_STEP, TRAIL_STEPS, getStudentNextStep, type StudentJourneyInput } from "@/lib/student-journey";
 
 export function StudentJourney({ progress }: { progress: StudentJourneyInput }) {
   const pathname = usePathname();
@@ -14,10 +14,12 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
   if (pathname !== base) return null;
   const next = getStudentNextStep(progress);
 
-  const steps = [
-    ...JOURNEY_STEPS.map((step) => ({ label: step.action, href: `${base}/${step.path}`, complete: step.done(progress) })),
-    { label: "Ver evolução", href: `${base}/linha-do-tempo`, complete: false },
-  ];
+  const steps = TRAIL_STEPS.map((step) => ({
+    step: step.step,
+    label: step.label,
+    href: `${base}/${step.path}`,
+    complete: "done" in step && step.done(progress),
+  }));
 
   return (
     <section aria-label="Próximo passo do acompanhamento" className="mb-6 rounded-2xl border border-line bg-brand-soft/70 p-4 sm:p-5 print:hidden">
@@ -30,19 +32,28 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
           </Link>
         </div>
       </div>
-      <ol aria-label="Etapas do acompanhamento" className="mt-4 flex flex-wrap gap-2 border-t border-brand/15 pt-3">
-        {steps.map((step, index) => (
-          <li key={step.href}>
-            <Link href={step.href} className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3 py-2 text-xs ${index + 1 === next.step ? "bg-paper-raised font-semibold text-brand-strong" : "text-ink-soft hover:bg-paper-raised"}`}>
-              <span aria-hidden className={`inline-flex size-5 items-center justify-center rounded-full ${step.complete ? "bg-brand text-white" : "border border-brand/30"}`}>
-                {step.complete ? <Check size={12} /> : index + 1}
-              </span>
-              {step.label}
-              {step.complete ? <span className="sr-only">: já tem informações salvas</span> : null}
-            </Link>
-          </li>
-        ))}
-      </ol>
+      <div className="@container mt-4 border-t border-brand/15 pt-3">
+        <ol aria-label="Etapas do acompanhamento" className="grid grid-cols-3 gap-1 @xl:grid-cols-6">
+          {steps.map((step) => {
+            const current = step.step === next.step;
+            return (
+              <li key={step.href} className="min-w-0">
+                <Link
+                  href={step.href}
+                  aria-current={current ? "step" : undefined}
+                  className={`flex h-full min-h-11 flex-col items-center gap-1.5 rounded-2xl px-1.5 py-2 text-center text-sm leading-tight ${current ? "bg-paper-raised font-semibold text-brand-strong shadow-e1" : "text-ink-soft hover:bg-paper-raised hover:text-ink"}`}
+                >
+                  <span aria-hidden className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full text-xs tabular-nums ${step.complete ? "bg-brand text-white" : current ? "border-2 border-brand text-brand-strong" : "border border-brand/30"} ${current ? "ring-2 ring-brand/25 ring-offset-2 ring-offset-paper-raised" : ""}`}>
+                    {step.complete ? <Check size={14} strokeWidth={3} /> : step.step}
+                  </span>
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{step.label}</span>
+                  {step.complete ? <span className="sr-only">: já tem informações salvas</span> : null}
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </section>
   );
 }

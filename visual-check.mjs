@@ -99,7 +99,7 @@ await account("professor_aee", "aee", async (page) => {
   const material = student ? await firstLink(page, `${student}/materiais`, `a[href^="${student}/materiais/"]`) : null;
   const report = student ? await firstLink(page, `${student}/relatorios`, `a[href^="${student}/relatorios/"]`) : null;
   const adapted = student ? await firstLink(page, `${student}/atividades`, `a[href^="${student}/atividades/adaptadas/"]`) : null;
-  const tabs = student ? [...STUDENT_TABS.map((tab) => tab.slug), "sondagem/aplicar", "dossie/imprimir"].map((slug) => [`estudante${slug ? `_${slug.replaceAll("/", "_")}` : ""}`, `${student}${slug ? `/${slug}` : ""}`]) : [];
+  const tabs = student ? [...STUDENT_TABS.map((tab) => tab.slug), "atividades/dua", "sondagem/aplicar", "dossie/imprimir"].map((slug) => [`estudante${slug ? `_${slug.replaceAll("/", "_")}` : ""}`, `${student}${slug ? `/${slug}` : ""}`]) : [];
   return [
     ["inicio", "/"], ["estudantes", "/estudantes"], ["estudantes_registrar", "/estudantes?acao=registrar"], ["estudantes_novo", "/estudantes/novo"], ["jornada", "/jornada"], ["assistente", "/assistente"],
     ["calendario", "/calendario"], ["ajuda", "/ajuda"], ["recursos", "/recursos"], resource && ["recurso", resource],

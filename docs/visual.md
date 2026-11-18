@@ -252,7 +252,25 @@ novo só com aprovação.
   - no Resumo, o cartão com as etapas;
   - nas outras abas, o botão do cabeçalho;
   - na própria seção do passo, o aviso "Você está no próximo passo".
-- As abas ficam numa linha que rola de lado, no computador e no celular.
+- **Uma trilha, um nome por passo:** Estudo de caso · Plano · Como aprende ·
+  Atividade · Registro · Evolução (`TRAIL_STEPS` em
+  `src/lib/student-journey.ts`). Abas, etapas do Resumo, Minha jornada, Ajuda e
+  Painel leem dali. Botão pode usar o verbo ("Registrar aula"); o passo se chama
+  pelo substantivo.
+- **Abas fixas** (`src/lib/student-tab-list.ts`): Resumo | os seis passos |
+  Mais (Sondagem, Atendimentos AEE, Materiais de apoio, Relatórios, Dossiê,
+  Carteirinha). Nenhuma aba muda de lugar nem rola de lado: com espaço, uma
+  linha; sem espaço, linhas de quatro (três no celular estreito). Numa seção do
+  Mais, o próprio "Mais" fica marcado.
+- No celular, com a página rolada, a grade de abas vira uma linha só com a
+  seção atual, que abre a lista de todas as seções. Compacto, o cabeçalho
+  preso fica em ~108 px: voltar, nome e seção atual (selos, detalhes e os
+  degraus de apoio saem).
+- O cabeçalho fica preso em `top: var(--shell-top, 0px)`: a moldura põe em
+  `--shell-top` a altura da barra de cima enquanto ela está à vista (0 quando
+  sai ou não existe).
+- Vistas dentro de um passo (Atividade: "Preparar e adaptar" e "Planejar com
+  DUA") usam pílulas logo abaixo do título, como as seções do planejamento.
 
 ## Movimento
 

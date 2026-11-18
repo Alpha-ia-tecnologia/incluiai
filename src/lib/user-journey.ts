@@ -5,7 +5,7 @@ import type { SessionUser } from "./auth";
 import { familyActivityWhere, studentScopeWhere } from "./policy";
 import { roleGroup, rolesWith, teachingContext, type Group } from "./roles";
 import { objectiveTrend } from "./insights";
-import { JOURNEY_STEPS, LAST_STEP, nextStepOf } from "./student-journey";
+import { JOURNEY_STEPS, LAST_STEP, TRAIL_STEPS, nextStepOf } from "./student-journey";
 import { decimal, firstName, plural, readList } from "./format";
 import { DAY_MS, brYmd, formatDate, isPastDay } from "./dates";
 import { CHANNELS, PARTICIPATION, PREPARED_ACTIVITY_STATUSES, labelOf, toneOf, type Tone, type Trend } from "./scale";
@@ -125,7 +125,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
   });
   const welcome = {
     headline: `Boas-vindas, ${firstName(user.name)}!`,
-    text: "Cada estudante tem seis capítulos, do estudo de caso ao registro das aulas. A plataforma lembra onde você parou.",
+    text: "Cada estudante tem seis capítulos, do estudo de caso à evolução. A plataforma lembra onde você parou.",
   };
   const base = {
     kind: "professor" as const, character: (aee ? "planning" : "learning") as CharacterVariant,
@@ -174,12 +174,13 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
   const caseDone = s.caseStudy?.status === "concluido";
 
   const next = nextStepOf(s);
-  const preferred = next.step === LAST_STEP && entries.length ? "acompanhar" : JOURNEY_STEPS[next.step - 1].key;
+  const preferred = next.step === LAST_STEP && entries.length ? "evolucao" : JOURNEY_STEPS[next.step - 1].key;
+  const step = Object.fromEntries(TRAIL_STEPS.map((item) => [item.key, item.label])) as Record<(typeof TRAIL_STEPS)[number]["key"], string>;
 
   const chapters = withStatus([
     {
       key: "estudo", tone: "rose",
-      title: `Ouvir a história de ${name}`,
+      title: step.estudo,
       story: aee
         ? `Converse com a família, a escola e ${name}, observe e registre a síntese. É o ponto de partida do plano.`
         : `Em geral, a professora do AEE conduz; você contribui com o que observa na sala comum.`,
@@ -191,7 +192,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     },
     {
       key: "plano", tone: "peach",
-      title: `Combinar o que ${name} vai aprender`,
+      title: step.plano,
       story: `Defina com a equipe um objetivo observável: o que ${name} vai fazer, com qual apoio, critério e prazo.`,
       why: "Um objetivo claro mostra se o apoio está diminuindo, sem depender de nota.",
       done: activeObjectives.length > 0,
@@ -201,7 +202,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     },
     {
       key: "perfil", tone: "sky",
-      title: `Conhecer como ${name} aprende`,
+      title: step.perfil,
       story: `Registre como ${name} se comunica, do que gosta e quais apoios ajudam.`,
       why: "Atividades que partem dos interesses do estudante prendem a atenção e reduzem as recusas.",
       done: !!s.profile,
@@ -211,7 +212,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     },
     {
       key: "atividade", tone: "teal",
-      title: `Preparar uma aula com ${name} junto da turma`,
+      title: step.atividade,
       story: "Escolha o objetivo e o conteúdo e aceite a sugestão que vai usar. A decisão é sua.",
       why: "Inclusão é participar da mesma aula, com os apoios certos.",
       done: s.activities.length > 0,
@@ -221,7 +222,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     },
     {
       key: "registro", tone: "sage",
-      title: "Registrar como foi a aula",
+      title: step.registro,
       story: `Três escolhas: participação, apoio e o que aconteceu. A observação é opcional.`,
       why: "Cada registro mostra o que funcionou e orienta a próxima aula.",
       done: entries.length > 0,
@@ -230,8 +231,8 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: "Registrar uma aula", href: `${path}/diario` },
     },
     {
-      key: "acompanhar", tone: "lilac",
-      title: "Ver o que mudou e ajustar",
+      key: "evolucao", tone: "lilac",
+      title: step.evolucao,
       story: `Compare o apoio de que ${name} precisou nas aulas e marque o objetivo como alcançado ou em revisão.`,
       why: "Revisar no tempo certo evita insistir no que não funciona e reconhece cada avanço.",
       done: reviewed.length > 0 || advancing.length > 0,
@@ -257,7 +258,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     const now = average(withEntries.map((objective) => entries.findLast((entry) => entry.objectiveId === objective.id)!.supportLevel));
     const levels = supportSeries(entries.filter((entry) => withEntries.some((objective) => objective.id === entry.objectiveId))).map((point) => point.value);
     const { trend, delta } = supportTrend(levels);
-    impact.push({ label: "Nível de apoio", value: `${decimal(start, { fixed: true })} → ${decimal(now, { fixed: true })}`, hint: "Subir na linha é precisar de menos apoio (0 = independente).", viz: { kind: "support", values: levels.slice(-20), delta, trend } });
+    impact.push({ label: "Nível de apoio", value: `${decimal(start, { fixed: true })} → ${decimal(now, { fixed: true })}`, hint: "Do início ao último registro · 0 é independente, 5 é apoio físico total.", viz: { kind: "support", values: levels.slice(-20), delta, trend } });
   }
   const note = s.familyNotes[0];
 

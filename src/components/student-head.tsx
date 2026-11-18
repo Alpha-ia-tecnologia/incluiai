@@ -14,6 +14,15 @@ export function StudentHead({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // No celular, compactar troca a grade de abas pela seção atual (e o contrário):
+  // o foco que estava na parte que sumiu passa para a seção atual que ficou.
+  useEffect(() => {
+    const nav = ref.current?.querySelector("nav");
+    const focused = document.activeElement;
+    if (!nav || !(focused instanceof HTMLElement) || !nav.contains(focused) || focused.getClientRects().length) return;
+    [...nav.querySelectorAll<HTMLElement>('[aria-current="page"], [data-current="true"]')].find((item) => item.getClientRects().length)?.focus();
+  }, [compact]);
+
   useEffect(() => {
     const head = ref.current;
     if (!head) return;

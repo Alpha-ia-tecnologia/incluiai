@@ -26,6 +26,7 @@ import { ArrowRight, CircleCheck, Clock, FilePen, FileUp, ImagePlus, ShieldCheck
 import { Assurances, Steps } from "@/components/explain";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 import { GENERATE_IMAGES_FIELD } from "@/lib/form-options";
+import { ActivityViews } from "./activity-views";
 
 
 
@@ -163,7 +164,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
 export default async function ActivitiesPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
-  await requireStudentPage(id, "Atividades", { tab: "atividades" });
+  const { can } = await requireStudentPage(id, "Atividades", { tab: "atividades" });
   const [profile, objectives, activities] = await Promise.all([
     prisma.functionalProfile.findUnique({ where: { studentId: id } }),
     prisma.objective.findMany({
@@ -192,9 +193,10 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
   return (
     <>
       <PageHeader level={2}
-        title="Preparar uma atividade"
+        title="Atividade"
         actions={<PrintButton label="Imprimir atividades" />}
       />
+      <ActivityViews studentId={id} can={can} current="atividades" />
 
       {activities.length > 0 ? (
         <section aria-labelledby="resumo-atividades" className="mb-6 max-w-3xl print:hidden">
@@ -242,7 +244,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
         {!profile ? (
           <div className="space-y-3">
             <p className="text-sm leading-relaxed text-ink-soft">Primeiro, registre como o estudante aprende.</p>
-            <Link href={`/estudantes/${id}/perfil`} className={BUTTON_CLS.primary}>Conhecer o estudante <ArrowRight size={16} aria-hidden /></Link>
+            <Link href={`/estudantes/${id}/perfil`} className={BUTTON_CLS.primary}>Contar como aprende <ArrowRight size={16} aria-hidden /></Link>
           </div>
         ) : objectives.length === 0 ? (
           <div className="space-y-3">

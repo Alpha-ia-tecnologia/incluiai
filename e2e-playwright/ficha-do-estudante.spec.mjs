@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, DEMO_STUDENTS } from "../prisma/demo-data.mjs";
-import { STUDENT_TABS, isEssentialTab } from "../src/lib/student-tab-list.ts";
+import { STUDENT_TABS } from "../src/lib/student-tab-list.ts";
+import { TRAIL_STEPS } from "../src/lib/student-journey.ts";
 import { CONTENT_ID } from "../src/lib/landmarks.ts";
 import { printSelector } from "../src/components/resources/print-marks.ts";
 import { activityPrintMaterials } from "../src/lib/resource-print-materials.ts";
@@ -61,25 +62,66 @@ test.describe("ficha do estudante", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText(STUDENT);
   });
 
-  test("abas: o caminho essencial fica na linha e o restante no menu Mais", async ({ page }) => {
+  test("abas: Resumo e os seis passos ficam fixos, na ordem da trilha; o restante no menu Mais", async ({ page }) => {
     await page.goto(studentPath);
-    const labels = (essential) => STUDENT_TABS.filter((tab) => isEssentialTab(tab.slug) === essential).map((tab) => tab.label);
-    await expect(tabs(page).getByRole("link")).toHaveText(labels(true));
+    const fixed = ["Resumo", ...TRAIL_STEPS.map((step) => step.label)];
+    await expect(tabs(page).getByRole("link")).toHaveText(fixed);
     await tabs(page).getByRole("button", { name: "Mais" }).click();
-    await expect(tabs(page).getByRole("list", { name: "Mais seções do estudante" }).getByRole("link")).toHaveText(labels(false));
+    await expect(tabs(page).getByRole("list", { name: "Mais seções do estudante" }).getByRole("link")).toHaveText(STUDENT_TABS.filter((tab) => tab.group === "mais").map((tab) => tab.label));
     await tabs(page).getByRole("link", { name: "Sondagem" }).click();
     await page.waitForURL(`**${studentPath}/sondagem`);
     await expect(tabs(page).getByRole("list", { name: "Mais seções do estudante" })).toHaveCount(0);
-    await expect(tabs(page).locator('a[aria-current="page"]')).toHaveText("Sondagem");
+    // A linha não muda numa seção do Mais: o próprio Mais fica marcado.
+    await expect(tabs(page).getByRole("link")).toHaveText(fixed);
+    await expect(tabs(page).locator('a[aria-current="page"]')).toHaveCount(0);
+    await expect(tabs(page).getByRole("button", { name: /^Mais\W+atual: Sondagem$/ })).toHaveAttribute("data-current", "true");
+  });
+
+  test("abas no celular: os seis passos à vista sem rolar de lado; rolada, a página deixa a seção atual, que abre a lista", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/estudantes?q=${encodeURIComponent(DEMO_STUDENTS.dante.name)}`);
+    const card = page.locator("article").filter({ has: page.getByRole("heading", { name: DEMO_STUDENTS.dante.name }) }).first();
+    const dante = await card.getByRole("link", { name: "Ver acompanhamento" }).first().getAttribute("href");
+    await page.goto(dante);
+    for (const step of TRAIL_STEPS) await expect(tabs(page).getByRole("link", { name: step.label, exact: true })).toBeInViewport({ ratio: 1 });
+    const overflow = await tabs(page).evaluate((nav) => ({
+      page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      nav: nav.scrollWidth - nav.clientWidth,
+      cut: [...nav.querySelectorAll("a, button")].filter((item) => item.scrollWidth > item.clientWidth + 1).map((item) => item.textContent),
+    }));
+    expect(overflow).toEqual({ page: 0, nav: 0, cut: [] });
+
+    await page.mouse.wheel(0, 1200);
+    const current = tabs(page).getByRole("button", { name: "Seção atual: Resumo" });
+    await expect(current).toBeVisible();
+    await expect(tabs(page).getByRole("link", { name: "Evolução", exact: true })).toBeHidden();
+    await current.click();
+    const all = tabs(page).getByRole("list", { name: "Todas as seções do estudante" });
+    await expect(all.getByRole("link")).toHaveText(STUDENT_TABS.map((tab) => tab.label));
+    await all.getByRole("link", { name: "Evolução" }).click();
+    await page.waitForURL(`**${dante}/linha-do-tempo`);
+  });
+
+  test("Atividade: duas vistas na mesma aba, e o endereço antigo do DUA chega à vista com DUA", async ({ page }) => {
+    await page.goto(`${studentPath}/dua`);
+    await page.waitForURL(`**${studentPath}/atividades/dua`);
+    const views = page.getByRole("navigation", { name: "Vistas do passo Atividade" });
+    await expect(tabs(page).locator('a[aria-current="page"]')).toHaveText("Atividade");
+    await expect(views.locator('a[aria-current="page"]')).toHaveText("Planejar com DUA");
+    await expect(content(page).getByRole("heading", { name: "Planejar participação em atividade" })).toBeVisible();
+    await views.getByRole("link", { name: "Preparar e adaptar" }).click();
+    await page.waitForURL(`**${studentPath}/atividades`);
+    await expect(tabs(page).locator('a[aria-current="page"]')).toHaveText("Atividade");
+    await expect(views.locator('a[aria-current="page"]')).toHaveText("Preparar e adaptar");
   });
 
   test("trilha: sem estudo de caso, ele é o próximo passo e o Censo pede o registro", async ({ page }) => {
     await page.goto(studentPath);
     const journey = page.getByRole("region", { name: "Próximo passo do acompanhamento" });
     await expect(journey.getByRole("heading")).toHaveText("Próximo passo: Fazer o estudo de caso");
-    await expect(journey.getByRole("list", { name: "Etapas do acompanhamento" }).getByRole("link")).toHaveText([
-      /Estudo de caso/, /Planejar/, /Conhecer/, /Preparar/, /Registrar/, /Ver evolução/,
-    ]);
+    const steps = journey.getByRole("list", { name: "Etapas do acompanhamento" }).getByRole("link");
+    await expect(steps).toHaveText(TRAIL_STEPS.map((step) => new RegExp(`${step.label}$`)));
+    await expect(steps.and(page.locator('[aria-current="step"]'))).toHaveText(/Estudo de caso$/);
     await expect(content(page)).toContainText("Falta o registro de referência para declarar este estudante");
     await expect(content(page)).not.toContainText("Sem registro de acompanhamento");
   });
