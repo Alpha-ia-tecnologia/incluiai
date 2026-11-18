@@ -7,6 +7,7 @@ export type ToolStep = { id: string; name: string; label: string; ok?: boolean; 
 export type ActionView = {
   id: string;
   kind: string;
+  label: string;
   summary: string;
   status: "pendente" | "confirmada" | "cancelada";
   result: string | null;

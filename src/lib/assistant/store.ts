@@ -1,10 +1,8 @@
 import type { AssistantAction, AssistantConversation, AssistantMessage } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
-import { decideActivity, saveDiaryEntry, saveFamilyNote, saveIntersectorReport, setObjectiveStatus, type DiaryEntryInput, type IntersectorReportInput } from "../records";
 import { parseJson } from "../format";
-import { UserError } from "../user-error";
+import { proposalLabel } from "./proposals";
 import type { ActionView, ConversationDetail, ConversationView, MessageView, ToolStep } from "./types";
 
 export const MAX_HISTORY_MESSAGES = 80;
@@ -27,6 +25,7 @@ export function toActionView(action: AssistantAction): ActionView {
   return {
     id: action.id,
     kind: action.kind,
+    label: proposalLabel(action.kind),
     summary: action.summary,
     status: action.status as ActionView["status"],
     result: action.result,
@@ -82,69 +81,4 @@ export async function decidedSinceLastTurn(conversation: Pick<AssistantConversat
     where: { conversationId: conversation.id, status: { in: ["confirmada", "cancelada"] }, decidedAt: { gt: conversation.updatedAt } },
     orderBy: { decidedAt: "asc" },
   });
-}
-
-type ActionArgs = Record<string, unknown> & { studentId: string };
-
-export async function executeAction(user: SessionUser, actionId: string, decision: "confirmar" | "cancelar"): Promise<{ action: ActionView; error?: string }> {
-  const prisma = await db();
-  const action = await prisma.assistantAction.findFirst({ where: { id: actionId, conversation: { userId: user.id } } });
-  if (!action) throw new UserError("Ação não encontrada.", "not_found");
-  if (action.status !== "pendente") return { action: toActionView(action) };
-
-  if (decision === "cancelar") {
-    const cancelled = await prisma.assistantAction.update({ where: { id: action.id }, data: { status: "cancelada", decidedAt: new Date(), result: null } });
-    return { action: toActionView(cancelled) };
-  }
-
-  const args = parseJson<ActionArgs>(action.args, { studentId: "" });
-  try {
-    const result = await perform(user, action.kind, args);
-    const confirmed = await prisma.assistantAction.update({ where: { id: action.id }, data: { status: "confirmada", decidedAt: new Date(), result } });
-    return { action: toActionView(confirmed) };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Não foi possível executar a ação.";
-    return { action: toActionView(action), error: message };
-  }
-}
-
-async function perform(user: SessionUser, kind: string, args: ActionArgs): Promise<string> {
-  const studentId = String(args.studentId ?? "");
-  switch (kind) {
-    case "registrar_aula": {
-      await saveDiaryEntry(user, studentId, args as unknown as DiaryEntryInput);
-      revalidatePath("/estudantes/[id]", "layout");
-      revalidatePath("/");
-      return `Registro da aula salvo. Veja em [Registrar aula](/estudantes/${studentId}/diario).`;
-    }
-    case "decidir_atividade": {
-      const decision = args.decision === "rejeitada" ? "rejeitada" : "aceita";
-      const activity = await decideActivity(user, studentId, String(args.activityId), decision, typeof args.reason === "string" ? args.reason : null);
-      revalidatePath("/estudantes/[id]", "layout");
-      return decision === "aceita"
-        ? `Atividade “${activity.title}” aceita. Veja em [Atividades](/estudantes/${studentId}/atividades).`
-        : `Atividade “${activity.title}” rejeitada. O motivo ajuda a melhorar as sugestões.`;
-    }
-    case "marcar_objetivo": {
-      const status = args.status === "alcancado" ? "alcancado" : args.status === "em_revisao" ? "em_revisao" : "ativo";
-      await setObjectiveStatus(user, studentId, String(args.objectiveId), status);
-      revalidatePath("/estudantes/[id]", "layout");
-      const label = status === "alcancado" ? "alcançado" : status === "em_revisao" ? "em revisão" : "ativo";
-      return `Objetivo marcado como ${label}. Veja em [Plano de ensino](/estudantes/${studentId}/ppi).`;
-    }
-    case "contar_conquista": {
-      await saveFamilyNote(user, studentId, String(args.note ?? ""), String(args.author ?? "Família"));
-      revalidatePath(`/familia/${studentId}`);
-      revalidatePath(`/estudantes/${studentId}`);
-      return `Conquista enviada para a equipe da escola. Veja em [Acompanhamento](/familia/${studentId}).`;
-    }
-    case "enviar_orientacoes": {
-      await saveIntersectorReport(user, studentId, args as unknown as IntersectorReportInput);
-      revalidatePath("/terapeuta");
-      revalidatePath(`/estudantes/${studentId}`);
-      return "Relatório enviado para a equipe escolar. Veja em [Orientações](/terapeuta#relatorios).";
-    }
-    default:
-      throw new Error("Tipo de ação desconhecido.");
-  }
 }

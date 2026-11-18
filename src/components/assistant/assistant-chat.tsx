@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import { ArrowUp, Check, CircleAlert, CircleHelp, Expand, LoaderCircle, MessageSquarePlus, MessageSquareText, Sparkles, Sprout, Trash2, X } from "lucide-react";
 import type { ActionView, AssistantEvent, ConversationDetail, ConversationView, MessageView, ToolStep } from "@/lib/assistant/types";
 import type { GardenOutcome } from "@/lib/assistant/garden-scenes";
-import { ACTION_KIND_LABELS, STEP_DONE_LABELS } from "@/lib/assistant/labels";
+import { doneLabel } from "@/lib/assistant/catalog";
 import { GardenWait } from "@/components/garden-wait/garden-wait";
 import { Character } from "@/components/character";
 import { BUTTON_CLS } from "@/components/form-styles";
@@ -42,7 +42,7 @@ function Steps({ steps, live }: { steps: ToolStep[]; live: boolean }) {
         return (
           <li key={step.id} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${step.ok === false ? "bg-coral-soft text-coral" : running ? "bg-sky-soft text-sky-ink" : "bg-surface-muted text-ink-soft"}`}>
             {running ? <Sprout size={12} aria-hidden /> : step.ok === false ? <CircleAlert size={12} aria-hidden /> : <Check size={12} aria-hidden />}
-            {running ? step.label : step.ok === false ? `Falhou: ${step.summary ?? step.label}` : STEP_DONE_LABELS[step.name] ?? step.label}
+            {running ? step.label : step.ok === false ? `Falhou: ${step.summary ?? step.label}` : doneLabel(step.name) ?? step.label}
           </li>
         );
       })}
@@ -54,7 +54,7 @@ function ActionCard({ action, busy, onDecide }: { action: ActionView; busy: bool
   const pending = action.status === "pendente";
   return (
     <article className={`my-2 rounded-2xl border p-3.5 ${pending ? "border-brand/40 bg-brand-soft/60" : action.status === "confirmada" ? "border-green/40 bg-green-soft/60" : "border-line bg-surface-muted/60"}`} aria-live="polite">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{ACTION_KIND_LABELS[action.kind] ?? action.kind} · {pending ? "aguardando sua confirmação" : action.status === "confirmada" ? "confirmada" : "cancelada"}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{action.label} · {pending ? "aguardando sua confirmação" : action.status === "confirmada" ? "confirmada" : "cancelada"}</p>
       <p className="mt-1 text-sm leading-relaxed text-ink">{action.summary}</p>
       {pending ? (
         <div className="mt-3 flex flex-wrap gap-2">

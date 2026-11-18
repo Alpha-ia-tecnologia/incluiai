@@ -1,6 +1,7 @@
 import type { AgentProgress, ToolStep } from "./types";
 import { ACTIVITY_PIPELINE, ILLUSTRATION, PLAN_PIPELINE, RULES_ENGINE } from "../agents/descriptors.ts";
 import { ACTIVITY_STEPS, HOME_MAX_MINUTES, OBJECTIVES_PER_PLAN } from "../pedagogy-rules.ts";
+import { NO_NAMES_HINT, sceneOf } from "./catalog.ts";
 
 export type GardenFamily = "raizes" | "trelica" | "botoes" | "folha" | "vasinho";
 export type GardenScene = "broto" | GardenFamily;
@@ -14,6 +15,7 @@ export type BudState = "fechado" | "aberto";
 export type Palette = "sky" | "teal" | "peach" | "sage" | "rose" | "lime";
 export type RootMark = { slot: number; palette: Palette; state: "vivo" | "ok" | "pedra" };
 export type TipPool = "pratica" | LongKind;
+export type ToolScene = { family: GardenFamily; wait: string; hint?: string; pebble?: Palette; long?: LongKind };
 type Trio<T> = [T, T, T];
 
 export type Garden = {
@@ -61,53 +63,9 @@ const INLINE_LONG_THRESHOLDS = [20, 60, 120, 180] as const;
 const INLINE_LONG_IMAGES_THRESHOLDS = [20, 60, 120, 180, 240] as const;
 export const FINALE_MIN_SECONDS = 20;
 
-export const TOOL_FAMILY: Readonly<Record<string, GardenFamily>> = {
-  buscar_estudantes: "raizes", ver_estudante: "raizes", ver_atividades: "raizes", meu_estudante: "raizes",
-  buscar_recursos: "raizes", indicadores: "raizes", datas_inclusivas: "raizes", proximos_passos_dua: "raizes",
-  propor_plano: "trelica", gerar_atividades: "botoes", criar_material: "folha",
-  registrar_aula: "vasinho", decidir_atividade: "vasinho", marcar_objetivo: "vasinho",
-  contar_conquista: "vasinho", enviar_orientacoes: "vasinho",
-};
-export const LONG_TOOLS: Readonly<Record<string, LongKind>> = { propor_plano: "plano", gerar_atividades: "atividades" };
 const PRIORITY: Readonly<Record<GardenFamily, number>> = { trelica: 4, botoes: 4, vasinho: 3, folha: 2, raizes: 1 };
 
-export const WAIT_LABELS: Readonly<Record<string, string>> = {
-  buscar_estudantes: "Consultando a lista de estudantes…",
-  ver_estudante: "Lendo o acompanhamento…",
-  ver_atividades: "Consultando as atividades…",
-  meu_estudante: "Consultando o acompanhamento…",
-  buscar_recursos: "Consultando o banco de recursos…",
-  indicadores: "Consultando o painel…",
-  datas_inclusivas: "Consultando o calendário…",
-  proximos_passos_dua: "Consultando os próximos passos do DUA…",
-  criar_material: "Montando o material de apoio…",
-  registrar_aula: "Preparando o registro da aula…",
-  decidir_atividade: "Preparando a decisão sobre a atividade…",
-  marcar_objetivo: "Preparando a mudança do objetivo…",
-  contar_conquista: "Preparando a conquista para enviar…",
-  enviar_orientacoes: "Preparando o relatório…",
-  propor_plano: "Preparando a proposta de plano…",
-  gerar_atividades: "Criando 3 sugestões de atividade…",
-};
 export const UNKNOWN_LABEL = "Trabalhando no seu pedido…";
-
-const PRIVACY = "Os dados chegam à IA sem nomes.";
-const SAVE_GATE = "Nada é gravado sem a sua confirmação.";
-const SEND_GATE = "Nada é enviado sem a sua confirmação.";
-export const TOOL_HINTS: Readonly<Record<string, string>> = {
-  buscar_estudantes: PRIVACY, ver_estudante: PRIVACY, ver_atividades: PRIVACY, meu_estudante: PRIVACY,
-  buscar_recursos: "Práticas já usadas na rede, com resultados.",
-  indicadores: "Números do painel, sem nomes.",
-  datas_inclusivas: "Datas com ideias para a turma toda.",
-  proximos_passos_dua: "Recomendações para a equipe revisar.",
-  criar_material: "Fica em Materiais de apoio para revisar e aprovar.",
-  registrar_aula: SAVE_GATE, decidir_atividade: SAVE_GATE, marcar_objetivo: SAVE_GATE,
-  contar_conquista: SEND_GATE, enviar_orientacoes: SEND_GATE,
-};
-export const PEBBLE: Readonly<Record<string, Palette>> = {
-  buscar_estudantes: "sky", ver_estudante: "teal", meu_estudante: "teal", ver_atividades: "peach",
-  buscar_recursos: "sage", indicadores: "lime", datas_inclusivas: "rose", proximos_passos_dua: "sage",
-};
 
 const PLAN_WRITERS: readonly string[] = Object.values(PLAN_PIPELINE.writers);
 const ACTIVITY_WRITERS: Trio<string> = [ACTIVITY_PIPELINE.writers.sala_comum, ACTIVITY_PIPELINE.writers.aee, ACTIVITY_PIPELINE.writers.casa];
@@ -161,7 +119,8 @@ export const TIP_POOLS: Readonly<Record<TipPool, readonly string[]>> = {
 };
 
 const sentence = (label: string) => label.replace(/…$/, ".");
-const familyOf = (name: string): GardenFamily => TOOL_FAMILY[name] ?? "raizes";
+const familyOf = (name: string): GardenFamily => sceneOf(name)?.family ?? "raizes";
+const longOf = (name: string): LongKind | undefined => sceneOf(name)?.long;
 
 const NO_ROOTS: RootMark[] = [];
 const IDLE_RUNGS: Trio<RungState> = ["espera", "espera", "espera"];
@@ -242,10 +201,10 @@ export function deriveGarden(steps: readonly ToolStep[], writing: boolean): Gard
   const lastFinished = finished.at(-1);
   const lookups = steps.filter((step) => familyOf(step.name) === "raizes");
   const roots: RootMark[] = lookups
-    .map((step, index): RootMark => ({ slot: index % 3, palette: PEBBLE[step.name] ?? "sky", state: step.ok === undefined ? "vivo" : step.ok ? "ok" : "pedra" }))
+    .map((step, index): RootMark => ({ slot: index % 3, palette: sceneOf(step.name)?.pebble ?? "sky", state: step.ok === undefined ? "vivo" : step.ok ? "ok" : "pedra" }))
     .slice(-3);
-  const plan = steps.findLast((step) => step.name === "propor_plano");
-  const acts = steps.findLast((step) => step.name === "gerar_atividades");
+  const plan = steps.findLast((step) => longOf(step.name) === "plano");
+  const acts = steps.findLast((step) => longOf(step.name) === "atividades");
   const actInfo = acts ? activityState(acts) : null;
   const sideStep = steps.findLast((step) => familyOf(step.name) === "folha" || familyOf(step.name) === "vasinho");
   const phase: GardenPhase = focus ? "ferramenta" : writing ? "escrevendo" : steps.length ? "organizando" : "pensando";
@@ -254,7 +213,7 @@ export function deriveGarden(steps: readonly ToolStep[], writing: boolean): Gard
   let hint = "";
   let long: Garden["long"] = null;
   if (focus) {
-    const kind = LONG_TOOLS[focus.name];
+    const kind = longOf(focus.name);
     const runningLookups = steps.filter((step) => step.ok === undefined && familyOf(step.name) === "raizes").length;
     if (kind) {
       const info = longLabel(kind, focus);
@@ -264,13 +223,14 @@ export function deriveGarden(steps: readonly ToolStep[], writing: boolean): Gard
       hint = LONG_OVERRIDE[info.stage] ?? "";
     } else if (familyOf(focus.name) === "raizes" && runningLookups > 1) {
       label = `Fazendo ${runningLookups} consultas ao mesmo tempo…`;
-      hint = PRIVACY;
+      hint = NO_NAMES_HINT;
     } else {
-      label = WAIT_LABELS[focus.name] ?? UNKNOWN_LABEL;
-      hint = TOOL_HINTS[focus.name] ?? "";
+      const scene = sceneOf(focus.name);
+      label = scene?.wait ?? UNKNOWN_LABEL;
+      hint = scene?.hint ?? "";
     }
   }
-  const handoff = !focus && !writing && lastFinished?.ok === true ? LONG_TOOLS[lastFinished.name] ?? null : null;
+  const handoff = !focus && !writing && lastFinished?.ok === true ? longOf(lastFinished.name) ?? null : null;
 
   return {
     phase,

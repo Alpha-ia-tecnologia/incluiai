@@ -1,7 +1,6 @@
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { textContains } from "@/lib/db-text";
 import type { BetaRunnableTool } from "@anthropic-ai/sdk/lib/tools/BetaRunnableTool";
-import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { db } from "../prisma";
 import { recordView } from "../audit";
@@ -9,35 +8,37 @@ import { assertStudentTeam, type SessionUser } from "../auth";
 import { can, roleGroup, type Group } from "../roles";
 import { familyActivityWhere } from "../policy";
 import { loadPlanContext, profileText } from "../agents/context";
-import { buildActivityCards, createPlanDraft, saveSuggestedActivities } from "../agents/generate";
+import { proposePlan } from "../plan-proposal";
+import { generateActivities } from "../activities";
 import { objectiveTrend, studentAlerts } from "../insights";
 import { getStudentNextStep } from "../student-journey";
 import { MATERIAL_KINDS } from "../materials";
 import { MATERIAL_KIND_KEYS } from "../material-content";
 import { ACTIVITY_CONTEXTS } from "../pedagogy-rules";
 import { createStudentMaterial } from "../material-generate";
-import { isImageGenerationEnabled } from "../agents/capabilities";
-import { ILLUSTRATION } from "../agents/descriptors";
-import { createActivityImage } from "../images/save";
 import { ALERT_LABELS, TREND_LABELS, loadDashboard } from "../dashboard";
 import { CALENDAR_THEMES, dateRangeLabel, relativeLabel, todayInBrazil, upcomingEvents } from "../commemorative-dates";
-import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, SHIFTS, STAGES, supportInfo } from "../scale";
+import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, OBJECTIVE_STATUS, SHIFTS, STAGES, supportInfo } from "../scale";
 import { ageFrom, formatDate, parseJson } from "../format";
 import { isHomeActivityNote } from "../user-journey";
 import { studentFollowUp } from "../dua/applications";
-import type { Pseudonymizer } from "../agents/redactor";
+import { hasStudentLabel, type Pseudonymizer } from "../agents/redactor";
+import { FALLBACK } from "../action-result";
+import { UserError } from "../user-error";
+import { decideActivity, saveDiaryEntry, saveFamilyNote, saveIntersectorReport, setObjectiveStatus } from "../records";
 import { toActionView } from "./store";
-import { TOOL_LABELS } from "./labels";
-import type { AgentProgress, AssistantEvent } from "./types";
+import { isProposalKind, readProposalArgs, writeProposalArgs, type ProposalArgs, type ProposalKind } from "./proposals";
+import { forGroup, runningLabel, toolNames, type ByGroup, type ToolName } from "./catalog";
+import type { ActionView, AgentProgress, AssistantEvent } from "./types";
 
 export type ToolContext = {
   user: SessionUser;
+  group: Group;
   privacy: Pseudonymizer;
   studentIds: string[];
   conversationId: string;
   emit: (event: AssistantEvent) => void;
 };
-
 
 const support = (level: number) => `${level} (${supportInfo(level).code}, ${supportInfo(level).description.toLowerCase()})`;
 const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
@@ -47,50 +48,56 @@ const studentRef = z.string().describe("Marcador do estudante, como [ESTUDANTE 1
 
 type Report = (progress: AgentProgress) => void;
 
-function define<Schema extends z.ZodType>(ctx: ToolContext, name: string, description: string, inputSchema: Schema, run: (args: z.infer<Schema>, report: Report) => Promise<string>): BetaRunnableTool {
-  const label = TOOL_LABELS[name] ?? name;
-  return betaZodTool({
-    name,
-    description,
-    inputSchema,
-    run: async (args, context) => {
-      const id = context?.toolUse.id ?? name;
-      const report: Report = (progress) => ctx.emit({ type: "tool_progress", id, progress });
-      try {
-        const text = await run(args, report);
-        ctx.emit({ type: "tool_end", step: { id, name, label, ok: true } });
-        return ctx.privacy.apply(text);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`[assistente] ferramenta ${name} falhou:`, error);
-        ctx.emit({ type: "tool_end", step: { id, name, label, ok: false, summary: message } });
-        return `Erro: ${ctx.privacy.apply(message)}`;
-      }
-    },
-  });
+type Run<Input extends z.ZodObject> = (ctx: ToolContext, args: z.output<Input>, report: Report) => Promise<string>;
+type ToolBuilder = (ctx: ToolContext, name: ToolName) => BetaRunnableTool;
+
+function tool<Input extends z.ZodObject>(spec: { description: ByGroup<string>; input: Input; run: ByGroup<Run<Input>> }): ToolBuilder {
+  return (ctx, name) => {
+    const description = forGroup(spec.description, ctx.group);
+    const run = forGroup(spec.run, ctx.group);
+    if (description === undefined || !run) throw new Error(`A ferramenta ${name} não tem versão para o grupo ${ctx.group}.`);
+    const label = runningLabel(name);
+    return betaZodTool({
+      name,
+      description,
+      inputSchema: spec.input,
+      run: async (args, context) => {
+        const id = context?.toolUse.id ?? name;
+        const report: Report = (progress) => ctx.emit({ type: "tool_progress", id, progress });
+        try {
+          const text = await run(ctx, args, report);
+          ctx.emit({ type: "tool_end", step: { id, name, label, ok: true } });
+          return ctx.privacy.apply(text);
+        } catch (error) {
+          if (!(error instanceof UserError)) console.error(`[assistente] ferramenta ${name} falhou:`, error);
+          const message = error instanceof UserError ? error.message : FALLBACK;
+          ctx.emit({ type: "tool_end", step: { id, name, label, ok: false, summary: message } });
+          return `Erro: ${ctx.privacy.apply(message)}`;
+        }
+      },
+    });
+  };
 }
 
 async function resolveStudentId(ctx: ToolContext, ref: string): Promise<string> {
   const prisma = await db();
-  const label = ref.match(/ESTUDANTE\s*(\d+)/i);
-  if (label) {
-    const number = Number(label[1]);
-    const id = Object.entries(ctx.privacy.map.students).find(([, value]) => value === number)?.[0];
+  if (hasStudentLabel(ref)) {
+    const id = ctx.privacy.studentIdOf(ref);
     if (id && ctx.studentIds.includes(id)) return id;
-    throw new Error("Estudante não encontrado no seu escopo. Use buscar_estudantes para ver a lista.");
+    throw new UserError("Estudante não encontrado no seu escopo. Use buscar_estudantes para ver a lista.", "not_found");
   }
   const trimmed = ref.trim();
   if (ctx.studentIds.includes(trimmed)) return trimmed;
   const students = await prisma.student.findMany({ where: { id: { in: ctx.studentIds } }, select: { id: true, name: true } });
   const matches = students.filter((student) => normalize(student.name).includes(normalize(trimmed)));
   if (matches.length === 1) return matches[0].id;
-  if (matches.length > 1) throw new Error(`Mais de um estudante corresponde: ${matches.map((student) => ctx.privacy.studentLabel(student.id)).join(", ")}. Use o id.`);
-  throw new Error("Estudante não encontrado. Use buscar_estudantes para ver a lista.");
+  if (matches.length > 1) throw new UserError(`Mais de um estudante corresponde: ${matches.map((student) => ctx.privacy.studentLabel(student.id)).join(", ")}. Use o id.`);
+  throw new UserError("Estudante não encontrado. Use buscar_estudantes para ver a lista.", "not_found");
 }
 
-async function propose(ctx: ToolContext, kind: string, summary: string, args: Record<string, unknown>): Promise<string> {
+async function propose<K extends ProposalKind>(ctx: ToolContext, kind: K, summary: string, args: ProposalArgs<K>): Promise<string> {
   const prisma = await db();
-  const action = await prisma.assistantAction.create({ data: { conversationId: ctx.conversationId, kind, summary, args: JSON.stringify(args) } });
+  const action = await prisma.assistantAction.create({ data: { conversationId: ctx.conversationId, kind, summary, args: writeProposalArgs(kind, args) } });
   ctx.emit({ type: "action", action: toActionView(action) });
   return `Cartão de confirmação preparado (ação ${kind}). Nada foi gravado ainda: a pessoa precisa confirmar no cartão que apareceu na tela. Diga isso em uma frase e não chame esta ferramenta de novo para o mesmo pedido.`;
 }
@@ -112,16 +119,16 @@ const journeyInput = (student: {
   hasDiary: student.diaryEntries.length > 0,
 });
 
-function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean }): BetaRunnableTool[] {
-  const network = can(ctx.user.role, "management");
+const NETWORK_PANEL = "Números do painel para a rede inteira ou para uma escola (pelo id): jornada, avisos, planos, aulas, atividades, uso da IA e estudantes com avisos.";
 
-  const buscarEstudantes = define(ctx, "buscar_estudantes",
-    "Lista os estudantes que a pessoa pode acompanhar, com marcador, id, turma, escola e próximo passo da jornada. Filtros opcionais por texto e por turma.",
-    z.object({
+const TOOLS: Record<ToolName, ToolBuilder> = {
+  buscar_estudantes: tool({
+    description: "Lista os estudantes que a pessoa pode acompanhar, com marcador, id, turma, escola e próximo passo da jornada. Filtros opcionais por texto e por turma.",
+    input: z.object({
       busca: z.string().optional().describe("Marcador, id ou parte do nome digitado pela pessoa"),
       turma: z.string().optional().describe("Parte do nome da turma, como 'Turma B'"),
     }),
-    async (args) => {
+    run: async (ctx, args) => {
       const prisma = await db();
       const students = await prisma.student.findMany({
         where: { id: { in: ctx.studentIds }, ...(args.turma ? { className: textContains(args.turma) } : {}) },
@@ -134,24 +141,22 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
           diaryEntries: { orderBy: { date: "desc" }, select: { id: true, date: true }, take: 1 },
         },
       });
-      let list = students;
-      if (args.busca) {
-        const label = args.busca.match(/ESTUDANTE\s*(\d+)/i);
-        if (label) list = students.filter((student) => ctx.privacy.map.students[student.id] === Number(label[1]));
-        else list = students.filter((student) => student.id === args.busca || normalize(student.name).includes(normalize(args.busca!)));
-      }
+      const busca = args.busca;
+      const list = !busca ? students
+        : hasStudentLabel(busca) ? students.filter((student) => student.id === ctx.privacy.studentIdOf(busca))
+        : students.filter((student) => student.id === busca || normalize(student.name).includes(normalize(busca)));
       if (!list.length) return "Nenhum estudante encontrado com esse filtro.";
       const lines = list.slice(0, 60).map((student) => {
         const next = journeyInput(student);
         return `- ${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.gradeYear}, ${student.className}, ${SHIFTS[student.shift] ?? student.shift}, ${ctx.privacy.schoolLabel(student.schoolId)}; próximo passo: ${next.label} (${next.href}); último registro de aula: ${student.diaryEntries[0] ? formatDate(student.diaryEntries[0].date) : "nenhum"}.`;
       });
       return `${plural(list.length, "estudante", "estudantes")}${list.length > 60 ? " (mostrando 60)" : ""}:\n${lines.join("\n")}`;
-    });
-
-  const verEstudante = define(ctx, "ver_estudante",
-    "Resumo completo de um estudante: jornada e próximo passo, avisos, plano e objetivos (com ids e tendência), como aprende, registros de aula, atividades, família e orientações da saúde. Consulte antes de responder sobre um estudante.",
-    z.object({ estudante: studentRef }),
-    async (args) => {
+    },
+  }),
+  ver_estudante: tool({
+    description: "Resumo completo de um estudante: jornada e próximo passo, avisos, plano e objetivos (com ids e tendência), como aprende, registros de aula, atividades, família e orientações da saúde. Consulte antes de responder sobre um estudante.",
+    input: z.object({ estudante: studentRef }),
+    run: async (ctx, args) => {
       const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       const s = await prisma.student.findUniqueOrThrow({
@@ -185,7 +190,7 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
         activePlan
           ? `\n## Plano ativo (revisão em ${formatDate(activePlan.reviewDate)})\n${activePlan.objectives.map((objective) => {
             const insight = objectiveTrend(objective, s.diaryEntries);
-            return `- Objetivo (id ${objective.id}, ${DIMENSIONS[objective.dimension] ?? objective.dimension}, ${objective.status === "alcancado" ? "alcançado" : objective.status === "em_revisao" ? "em revisão" : "ativo"}): ${objective.description} Apoio atual ${support(objective.currentSupport)} → esperado ${support(objective.targetSupport)}. Tendência: ${TREND_LABELS[insight.trend]}. ${insight.message}${insight.lastSupportLevels.length ? ` Últimos níveis de apoio: ${insight.lastSupportLevels.join(" → ")}.` : ""}`;
+            return `- Objetivo (id ${objective.id}, ${DIMENSIONS[objective.dimension] ?? objective.dimension}, ${OBJECTIVE_STATUS[objective.status] ?? objective.status}): ${objective.description} Apoio atual ${support(objective.currentSupport)} → esperado ${support(objective.targetSupport)}. Tendência: ${TREND_LABELS[insight.trend]}. ${insight.message}${insight.lastSupportLevels.length ? ` Últimos níveis de apoio: ${insight.lastSupportLevels.join(" → ")}.` : ""}`;
           }).join("\n") || "Sem objetivos."}`
           : "\n## Plano\nSem plano ativo.",
         s.planDraft ? `Há uma proposta de plano aguardando revisão (${s.planDraft.source === "ia" ? "agentes de IA" : "motor de regras"}, ${formatDate(s.planDraft.createdAt)}) em /estudantes/${id}/ppi#proposta.` : "",
@@ -196,16 +201,16 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
         health ? `\n## Orientações da saúde (${formatDate(health.createdAt)})\nComunicação eficaz: ${health.communication}. Recursos: ${health.accessResources}. Estratégias a testar: ${health.strategiesToTry}. Orientações à escola: ${health.schoolGuidance}. Objetivos compartilhados: ${health.sharedGoals}.` : "",
       ];
       return sections.filter(Boolean).join("\n");
-    });
-
-  const verAtividades = define(ctx, "ver_atividades",
-    "Atividades de um estudante com passos, materiais, forma de resposta e critério de sucesso. Útil para orientar a aula de hoje ou avaliar sugestões.",
-    z.object({
+    },
+  }),
+  ver_atividades: tool({
+    description: "Atividades de um estudante com passos, materiais, forma de resposta e critério de sucesso. Útil para orientar a aula de hoje ou avaliar sugestões.",
+    input: z.object({
       estudante: studentRef,
       situacao: z.enum(["sugerida", "aceita", "aplicada", "rejeitada", "todas"]).optional().describe("Filtra pela situação; padrão: todas"),
       limite: z.number().int().min(1).max(20).optional(),
     }),
-    async (args) => {
+    run: async (ctx, args) => {
       const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       const activities = await prisma.activity.findMany({
@@ -227,12 +232,12 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
         a.rejectReason ? `Motivo da rejeição: ${a.rejectReason}` : "",
         a.image ? "Tem imagem de apoio gerada." : "",
       ].filter(Boolean).join("\n")).join("\n\n") + `\n\nPágina: /estudantes/${id}/atividades`;
-    });
-
-  const proximosPassosDua = define(ctx, "proximos_passos_dua",
-    "Próximos passos sugeridos para um estudante a partir das evidências das atividades planejadas com DUA. Cada sugestão traz a base usada e o que ainda precisa ser observado. São recomendações para a equipe revisar: não são decisão profissional nem resultado observado.",
-    z.object({ estudante: studentRef }),
-    async (args) => {
+    },
+  }),
+  proximos_passos_dua: tool({
+    description: "Próximos passos sugeridos para um estudante a partir das evidências das atividades planejadas com DUA. Cada sugestão traz a base usada e o que ainda precisa ser observado. São recomendações para a equipe revisar: não são decisão profissional nem resultado observado.",
+    input: z.object({ estudante: studentRef }),
+    run: async (ctx, args) => {
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const suggestions = await studentFollowUp(ctx.user, id);
@@ -249,16 +254,14 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
         ...suggestions.map((item, index) => `${index + 1}. ${item.text}\n   Base usada: ${item.basis}\n   O que ainda precisa ser observado: ${item.pending}`),
         page,
       ].join("\n");
-    });
-
-  const proporPlano = define(ctx, "propor_plano",
-    "Pede aos agentes de IA uma proposta de plano (PAEE, PEI e objetivos) para o estudante, a partir do estudo de caso e de como aprende. Demora de 1 a 3 minutos e tem custo; chame só quando a pessoa pedir claramente. A proposta fica aguardando revisão em /estudantes/ID/ppi#proposta.",
-    z.object({ estudante: studentRef }),
-    async (args, report) => {
+    },
+  }),
+  propor_plano: tool({
+    description: "Pede aos agentes de IA uma proposta de plano (PAEE, PEI e objetivos) para o estudante, a partir do estudo de caso e de como aprende. Demora de 1 a 3 minutos e tem custo; chame só quando a pessoa pedir claramente. A proposta fica aguardando revisão em /estudantes/ID/ppi#proposta.",
+    input: z.object({ estudante: studentRef }),
+    run: async (ctx, args, report) => {
       const id = await resolveStudentId(ctx, args.estudante);
-      await assertStudentTeam(ctx.user, id);
-      const { proposal, source, trace } = await createPlanDraft(id, ctx.user, report);
-      revalidatePath(`/estudantes/${id}/ppi`);
+      const { proposal, source, trace } = await proposePlan(ctx.user, id, report);
       return [
         `Proposta pronta (${source === "ia" ? "agentes de IA" : "motor de regras"}). Trilha: ${trace.map((step) => step.agent).join(" → ")}.`,
         `Revisão sugerida em ${proposal.reviewWeeks} semanas. O estudante já consegue: ${proposal.initialSituation.join("; ")}.`,
@@ -268,40 +271,21 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
         "A proposta também sugere os itens do PAEE e do PEI (recursos, tecnologia assistiva, apoio, rede, avaliação, acompanhamento e devolutiva) para a equipe conferir.",
         `A pessoa revisa, escolhe os objetivos e ativa o plano em /estudantes/${id}/ppi#proposta.`,
       ].filter(Boolean).join("\n");
-    });
-
-  const gerarAtividades = define(ctx, "gerar_atividades",
-    "Cria 3 sugestões de atividade (sala comum, AEE e casa) para um objetivo e um conteúdo da aula da turma. Demora de 1 a 3 minutos (com imagens, cerca de 1 minuto a mais) e tem custo. As sugestões ficam aguardando a decisão da pessoa em /estudantes/ID/atividades.",
-    z.object({
+    },
+  }),
+  gerar_atividades: tool({
+    description: "Cria 3 sugestões de atividade (sala comum, AEE e casa) para um objetivo e um conteúdo da aula da turma. Demora de 1 a 3 minutos (com imagens, cerca de 1 minuto a mais) e tem custo. As sugestões ficam aguardando a decisão da pessoa em /estudantes/ID/atividades.",
+    input: z.object({
       estudante: studentRef,
       objetivoId: z.string().describe("Id do objetivo ativo (do resumo do estudante)"),
       conteudoDaAula: z.string().describe("O que a turma vai trabalhar na aula, como 'chamada com os nomes' ou 'contagem até 10'"),
       comImagens: z.boolean().optional().describe("Gerar também imagens de apoio (pictogramas) para cada atividade"),
     }),
-    async (args, report) => {
-      const prisma = await db();
+    run: async (ctx, args, report) => {
       const id = await resolveStudentId(ctx, args.estudante);
-      await assertStudentTeam(ctx.user, id);
-      const student = await prisma.student.findUniqueOrThrow({ where: { id } });
-      const profile = await prisma.functionalProfile.findUnique({ where: { studentId: id } });
-      if (!profile) throw new Error(`Preencha Como aprende antes de gerar atividades: /estudantes/${id}/perfil`);
-      const objective = await prisma.objective.findFirst({ where: { id: args.objetivoId, plan: { studentId: id } } });
-      if (!objective) throw new Error("Objetivo não encontrado para este estudante. Consulte ver_estudante para os ids.");
-      const withImages = Boolean(args.comImagens) && isImageGenerationEnabled();
-      if (withImages) report({ agent: ILLUSTRATION, phase: "queued" });
-      const cards = await buildActivityCards({ student, profile, objective, lessonTopic: args.conteudoDaAula }, report);
-      const created = await saveSuggestedActivities(id, objective.id, cards);
-      let images = "";
-      if (withImages) {
-        report({ agent: ILLUSTRATION, phase: "start" });
-        const results = await Promise.allSettled(created.map((activity) => createActivityImage(activity.id, "sequencia", ctx.user)));
-        report({ agent: ILLUSTRATION, phase: "end" });
-        const ok = results.filter((result) => result.status === "fulfilled").length;
-        images = ` Imagens de apoio geradas: ${ok} de ${created.length}.`;
-      }
-      revalidatePath("/estudantes/[id]", "layout");
+      const { cards, created, images } = await generateActivities(ctx.user, id, { objectiveId: args.objetivoId, lessonTopic: args.conteudoDaAula, withImages: Boolean(args.comImagens) }, report);
       return [
-        `3 sugestões criadas (origem: ${cards[0]?.source === "ia" ? "agentes de IA" : "motor de regras"}) e aguardando a decisão da pessoa em /estudantes/${id}/atividades.${images}`,
+        `3 sugestões criadas (origem: ${cards[0]?.source === "ia" ? "agentes de IA" : "motor de regras"}) e aguardando a decisão da pessoa em /estudantes/${id}/atividades.${images === null ? "" : ` Imagens de apoio geradas: ${images} de ${created.length}.`}`,
         ...cards.map((card, index) => [
           `### ${card.title} (id ${created[index]?.id}) · ${CONTEXTS[card.context]} · ${card.durationMinutes} min`,
           `Materiais: ${card.materials.join(", ")}`,
@@ -311,24 +295,22 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
           card.reviewNotes?.length ? `Pontos para a pessoa conferir: ${card.reviewNotes.join("; ")}` : "",
         ].filter(Boolean).join("\n")),
       ].join("\n\n");
-    });
-
-  const criarMaterial = define(ctx, "criar_material",
-    "Cria um material de apoio a partir do perfil do estudante, com cartões, como preparar e usar, e atividades para aplicar na sala comum, no AEE e em casa: rotina visual, passo a passo de uma tarefa, história social, prancha de comunicação, quadro de escolhas ou cartões de autorregulação. Com imagens=true, desenha um pictograma por cartão (leva até 1 minuto). O material fica como sugestão em /estudantes/ID/materiais até a equipe aprovar.",
-    z.object({
+    },
+  }),
+  criar_material: tool({
+    description: "Cria um material de apoio a partir do perfil do estudante, com cartões, como preparar e usar, e atividades para aplicar na sala comum, no AEE e em casa: rotina visual, passo a passo de uma tarefa, história social, prancha de comunicação, quadro de escolhas ou cartões de autorregulação. Com imagens=true, desenha um pictograma por cartão (leva até 1 minuto). O material fica como sugestão em /estudantes/ID/materiais até a equipe aprovar.",
+    input: z.object({
       estudante: studentRef,
       tipo: z.enum(MATERIAL_KIND_KEYS),
       tema: z.string().optional().describe("Situação ou conteúdo do material. Ex.: hora do lanche, troca de sala, leitura compartilhada"),
       contexto: z.enum(ACTIVITY_CONTEXTS).optional().describe("Onde o material será mais usado"),
       imagens: z.boolean().optional().describe("Gerar um pictograma para cada cartão. Use quando a pessoa pedir imagem ou figura."),
     }),
-    async (args) => {
+    run: async (ctx, args) => {
       const id = await resolveStudentId(ctx, args.estudante);
       const { material, content, source, images } = await createStudentMaterial(ctx.user, id, {
         kind: args.tipo, topic: args.tema ?? "", context: args.contexto ?? "aee", withImages: Boolean(args.imagens),
       });
-      revalidatePath(`/estudantes/${id}/materiais`);
-      revalidatePath(`/estudantes/${id}/materiais/${material.id}`);
       const kind = MATERIAL_KINDS.find((item) => item.kind === args.tipo);
       return [
         `${kind?.label ?? args.tipo} criado ${source === "ia" ? "pelos agentes de IA" : "pelas regras da plataforma"}: "${material.title}". Fica como sugestão até a equipe aprovar.`,
@@ -339,11 +321,11 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
         content.reviewNotes.length ? `Pontos para a equipe conferir: ${content.reviewNotes.join("; ")}` : "",
         `Ver, aprovar e imprimir: /estudantes/${id}/materiais/${material.id}.`,
       ].filter(Boolean).join("\n");
-    });
-
-  const registrarAula = define(ctx, "registrar_aula",
-    "Prepara o registro de uma aula em 3 toques (participação, apoio e critério), com observação opcional. Não grava: abre um cartão para a pessoa confirmar. Reúna os três toques antes de chamar.",
-    z.object({
+    },
+  }),
+  registrar_aula: tool({
+    description: "Prepara o registro de uma aula em 3 toques (participação, apoio e critério), com observação opcional. Não grava: abre um cartão para a pessoa confirmar. Reúna os três toques antes de chamar.",
+    input: z.object({
       estudante: studentRef,
       objetivoId: z.string().optional().describe("Id do objetivo trabalhado"),
       atividadeId: z.string().optional().describe("Id da atividade aplicada; ao confirmar, ela passa a 'aplicada'"),
@@ -354,15 +336,15 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
       oQueAjudou: z.string().optional().describe("Estratégias que ajudaram, separadas por ponto e vírgula"),
       proximoPasso: z.string().optional().describe("O que tentar no próximo encontro"),
     }),
-    async (args) => {
+    run: async (ctx, args) => {
       const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const student = await prisma.student.findUniqueOrThrow({ where: { id }, select: { name: true } });
       const objective = args.objetivoId ? await prisma.objective.findFirst({ where: { id: args.objetivoId, plan: { studentId: id } }, select: { id: true, action: true } }) : null;
-      if (args.objetivoId && !objective) throw new Error("Objetivo não encontrado para este estudante.");
+      if (args.objetivoId && !objective) throw new UserError("Objetivo não encontrado para este estudante.", "not_found");
       const activity = args.atividadeId ? await prisma.activity.findFirst({ where: { id: args.atividadeId, studentId: id }, select: { id: true, title: true } }) : null;
-      if (args.atividadeId && !activity) throw new Error("Atividade não encontrada para este estudante.");
+      if (args.atividadeId && !activity) throw new UserError("Atividade não encontrada para este estudante.", "not_found");
       const participation = { total: "participou de toda a atividade", parcial: "participou de parte", recusou: "recusou" }[args.participacao];
       const criterion = { sim: "atingiu o critério", parcial: "atingiu parcialmente", nao: "não atingiu o critério" }[args.criterio];
       const authorRole = ctx.user.role;
@@ -372,47 +354,46 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
         participation: args.participacao, supportLevel: args.apoio, criterionMet: args.criterio,
         note: args.observacao ?? null, whatWorked: args.oQueAjudou ?? null, recommendation: args.proximoPasso ?? null, authorRole,
       });
-    });
-
-  const decidirAtividade = define(ctx, "decidir_atividade",
-    "Prepara a aceitação ou a rejeição de uma atividade sugerida. Não grava: abre um cartão para a pessoa confirmar.",
-    z.object({
+    },
+  }),
+  decidir_atividade: tool({
+    description: "Prepara a aceitação ou a rejeição de uma atividade sugerida. Não grava: abre um cartão para a pessoa confirmar.",
+    input: z.object({
       estudante: studentRef,
       atividadeId: z.string(),
       decisao: z.enum(["aceitar", "rejeitar"]),
       motivo: z.string().optional().describe("Motivo da rejeição, em poucas palavras"),
     }),
-    async (args) => {
+    run: async (ctx, args) => {
       const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const activity = await prisma.activity.findFirst({ where: { id: args.atividadeId, studentId: id }, select: { id: true, title: true, status: true } });
-      if (!activity) throw new Error("Atividade não encontrada para este estudante.");
+      if (!activity) throw new UserError("Atividade não encontrada para este estudante.", "not_found");
       const summary = args.decisao === "aceitar" ? `Aceitar a atividade “${activity.title}” para usar com o estudante.` : `Rejeitar a atividade “${activity.title}”${args.motivo ? ` (motivo: ${args.motivo})` : ""}.`;
       return propose(ctx, "decidir_atividade", summary, { studentId: id, activityId: activity.id, decision: args.decisao === "aceitar" ? "aceita" : "rejeitada", reason: args.motivo ?? null });
-    });
-
-  const marcarObjetivo = define(ctx, "marcar_objetivo",
-    "Prepara a mudança de situação de um objetivo (alcançado, em revisão ou ativo). Não grava: abre um cartão para a pessoa confirmar. Só sugira 'alcançado' quando os registros mostrarem.",
-    z.object({ estudante: studentRef, objetivoId: z.string(), situacao: z.enum(["alcancado", "em_revisao", "ativo"]) }),
-    async (args) => {
+    },
+  }),
+  marcar_objetivo: tool({
+    description: "Prepara a mudança de situação de um objetivo (alcançado, em revisão ou ativo). Não grava: abre um cartão para a pessoa confirmar. Só sugira 'alcançado' quando os registros mostrarem.",
+    input: z.object({ estudante: studentRef, objetivoId: z.string(), situacao: z.enum(["alcancado", "em_revisao", "ativo"]) }),
+    run: async (ctx, args) => {
       const prisma = await db();
       const id = await resolveStudentId(ctx, args.estudante);
       await assertStudentTeam(ctx.user, id);
       const objective = await prisma.objective.findFirst({ where: { id: args.objetivoId, plan: { studentId: id } }, select: { id: true, description: true } });
-      if (!objective) throw new Error("Objetivo não encontrado para este estudante.");
-      const label = { alcancado: "alcançado", em_revisao: "em revisão", ativo: "ativo" }[args.situacao];
-      return propose(ctx, "marcar_objetivo", `Marcar como ${label} o objetivo: ${objective.description}`, { studentId: id, objectiveId: objective.id, status: args.situacao });
-    });
-
-  const buscarRecursos = define(ctx, "buscar_recursos",
-    "Busca no banco municipal de recursos inclusivos (planos, atividades, CAA, tecnologia assistiva, vídeos de formação, experiências exitosas), com evidências de uso.",
-    z.object({
+      if (!objective) throw new UserError("Objetivo não encontrado para este estudante.", "not_found");
+      return propose(ctx, "marcar_objetivo", `Marcar como ${OBJECTIVE_STATUS[args.situacao]} o objetivo: ${objective.description}`, { studentId: id, objectiveId: objective.id, status: args.situacao });
+    },
+  }),
+  buscar_recursos: tool({
+    description: "Busca no banco municipal de recursos inclusivos (planos, atividades, CAA, tecnologia assistiva, vídeos de formação, experiências exitosas), com evidências de uso.",
+    input: z.object({
       busca: z.string().optional().describe("Palavra ou tema, como 'rotina' ou 'leitura'"),
       etapa: z.string().optional().describe("Etapa de ensino, como 'anos_iniciais'"),
       tipo: z.string().optional().describe("Tipo do recurso, como 'caa' ou 'atividade'"),
     }),
-    async (args) => {
+    run: async (ctx, args) => {
       const prisma = await db();
       const resources = await prisma.resource.findMany({
         where: {
@@ -426,14 +407,17 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
       });
       if (!resources.length) return "Nenhum recurso encontrado. Página do banco: /recursos";
       return resources.map((resource) => `- ${resource.title} (id ${resource.id}, /recursos/${resource.id}): ${resource.description} Etapa: ${resource.stage}; área: ${resource.skillArea}; tipo: ${resource.resourceType}; complexidade: ${resource.complexity}; ${plural(resource.timesUsed, "uso", "usos")}${resource.timesUsed ? `, ${Math.round((resource.positiveOutcomes / resource.timesUsed) * 100)}% com bom resultado` : ""}. Atividades: ${resource.activities.map((activity) => `${activity.title} (${CONTEXTS[activity.context] ?? activity.context}, ${activity.durationMinutes} min)`).join("; ") || "nenhuma"}.`).join("\n");
-    });
-
-  const indicadores = define(ctx, "indicadores",
-    network
-      ? "Números do painel para a rede inteira ou para uma escola (pelo id): jornada, avisos, planos, aulas, atividades, uso da IA e estudantes com avisos."
-      : "Números do painel da escola da pessoa: jornada, avisos, planos, aulas, atividades e uso da IA.",
-    z.object({ escolaId: z.string().optional().describe("Id da escola, para a gestão da rede; vazio para toda a rede") }),
-    async (args) => {
+    },
+  }),
+  indicadores: tool({
+    description: {
+      professor: "Números do painel da escola da pessoa: jornada, avisos, planos, aulas, atividades e uso da IA.",
+      escola: NETWORK_PANEL,
+      rede: NETWORK_PANEL,
+    },
+    input: z.object({ escolaId: z.string().optional().describe("Id da escola, para a gestão da rede; vazio para toda a rede") }),
+    run: async (ctx, args) => {
+      const network = can(ctx.user.role, "management");
       const d = await loadDashboard(ctx.user, { period: "ano", school: network ? args.escolaId : undefined });
       const scope = d.scope.schoolId ? ctx.privacy.schoolLabel(d.scope.schoolId) : "toda a rede";
       return [
@@ -449,89 +433,67 @@ function staffTools(ctx: ToolContext, { withStudents }: { withStudents: boolean 
         `- IA: Claude ${d.ai.providers.claude ? "ativo" : "não configurado"}, DeepSeek ${d.ai.providers.deepseek ? "ativo" : "não configurado"}, OpenAI ${d.ai.providers.openai ? "ativo" : "não configurado"}; planos propostos pela IA: ${d.ai.planProposals.ia}; atividades da IA: ${d.ai.activities.total}; imagens: ${d.ai.images}.`,
         network ? `- Escolas da rede: ${d.scope.schools.map((school) => `${ctx.privacy.schoolLabel(school.id)} (id ${school.id})`).join(", ")}.` : "",
         d.profile.caa.withoutResources ? `- Leitura para a gestão: ${d.profile.caa.withoutResources} de ${d.profile.caa.total} estudantes com comunicação alternativa ainda sem recursos de acessibilidade registrados.` : "",
-        d.attention.students.length && withStudents ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERT_LABELS[kind].toLowerCase()).join(", ")}`).join("; ")}.` : "",
+        d.attention.students.length && can(ctx.user.role, "seeNames") ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERT_LABELS[kind].toLowerCase()).join(", ")}`).join("; ")}.` : "",
       ].filter(Boolean).join("\n");
-    });
-
-  if (!withStudents) return [indicadores, buscarRecursos, datasInclusivas(ctx)];
-  return [
-    buscarEstudantes, verEstudante, verAtividades, proximosPassosDua, proporPlano, gerarAtividades, criarMaterial,
-    registrarAula, decidirAtividade, marcarObjetivo, buscarRecursos, indicadores, datasInclusivas(ctx),
-  ];
-}
-
-function datasInclusivas(ctx: ToolContext): BetaRunnableTool {
-  return define(ctx, "datas_inclusivas",
-    "Próximas datas comemorativas do público do AEE (autismo, Libras, braille, síndrome de Down, pessoa com deficiência...), com a ideia de atividade para a turma toda.",
-    z.object({ dias: z.number().int().min(7).max(366).optional().describe("Horizonte em dias; padrão 60") }),
-    async (args) => {
-      const today = todayInBrazil();
-      const events = upcomingEvents(today, args.dias ?? 60);
-      if (!events.length) return "Nenhuma data comemorativa no período. Calendário: /calendario";
-      return `Hoje é ${String(today.day).padStart(2, "0")}/${String(today.month).padStart(2, "0")}/${today.year}. Próximas datas (calendário em /calendario):\n` + events.slice(0, 12).map((event) => `- ${event.entry.title}, ${dateRangeLabel(event)} (${relativeLabel(event, today).toLowerCase()}), tema ${CALENDAR_THEMES[event.entry.theme].label}. ${event.entry.about} Ideia para a turma: ${event.entry.idea} Origem: ${event.entry.origin}`).join("\n");
-    });
-}
-
-function familyTools(ctx: ToolContext): BetaRunnableTool[] {
-  const studentId = ctx.studentIds[0];
-  const meuEstudante = define(ctx, "meu_estudante",
-    "O que a escola está trabalhando com o estudante, as atividades para fazer em casa (com o passo a passo), as conquistas registradas pela escola e o que a família já contou.",
-    z.object({}),
-    async () => {
-      const prisma = await db();
-      if (!studentId) return "O acesso ainda não está vinculado a um estudante. Peça à escola para conferir o cadastro.";
-      const s = await prisma.student.findUniqueOrThrow({
-        where: { id: studentId },
-        include: {
-          plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" } } } },
-          activities: { where: familyActivityWhere, orderBy: { createdAt: "desc" }, take: 5 },
-          timeline: { where: { type: "conquista" }, orderBy: { date: "desc" }, take: 5 },
-          familyNotes: { orderBy: { date: "desc" }, take: 5 },
-        },
-      });
-      const label = ctx.privacy.studentLabel(studentId);
-      const objectives = s.plans.flatMap((plan) => plan.objectives);
-      return [
-        `# ${label} (página: /familia/${studentId})`,
-        `## O que a escola está trabalhando\n${objectives.map((objective) => `- ${objective.description}`).join("\n") || "A escola ainda está montando o plano."}`,
-        `## Atividades para fazer em casa\n${s.activities.map((a) => `- ${a.title} (${a.durationMinutes} min). Materiais: ${parseJson<string[]>(a.materials, []).join(", ")}. Passos: ${parseJson<string[]>(a.steps, []).map((step, index) => `${index + 1}. ${step}`).join(" ")} Se não der certo: ${a.planB}`).join("\n") || "A escola ainda não enviou atividades para casa."}`,
-        `## Conquistas registradas pela escola\n${s.timeline.map((event) => `- ${event.title}${event.description ? `: ${event.description}` : ""} (${formatDate(event.date)})`).join("\n") || "Nenhuma ainda."}`,
-        `## O que a família já contou\n${s.familyNotes.map((note) => `- "${note.note}" (${note.author}, ${formatDate(note.date)})${isHomeActivityNote(note.note) ? " [atividade feita em casa]" : ""}`).join("\n") || "Nenhuma observação ainda."}`,
-      ].join("\n\n");
-    });
-
-  const contarConquista = define(ctx, "contar_conquista",
-    "Prepara o envio de uma conquista observada em casa para a equipe da escola. Não envia: abre um cartão para a família confirmar.",
-    z.object({ texto: z.string().describe("O que o estudante conseguiu fazer, com as palavras da família"), quem: z.string().optional().describe("Quem observou, como 'mãe' ou 'avó'") }),
-    async (args) => {
-      if (!studentId) throw new Error("O acesso ainda não está vinculado a um estudante.");
-      if (!args.texto.trim()) throw new Error("Escreva o que aconteceu.");
+    },
+  }),
+  meu_estudante: tool({
+    description: {
+      familia: "O que a escola está trabalhando com o estudante, as atividades para fazer em casa (com o passo a passo), as conquistas registradas pela escola e o que a família já contou.",
+      terapeuta: "Comunicação, interesses e apoios registrados pela escola (perfil funcional) e os relatórios de articulação já enviados. Sem notas, diário ou dados administrativos.",
+    },
+    input: z.object({}),
+    run: {
+      familia: async (ctx) => {
+        const studentId = ctx.studentIds[0];
+        const prisma = await db();
+        if (!studentId) return "O acesso ainda não está vinculado a um estudante. Peça à escola para conferir o cadastro.";
+        const s = await prisma.student.findUniqueOrThrow({
+          where: { id: studentId },
+          include: {
+            plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" } } } },
+            activities: { where: familyActivityWhere, orderBy: { createdAt: "desc" }, take: 5 },
+            timeline: { where: { type: "conquista" }, orderBy: { date: "desc" }, take: 5 },
+            familyNotes: { orderBy: { date: "desc" }, take: 5 },
+          },
+        });
+        const label = ctx.privacy.studentLabel(studentId);
+        const objectives = s.plans.flatMap((plan) => plan.objectives);
+        return [
+          `# ${label} (página: /familia/${studentId})`,
+          `## O que a escola está trabalhando\n${objectives.map((objective) => `- ${objective.description}`).join("\n") || "A escola ainda está montando o plano."}`,
+          `## Atividades para fazer em casa\n${s.activities.map((a) => `- ${a.title} (${a.durationMinutes} min). Materiais: ${parseJson<string[]>(a.materials, []).join(", ")}. Passos: ${parseJson<string[]>(a.steps, []).map((step, index) => `${index + 1}. ${step}`).join(" ")} Se não der certo: ${a.planB}`).join("\n") || "A escola ainda não enviou atividades para casa."}`,
+          `## Conquistas registradas pela escola\n${s.timeline.map((event) => `- ${event.title}${event.description ? `: ${event.description}` : ""} (${formatDate(event.date)})`).join("\n") || "Nenhuma ainda."}`,
+          `## O que a família já contou\n${s.familyNotes.map((note) => `- "${note.note}" (${note.author}, ${formatDate(note.date)})${isHomeActivityNote(note.note) ? " [atividade feita em casa]" : ""}`).join("\n") || "Nenhuma observação ainda."}`,
+        ].join("\n\n");
+      },
+      terapeuta: async (ctx) => {
+        const studentId = ctx.studentIds[0];
+        const prisma = await db();
+        if (!studentId) return "O acesso ainda não está vinculado a um estudante. Peça à escola para conferir o cadastro.";
+        const s = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { profile: true, intersectorReports: { orderBy: { createdAt: "desc" }, take: 3 } } });
+        return [
+          `# ${ctx.privacy.studentLabel(studentId)} (página: /terapeuta)`,
+          `${s.gradeYear}, ${STAGES[s.stage] ?? s.stage}.`,
+          `## Como aprende (registrado pela escola)\n${s.profile ? profileText(s.profile) : "A escola ainda não preencheu o perfil."}`,
+          `## Relatórios enviados\n${s.intersectorReports.map((report) => `- ${formatDate(report.createdAt)}: comunicação: ${report.communication}; recursos: ${report.accessResources}; estratégias: ${report.strategiesToTry}; orientações: ${report.schoolGuidance}; objetivos compartilhados: ${report.sharedGoals}.`).join("\n") || "Nenhum relatório ainda."}`,
+        ].join("\n\n");
+      },
+    },
+  }),
+  contar_conquista: tool({
+    description: "Prepara o envio de uma conquista observada em casa para a equipe da escola. Não envia: abre um cartão para a família confirmar.",
+    input: z.object({ texto: z.string().describe("O que o estudante conseguiu fazer, com as palavras da família"), quem: z.string().optional().describe("Quem observou, como 'mãe' ou 'avó'") }),
+    run: async (ctx, args) => {
+      const studentId = ctx.studentIds[0];
+      if (!studentId) throw new UserError("O acesso ainda não está vinculado a um estudante.");
+      if (!args.texto.trim()) throw new UserError("Escreva o que aconteceu.");
       return propose(ctx, "contar_conquista", `Contar para a escola: “${args.texto.trim()}”${args.quem ? ` (observado por ${args.quem})` : ""}.`, { studentId, note: args.texto.trim(), author: args.quem?.trim() || "Família" });
-    });
-
-  return [meuEstudante, contarConquista, datasInclusivas(ctx)];
-}
-
-function therapistTools(ctx: ToolContext): BetaRunnableTool[] {
-  const studentId = ctx.studentIds[0];
-  const meuEstudante = define(ctx, "meu_estudante",
-    "Comunicação, interesses e apoios registrados pela escola (perfil funcional) e os relatórios de articulação já enviados. Sem notas, diário ou dados administrativos.",
-    z.object({}),
-    async () => {
-      const prisma = await db();
-      if (!studentId) return "O acesso ainda não está vinculado a um estudante. Peça à escola para conferir o cadastro.";
-      const s = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { profile: true, intersectorReports: { orderBy: { createdAt: "desc" }, take: 3 } } });
-      return [
-        `# ${ctx.privacy.studentLabel(studentId)} (página: /terapeuta)`,
-        `${s.gradeYear}, ${STAGES[s.stage] ?? s.stage}.`,
-        `## Como aprende (registrado pela escola)\n${s.profile ? profileText(s.profile) : "A escola ainda não preencheu o perfil."}`,
-        `## Relatórios enviados\n${s.intersectorReports.map((report) => `- ${formatDate(report.createdAt)}: comunicação: ${report.communication}; recursos: ${report.accessResources}; estratégias: ${report.strategiesToTry}; orientações: ${report.schoolGuidance}; objetivos compartilhados: ${report.sharedGoals}.`).join("\n") || "Nenhum relatório ainda."}`,
-      ].join("\n\n");
-    });
-
-  const enviarOrientacoes = define(ctx, "enviar_orientacoes",
-    "Prepara um relatório de articulação intersetorial para a escola, só com informações funcionais. Não envia: abre um cartão para o terapeuta confirmar. Reúna os campos obrigatórios antes de chamar.",
-    z.object({
+    },
+  }),
+  enviar_orientacoes: tool({
+    description: "Prepara um relatório de articulação intersetorial para a escola, só com informações funcionais. Não envia: abre um cartão para o terapeuta confirmar. Reúna os campos obrigatórios antes de chamar.",
+    input: z.object({
       comunicacao: z.string().describe("Formas de comunicação mais eficazes"),
       recursos: z.string().describe("Recursos de acessibilidade utilizados"),
       posicionamento: z.string().optional().describe("Necessidades de posicionamento ou mobilidade"),
@@ -540,28 +502,82 @@ function therapistTools(ctx: ToolContext): BetaRunnableTool[] {
       orientacoes: z.string().describe("Orientações aplicáveis ao ambiente escolar"),
       objetivosCompartilhados: z.string().describe("Objetivos compartilhados entre escola e família"),
     }),
-    async (args) => {
-      if (!studentId) throw new Error("O acesso ainda não está vinculado a um estudante.");
+    run: async (ctx, args) => {
+      const studentId = ctx.studentIds[0];
+      if (!studentId) throw new UserError("O acesso ainda não está vinculado a um estudante.");
       const summary = `Enviar orientações à escola: comunicação: ${args.comunicacao}; recursos: ${args.recursos}; ${args.posicionamento ? `posicionamento: ${args.posicionamento}; ` : ""}facilitadores: ${args.facilitadores}; estratégias: ${args.estrategias}; orientações: ${args.orientacoes}; objetivos compartilhados: ${args.objetivosCompartilhados}.`;
       return propose(ctx, "enviar_orientacoes", summary, {
         studentId, communication: args.comunicacao, accessResources: args.recursos, positioning: args.posicionamento ?? null,
         facilitators: args.facilitadores, schoolGuidance: args.orientacoes, strategiesToTry: args.estrategias, sharedGoals: args.objetivosCompartilhados,
       });
-    });
-
-  return [meuEstudante, enviarOrientacoes, datasInclusivas(ctx)];
-}
-
-const TOOLSETS: Record<Group, (ctx: ToolContext) => BetaRunnableTool[]> = {
-  professor: (ctx) => staffTools(ctx, { withStudents: true }),
-  escola: (ctx) => staffTools(ctx, { withStudents: true }),
-  rede: (ctx) => staffTools(ctx, { withStudents: false }),
-  familia: familyTools,
-  terapeuta: therapistTools,
-  plataforma: (ctx) => [datasInclusivas(ctx)],
+    },
+  }),
+  datas_inclusivas: tool({
+    description: "Próximas datas comemorativas do público do AEE (autismo, Libras, braille, síndrome de Down, pessoa com deficiência...), com a ideia de atividade para a turma toda.",
+    input: z.object({ dias: z.number().int().min(7).max(366).optional().describe("Horizonte em dias; padrão 60") }),
+    run: async (ctx, args) => {
+      const today = todayInBrazil();
+      const events = upcomingEvents(today, args.dias ?? 60);
+      if (!events.length) return "Nenhuma data comemorativa no período. Calendário: /calendario";
+      return `Hoje é ${String(today.day).padStart(2, "0")}/${String(today.month).padStart(2, "0")}/${today.year}. Próximas datas (calendário em /calendario):\n` + events.slice(0, 12).map((event) => `- ${event.entry.title}, ${dateRangeLabel(event)} (${relativeLabel(event, today).toLowerCase()}), tema ${CALENDAR_THEMES[event.entry.theme].label}. ${event.entry.about} Ideia para a turma: ${event.entry.idea} Origem: ${event.entry.origin}`).join("\n");
+    },
+  }),
 };
 
-export function buildTools(ctx: ToolContext): BetaRunnableTool[] {
-  return TOOLSETS[roleGroup(ctx.user.role)](ctx);
+export function buildTools(context: Omit<ToolContext, "group">): BetaRunnableTool[] {
+  const ctx: ToolContext = { ...context, group: roleGroup(context.user.role) };
+  return toolNames(ctx.group).map((name) => TOOLS[name](ctx, name));
 }
 
+type Performer<K extends ProposalKind> = (user: SessionUser, args: ProposalArgs<K>) => Promise<string>;
+
+const PERFORMERS: { [K in ProposalKind]: Performer<K> } = {
+  registrar_aula: async (user, args) => {
+    await saveDiaryEntry(user, args.studentId, args);
+    return `Registro da aula salvo. Veja em [Registrar aula](/estudantes/${args.studentId}/diario).`;
+  },
+  decidir_atividade: async (user, args) => {
+    const activity = await decideActivity(user, args.studentId, args.activityId, args.decision, args.reason);
+    return args.decision === "aceita"
+      ? `Atividade “${activity.title}” aceita. Veja em [Atividades](/estudantes/${args.studentId}/atividades).`
+      : `Atividade “${activity.title}” rejeitada. O motivo ajuda a melhorar as sugestões.`;
+  },
+  marcar_objetivo: async (user, args) => {
+    await setObjectiveStatus(user, args.studentId, args.objectiveId, args.status);
+    return `Objetivo marcado como ${OBJECTIVE_STATUS[args.status]}. Veja em [Plano de ensino](/estudantes/${args.studentId}/ppi).`;
+  },
+  contar_conquista: async (user, args) => {
+    await saveFamilyNote(user, args.studentId, args.note, args.author);
+    return `Conquista enviada para a equipe da escola. Veja em [Acompanhamento](/familia/${args.studentId}).`;
+  },
+  enviar_orientacoes: async (user, { studentId, ...report }) => {
+    await saveIntersectorReport(user, studentId, report);
+    return "Relatório enviado para a equipe escolar. Veja em [Orientações](/terapeuta#relatorios).";
+  },
+};
+
+function perform<K extends ProposalKind>(user: SessionUser, kind: K, stored: string): Promise<string> {
+  return PERFORMERS[kind](user, readProposalArgs(kind, stored));
+}
+
+export async function executeAction(user: SessionUser, actionId: string, decision: "confirmar" | "cancelar"): Promise<{ action: ActionView; error?: string }> {
+  const prisma = await db();
+  const action = await prisma.assistantAction.findFirst({ where: { id: actionId, conversation: { userId: user.id } } });
+  if (!action) throw new UserError("Ação não encontrada.", "not_found");
+  if (action.status !== "pendente") return { action: toActionView(action) };
+
+  if (decision === "cancelar") {
+    const cancelled = await prisma.assistantAction.update({ where: { id: action.id }, data: { status: "cancelada", decidedAt: new Date(), result: null } });
+    return { action: toActionView(cancelled) };
+  }
+
+  try {
+    if (!isProposalKind(action.kind)) throw new Error(`Tipo de ação desconhecido: ${action.kind}`);
+    const result = await perform(user, action.kind, action.args);
+    const confirmed = await prisma.assistantAction.update({ where: { id: action.id }, data: { status: "confirmada", decidedAt: new Date(), result } });
+    return { action: toActionView(confirmed) };
+  } catch (error) {
+    if (!(error instanceof UserError)) console.error("[assistente] ação falhou:", error);
+    return { action: toActionView(action), error: error instanceof UserError ? error.message : "Não foi possível executar a ação." };
+  }
+}

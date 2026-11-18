@@ -1,27 +1,20 @@
-import { getCurrentUser } from "@/lib/auth";
 import { deleteConversation, getConversation } from "@/lib/assistant/store";
-import { unavailableResponse } from "@/lib/tenant";
+import { assistantRoute } from "@/lib/assistant/route";
 
-export const dynamic = "force-dynamic";
+type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unavailable = await unavailableResponse();
-  if (unavailable) return unavailable;
-  const user = await getCurrentUser();
-  if (!user) return Response.json({ error: "Faça login." }, { status: 401 });
-  const { id } = await params;
-  const conversation = await getConversation(user, id);
-  if (!conversation) return Response.json({ error: "Conversa não encontrada." }, { status: 404 });
-  return Response.json({ conversation });
+export async function GET(_request: Request, { params }: Params) {
+  return assistantRoute(async (user) => {
+    const conversation = await getConversation(user, (await params).id);
+    if (!conversation) return Response.json({ error: "Conversa não encontrada." }, { status: 404 });
+    return Response.json({ conversation });
+  });
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unavailable = await unavailableResponse();
-  if (unavailable) return unavailable;
-  const user = await getCurrentUser();
-  if (!user) return Response.json({ error: "Faça login." }, { status: 401 });
-  const { id } = await params;
-  const removed = await deleteConversation(user, id);
-  if (!removed) return Response.json({ error: "Conversa não encontrada." }, { status: 404 });
-  return Response.json({ ok: true });
+export async function DELETE(_request: Request, { params }: Params) {
+  return assistantRoute(async (user) => {
+    const removed = await deleteConversation(user, (await params).id);
+    if (!removed) return Response.json({ error: "Conversa não encontrada." }, { status: 404 });
+    return Response.json({ ok: true });
+  });
 }

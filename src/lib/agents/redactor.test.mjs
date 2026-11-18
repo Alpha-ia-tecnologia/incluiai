@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  DOCUMENT_PATTERNS, MARKER_LIST, createPseudonymizer, createRedactor, inWords, remainingIdentifiers, replacePatterns, restorableLength, withRedaction,
+  DOCUMENT_PATTERNS, MARKER_LIST, createPseudonymizer, hasStudentLabel, createRedactor, inWords, remainingIdentifiers, replacePatterns, restorableLength, withRedaction,
 } from "./redactor.ts";
 
 const SCHOOL = "EMEF Maria Firmina dos Reis";
@@ -76,6 +76,22 @@ test("conversa com o assistente: números estáveis, nome e sobrenome num marcad
     "[ESTUDANTE 2] e [ESTUDANTE 1], da [ESCOLA 1], com [FAMILIAR] e Nunes; [PESSOA] faltou.",
   );
   assert.equal(conversation.restore("[ESTUDANTE 2] e ESTUDANTE 1 na [ESCOLA 1]; [FAMILIAR] veio."), "Ana Clara Lima e Ravi na EMEF Maria Firmina dos Reis; um familiar veio.");
+  assert.equal(conversation.restore("ESTUDANTE3 leu"), "Ana Souza leu");
+});
+
+test("conversa com o assistente: o marcador que o modelo cita leva ao estudante", () => {
+  const conversation = createPseudonymizer({
+    map: { students: { s2: 1, s1: 2 }, schools: {} },
+    students: [{ id: "s1", name: "Ana Clara Lima" }, { id: "s2", name: "Ravi Almeida" }],
+    schools: [], family: [], professionals: [],
+  });
+  for (const text of ["[ESTUDANTE 2]", "ESTUDANTE 2", "estudante2", "o [ESTUDANTE 2] faltou"]) {
+    assert.ok(hasStudentLabel(text), text);
+    assert.equal(conversation.studentIdOf(text), "s1", text);
+  }
+  assert.equal(conversation.studentIdOf("[ESTUDANTE 9]"), undefined);
+  assert.equal(hasStudentLabel("Ana Clara"), false);
+  assert.equal(conversation.studentIdOf("Ana Clara"), undefined);
 });
 
 test("laudo: linhas de identificação, profissionais, registros, documentos e endereços saem; a resposta volta sem marcadores", () => {

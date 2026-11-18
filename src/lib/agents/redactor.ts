@@ -226,10 +226,15 @@ export function remainingIdentifiers(text: string, people: string[], schools: st
 
 export type PseudonymMap = { students: Record<string, number>; schools: Record<string, number> };
 
+const STUDENT_LABEL = String.raw`\[?\bESTUDANTE\s*(\d+)\b\]?`;
+
+export const hasStudentLabel = (text: string): boolean => new RegExp(STUDENT_LABEL, "i").test(text);
+
 export type Pseudonymizer = {
   map: PseudonymMap;
   changed: boolean;
   studentLabel: (studentId: string) => string;
+  studentIdOf: (text: string) => string | undefined;
   schoolLabel: (schoolId: string) => string;
   apply: (text: string) => string;
   restore: (text: string) => string;
@@ -249,6 +254,10 @@ export function createPseudonymizer(input: { map: PseudonymMap; students: Named[
   for (const school of input.schools) assign(map.schools, school.id);
   const studentLabel = (id: string) => `[ESTUDANTE ${map.students[id] ?? "?"}]`;
   const schoolLabel = (id: string) => `[ESCOLA ${map.schools[id] ?? "?"}]`;
+  const studentIdOf = (text: string) => {
+    const number = Number(text.match(new RegExp(STUDENT_LABEL, "i"))?.[1]);
+    return Object.entries(map.students).find(([, value]) => value === number)?.[0];
+  };
 
   const studentTerms = (student: Named): Term[] => {
     const tokens = nameTokens(student.name);
@@ -279,10 +288,10 @@ export function createPseudonymizer(input: { map: PseudonymMap; students: Named[
   }
   const schoolNames = new Map(input.schools.map((school) => [map.schools[school.id], school.name]));
   const restore = (text: string) => inWords(text
-    .replace(/\[?\bESTUDANTE\s+(\d+)\b\]?/gi, (match, n: string) => shown.get(Number(n)) ?? match)
+    .replace(new RegExp(STUDENT_LABEL, "gi"), (match, n: string) => shown.get(Number(n)) ?? match)
     .replace(/\[?\bESCOLA\s+(\d+)\b\]?/gi, (match, n: string) => schoolNames.get(Number(n)) ?? match));
 
-  return { map, changed, studentLabel, schoolLabel, apply, restore };
+  return { map, changed, studentLabel, studentIdOf, schoolLabel, apply, restore };
 }
 
 const STREAM_HOLD_BACK = 24;

@@ -1,19 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  TIP_POOLS, TOOL_FAMILY, TOOL_HINTS, WAIT_LABELS,
+  TIP_POOLS,
   artFor, chatCaption, deriveGarden, endingCaption, inlineCaption, longBudget, sunAngle,
 } from "./garden-scenes.ts";
-import { TOOL_LABELS } from "./labels.ts";
+import { TOOL_CATALOG } from "./catalog.ts";
 
 const step = (name, ok, extra = {}) => ({ id: `${name}-${Math.random()}`, name, label: name, ...(ok === undefined ? {} : { ok }), ...extra });
 const progress = (...items) => items.map(([agent, phase]) => ({ agent, phase }));
 
-test("toda ferramenta do assistente tem família, rótulo e (se não for longa) dica", () => {
-  for (const name of Object.keys(TOOL_LABELS)) {
-    assert.ok(TOOL_FAMILY[name], `família de ${name}`);
-    assert.ok(WAIT_LABELS[name], `rótulo de ${name}`);
-    if (!["propor_plano", "gerar_atividades"].includes(name)) assert.ok(TOOL_HINTS[name], `dica de ${name}`);
+const scenes = Object.values(TOOL_CATALOG).map((tool) => tool.scene);
+
+test("toda ferramenta do assistente que não é longa tem dica", () => {
+  for (const [name, { scene }] of Object.entries(TOOL_CATALOG)) {
+    if (!scene.long) assert.ok(scene.hint, `dica de ${name}`);
   }
 });
 
@@ -197,11 +197,11 @@ test("formulários: aviso de demora só no fim do tempo habitual", () => {
 
 test("textos cabem na faixa de 320 px (linha 1 até 44 caracteres; linha 2 até 52)", () => {
   const endings = ["pronto", "erro", "interrompida"].map((outcome) => endingCaption(outcome, 9));
-  const lines1 = [...Object.values(WAIT_LABELS), "Ainda pensando no seu pedido…", "As regras da plataforma montam as sugestões…", ...endings.map((item) => item.label)];
+  const lines1 = [...scenes.map((scene) => scene.wait), "Ainda pensando no seu pedido…", "As regras da plataforma montam as sugestões…", ...endings.map((item) => item.label)];
   for (const text of lines1) assert.ok(text.length <= 44, text);
   const images = deriveGarden([step("gerar_atividades", undefined, { progress: progress(["Ilustração", "queued"]) })], false);
   const plan = deriveGarden([step("propor_plano")], false);
   const timeLines = [0, 20, 60, 120, 180, 240].flatMap((bucket) => [chatCaption(images, 0, bucket, "popup", true).hint, chatCaption(plan, 0, bucket, "page", true).hint]);
-  const lines2 = [...Object.values(TOOL_HINTS), ...Object.values(TIP_POOLS).flat(), ...endings.map((item) => item.hint), ...timeLines];
+  const lines2 = [...scenes.flatMap((scene) => scene.hint ?? []), ...Object.values(TIP_POOLS).flat(), ...endings.map((item) => item.hint), ...timeLines];
   for (const text of lines2) assert.ok(text.length <= 52, text);
 });

@@ -56,7 +56,7 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
 
   useEffect(() => {
     if (!open || initial !== undefined) return;
-    fetch("/api/assistente/conversas?ultima=1")
+    fetch("/api/assistente/conversas")
       .then((response) => response.json())
       .then((data: { conversation?: ConversationDetail | null }) => setInitial(data.conversation ?? null))
       .catch(() => setInitial(null));

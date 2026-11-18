@@ -3,19 +3,15 @@
 import { redirect } from "next/navigation";
 import { z } from "zod/v4";
 import type { ActionResult } from "@/lib/action-result";
-import { assertStudentTeam } from "@/lib/auth";
 import { formField } from "@/lib/form-data";
-import { invalidateStudent } from "@/lib/invalidate";
 import { runAction, runFormAction } from "@/lib/server-action";
-import { createPlanDraft } from "@/lib/agents/generate";
+import { proposePlan } from "@/lib/plan-proposal";
 import { createStudentPlan, discardPlanProposal } from "@/lib/records";
 import { planDocumentsFromForm } from "@/lib/plan-documents";
 
 export async function generatePlanDraft(studentId: string): Promise<ActionResult> {
   return runAction(async (user) => {
-    await assertStudentTeam(user, studentId);
-    await createPlanDraft(studentId, user);
-    invalidateStudent(studentId);
+    await proposePlan(user, studentId);
     redirect(`/estudantes/${studentId}/ppi#proposta`);
   });
 }

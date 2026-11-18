@@ -84,6 +84,14 @@ export const CRITERION_MET: Record<string, string> = {
   nao: "Não atingiu",
 };
 
+export const OBJECTIVE_STATUSES = ["ativo", "alcancado", "em_revisao"] as const;
+
+export const OBJECTIVE_STATUS: Record<string, string> = {
+  ativo: "ativo",
+  alcancado: "alcançado",
+  em_revisao: "em revisão",
+};
+
 export const CONTEXTS: Record<string, string> = {
   sala_comum: "Sala comum",
   aee: "AEE",

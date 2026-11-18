@@ -9,7 +9,7 @@ import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
 import { AUDIT_ACTION, auditEntry, recordChange } from "./audit";
 import { invalidateStudent } from "./invalidate";
 import { UserError } from "./user-error";
-import { CRITERION_MET, PARTICIPATION } from "./scale";
+import { CRITERION_MET, OBJECTIVE_STATUS, PARTICIPATION } from "./scale";
 import { validBnccCode } from "./bncc";
 import { buildObjectiveDescription } from "./objective";
 import { homeActivityNote } from "./user-journey";
@@ -139,16 +139,14 @@ export async function saveIntersectorReport(user: SessionUser, studentId: string
   return report;
 }
 
-const OBJECTIVE_STATUS_TEXT: Record<string, string> = { ativo: "ativo", alcancado: "alcançado", em_revisao: "em revisão" };
-
 export async function setObjectiveStatus(user: SessionUser, studentId: string, objectiveId: string, status: string) {
   const prisma = await db();
   await assertStudentTeam(user, studentId);
-  if (!Object.hasOwn(OBJECTIVE_STATUS_TEXT, status)) throw new UserError("Situação inválida.");
+  if (!Object.hasOwn(OBJECTIVE_STATUS, status)) throw new UserError("Situação inválida.");
   const objective = await prisma.objective.findFirst({ where: { id: objectiveId, plan: { studentId } } });
   if (!objective) throw new UserError("Objetivo não encontrado para este estudante.", "not_found");
   await prisma.objective.update({ where: { id: objectiveId }, data: { status } });
-  await recordChange(user, studentId, AUDIT_ACTION.changed, `Objetivo: ${OBJECTIVE_STATUS_TEXT[status]}`);
+  await recordChange(user, studentId, AUDIT_ACTION.changed, `Objetivo: ${OBJECTIVE_STATUS[status]}`);
   if (status === "alcancado") {
     await prisma.timelineEvent.create({ data: { studentId, type: "conquista", title: "Objetivo alcançado", description: objective.description } });
   }

@@ -6,7 +6,7 @@ import { ADAPTIVE_THINKING, CLAUDE_MODEL, SERVER_FALLBACK, claudeClient } from "
 import { isAssistantEnabled } from "../agents/capabilities";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools } from "./tools";
-import { TOOL_LABELS } from "./labels";
+import { runningLabel } from "./catalog";
 import { loadPseudonymizer, parsePseudonyms } from "./privacy";
 import { restorableLength } from "../agents/redactor";
 import { decidedSinceLastTurn, historyLength, MAX_HISTORY_MESSAGES, toConversationView, toMessageView } from "./store";
@@ -125,7 +125,7 @@ export async function runAssistantTurn(input: {
           let sent = 0;
           for await (const event of stream) {
             if (event.type === "content_block_start" && event.content_block.type === "tool_use") {
-              track({ type: "tool_start", step: { id: event.content_block.id, name: event.content_block.name, label: TOOL_LABELS[event.content_block.name] ?? event.content_block.name } });
+              track({ type: "tool_start", step: { id: event.content_block.id, name: event.content_block.name, label: runningLabel(event.content_block.name) } });
             } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
               raw += event.delta.text;
               const cut = restorableLength(raw);
