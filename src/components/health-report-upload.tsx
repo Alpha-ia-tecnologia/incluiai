@@ -6,7 +6,7 @@ import { PendingButton } from "@/components/pending-button";
 import { Field, FormResult } from "@/components/form-kit";
 import { choiceCls, inputCls, BUTTON_CLS } from "@/components/form-styles";
 import type { ActionResult } from "@/lib/action-result";
-import { REPORT_UPLOAD } from "@/lib/health-report";
+import { REPORT_UPLOAD } from "@/lib/health-reports-core";
 import { megabytes } from "@/lib/uploads";
 
 // Acima do limite a requisição nem chega à ação.

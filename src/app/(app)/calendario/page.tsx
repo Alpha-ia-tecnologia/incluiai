@@ -12,8 +12,6 @@ import {
   type CalendarEvent, type CalendarTheme, type YMD,
 } from "@/lib/commemorative-dates";
 
-export const dynamic = "force-dynamic";
-
 const WEEKDAYS = [["Dom", "domingo"], ["Seg", "segunda-feira"], ["Ter", "terça-feira"], ["Qua", "quarta-feira"], ["Qui", "quinta-feira"], ["Sex", "sexta-feira"], ["Sáb", "sábado"]];
 
 function parseMonth(value: string | undefined, fallback: { year: number; month: number }) {

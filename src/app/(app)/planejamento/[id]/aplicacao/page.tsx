@@ -15,8 +15,6 @@ import { StackedBar } from "@/components/charts";
 import { ShareRing } from "@/components/viz/share-ring";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 const today = () => inputDate(new Date());
 
 export default async function ApplicationsPage({ params }: { params: Promise<{ id: string }> }) {

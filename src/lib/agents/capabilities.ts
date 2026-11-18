@@ -1,16 +1,12 @@
 import { studentConsent } from "../consent";
-
-function hasApiKey(name: string): boolean {
-  const value = process.env[name]?.trim();
-  return Boolean(value) && !value!.includes("...");
-}
+import { claudeSettings, deepseekSettings, openaiSettings } from "../env-config";
 
 export function aiProviders() {
   return {
-    claude: hasApiKey("ANTHROPIC_API_KEY"),
+    claude: Boolean(claudeSettings().apiKey),
     // A DeepSeek processa e guarda dados na China (LGPD): só entra com DEEPSEEK_ENABLED=1.
-    deepseek: hasApiKey("DEEPSEEK_API_KEY") && process.env.DEEPSEEK_ENABLED === "1",
-    openai: hasApiKey("OPENAI_API_KEY"),
+    deepseek: Boolean(deepseekSettings().apiKey) && deepseekSettings().enabled,
+    openai: Boolean(openaiSettings().apiKey),
   };
 }
 

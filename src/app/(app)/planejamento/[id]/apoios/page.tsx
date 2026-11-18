@@ -15,8 +15,6 @@ import { SupportCard } from "@/components/dua/supports/support-card";
 import { SupportForm, type ObjectiveOption, type ProfileOption } from "@/components/dua/supports/support-form";
 import { Assurances, HowToRead } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 type StudentOptions = { profileOptions: ProfileOption[]; objectives: ObjectiveOption[] };
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";

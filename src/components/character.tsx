@@ -1,14 +1,13 @@
 import Image from "next/image";
+import type { CharacterVariant } from "@/lib/characters";
 
-const CHARACTER_IMAGES = {
+const CHARACTER_IMAGES: Record<CharacterVariant, string> = {
   planning: "/illustrations/characters/planning-azul.png",
   care: "/illustrations/characters/care-azul.png",
   learning: "/illustrations/characters/learning-azul.png",
   ideas: "/illustrations/characters/ideas-azul.png",
   resources: "/illustrations/characters/resources-azul.png",
-} as const;
-
-export type CharacterVariant = keyof typeof CHARACTER_IMAGES;
+};
 
 type CharacterProps = {
   variant: CharacterVariant;

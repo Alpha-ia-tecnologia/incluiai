@@ -7,8 +7,6 @@ import { taskContent } from "@/lib/adapted-tasks";
 import { PrintButton } from "@/components/print-button";
 import { AdaptedView } from "@/components/adapted/adapted-view";
 
-export const dynamic = "force-dynamic";
-
 export default async function PrintLevelPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const prisma = await db();
   const { id, taskId } = await params;

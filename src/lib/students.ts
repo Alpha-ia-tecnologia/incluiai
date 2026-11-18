@@ -7,8 +7,9 @@ import { invalidateStudent } from "./invalidate";
 import { canAccessSchool } from "./policy";
 import { can } from "./roles";
 import { UserError } from "./user-error";
-import { normalize, readStudentRecord, type StudentFields, type StudentRecord } from "./student-record";
-import { readStudentSheet, studentKey } from "./student-import";
+import { readStudentRecord, type StudentFields, type StudentRecord } from "./student-record";
+import { readStudentSheet } from "./student-import";
+import { nameBirthKey, normalizeName } from "./student-identity";
 
 const ORIGIN = {
   cadastro: { title: "Cadastro no prontuário municipal", description: "Estudante incluído na plataforma.", detail: "Cadastro do estudante" },
@@ -65,13 +66,13 @@ export async function checkStudentSheet(user: SessionUser, schoolId: string, tex
   const { rows, problem } = readStudentSheet(text);
   if (problem) throw new UserError(problem);
   const current = await prisma.student.findMany({ where: { schoolId: school.id }, select: { name: true, birthDate: true } });
-  const known = new Set(current.map((student) => studentKey(student.name, student.birthDate.toISOString().slice(0, 10))));
-  const names = new Set(current.map((student) => normalize(student.name)));
+  const known = new Set(current.map((student) => nameBirthKey(student.name, student.birthDate.toISOString().slice(0, 10))));
+  const names = new Set(current.map((student) => normalizeName(student.name)));
   const sheet: SheetCheck = { school, ready: [], existing: [], invalid: [] };
   for (const row of rows) {
     if (!row.values) sheet.invalid.push({ line: row.line, name: row.name, errors: row.errors });
-    else if (known.has(studentKey(row.values.name, row.values.birthDate))) sheet.existing.push({ line: row.line, name: row.values.name });
-    else sheet.ready.push({ line: row.line, record: row.values, similar: names.has(normalize(row.values.name)) });
+    else if (known.has(nameBirthKey(row.values.name, row.values.birthDate))) sheet.existing.push({ line: row.line, name: row.values.name });
+    else sheet.ready.push({ line: row.line, record: row.values, similar: names.has(normalizeName(row.values.name)) });
   }
   return sheet;
 }

@@ -10,8 +10,6 @@ import { AccountForm } from "@/components/accounts/account-form";
 import { linkCls } from "@/components/form-styles";
 import { Steps } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 export default async function NewAccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

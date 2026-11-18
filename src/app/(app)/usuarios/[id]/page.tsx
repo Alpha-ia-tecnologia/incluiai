@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, History, RotateCcw, ShieldCheck, UserCheck, UserX } from "lucide-react";
-import { db } from "@/lib/prisma";
 import { getCurrentUser, twoFactorRequired } from "@/lib/auth";
 import { linkableStudents, managedAccount, schoolsFor } from "@/lib/accounts";
+import { accountEvents } from "@/lib/account-security";
 import { resetAccountPassword, resetAccountTwoFactor, setAccountActive, updateAccount } from "@/actions/users";
 import { assignableRoles, isAccountManager, roleLabel } from "@/lib/roles";
 import { formatDate } from "@/lib/format";
@@ -14,12 +14,9 @@ import { ActionForm } from "@/components/action-form";
 import { BUTTON_CLS, linkCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 const when = (date: Date) => date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
-  const prisma = await db();
   const [{ id }, user] = await Promise.all([params, getCurrentUser()]);
   if (!user) redirect("/login");
   if (!isAccountManager(user.role)) redirect("/");
@@ -28,7 +25,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   const [schools, students, events] = await Promise.all([
     schoolsFor(user),
     linkableStudents(user),
-    prisma.accountEvent.findMany({ where: { userId: id }, orderBy: { createdAt: "desc" }, take: 50 }),
+    accountEvents(id, 50),
   ]);
   const active = !account.deactivatedAt;
   const otherSchoolLinks = account.links.filter((link) => user.schoolId && link.schoolId !== user.schoolId);

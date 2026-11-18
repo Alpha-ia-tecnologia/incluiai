@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import type { AgentAttachment, AgentModel } from "./types";
-import { ANSWER_FORMATS, ADAPT_OPTIONS, normalizeAdapted, type AdaptedContent, type LevelKey, type TaskKind } from "../task-adaptation";
+import { ANSWER_FORMATS, ADAPT_OPTIONS, normalizeAdapted, type AdaptedContent, type LevelKey, type TaskKind } from "../adapted-tasks-core";
 import { SAFEGUARDS } from "../pedagogy-rules";
 import { ANONYMIZED_DATA } from "./prompts";
 

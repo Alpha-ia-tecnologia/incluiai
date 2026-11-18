@@ -11,8 +11,6 @@ import { DataBoard, DataCard, MiniColumns, StatTile, StatusPill, SupportChart } 
 import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, TREND_TONE } from "@/components/viz/student-viz";
 import { DiaryForm } from "@/components/diary-form";
 
-export const dynamic = "force-dynamic";
-
 const PARTICIPATION_TONES = { total: "green", parcial: "amber", recusou: "coral" } as const;
 const CRITERION_TONES = { sim: "green", parcial: "amber", nao: "coral" } as const;
 

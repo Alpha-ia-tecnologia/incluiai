@@ -12,8 +12,6 @@ export type Pill = {
   norm?: string;
 };
 
-export const PILLS_VERSION = "pilulas-2026-10-v1";
-
 export const PILLS: Pill[] = [
   {
     slug: "estudo-de-caso",

@@ -14,6 +14,13 @@ export const ANSWER_FORMATS: AnswerFormat[] = ["escrever", "marcar", "ligar", "c
 export const ANSWER_FORMAT_LABEL: Record<AnswerFormat, string> = {
   escrever: "Escrever", marcar: "Marcar", ligar: "Ligar", completar: "Completar", desenhar: "Desenhar", oral: "Responder falando",
 };
+type AnswerSpace = "alternativas" | "linhas" | "desenho" | null;
+export const ANSWER_LINES = 2;
+export const answerSpaceOf = (item: Pick<AdaptedItem, "options" | "answerFormat">): AnswerSpace =>
+  item.options.length ? "alternativas"
+    : item.answerFormat === "escrever" || item.answerFormat === "completar" ? "linhas"
+      : item.answerFormat === "desenhar" ? "desenho" : null;
+
 export const LEVEL_LABEL: Record<LevelKey, string> = { mais_apoio: "Com mais apoio", padrao: "Padrão", desafio: "Com desafio" };
 
 export const ADAPT_OPTIONS = [
@@ -43,10 +50,6 @@ const COMMAND_WORDS = /\b(leia|ler|observe|observar|escreva|escrever|responda|re
 export function answerFormatOf(prompt: string): AnswerFormat {
   const text = plain(prompt);
   return COMMANDS.find(([pattern]) => pattern.test(text))?.[1] ?? "escrever";
-}
-
-export function commandWords(prompt: string): string[] {
-  return [...new Set((prompt.match(COMMAND_WORDS) ?? []).map((word) => word.toLowerCase()))];
 }
 
 export const oneOrderPerLine = (prompt: string) => prompt.split(/(?<=[.!?;])\s+/).map((part) => part.trim()).filter(Boolean).join("\n");

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Character, type CharacterVariant } from "./character";
+import type { CharacterVariant } from "@/lib/characters";
+import { Character } from "./character";
 
 export function StatusPage({ character, eyebrow, title, children, actions }: {
   character: CharacterVariant;

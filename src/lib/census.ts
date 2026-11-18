@@ -5,10 +5,12 @@ import { AUDIT_ACTION, auditEntry, recordChange } from "./audit";
 import type { SessionUser } from "./auth";
 import { can, roleScope } from "./roles";
 import { parseJson } from "./format";
-import { digitsOnly, identityKeys, parseEducacensoFile, specialEdPersons, type CensusPerson, type ParseStats } from "./educacenso";
-import { buildSyncPlan, censusCounts, cleanMonitorConfig, regularOnlyIds, schoolFundebNote, sumCounts, toSnapshot, type AeeEstimate, type CensusCounts, type CoverageRow, type MonitorConfig, type ReviewDecision, type SchoolInfo, type SyncPlan } from "./census-rules";
-import { aeeEstimate, isoDay, networkSnapshots, runVerification, saveFndeCount, saveMonitorConfig, schoolCoverage, schoolStudents } from "./census-core";
-import { censusReference, specialEducationAnswer, type CensusReferenceRecord } from "./federal-guidance";
+import { parseEducacensoFile, specialEdPersons, type CensusPerson, type ParseStats } from "./educacenso";
+import { digitsOnly, identityKeys } from "./student-identity";
+import { parseCaseStudy } from "./case-study";
+import { buildSyncPlan, censusCounts, cleanMonitorConfig, regularOnlyIds, schoolFundebNote, sumCounts, toSnapshot, type AeeEstimate, type CensusCounts, type CoverageRow, type MonitorConfig, type ReviewDecision, type SchoolInfo, type SyncPlan } from "./census-core";
+import { aeeEstimate, isoDay, networkSnapshots, runVerification, saveFndeCount, saveMonitorConfig, schoolCoverage, schoolStudents } from "./census-monitor";
+import { censusReference, type CensusReferenceRecord } from "./federal-guidance";
 import { UserError } from "./user-error";
 import { invalidateStudent } from "./invalidate";
 
@@ -117,6 +119,14 @@ export const censusMetaOf = (value: string | null) => parseJson<CensusMeta | nul
 
 export const maskCpf = (cpf: string) => (cpf.length === 11 ? `***.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-**` : cpf);
 
+export type ImportSummary = { created: number; updated: number; unchanged: number; ignored: number; missing: number };
+
+export async function schoolImports(schoolId: string) {
+  const prisma = await db();
+  const rows = await prisma.censusImport.findMany({ where: { schoolId }, orderBy: { createdAt: "desc" }, take: 5, select: { id: true, status: true, createdAt: true, createdByName: true, result: true } });
+  return rows.map(({ result, ...row }) => ({ ...row, summary: parseJson<ImportSummary | null>(result, null) }));
+}
+
 export async function applyImport(user: SessionUser, importId: string): Promise<{ schoolId: string; created: number; updated: number }> {
   const prisma = await db();
   const loaded = await loadImport(user, importId);
@@ -143,13 +153,12 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
         });
         created += 1;
       } else if (item.studentId) {
-        const data: { census: string; name?: string; birthDate?: Date; inepId?: string; cpf?: string; hasAEE?: boolean } = { census: meta(person) };
+        const data: { census: string; name?: string; birthDate?: Date; inepId?: string; cpf?: string } = { census: meta(person) };
         for (const diff of item.diffs) {
           if (diff.field === "name") data.name = diff.to;
           else if (diff.field === "birthDate") data.birthDate = new Date(`${diff.to}T12:00:00`);
           else if (diff.field === "inepId") data.inepId = diff.to;
           else if (diff.field === "cpf") data.cpf = diff.to;
-          else if (diff.field === "hasAEE") data.hasAEE = true;
         }
         await tx.student.update({ where: { id: item.studentId }, data });
         if (item.diffs.length) {
@@ -163,7 +172,7 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
     await tx.censusSnapshot.upsert({ where: { schoolId: censusImport.schoolId }, create: { schoolId: censusImport.schoolId, ...snapshot }, update: snapshot });
     await tx.censusImport.update({
       where: { id: importId },
-      data: { status: "aplicada", appliedAt: now, persons: "[]", regularOnly: "[]", result: JSON.stringify({ created, updated, unchanged: plan.totals.unchanged, ignored: plan.totals.ignored, missing: plan.totals.missing }) },
+      data: { status: "aplicada", appliedAt: now, persons: "[]", regularOnly: "[]", result: JSON.stringify({ created, updated, unchanged: plan.totals.unchanged, ignored: plan.totals.ignored, missing: plan.totals.missing } satisfies ImportSummary) },
     });
   }, { timeout: 30_000 });
   return { schoolId: censusImport.schoolId, created, updated };
@@ -219,14 +228,9 @@ export type SchoolOverview = {
   coverage: { confirmed: number; pending: number; percent: number | null; rows: CoverageRow[] } | null;
   platformAee: number;
   attended: number;
-  referenced: number; // com AEE e registro de referência (orientação do INEP)
+  referenced: number;
   canOpen: boolean;
 };
-
-// Orientação do INEP: para declarar o estudante no Censo, basta um registro de
-// referência; o estudo de caso concluído ou o PAEE já bastam. Laudo não entra.
-const STUDY_BACKS = { status: "concluido", NOT: [{ content: { contains: '"publicoAlvo":"Em avaliação' } }, { content: { contains: '"publicoAlvo":"Não' } }] };
-const REFERENCED = { OR: [{ caseStudy: { is: STUDY_BACKS } }, { plans: { some: { status: "ativo" } } }] };
 
 export type ReferenceRow = { id: string; name: string; backed: boolean; records: CensusReferenceRecord[]; pending: string | null };
 export async function schoolReferences(schoolId: string): Promise<ReferenceRow[]> {
@@ -238,10 +242,7 @@ export async function schoolReferences(schoolId: string): Promise<ReferenceRow[]
   });
   return students.map((student) => ({
     id: student.id, name: student.name,
-    ...censusReference({
-      caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: student.plans.length > 0,
-      specialEducation: specialEducationAnswer(parseJson<Record<string, string>>(student.caseStudy?.content, {}).publicoAlvo),
-    }),
+    ...censusReference(student.caseStudy && { status: student.caseStudy.status, content: parseCaseStudy(student.caseStudy.content) }, student.plans.length > 0),
   }));
 }
 
@@ -259,12 +260,12 @@ export async function censusOverview(user: SessionUser) {
   const rows: SchoolOverview[] = [];
   for (const school of schools) {
     const result = school.censusSnapshot ? await schoolCoverage(school.id, network) : null;
-    const where = { schoolId: school.id, status: "ativo" };
-    const [platformAee, attended, referenced] = await Promise.all([
-      prisma.student.count({ where }),
-      prisma.student.count({ where: { ...where, aeeSessions: { some: { status: "realizado", date: { gte: since } } } } }),
-      prisma.student.count({ where: { ...where, ...REFERENCED } }),
+    const [references, attended] = await Promise.all([
+      schoolReferences(school.id),
+      prisma.student.count({ where: { schoolId: school.id, status: "ativo", aeeSessions: { some: { status: "realizado", date: { gte: since } } } } }),
     ]);
+    const platformAee = references.length;
+    const referenced = references.filter((row) => row.backed).length;
     rows.push({
       id: school.id, name: school.name, inepCode: school.inepCode,
       importedAt: school.censusSnapshot?.importedAt ?? null, importedByName: access.network ? null : school.censusSnapshot?.importedByName ?? null,

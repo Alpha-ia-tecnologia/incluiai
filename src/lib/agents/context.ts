@@ -5,7 +5,7 @@ import { BARRIERS, CHANNELS, DIMENSIONS, SENSORY_LABELS, SENSORY_VALUES, STAGES,
 import { CASE_STUDY_FIELDS, caseFieldLeavesPlatform, parseCaseStudy } from "../case-study";
 import { splitItems } from "../form-options";
 import { strategiesThatWorked } from "../insights";
-import { guidanceForPlan, parseAccepted } from "../health-report";
+import { guidanceForPlan, parseAccepted } from "../health-reports-core";
 
 const SUPPORT_FIELDS: [keyof FunctionalProfile, string][] = [
   ["readingSupport", "Leitura"], ["writingSupport", "Escrita"], ["mathSupport", "Matemática"],

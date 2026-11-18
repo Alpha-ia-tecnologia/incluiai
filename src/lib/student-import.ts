@@ -1,5 +1,6 @@
 import { UPLOAD_LIMIT_BYTES } from "./uploads.ts";
 import { dateOf, normalize, readStudentRecord, type StudentFields, type StudentRecord } from "./student-record.ts";
+import { nameBirthKey } from "./student-identity.ts";
 
 export const IMPORT_MAX_ROWS = 500;
 
@@ -93,7 +94,7 @@ export function readStudentSheet(text: string, today: Date = new Date()): { rows
     if (!YES.has(support) && !NO.has(support)) errors.push(`profissional de apoio: use sim ou não ("${cell("supportProfessional")}")`);
     const birthDate = dateOf(cell("birthDate"));
     if (name && birthDate) {
-      const key = studentKey(name, birthDate);
+      const key = nameBirthKey(name, birthDate);
       const first = seen.get(key);
       if (first) errors.push(`repetido na planilha (linha ${first})`);
       else seen.set(key, line);
@@ -102,8 +103,6 @@ export function readStudentSheet(text: string, today: Date = new Date()): { rows
   });
   return { rows, problem: null };
 }
-
-export const studentKey = (name: string, birthDate: string) => `${normalize(name)}|${birthDate}`;
 
 // Ponto e vírgula e BOM, como o Excel em português abre.
 export const IMPORT_TEMPLATE = "﻿" + [

@@ -12,8 +12,6 @@ import { PendingButton } from "@/components/pending-button";
 import { BUTTON_CLS, inputCls, labelCls, linkCls } from "@/components/form-styles";
 import { MunicipalityEditForm, RetryProvisioningForm } from "@/components/plataforma/municipality-edit";
 
-export const dynamic = "force-dynamic";
-
 const dateTime = (date: Date) => date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
 
 export default async function MunicipalityPage({ params }: { params: Promise<{ slug: string }> }) {

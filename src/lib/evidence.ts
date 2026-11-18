@@ -1,6 +1,6 @@
 // Exigências do Decreto nº 12.686/2025 (com a redação do 12.773/2025), da Portaria
 // MEC nº 421/2026 e da orientação do INEP para o Censo Escolar. Não é parecer jurídico.
-import { AEE_TEACHER, REGULAR_TEACHER, censusReference, specialEducationAnswer } from "./federal-guidance.ts";
+import { AEE_TEACHER, REGULAR_TEACHER, censusReference } from "./federal-guidance.ts";
 import { censusDifferences, missingPlanItems, type CensusDeclared, type PlanDocuments } from "./plan-documents.ts";
 
 export type EvidenceStatus = "ok" | "conferir" | "pendente" | "info";
@@ -133,7 +133,7 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
 
   // Orientação do INEP: para declarar o estudante no Censo, basta um registro de
   // referência (estudo de caso ou PAEE já bastam). Não é obrigatório.
-  const reference = censusReference({ caseStudyConcluded: concluded, hasActivePlan: Boolean(plan), specialEducation: specialEducationAnswer(content.publicoAlvo) });
+  const reference = censusReference(caseStudy, Boolean(plan));
   // O Censo declara o que o PEI registra: atendimentos do AEE (registro 60) e recursos (registro 30).
   const census = input.census ?? null;
   const differences = plan ? censusDifferences(plan, census) : [];

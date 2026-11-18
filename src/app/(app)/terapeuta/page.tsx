@@ -22,8 +22,6 @@ import { DataBoard, MiniColumns, StatTile, StatusPill } from "@/components/data-
 import { monthlyCounts } from "@/lib/series";
 import { Timeline } from "@/components/viz/timeline";
 
-export const dynamic = "force-dynamic";
-
 
 export default async function TherapistPage({ searchParams }: { searchParams: Promise<{ estudante?: string | string[] }> }) {
   const prisma = await db();

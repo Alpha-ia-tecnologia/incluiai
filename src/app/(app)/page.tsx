@@ -19,8 +19,6 @@ import { DotStrip, MiniColumns, Sparkline, StatTile, StatusPill, TONE_COLOR, typ
 import { CALENDAR_THEMES, MONTH_SHORT, monthParam, relativeLabel, todayInBrazil, upcomingEvents } from "@/lib/commemorative-dates";
 import { ArrowRight, BookOpen, CalendarDays, ClipboardList, Plus, School, Users } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
 export default async function SchoolDashboard() {
   const prisma = await db();
   const user = await getCurrentUser();

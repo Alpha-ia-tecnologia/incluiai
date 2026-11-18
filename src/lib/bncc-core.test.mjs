@@ -1,9 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { BNCC_CODE, efYears, inScope, normalizeCode, scopeFor, searchSkills, stems, suggestSkills } from "./bncc-core.ts";
+import { efYears, inScope, normalizeCode, scopeFor, searchSkills, stems, suggestSkills } from "./bncc-core.ts";
 
 const BNCC = JSON.parse(readFileSync(new URL("../../prisma/data/bncc.json", import.meta.url), "utf8"));
+const BNCC_CODE = /^(EI0[1-3][A-Z]{2}\d{2}|EF\d{2}[A-Z]{2}\d{2}|EM13[A-Z]{2,3}\d{2,3})$/;
 const today = new Date("2026-10-22T12:00:00");
 
 test("a base: 1.580 códigos únicos e válidos, nas três etapas", () => {

@@ -2,8 +2,6 @@ import type { FunctionalProfile } from "@prisma/client";
 import { parseJson } from "./format";
 import { PERMANENT_RULE_ID, usesAac } from "./pedagogy-rules";
 
-export const RULES_VERSION = "1.0.0";
-
 export interface AdaptationRule {
   id: string;
   when: string;

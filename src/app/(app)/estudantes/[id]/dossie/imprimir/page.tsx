@@ -8,8 +8,6 @@ import { PrintButton } from "@/components/print-button";
 import { EvidenceList } from "@/components/dossier/evidence-list";
 import { FEDERAL_SOURCE_LINE } from "@/lib/federal-guidance";
 
-export const dynamic = "force-dynamic";
-
 export default async function PrintDossierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { user } = await requireStudentPage(id, "Impressão do dossiê de evidências");

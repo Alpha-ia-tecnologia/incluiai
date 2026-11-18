@@ -11,8 +11,6 @@ import { OpinionEditor } from "@/components/reports/report-forms";
 import { BUTTON_CLS, linkCls } from "@/components/form-styles";
 import { ActionForm } from "@/components/action-form";
 
-export const dynamic = "force-dynamic";
-
 export default async function ReportPage({ params }: { params: Promise<{ id: string; reportId: string }> }) {
   const prisma = await db();
   const { id, reportId } = await params;

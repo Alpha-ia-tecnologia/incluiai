@@ -12,7 +12,7 @@ import type { RedactionScope } from "./agents/names-in-scope";
 import { profileText } from "./agents/context";
 import { adaptTaskWithAI, levelsWithAI, readTaskFile } from "./agents/task-adapter";
 import type { AgentAttachment } from "./agents/types";
-import { adaptByRules, isAdaptOption, levelsByRules, normalizeAdapted, type AdaptedContent, type LevelKey, type TaskKind } from "./task-adaptation";
+import { adaptByRules, isAdaptOption, levelsByRules, normalizeAdapted, type AdaptedContent, type LevelKey, type TaskKind } from "./adapted-tasks-core";
 import { loadPlanningFor, contentOf, latestVersion } from "./dua/shared";
 
 export type TaskScope = { studentId: string } | { planningId: string };

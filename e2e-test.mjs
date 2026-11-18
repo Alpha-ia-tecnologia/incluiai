@@ -1457,7 +1457,7 @@ if (!ONLY_WAIT) {
     check("censo: prévia do arquivo com a edição do leiaute", body.includes("Prévia do Censo: EMEF MARIA FIRMINA DOS REIS") && body.includes("leiaute 2025"), body.slice(0, 200));
     check("censo: a prévia diz o que a dependência da escola muda no Fundeb", body.includes("Escola municipal: o AEE oferecido aqui conta para a rede municipal"));
     const preview = await page.evaluate(() => document.body.textContent);
-    check("censo: a prévia aponta AEE sem tipo de atendimento e horário coincidente", preview.includes("sem nenhum tipo de atendimento marcado") && preview.includes("O horário do AEE coincide com o da classe comum"));
+    check("censo: a prévia aponta AEE sem tipo de atendimento e horário coincidente", preview.includes("Vínculo no AEE sem tipo de atendimento") && preview.includes("Horário do AEE coincide com o da classe comum"));
     check("censo: Dante conciliado pelo nome e nascimento (ou pelo ID INEP já gravado)", /Dante Oliveira[\s\S]*(ID INEP: de vazio para 210000000001|Sem mudança)/.test(body) || body.includes("Sem mudança no cadastro"));
     check("censo: a aluna de outra escola da rede pede revisão", body.includes("LIVIA SANTOS") && body.includes("outra escola da rede"));
     check("censo: aplicar fica bloqueado com revisão pendente", await page.evaluate(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Aplicar e guardar"))?.disabled === true));

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { PLATFORM_HEADER, TENANT_HEADER, normalizeDomain, parseHost, requestHost, routeRequest, STATUS_PATH, type HostArea } from "@/lib/tenancy-core";
+import { PLATFORM_HEADER, TENANT_HEADER, parseHost, requestHost, routeRequest, STATUS_PATH, type HostArea } from "@/lib/tenancy-core";
+import { platformDomain } from "@/lib/env-config";
 import { findMunicipality } from "@/lib/prisma";
 
 // Navegação de página (documento ou payload RSC do roteador); fetch de API, imagens e ações seguem para a rota.
@@ -17,7 +18,7 @@ function publicUrl(request: NextRequest, area: HostArea, path: string): URL {
 }
 
 export async function proxy(request: NextRequest) {
-  const domain = normalizeDomain(process.env.PLATFORM_DOMAIN);
+  const domain = platformDomain();
   const headers = new Headers(request.headers);
   headers.delete(TENANT_HEADER);
   headers.delete(PLATFORM_HEADER);

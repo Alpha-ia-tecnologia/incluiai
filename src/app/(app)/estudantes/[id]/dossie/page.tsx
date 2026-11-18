@@ -11,8 +11,6 @@ import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, HowToRead } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";
 
-export const dynamic = "force-dynamic";
-
 export default async function DossierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { can } = await requireStudentPage(id, "Dossiê de evidências");

@@ -1,8 +1,7 @@
 import "server-only";
-import { headers } from "next/headers";
 import QRCode from "qrcode";
-import { db, platformDomain } from "./prisma";
-import { requestHost } from "./tenancy-core";
+import { db } from "./prisma";
+import { publicAddress } from "./network";
 import type { SessionUser } from "./auth";
 import { AUDIT_ACTION, recordChange } from "./audit";
 import { invalidateStudent } from "./invalidate";
@@ -18,17 +17,6 @@ export const PENDING_CARD_COOKIE = "carteirinha_pendente";
 export const cardPath = (token: string) => `/c/${token}`;
 
 export const canViewCard = (user: SessionUser, student: { id: string; schoolId: string }): boolean => isFamilyOf(user, student.id) || canWorkWithStudent(user, student);
-
-// Endereço público da plataforma, para o QR: APP_URL em produção; sem ele, o do
-// pedido. Com vários municípios, sempre o do pedido (o endereço do município).
-async function publicBaseUrl(): Promise<string> {
-  const configured = platformDomain() ? null : process.env.APP_URL?.trim().replace(/\/+$/, "");
-  if (configured) return configured;
-  const list = await headers();
-  const host = requestHost((name) => list.get(name)) ?? "localhost:3000";
-  const local = /^(localhost|127\.|\[::1\])/.test(host);
-  return `${list.get("x-forwarded-proto") ?? (local ? "http" : "https")}://${host}`;
-}
 
 export type CardView = {
   studentId: string;
@@ -70,7 +58,7 @@ export async function loadCardView(studentId: string): Promise<CardView | null> 
     })
     : null;
   const parts = student.name.trim().split(/\s+/);
-  const qrSvg = await QRCode.toString(`${await publicBaseUrl()}${cardPath(card.token)}`, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
+  const qrSvg = await QRCode.toString(`${await publicAddress()}${cardPath(card.token)}`, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
   return {
     studentId: student.id,
     name: student.name,
@@ -97,6 +85,12 @@ export async function loadCardView(studentId: string): Promise<CardView | null> 
     },
     guardian: { name: student.guardianName, phone: student.guardianPhone ?? "" },
   };
+}
+
+export async function syncCardWithConsent(studentId: string, authorized: boolean): Promise<void> {
+  const prisma = await db();
+  if (authorized) await prisma.studentCard.upsert({ where: { studentId }, create: { studentId, token: newCardToken() }, update: {} });
+  else await prisma.studentCard.deleteMany({ where: { studentId } });
 }
 
 async function cardStudent(studentId: string) {

@@ -5,7 +5,6 @@
 // O widget vem do endereço oficial: o avatar roda numa página HTML (unity/index.html)
 // que só o servidor do governo entrega como página (o jsDelivr a entrega como texto).
 export const VLIBRAS_ROOT = "https://vlibras.gov.br/app";
-export const VLIBRAS_VERSION = "7.12.2";
 
 const TRANSLATOR_HOSTS = new Set(["traducao2.vlibras.gov.br", "traducao2-dth.vlibras.gov.br"]);
 const READS = new Set(["GET", "HEAD", "OPTIONS"]);

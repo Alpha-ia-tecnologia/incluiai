@@ -1,7 +1,6 @@
 export type BnccSkill = { code: string; stage: "EI" | "EF" | "EM"; component: string; years: string; description: string };
 export type BnccScope = { stage: "EI" | "EF" | "EM" | null; year: number | null; eiGroup: "01" | "02" | "03" | null };
 
-export const BNCC_CODE = /^(EI0[1-3][A-Z]{2}\d{2}|EF\d{2}[A-Z]{2}\d{2}|EM13[A-Z]{2,3}\d{2,3})$/;
 export const normalizeCode = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 export function efYears(label: string): number[] {

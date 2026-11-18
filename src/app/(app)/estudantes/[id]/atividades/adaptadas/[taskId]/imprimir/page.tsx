@@ -4,12 +4,10 @@ import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { taskContent } from "@/lib/adapted-tasks";
-import { printSettings } from "@/lib/task-adaptation";
+import { printSettings } from "@/lib/adapted-tasks-core";
 import { parseJson } from "@/lib/format";
 import { PrintButton } from "@/components/print-button";
 import { AdaptedView } from "@/components/adapted/adapted-view";
-
-export const dynamic = "force-dynamic";
 
 export default async function PrintAdaptedTaskPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const prisma = await db();

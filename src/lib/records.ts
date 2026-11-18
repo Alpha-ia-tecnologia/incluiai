@@ -8,6 +8,7 @@ import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study"
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
 import { AUDIT_ACTION, auditEntry, recordChange } from "./audit";
 import { invalidateStudent } from "./invalidate";
+import { studentConsent } from "./consent";
 import { UserError } from "./user-error";
 import { CRITERION_MET, OBJECTIVE_STATUS, PARTICIPATION } from "./scale";
 import { validBnccCode } from "./bncc";
@@ -125,8 +126,7 @@ export async function saveIntersectorReport(user: SessionUser, studentId: string
   if (!isTherapistOf(user, studentId)) {
     throw new UserError("Só o terapeuta vinculado ao estudante pode enviar orientações.", "forbidden");
   }
-  const consent = await prisma.consent.findUnique({ where: { studentId }, select: { therapistLink: true } });
-  if (!consent?.therapistLink) throw new UserError("A família ainda não autorizou a conexão com o terapeuta.", "forbidden");
+  if (!(await studentConsent(studentId)).therapistLink) throw new UserError("A família ainda não autorizou a conexão com o terapeuta.", "forbidden");
   const report = await prisma.intersectorReport.create({
     data: { studentId, authorName: user.name, ...input, positioning: input.positioning?.trim() || null },
   });

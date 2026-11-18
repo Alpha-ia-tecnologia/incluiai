@@ -6,8 +6,6 @@ import { roleLabel } from "@/lib/roles";
 import { logout } from "@/actions/auth";
 import { NavLink } from "@/components/nav-link";
 
-export const dynamic = "force-dynamic";
-
 export default async function PlatformLayout({ children }: { children: ReactNode }) {
   const user = await requirePlatformUser();
   return (

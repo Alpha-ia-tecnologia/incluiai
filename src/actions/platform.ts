@@ -6,6 +6,7 @@ import { requirePlatformUser, type SessionUser } from "@/lib/auth";
 import { forgetMunicipality, platformDb } from "@/lib/prisma";
 import { provisionMunicipality, recordMunicipalityEvent, type Actor } from "@/lib/provisioning";
 import { addressOf } from "@/lib/tenant";
+import { municipalityDatabaseTemplate } from "@/lib/env-config";
 import { databaseNameFor, defaultNetworkName, municipalityProblem, templateProblem, type MunicipalityInput } from "@/lib/tenancy-core";
 import { readLogo, type Logo } from "@/lib/branding/logo";
 import { suggestBrandColors } from "@/lib/branding/colors";
@@ -63,7 +64,7 @@ export async function suggestColors(formData: FormData): Promise<SuggestResult> 
 export async function createMunicipality(_previous: CreateState, formData: FormData): Promise<CreateState> {
   const user = await requirePlatformUser();
   const values = readInput(formData);
-  const problem = municipalityProblem(values, true) ?? templateProblem(process.env.MUNICIPIO_DATABASE_URL);
+  const problem = municipalityProblem(values, true) ?? templateProblem(municipalityDatabaseTemplate());
   if (problem) return { error: problem, values };
   const logo = await logoFrom(formData);
   if (logo && "problem" in logo) return { error: logo.problem, values };

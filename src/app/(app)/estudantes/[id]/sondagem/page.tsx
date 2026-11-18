@@ -13,8 +13,6 @@ import { BnccTag } from "@/components/bncc-tag";
 import { AreaComparison } from "@/components/assessment/area-comparison";
 import { linkCls, BUTTON_CLS } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 export default async function AssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

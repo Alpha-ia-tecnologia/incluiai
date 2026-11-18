@@ -9,8 +9,6 @@ import { PILLS, readingMinutes } from "@/lib/learning-pills";
 import { tutorialsFor } from "@/lib/tutorials";
 import { TutorialCard } from "@/components/tutorial-card";
 
-export const dynamic = "force-dynamic";
-
 const teachingSteps = [
   { title: "Fazer o estudo de caso", text: "Abra Estudantes, escolha um nome e entre em Estudo de caso. Registre o que a família, a escola e o próprio estudante contam, observe-o nos espaços da escola e conclua com a síntese e os apoios necessários. Você pode salvar e continuar depois.", href: "/estudantes", action: "Escolher estudante" },
   { title: "Definir o que ensinar", text: "Em Plano de ensino, crie o plano e adicione um objetivo: uma aprendizagem que você quer acompanhar. Descreva também como perceber que ela foi alcançada.", href: "/estudantes?acao=acompanhar", action: "Abrir acompanhamento" },

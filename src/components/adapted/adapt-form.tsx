@@ -4,7 +4,7 @@ import { useId, useState, type FormEvent } from "react";
 import { EyeOff, FileUp, ShieldCheck, Wand2 } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
 import type { TaskText } from "@/lib/adapted-tasks";
-import { ADAPT_OPTIONS } from "@/lib/task-adaptation";
+import { ADAPT_OPTIONS } from "@/lib/adapted-tasks-core";
 import { UPLOAD_LIMIT_BYTES, megabytes } from "@/lib/uploads";
 import { Field, FormResult } from "@/components/form-kit";
 import { choiceCls, hintCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";

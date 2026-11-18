@@ -12,7 +12,7 @@ import { proposePlan } from "../plan-proposal";
 import { generateActivities } from "../activities";
 import { objectiveTrend, studentAlerts } from "../insights";
 import { getStudentNextStep } from "../student-journey";
-import { MATERIAL_KINDS } from "../materials";
+import { MATERIAL_KINDS } from "../material-content";
 import { MATERIAL_KIND_KEYS } from "../material-content";
 import { ACTIVITY_CONTEXTS } from "../pedagogy-rules";
 import { createStudentMaterial } from "../material-generate";

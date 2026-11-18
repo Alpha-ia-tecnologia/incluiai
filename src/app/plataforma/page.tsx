@@ -9,8 +9,6 @@ import { formatDate } from "@/lib/format";
 import { Badge, EmptyState, PageHero } from "@/components/ui";
 import { linkCls, BUTTON_CLS } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 export default async function MunicipalitiesPage() {
   await requirePlatformUser();
   const municipalities = await platformDb().municipality.findMany({

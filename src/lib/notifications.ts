@@ -1,48 +1,38 @@
 import "server-only";
-import { currentTenant, db } from "./prisma";
-import { addressOf } from "./tenant";
+import { db } from "./prisma";
+import { publicAddress } from "./network";
 import type { SessionUser } from "./auth";
 import { isFamilyOf } from "./policy";
-import { rolesWith } from "./roles";
 import { emailConfigured, sendEmail } from "./email";
 import { cleanCheckIn, noticeEmail, noticeTitle, weekStart, type NoticeKind } from "./family-contact";
+import { familyRecipients, schoolRecipients, writeNotices, type Recipient } from "./notices";
 import { UserError } from "./user-error";
+import { firstName } from "./format";
 import { invalidateStudent } from "./invalidate";
 
-const appUrl = async () => {
-  const tenant = await currentTenant();
-  return tenant.kind === "municipio" ? addressOf(tenant.slug) : process.env.APP_URL?.trim() || "http://localhost:3000";
-};
 const firstNameOf = async (studentId: string) => {
   const prisma = await db();
-  return (await prisma.student.findUnique({ where: { id: studentId }, select: { name: true } }))?.name.split(" ")[0] ?? "o estudante";
+  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { name: true } });
+  return student ? firstName(student.name) : "o estudante";
 };
 
-async function deliver(users: { id: string; email: string; notifyByEmail: boolean; deactivatedAt: Date | null }[], studentId: string, kind: NoticeKind, href: string) {
-  const prisma = await db();
-  const active = users.filter((user) => !user.deactivatedAt);
-  if (!active.length) return;
-  const title = noticeTitle(kind, await firstNameOf(studentId));
-  await prisma.notification.createMany({ data: active.map((user) => ({ userId: user.id, studentId, kind, title, href })) });
+async function deliver(recipients: Recipient[], studentId: string, kind: NoticeKind, href: string) {
+  if (!recipients.length) return;
+  await writeNotices(recipients, { studentId, kind, title: noticeTitle(kind, await firstNameOf(studentId)), href });
   if (!emailConfigured()) return;
-  const { subject, text } = noticeEmail(await appUrl());
-  await Promise.all(active.filter((user) => user.notifyByEmail).map((user) => sendEmail(user.email, subject, text)));
+  const { subject, text } = noticeEmail(await publicAddress());
+  await Promise.all(recipients.filter((recipient) => recipient.notifyByEmail).map((recipient) => sendEmail(recipient.email, subject, text)));
 }
 
-const userFields = { id: true, email: true, notifyByEmail: true, deactivatedAt: true } as const;
-
 export async function notifyFamily(studentId: string, kind: NoticeKind, href: string) {
-  const prisma = await db();
-  const users = await prisma.user.findMany({ where: { role: { in: rolesWith("familyPortal") }, studentLinks: { some: { studentId } } }, select: userFields });
-  await deliver(users, studentId, kind, href);
+  await deliver(await familyRecipients(studentId), studentId, kind, href);
 }
 
 export async function notifyTeam(studentId: string, kind: NoticeKind, href: string) {
   const prisma = await db();
   const student = await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } });
   if (!student) return;
-  const users = await prisma.user.findMany({ where: { role: { in: rolesWith("teamNotices") }, schoolId: student.schoolId }, select: userFields });
-  await deliver(users, studentId, kind, href);
+  await deliver(await schoolRecipients(student.schoolId, "teamNotices"), studentId, kind, href);
 }
 
 export async function unreadNotices(userId: string): Promise<{ unread: number; latest: string | null }> {
@@ -50,6 +40,17 @@ export async function unreadNotices(userId: string): Promise<{ unread: number; l
   const where = { userId, readAt: null };
   const [unread, latest] = await Promise.all([prisma.notification.count({ where }), prisma.notification.findFirst({ where, orderBy: { createdAt: "desc" }, select: { id: true } })]);
   return { unread, latest: latest?.id ?? null };
+}
+
+export async function readNotices(user: SessionUser) {
+  const prisma = await db();
+  const [notices, prefs] = await Promise.all([
+    prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 50 }),
+    prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { notifyByEmail: true, weeklyCheckIn: true } }),
+  ]);
+  const unread = new Set(notices.filter((notice) => !notice.readAt).map((notice) => notice.id));
+  if (unread.size) await prisma.notification.updateMany({ where: { userId: user.id, readAt: null }, data: { readAt: new Date() } });
+  return { notices, unread, prefs };
 }
 
 export async function saveNoticePrefs(user: SessionUser, prefs: { notifyByEmail: boolean; weeklyCheckIn: boolean }): Promise<void> {

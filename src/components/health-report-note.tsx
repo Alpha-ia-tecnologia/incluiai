@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, FileText } from "lucide-react";
 import { linkCls } from "@/components/form-styles";
-import { reportStatus } from "@/lib/health-report";
+import { reportStatus } from "@/lib/health-reports-core";
 
 export function HealthReportsNote({ studentId, reports }: { studentId: string; reports: { status: string; reviewedAt: Date | null }[] }) {
   const pending = reports.filter((report) => reportStatus(report.status, report.reviewedAt).needsReview).length;

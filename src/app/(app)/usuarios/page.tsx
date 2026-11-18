@@ -9,8 +9,6 @@ import { PageHeader, Badge, ButtonLink, EmptyState } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 type Query = { q?: string | string[]; perfil?: string | string[]; situacao?: string | string[] };
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 

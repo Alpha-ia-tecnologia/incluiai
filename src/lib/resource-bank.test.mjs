@@ -6,7 +6,6 @@ import {
   COMPLEXITY_LABELS,
   RESOURCE_PRESENTATIONS,
   RESOURCE_TYPES,
-  normalizeSearch,
   resourcePresentation,
   resourceTypeLabel,
 } from "./resource-bank.ts";
@@ -118,13 +117,6 @@ test("todo recurso tem capa local, preparação e material-modelo completos", as
     assert.equal(file.subarray(0, 4).toString("ascii"), "RIFF", image);
     assert.equal(file.subarray(8, 12).toString("ascii"), "WEBP", image);
   }
-});
-
-test("busca ignora acentos, maiúsculas e variações de espaço sem perder o conteúdo", () => {
-  assert.equal(normalizeSearch("  Comunicação   e\tAUTONOMIA \n"), "comunicacao e autonomia");
-  assert.equal(normalizeSearch("subtração"), normalizeSearch("SUBTRAÇÃO"));
-  assert.ok(normalizeSearch("Minha escolha: não quero").includes(normalizeSearch("NÃO QUERO")));
-  assert.equal(normalizeSearch(""), "");
 });
 
 test("recursos cadastrados depois do catálogo recebem apresentação e rótulos de reserva seguros", () => {

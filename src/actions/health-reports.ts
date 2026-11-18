@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import type { ActionResult } from "@/lib/action-result";
 import { runAction } from "@/lib/server-action";
-import { REPORT_FIELD_KEYS } from "@/lib/health-report";
+import { REPORT_FIELD_KEYS } from "@/lib/health-reports-core";
 import { deleteHealthReport, retryHealthReport, reviewHealthReport, uploadHealthReport } from "@/lib/health-reports";
 
 const reportPath = (studentId: string, reportId?: string) => `/estudantes/${studentId}/estudo-de-caso/laudos${reportId ? `/${reportId}` : ""}`;

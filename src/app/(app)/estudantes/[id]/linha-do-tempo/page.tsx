@@ -14,8 +14,6 @@ import {
   AlertTriangle, Trophy, Package, Layers, CalendarCheck, CalendarX, House, type LucideIcon,
 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
 const TYPE_META: Record<string, { icon: LucideIcon; tone: "brand" | "amber" | "coral" | "green" | "neutral" }> = {
   avaliacao: { icon: ClipboardList, tone: "brand" },
   plano: { icon: FileText, tone: "brand" },

@@ -14,8 +14,6 @@ import { parseCaseStudy } from "@/lib/case-study";
 import { MessageSquareText, ListChecks } from "lucide-react";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 const channelOptions = Object.entries(CHANNELS).map(([value, label]) => ({ value, label }));
 
 function SupportSelect({ name, label, defaultValue }: { name: string; label: string; defaultValue: number }) {

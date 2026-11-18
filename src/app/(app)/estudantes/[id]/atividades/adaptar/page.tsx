@@ -11,8 +11,6 @@ import { AdaptForm } from "@/components/adapted/adapt-form";
 import { Steps } from "@/components/explain";
 import { linkCls } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 export default async function AdaptTaskPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

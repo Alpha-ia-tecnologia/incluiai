@@ -38,8 +38,6 @@ import { BUTTON_CLS } from "@/components/form-styles";
 import { imageWidthOf } from "@/lib/images/activity-image";
 
 
-export const dynamic = "force-dynamic";
-
 export default async function FamilyStudentPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

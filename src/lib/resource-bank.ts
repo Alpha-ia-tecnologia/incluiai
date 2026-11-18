@@ -152,10 +152,6 @@ export const RESOURCE_PRESENTATIONS: Record<string, ResourcePresentation> = {
     { title: "Ficha de uma proposta coletiva", instruction: "Use exemplos como melhorar a sinalização da biblioteca; o grupo decide o tema e pode rever sua escolha.", items: ["O que queremos melhorar?", "Quem precisa ser ouvido?", "Quais barreiras percebemos?", "Duas ideias possíveis: ___ e ___", "Como vamos representar a proposta?", "Qual função desejo assumir?", "O que depende da autorização da escola?", "O que mudaremos após a devolutiva?"] }),
 };
 
-export function normalizeSearch(value: string): string {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim().replace(/\s+/g, " ");
-}
-
 export function resourceTypeLabel(type: string): string {
   return Object.hasOwn(RESOURCE_TYPES, type) ? RESOURCE_TYPES[type] : type.replaceAll("_", " ");
 }

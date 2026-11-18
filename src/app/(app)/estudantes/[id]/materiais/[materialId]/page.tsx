@@ -5,9 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { MaterialView } from "@/components/materials/material-view";
-import { CreatedNotice } from "@/components/materials/created-notice";
-
-export const dynamic = "force-dynamic";
+import { CreatedNotice } from "@/components/created-notice";
 
 type Query = { criado?: string | string[]; imagens?: string | string[]; falhas?: string | string[] };
 

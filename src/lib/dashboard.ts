@@ -13,7 +13,7 @@ import { splitItems } from "./form-options";
 import { parseJson } from "./format";
 import { aiProviders } from "./agents/capabilities";
 import { usesAac } from "./pedagogy-rules";
-import { MATERIAL_KINDS } from "./materials";
+import { MATERIAL_KINDS } from "./material-content";
 import { MONTH_NAMES, MONTH_SHORT, todayInBrazil } from "./commemorative-dates";
 import { BARRIERS, CHANNELS, CONTEXTS, CRITERION_MET, DIMENSIONS, PARTICIPATION, SENSORY_AREAS, SENSORY_LABELS, STAGES } from "./scale";
 

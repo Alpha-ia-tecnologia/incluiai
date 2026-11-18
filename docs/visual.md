@@ -103,7 +103,6 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
     que entra nela usa as versões sobre o marinho: `BUTTON_CLS.primaryOnNavy`,
     `BUTTON_CLS.secondaryOnNavy`, `Assurances onNavy`, `HowToRead onNavy`,
     `PillLink onNavy`, `TextSizeControl onNavy`;
-  - `HeroStat`;
   - `EmptyState`: com `character` e `action`;
   - `ButtonLink`;
   - `Card`, `Badge`, `SectionTitle`.

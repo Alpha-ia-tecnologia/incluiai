@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft, Database, Globe, KeyRound } from "lucide-react";
 import { requirePlatformUser } from "@/lib/auth";
-import { platformDomain } from "@/lib/prisma";
+import { platformDomain } from "@/lib/env-config";
 import { Card, PageHeader } from "@/components/ui";
 import { Steps } from "@/components/explain";
 import { linkCls } from "@/components/form-styles";
 import { MunicipalityForm } from "@/components/plataforma/municipality-form";
-
-export const dynamic = "force-dynamic";
 
 export default async function NewMunicipalityPage() {
   await requirePlatformUser();

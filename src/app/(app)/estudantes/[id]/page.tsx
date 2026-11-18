@@ -3,22 +3,20 @@ import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { SUMMARY_SECTION } from "@/lib/audit";
 import { objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insights";
-import { meetingQuestions } from "@/lib/materials";
+import { meetingQuestions } from "@/lib/meeting-questions";
 import { parseJson, formatDate } from "@/lib/format";
 import { CHANNELS, BARRIERS } from "@/lib/scale";
 import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
-import { guidanceForPlan, parseAccepted, reportStatus } from "@/lib/health-report";
-import { censusReference, specialEducationAnswer } from "@/lib/federal-guidance";
+import { guidanceForPlan, parseAccepted, reportStatus } from "@/lib/health-reports-core";
+import { censusReference } from "@/lib/federal-guidance";
 import type { FunctionalProfile } from "@prisma/client";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
 import { DataBoard, DataCard, StatusPill, SupportBars, SupportChart } from "@/components/data-viz";
 import { BarList } from "@/components/charts";
 import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, TREND_TONE } from "@/components/viz/student-viz";
 import { TrendingDown, Minus, AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, CircleCheck, type LucideIcon } from "lucide-react";
-
-export const dynamic = "force-dynamic";
 
 const TREND_META: Record<Trend, { label: string; icon: LucideIcon }> = {
   avancando: { label: "Avançando", icon: TrendingDown },
@@ -53,7 +51,8 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
     },
   });
   const intersector = student.intersectorReports[0];
-  const caseSynthesis = parseCaseStudy(student.caseStudy?.content).sintese;
+  const caseStudy = student.caseStudy && { status: student.caseStudy.status, content: parseCaseStudy(student.caseStudy.content) };
+  const caseSynthesis = caseStudy?.content.sintese;
   const reportGuidance = guidanceForPlan(student.healthReports.filter((report) => report.reviewedAt).map((report) => parseAccepted(report.accepted)));
   const reportsToReview = can.clinical ? student.healthReports.filter((report) => reportStatus(report.status, report.reviewedAt).needsReview).length : 0;
 
@@ -62,9 +61,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   const objectives = activePlan?.objectives.filter((o) => o.status === "ativo") ?? [];
   const alerts = studentAlerts({ plans: student.plans, entries: student.diaryEntries })
     .filter((alert) => alert.kind !== "sem_registro" || Boolean(activePlan) || student.diaryEntries.length > 0);
-  // Censo Escolar (orientação do INEP): o estudo de caso concluído ou o plano
-  // ativo respaldam a declaração do estudante como público da educação especial.
-  const census = censusReference({ caseStudyConcluded: student.caseStudy?.status === "concluido", hasActivePlan: Boolean(activePlan), specialEducation: specialEducationAnswer(parseCaseStudy(student.caseStudy?.content).publicoAlvo) });
+  const census = censusReference(caseStudy, Boolean(activePlan));
   const worked = strategiesThatWorked(student.diaryEntries);
   const workedCounts = countItems(student.diaryEntries.map((entry) => entry.whatWorked), 8);
   const records = student.diaryEntries.length;

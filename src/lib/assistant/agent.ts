@@ -2,7 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { describeAgentError } from "../agents/model";
-import { ADAPTIVE_THINKING, CLAUDE_MODEL, SERVER_FALLBACK, claudeClient } from "../agents/claude";
+import { ADAPTIVE_THINKING, SERVER_FALLBACK, claudeClient } from "../agents/claude";
+import { claudeSettings } from "../env-config";
 import { isAssistantEnabled } from "../agents/capabilities";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools } from "./tools";
@@ -12,7 +13,7 @@ import { restorableLength } from "../agents/redactor";
 import { decidedSinceLastTurn, historyLength, MAX_HISTORY_MESSAGES, toConversationView, toMessageView } from "./store";
 import type { AssistantEvent, ToolStep } from "./types";
 
-const ASSISTANT_MODEL = process.env.ASSISTANT_MODEL || CLAUDE_MODEL;
+const ASSISTANT_MODEL = claudeSettings().assistantModel;
 const MAX_ITERATIONS = 8;
 
 type History = Anthropic.Beta.Messages.BetaMessageParam[];

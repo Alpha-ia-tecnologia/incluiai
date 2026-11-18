@@ -3,7 +3,7 @@
 import { useActionState, useId } from "react";
 import { KeyRound } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
-import { PASSWORD_MIN } from "@/lib/user-admin";
+import { PASSWORD_MIN } from "@/lib/accounts-core";
 import { Field, FormResult } from "@/components/form-kit";
 import { inputCls, BUTTON_CLS } from "@/components/form-styles";
 

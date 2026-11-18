@@ -7,6 +7,7 @@ import { recordView } from "@/lib/audit";
 import { PENDING_CARD_COOKIE } from "@/lib/student-card";
 import { CARD_TOKEN_PATTERN } from "@/lib/student-card-core";
 import { unavailableResponse } from "@/lib/tenant";
+import { secureCookies } from "@/lib/env-config";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
   const unavailable = await unavailableResponse();
@@ -17,7 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   const user = await getCurrentUser();
   if (!user) {
     if (CARD_TOKEN_PATTERN.test(token)) {
-      jar.set(PENDING_CARD_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 600, path: "/" });
+      jar.set(PENDING_CARD_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: secureCookies(), maxAge: 600, path: "/" });
     }
     redirect("/login");
   }

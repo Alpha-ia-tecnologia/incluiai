@@ -3,7 +3,7 @@
 import { useId, type FormEvent } from "react";
 import { CircleCheck, Save } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
-import { ANSWER_FORMATS, ANSWER_FORMAT_LABEL, type AdaptedContent } from "@/lib/task-adaptation";
+import { ANSWER_FORMATS, ANSWER_FORMAT_LABEL, type AdaptedContent } from "@/lib/adapted-tasks-core";
 import { Field, FormResult } from "@/components/form-kit";
 import { inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";

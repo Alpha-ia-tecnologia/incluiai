@@ -25,8 +25,6 @@ import { ArrowRight, CircleCheck, Clock, FilePen, FileUp, ImagePlus, ShieldCheck
 import { Assurances, Steps } from "@/components/explain";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 
 const STATUS_PLURAL = { sugerida: "Sugeridas", aceita: "Aceitas", aplicada: "Aplicadas", rejeitada: "Rejeitadas" } as const;
 

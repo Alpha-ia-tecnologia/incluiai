@@ -8,8 +8,6 @@ import { Card, PageHeader } from "@/components/ui";
 import { AssessmentForm } from "@/components/assessment/assessment-form";
 import { linkCls } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 export default async function ApplyAssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

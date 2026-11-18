@@ -2,15 +2,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseEducacensoFile, specialEdPersons } from "./educacenso.ts";
 import { SAMPLE } from "./educacenso.fixture.mjs";
-import { buildSyncPlan, censusCounts, issuesOf, networkAeeEstimate, personWarnings, regularOnlyIds, schoolFundebNote, cleanMonitorConfig, fundebComparison, monitorState, nextRun, stageFromAge, sumCounts, toSnapshot, verifyCoverage } from "./census-rules.ts";
+import { buildSyncPlan, censusCounts, issuesOf, networkAeeEstimate, personWarnings, regularOnlyIds, schoolFundebNote, cleanMonitorConfig, fundebComparison, monitorState, nextRun, sumCounts, toSnapshot, verifyCoverage } from "./census-core.ts";
+import { stageFromAge } from "./student-record.ts";
 
 const now = new Date("2026-10-22T15:00:00Z");
 const persons = specialEdPersons(parseEducacensoFile(SAMPLE));
 const students = [
-  { id: "s1", name: "Dante Ribeiro", birthDate: "2019-03-12", inepId: null, cpf: null, hasAEE: false },
-  { id: "s2", name: "Lívia Martins", birthDate: "2018-01-10", inepId: null, cpf: null, hasAEE: true },
-  { id: "s3", name: "Só no AEE", birthDate: "2018-02-01", inepId: null, cpf: null, hasAEE: true },
-  { id: "s4", name: "Só no AEE", birthDate: "2017-05-05", inepId: null, cpf: null, hasAEE: false },
+  { id: "s1", name: "Dante Ribeiro", birthDate: "2019-03-12", inepId: null, cpf: null },
+  { id: "s2", name: "Lívia Martins", birthDate: "2018-01-10", inepId: null, cpf: null },
+  { id: "s3", name: "Só no AEE", birthDate: "2018-02-01", inepId: null, cpf: null },
+  { id: "s4", name: "Só no AEE", birthDate: "2017-05-05", inepId: null, cpf: null },
 ];
 
 test("etapa estimada pela idade em 31 de março", () => {
@@ -26,14 +27,14 @@ test("plano: atualiza quem já está, cria quem falta, pede revisão de homônim
   const byName = Object.fromEntries(plan.items.map((item) => [item.censusName, item]));
   assert.equal(byName["DANTE RIBEIRO"].action, "update");
   assert.equal(byName["DANTE RIBEIRO"].matchedBy, "nome_nascimento");
-  assert.deepEqual(byName["DANTE RIBEIRO"].diffs.map((diff) => diff.field), ["inepId", "cpf", "hasAEE"]);
+  assert.deepEqual(byName["DANTE RIBEIRO"].diffs.map((diff) => diff.field), ["inepId", "cpf"]);
   assert.equal(byName["NOVA ALUNA DA SILVA"].action, "create");
-  assert.deepEqual(byName["NOVA ALUNA DA SILVA"].create, { name: "Nova Aluna da Silva", birthDate: "2018-06-05", inepId: "999888777666", cpf: null, hasAEE: true, className: "A informar", stage: "anos_iniciais" });
+  assert.deepEqual(byName["NOVA ALUNA DA SILVA"].create, { name: "Nova Aluna da Silva", birthDate: "2018-06-05", inepId: "999888777666", cpf: null, className: "A informar", stage: "anos_iniciais" });
   assert.match(byName["NOVA ALUNA DA SILVA"].warnings.join(" "), /Dupla matrícula não confirmada/);
   assert.deepEqual([byName["MENINO DA PRE"].create.stage, byName["MENINO DA PRE"].create.className], ["educacao_infantil", "PRE II"]);
   assert.equal(byName["SO NO AEE"].action, "review");
   assert.equal(byName["SO NO AEE"].candidates.length, 2);
-  assert.deepEqual(plan.missing, [{ id: "s2", name: "Lívia Martins" }, { id: "s3", name: "Só no AEE" }]);
+  assert.deepEqual(plan.missing, [{ id: "s2", name: "Lívia Martins" }, { id: "s3", name: "Só no AEE" }, { id: "s4", name: "Só no AEE" }]);
   assert.equal(plan.totals.doublePending, 5);
 });
 
@@ -46,7 +47,7 @@ test("plano: decisões da revisão e transferência de outra escola", () => {
   assert.equal(linked.matchedBy, "manual");
   assert.equal(linked.studentId, "s3");
   assert.deepEqual(plan.ignored, [{ key: "999888777666", censusName: "NOVA ALUNA DA SILVA", reason: "Transferida em setembro" }]);
-  assert.deepEqual(plan.missing, [{ id: "s2", name: "Lívia Martins" }]);
+  assert.deepEqual(plan.missing, [{ id: "s2", name: "Lívia Martins" }, { id: "s4", name: "Só no AEE" }]);
   const elsewhere = buildSyncPlan(persons, [], { now, elsewhere: (keys) => keys.includes("inep:999888777666") });
   const moved = elsewhere.items.find((item) => item.key === "999888777666");
   assert.equal(moved.action, "review");
@@ -58,11 +59,10 @@ test("plano: decisões da revisão e transferência de outra escola", () => {
 test("verificação: dupla matrícula, sem AEE, sem classe comum, sem marcação e ausente", () => {
   const snapshot = toSnapshot(persons);
   const team = [
-    { id: "a", name: "Dante Ribeiro", birthDate: "2019-03-12", inepId: "123456789012", cpf: null, hasAEE: true },
-    { id: "b", name: "Nova Aluna da Silva", birthDate: "2018-06-05", inepId: null, cpf: null, hasAEE: true },
-    { id: "c", name: "Aluno Sem Deficiencia", birthDate: "2017-01-01", inepId: null, cpf: "55544433322", hasAEE: true },
-    { id: "d", name: "Ninguém", birthDate: "2017-01-01", inepId: null, cpf: null, hasAEE: true },
-    { id: "e", name: "Sem AEE na plataforma", birthDate: "2017-01-01", inepId: null, cpf: null, hasAEE: false },
+    { id: "a", name: "Dante Ribeiro", birthDate: "2019-03-12", inepId: "123456789012", cpf: null },
+    { id: "b", name: "Nova Aluna da Silva", birthDate: "2018-06-05", inepId: null, cpf: null },
+    { id: "c", name: "Aluno Sem Deficiencia", birthDate: "2017-01-01", inepId: null, cpf: "55544433322" },
+    { id: "d", name: "Ninguém", birthDate: "2017-01-01", inepId: null, cpf: null },
   ];
   const coverage = verifyCoverage(team, snapshot, new Set(regularOnlyIds(team, parseEducacensoFile(SAMPLE).persons)));
   assert.deepEqual(coverage.rows.map((row) => row.status), ["dupla", "sem_comum", "sem_marcacao", "ausente"]);
@@ -70,7 +70,7 @@ test("verificação: dupla matrícula, sem AEE, sem classe comum, sem marcação
   assert.equal(coverage.pending, 3);
   assert.equal(coverage.percent, 25);
   const special = { ...snapshot[0], key: "x", name: "SEM AEE", inepId: "777", aee: false };
-  assert.equal(verifyCoverage([{ id: "f", name: "Sem Aee", birthDate: "", inepId: "777", cpf: null, hasAEE: true }], [special]).rows[0].status, "sem_aee");
+  assert.equal(verifyCoverage([{ id: "f", name: "Sem Aee", birthDate: "", inepId: "777", cpf: null }], [special]).rows[0].status, "sem_aee");
 });
 
 test("contagens do arquivo, por etapa, e comparação com o FNDE", () => {
@@ -86,9 +86,9 @@ test("contagens do arquivo, por etapa, e comparação com o FNDE", () => {
 
 test("alertas do vínculo: sem tipo de AEE, horário coincidente, vínculos demais, AEE repetido e classe comum a distância", () => {
   const byName = Object.fromEntries(persons.map((person) => [person.name, person]));
-  assert.match(personWarnings(byName["SO NO AEE"]).join(" "), /sem nenhum tipo de atendimento.*recusa o arquivo/);
-  assert.match(personWarnings(byName["MENINO DA PRE"]).join(" "), /horário do AEE coincide.*Nota Técnica Conjunta nº 12\/2025/);
-  assert.match(personWarnings(byName["MENINO DA PRE"]).join(" "), /conta um só por aluno/);
+  assert.match(personWarnings(byName["SO NO AEE"]).join(" "), /sem tipo de atendimento.*recusa o arquivo/);
+  assert.match(personWarnings(byName["MENINO DA PRE"]).join(" "), /Horário do AEE coincide com o da classe comum/);
+  assert.match(personWarnings(byName["MENINO DA PRE"]).join(" "), /o Fundeb conta um só/);
   assert.match(personWarnings(byName["ALUNO A DISTANCIA"]).join(" "), /semipresencial ou a distância/);
   assert.match(personWarnings(byName["ALUNO DE MUITOS VINCULOS"]).join(" "), /Mais de 4 vínculos/);
   const snapshot = Object.fromEntries(toSnapshot(persons).map((person) => [person.name, person]));
@@ -103,14 +103,14 @@ test("alertas do vínculo: sem tipo de AEE, horário coincidente, vínculos dema
 test("verificação: classe comum em outra escola da rede e vínculo bloqueado não confirmam por engano", () => {
   const snapshot = toSnapshot(persons);
   const team = [
-    { id: "n", name: "Nova Aluna da Silva", birthDate: "2018-06-05", inepId: "999888777666", cpf: null, hasAEE: true },
-    { id: "s", name: "So no AEE", birthDate: "", inepId: "111222333444", cpf: null, hasAEE: true },
+    { id: "n", name: "Nova Aluna da Silva", birthDate: "2018-06-05", inepId: "999888777666", cpf: null },
+    { id: "s", name: "So no AEE", birthDate: "", inepId: "111222333444", cpf: null },
   ];
   const elsewhere = (keys) => (keys.includes("inep:999888777666") ? "EMEF Outra" : null);
   const coverage = verifyCoverage(team, snapshot, new Set(), elsewhere);
   assert.deepEqual(coverage.rows.map((row) => [row.status, row.regularAt ?? null]), [["dupla", "EMEF Outra"], ["sem_comum", null]]);
   assert.equal(coverage.confirmed, 1);
-  const blocked = verifyCoverage([{ id: "p", name: "Aluno de Muitos Vinculos", birthDate: "2016-04-04", inepId: null, cpf: null, hasAEE: true }], snapshot.map((person) => ({ ...person, regular: true })));
+  const blocked = verifyCoverage([{ id: "p", name: "Aluno de Muitos Vinculos", birthDate: "2016-04-04", inepId: null, cpf: null }], snapshot.map((person) => ({ ...person, regular: true })));
   assert.equal(blocked.rows[0].status, "dupla");
   assert.equal(blocked.confirmed, 0); // mais de 4 vínculos: o Educacenso não importa a pessoa
 });

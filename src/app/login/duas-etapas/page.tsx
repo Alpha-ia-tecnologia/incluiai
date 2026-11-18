@@ -9,8 +9,6 @@ import { BUTTON_CLS } from "@/components/form-styles";
 import { LoginStepFrame } from "@/components/login-step-frame";
 import { isPlatformRole } from "@/lib/roles";
 
-export const dynamic = "force-dynamic";
-
 export default async function SecondStepPage() {
   if (await getCurrentUser()) redirect("/");
   const pending = await getPendingLogin();

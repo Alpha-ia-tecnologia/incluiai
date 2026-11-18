@@ -12,8 +12,6 @@ import { CLASS_NAME_OPTIONS, GRADE_YEAR_OPTIONS, REGION_OPTIONS } from "@/lib/fo
 import { MapPin, School as SchoolIcon, Users, UserPlus, Trash2 } from "lucide-react";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 const shiftOptions = Object.entries(SHIFTS).map(([value, label]) => ({ value, label }));
 const formCls = "@container flex flex-1 flex-col gap-5";
 const fieldsCls = "grid items-start gap-4 @md:grid-cols-2";

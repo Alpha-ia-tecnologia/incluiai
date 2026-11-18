@@ -8,8 +8,6 @@ import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { PageHero } from "@/components/ui";
 
-export const dynamic = "force-dynamic";
-
 export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const { c } = await searchParams;
   const user = await getCurrentUser();

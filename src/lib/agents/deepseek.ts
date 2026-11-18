@@ -1,13 +1,13 @@
 import { z } from "zod/v4";
 import { AgentOutputError, type AgentModel, type AgentRequest } from "./types";
+import { deepseekSettings } from "../env-config";
 
 // DeepSeek, pela API HTTP no formato OpenAI (https://api-docs.deepseek.com).
 // Atenção (LGPD): a DeepSeek processa e armazena dados na China.
 //
 // O modo JSON da DeepSeek garante JSON válido, mas não segue um esquema.
 
-export const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-flash";
-const BASE_URL = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/$/, "");
+export const DEEPSEEK_MODEL = deepseekSettings().model;
 const TIMEOUT_MS = 240_000;
 
 type ChatCompletion = {
@@ -36,9 +36,10 @@ export function extractJson(content: string): unknown {
 }
 
 async function callOnce<T>(request: AgentRequest<T>, schema: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}/chat/completions`, {
+  const { apiKey, baseUrl } = deepseekSettings();
+  const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     signal: AbortSignal.timeout(TIMEOUT_MS),
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,

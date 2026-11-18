@@ -6,7 +6,8 @@ import { promisify } from "node:util";
 import { hashPassword } from "./auth";
 import { forgetMunicipality, municipalityDb, municipalityUrl, platformDb } from "./prisma";
 import { NEW_DATABASE_PATTERN, PLATFORM_ROLE, databaseNameFor, isPostgresUrl, sqliteFile } from "./tenancy-core";
-import { temporaryPassword } from "./user-admin";
+import { temporaryPassword } from "./accounts-core";
+import { usesPostgres } from "./env-config";
 
 const run = promisify(execFile);
 const STEP_TIMEOUT_MS = 5 * 60_000;
@@ -33,7 +34,7 @@ async function prismaCli(url: string, args: string[]): Promise<void> {
 async function createDatabase(slug: string, dbName: string): Promise<void> {
   if (dbName !== databaseNameFor(slug)) return;
   if (!NEW_DATABASE_PATTERN.test(dbName)) throw new Error(`Nome de banco fora do padrão: ${dbName}`);
-  if (!isPostgresUrl(process.env.DATABASE_URL ?? "")) throw new Error("O banco da plataforma (DATABASE_URL) e o dos municípios (MUNICIPIO_DATABASE_URL) precisam ser do mesmo tipo.");
+  if (!usesPostgres()) throw new Error("O banco da plataforma (DATABASE_URL) e o dos municípios (MUNICIPIO_DATABASE_URL) precisam ser do mesmo tipo.");
   const platform = platformDb();
   const found = await platform.$queryRaw<unknown[]>`SELECT 1 FROM pg_database WHERE datname = ${dbName}`;
   if (!found.length) await platform.$executeRawUnsafe(`CREATE DATABASE "${dbName}"`);

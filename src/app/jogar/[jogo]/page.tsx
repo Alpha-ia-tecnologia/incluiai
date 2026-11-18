@@ -12,7 +12,6 @@ import {
 } from "@/lib/games/games-core";
 import { GamePlayer, type GameData } from "@/components/games/game-player";
 
-export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jogo · IncluiEdu" };
 
 type Query = { estudante?: string; nivel?: string; tema?: string; rotina?: string; modo?: string; partida?: string };

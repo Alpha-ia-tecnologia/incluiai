@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adaptByRules, answerFormatOf, commandWords, highlightParts, levelsByRules, normalizeAdapted, oneOrderPerLine, printPages, printSettings, splitTask } from "./task-adaptation.ts";
+import { adaptByRules, answerFormatOf, answerSpaceOf, highlightParts, levelsByRules, normalizeAdapted, oneOrderPerLine, printPages, printSettings, splitTask } from "./adapted-tasks-core.ts";
 
 const PROVA = `Prova de Ciências - 3º ano
 1) Leia o texto. Depois, circule os animais que vivem na água.
@@ -26,9 +26,16 @@ test("forma de resposta e comandos", () => {
   assert.equal(answerFormatOf("Desenhe um animal"), "desenhar");
   assert.equal(answerFormatOf("Complete as frases"), "completar");
   assert.equal(answerFormatOf("Qual é o alimento?"), "escrever");
-  assert.deepEqual(commandWords("Leia o texto. Depois, circule os animais."), ["leia", "circule"]);
   assert.equal(oneOrderPerLine("Leia o texto. Depois, circule os animais."), "Leia o texto.\nDepois, circule os animais.");
   assert.deepEqual(highlightParts("Leia e circule."), [{ text: "Leia", command: true }, { text: " e ", command: false }, { text: "circule", command: true }, { text: ".", command: false }]);
+});
+
+test("espaço de resposta: alternativas, linhas para escrever ou completar, área para desenhar", () => {
+  assert.equal(answerSpaceOf({ options: ["a", "b"], answerFormat: "desenhar" }), "alternativas");
+  assert.equal(answerSpaceOf({ options: [], answerFormat: "escrever" }), "linhas");
+  assert.equal(answerSpaceOf({ options: [], answerFormat: "completar" }), "linhas");
+  assert.equal(answerSpaceOf({ options: [], answerFormat: "desenhar" }), "desenho");
+  assert.equal(answerSpaceOf({ options: [], answerFormat: "oral" }), null);
 });
 
 test("adaptação pelas regras muda a apresentação, não a questão", () => {

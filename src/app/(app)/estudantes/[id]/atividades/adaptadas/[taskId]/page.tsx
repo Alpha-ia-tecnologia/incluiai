@@ -4,7 +4,7 @@ import { ArrowLeft, CircleCheck, FileDown, Printer, Trash2 } from "lucide-react"
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { taskContent } from "@/lib/adapted-tasks";
-import { printSettings } from "@/lib/task-adaptation";
+import { printSettings } from "@/lib/adapted-tasks-core";
 import { parseJson, formatDate } from "@/lib/format";
 import { removeStudentTask, saveTask } from "@/actions/adapted-tasks";
 import { Badge, Card, SectionTitle } from "@/components/ui";
@@ -13,8 +13,6 @@ import { AdaptedView } from "@/components/adapted/adapted-view";
 import { AdaptedEditor } from "@/components/adapted/adapted-editor";
 import { ActionForm } from "@/components/action-form";
 import { BUTTON_CLS, linkCls } from "@/components/form-styles";
-
-export const dynamic = "force-dynamic";
 
 export default async function AdaptedTaskPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const prisma = await db();

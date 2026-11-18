@@ -12,8 +12,6 @@ import { ValidateMaterialButton } from "@/components/dua/materials/validate-mate
 import { MaterialMetaList, materialMeta } from "@/components/dua/materials/material-meta";
 import { Assurances, Steps } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 const shorten = (value: string, max = 80) => (value.length > max ? `${value.slice(0, max - 1)}…` : value);
 
 export default async function MaterialsPage({ params }: { params: Promise<{ id: string }> }) {

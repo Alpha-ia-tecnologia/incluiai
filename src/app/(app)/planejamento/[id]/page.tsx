@@ -4,8 +4,6 @@ import { listSuggestions } from "@/lib/dua/suggestions";
 import { listSupports } from "@/lib/dua/supports";
 import { DuaEditor } from "@/components/dua/editor";
 
-export const dynamic = "force-dynamic";
-
 export default async function PlanningEditorPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ etapa?: string }> }) {
   const [{ id }, { etapa }] = await Promise.all([params, searchParams]);
   const { user, planning, access, current, validated } = await planningContext(id);

@@ -8,8 +8,6 @@ import { requestNominalAccess } from "@/actions/access";
 import { Card, PageHeader } from "@/components/ui";
 import { NominalAccessForm } from "@/components/nominal-access-form";
 
-export const dynamic = "force-dynamic";
-
 export default async function NominalAccessPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

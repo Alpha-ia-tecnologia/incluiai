@@ -9,7 +9,7 @@ import { runAction, runFormAction } from "@/lib/server-action";
 import { UPLOAD_LIMIT_BYTES, megabytes, readUploadedText, requiredUpload } from "@/lib/uploads";
 import { UserError } from "@/lib/user-error";
 import * as census from "@/lib/census";
-import type { ReviewDecision } from "@/lib/census-rules";
+import type { ReviewDecision } from "@/lib/census-core";
 
 export async function uploadCensusFile(schoolId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
   return runAction(async (user) => {

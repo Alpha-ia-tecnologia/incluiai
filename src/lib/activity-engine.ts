@@ -1,6 +1,6 @@
 import type { FunctionalProfile, Objective, Student } from "@prisma/client";
 import { applicableRules, type AdaptationRule } from "./rules";
-import { parseJson } from "./format";
+import { firstName as firstNameOf, parseJson } from "./format";
 import { supportInfo } from "./scale";
 import { HOME_MAX_MINUTES, studentAdaptations, type ActivityContext } from "./pedagogy-rules";
 
@@ -81,7 +81,7 @@ function supportLadder(objective: Objective, interest: string) {
 
 export function generateActivityCards(input: EngineInput): ActivityCard[] {
   const { student, profile, objective, lessonTopic } = input;
-  const firstName = student.name.split(" ")[0];
+  const firstName = firstNameOf(student.name);
   const interests = parseJson<string[]>(profile.interests, []);
   const interest = interests[0] ?? "tema preferido do estudante";
   const rules = applicableRules(profile);

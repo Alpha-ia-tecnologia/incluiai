@@ -12,8 +12,6 @@ import { StackedColumns } from "@/components/viz/stacked-columns";
 import { Assurances, HowToRead } from "@/components/explain";
 import { MessageSquareText, NotebookPen } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
 const STATUS_TONE: Record<AeeSessionStatus, "green" | "amber" | "neutral"> = { realizado: "green", falta: "amber", cancelamento: "neutral" };
 
 function todayInput() {

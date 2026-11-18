@@ -1,9 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { textContains } from "@/lib/db-text";
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
+import { searchResources } from "@/lib/resources";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { Card, Badge, EmptyState } from "@/components/ui";
@@ -11,14 +10,12 @@ import { labelCls, BUTTON_CLS } from "@/components/form-styles";
 import { HowToRead } from "@/components/explain";
 import { Character } from "@/components/character";
 import { STAGES } from "@/lib/scale";
-import { COMPLEXITY_LABELS, RESOURCE_TYPES, resourcePresentation } from "@/lib/resource-bank";
+import { COMPLEXITY_LABELS, RESOURCE_TYPES, resourcePresentation, resourceTypeLabel } from "@/lib/resource-bank";
 import { ArrowUpRight, Search, ListChecks } from "lucide-react";
 import { RingStat } from "@/components/data-viz";
 import { SIGNAL } from "@/components/charts";
 import { UsageMeter } from "@/components/viz/usage-meter";
 import { percentOf } from "@/lib/series";
-
-export const dynamic = "force-dynamic";
 
 const TYPE_COLORS: Record<string, string> = {
   plano_de_aula: "bg-sage-soft",
@@ -34,31 +31,13 @@ export default async function ResourcesPage({
 }: {
   searchParams: Promise<{ q?: string; etapa?: string; tipo?: string }>;
 }) {
-  const prisma = await db();
   const filters = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!can(user.role, "pedagogical")) redirect("/");
   await recordJourneyMark(user.id, "recursos");
   const q = filters.q?.trim() ?? "";
-  const resources = await prisma.resource.findMany({
-    where: {
-      ...(filters.etapa ? { stage: filters.etapa } : {}),
-      ...(filters.tipo ? { resourceType: filters.tipo } : {}),
-      ...(q
-        ? {
-            OR: [
-              { title: textContains(q) },
-              { description: textContains(q) },
-              { skillArea: textContains(q) },
-              { accessibilityNeed: textContains(q) },
-            ],
-          }
-        : {}),
-    },
-    include: { _count: { select: { activities: true } } },
-    orderBy: [{ timesUsed: "desc" }, { title: "asc" }],
-  });
+  const resources = await searchResources({ q, stage: filters.etapa, type: filters.tipo });
   const mostUsed = resources.reduce((max, resource) => Math.max(max, resource.timesUsed), 0);
 
   return (
@@ -129,7 +108,7 @@ export default async function ResourcesPage({
                 <Link key={r.id} href={`/recursos/${r.id}`} className={`group flex h-full flex-col overflow-hidden rounded-3xl text-ink transition duration-200 hover:-translate-y-1 hover:shadow-e2 ${TYPE_COLORS[r.resourceType] ?? "bg-surface-muted"}`}>
                   <Image src={photo.image} alt="" width={1000} height={750} sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw" className="aspect-[3/2] w-full bg-surface-muted object-cover" />
                   <div className="flex flex-1 flex-col p-6">
-                    <span className="mb-2 text-xs font-medium">{RESOURCE_TYPES[r.resourceType] ?? r.resourceType}</span>
+                    <span className="mb-2 text-xs font-medium">{resourceTypeLabel(r.resourceType)}</span>
                     <h3 className="max-w-lg text-xl font-medium leading-snug tracking-tight text-ink">{r.title}</h3>
                     <p className="mb-5 mt-2 line-clamp-3 text-sm leading-relaxed text-ink/75">{r.description}</p>
                     <div className="mt-auto flex flex-wrap gap-1.5">

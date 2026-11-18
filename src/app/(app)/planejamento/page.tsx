@@ -17,8 +17,6 @@ import { DonutSummary } from "@/components/viz/donut-summary";
 import { UsageMeter } from "@/components/viz/usage-meter";
 import { Assurances } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 const REVIEW_ORDER: ReviewState[] = ["rascunho", "em_revisao", "validado"];
 const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 

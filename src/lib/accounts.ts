@@ -2,10 +2,11 @@ import "server-only";
 import { db } from "./prisma";
 import { hashPassword, type SessionUser } from "./auth";
 import { ACCOUNT_EVENT, endAllSessions, normalizeEmail, recordAccountEvent, resetTwoFactor } from "./account-security";
-import { EMAIL_RE, accessChanged, accountSchoolProblem, canManageAccount, mergeLinks, sameLinks, temporaryPassword, type ManagedAccount } from "./user-admin";
+import { EMAIL_RE, accessChanged, accountSchoolProblem, canManageAccount, mergeLinks, sameLinks, temporaryPassword, type ManagedAccount } from "./accounts-core";
 import { linkedStudentIds, studentScopeWhere } from "./policy";
 import { assignableRoles, isAccountManager, isLinkedRole, isRole, roleLabel } from "./roles";
 import { UserError } from "./user-error";
+import { firstName } from "./format";
 
 const accountSelect = {
   id: true, name: true, email: true, role: true, schoolId: true, studentId: true, createdAt: true,
@@ -72,7 +73,12 @@ async function accountFor(manager: SessionUser, id: string): Promise<AccountRow>
 }
 
 const schoolName = async (manager: SessionUser, schoolId: string) => (await schoolsFor(manager)).find((school) => school.id === schoolId)?.name ?? "";
-const firstNames = (names: string[]) => names.map((name) => name.split(" ")[0]).join(", ");
+export async function demoAccounts() {
+  const prisma = await db();
+  return prisma.user.findMany({ where: { demo: true, deactivatedAt: null }, select: { email: true, role: true } });
+}
+
+const firstNames = (names: string[]) => names.map(firstName).join(", ");
 
 async function checkAccount(manager: SessionUser, raw: AccountInput, selfId?: string) {
   const prisma = await db();

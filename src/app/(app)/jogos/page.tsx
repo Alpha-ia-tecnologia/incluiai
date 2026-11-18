@@ -8,7 +8,6 @@ import { parseJson } from "@/lib/format";
 import { suggestedLevel, themeFromInterests } from "@/lib/games/games-core";
 import { GamesHub, type HubStudent } from "@/components/games/games-hub";
 
-export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jogos educativos · IncluiEdu" };
 
 export default async function GamesPage({ searchParams }: { searchParams: Promise<{ estudante?: string }> }) {

@@ -69,10 +69,6 @@ export function matchTotpStep(secret: string, code: string, nowMs: number = Date
   return null;
 }
 
-export function verifyTotp(secret: string, code: string, nowMs: number = Date.now(), window = 1): boolean {
-  return matchTotpStep(secret, code, nowMs, window) !== null;
-}
-
 export function otpauthUri(secret: string, account: string, issuer = "IncluiEdu"): string {
   const label = encodeURIComponent(`${issuer}:${account}`);
   return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=${TOTP_DIGITS}&period=${TOTP_STEP_SECONDS}`;

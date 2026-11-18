@@ -15,8 +15,6 @@ import { DataBoard, DataCard, DotStrip, withSegmentColors, type Tone } from "@/c
 import { BarList, SIGNAL, StackedBar, Swatch } from "@/components/charts";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 const CRITERION_TONE: Record<CriterionStatus, "green" | "amber" | "coral" | "neutral"> = {
   demonstrado: "green",
   parcial: "amber",

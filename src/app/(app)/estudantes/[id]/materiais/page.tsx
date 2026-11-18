@@ -10,8 +10,6 @@ import { linkCls } from "@/components/form-styles";
 import { MaterialForm } from "@/components/materials/material-form";
 import { MaterialGalleryCard, materialSummary, type MaterialSummary } from "@/components/materials/material-gallery";
 
-export const dynamic = "force-dynamic";
-
 type Query = { situacao?: string | string[]; tipo?: string | string[] };
 type Status = "sugerido" | "aprovado";
 

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { getNavigation } from "./navigation.ts";
 import { ROLE_KEYS, assignableRoles, isAccountManager, roleLabel } from "./roles.ts";
 import { PLATFORM_ROLE } from "./tenancy-core.ts";
-import { canManageAccount } from "./user-admin.ts";
+import { canManageAccount } from "./accounts-core.ts";
 
 test("o perfil da plataforma tem nome, mas nenhum menu do município", () => {
   assert.equal(PLATFORM_ROLE, "plataforma");

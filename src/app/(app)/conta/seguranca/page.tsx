@@ -3,6 +3,7 @@ import { KeyRound, LogIn, LogOut, ShieldAlert, ShieldCheck, ShieldOff, Smartphon
 import { db } from "@/lib/prisma";
 import { currentSessionId, getCurrentUser, twoFactorRequired } from "@/lib/auth";
 import { recoveryCodesLeft } from "@/lib/two-factor";
+import { accountEvents } from "@/lib/account-security";
 import { formatDate } from "@/lib/format";
 import { cancelTwoFactorSetup, disableTwoFactor, endOtherSessions, regenerateRecoveryCodes, startTwoFactorSetup } from "@/actions/two-factor";
 import { changeOwnPassword } from "@/actions/account";
@@ -15,8 +16,6 @@ import { TwoFactorSetup } from "@/components/two-factor-setup";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, Steps } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 export default async function AccountSecurityPage({ searchParams }: { searchParams: Promise<{ aviso?: string | string[] }> }) {
   const prisma = await db();
   const [session, query] = await Promise.all([getCurrentUser(), searchParams]);
@@ -26,7 +25,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
     prisma.user.findUniqueOrThrow({ where: { id: session.id }, select: { email: true, totpEnabledAt: true, totpPendingSecret: true, recoveryCodes: true, passwordChangedAt: true } }),
     prisma.session.count({ where: { userId: session.id, mfaPending: false, expiresAt: { gt: now } } }),
     currentSessionId(),
-    prisma.accountEvent.findMany({ where: { userId: session.id }, orderBy: { createdAt: "desc" }, take: 10 }),
+    accountEvents(session.id, 10),
   ]);
   const required = twoFactorRequired(session.role);
   const codesLeft = recoveryCodesLeft(user.recoveryCodes);

@@ -5,8 +5,6 @@ import { can } from "@/lib/roles";
 import { PageHeader } from "@/components/ui";
 import { StudentRegistrationChat } from "@/components/student-registration-chat";
 
-export const dynamic = "force-dynamic";
-
 export default async function NewStudentPage() {
   const prisma = await db();
   const user = await getCurrentUser();

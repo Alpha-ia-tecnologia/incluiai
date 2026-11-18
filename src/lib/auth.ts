@@ -8,11 +8,9 @@ import { MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, newSessionToken, 
 import { can, isLinkedRole, isPlatformRole, isRole, type Role } from "./roles";
 import { canWorkWithStudent, linkedStudentIds } from "./policy";
 import { UserError } from "./user-error";
+import { requireTwoFactor, secureCookies } from "./env-config";
 
 const SESSION_COOKIE = "incluiedu_session";
-// Cookie só por HTTPS em produção; SESSION_COOKIE_SECURE=0 libera o teste local
-// do build de produção em http://127.0.0.1.
-const SECURE_COOKIE = process.env.SESSION_COOKIE_SECURE ? process.env.SESSION_COOKIE_SECURE === "1" : process.env.NODE_ENV === "production";
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -47,7 +45,7 @@ export async function createSession(userId: string, { pending = false }: { pendi
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: SECURE_COOKIE,
+    secure: secureCookies(),
     path: "/",
     expires: expiresAt,
   });
@@ -87,7 +85,7 @@ export function loginStep(user: { role: string; mustChangePassword: boolean; tot
 }
 
 export function twoFactorRequired(role: string): boolean {
-  return process.env.REQUIRE_2FA === "1" && can(role, "twoFactor");
+  return requireTwoFactor() && can(role, "twoFactor");
 }
 
 export async function destroySession(): Promise<void> {

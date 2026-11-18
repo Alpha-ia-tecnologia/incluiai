@@ -5,7 +5,7 @@ import { invalidateStudent } from "./invalidate";
 import { UserError } from "./user-error";
 import type { SessionUser } from "./auth";
 import { isFamilyOf } from "./policy";
-import { newCardToken } from "./student-card-core";
+import { syncCardWithConsent } from "./student-card";
 
 export type ConsentField = "aiUse" | "therapistLink" | "card";
 const CONSENT_FIELDS: readonly ConsentField[] = ["aiUse", "therapistLink", "card"];
@@ -36,10 +36,7 @@ export async function setStudentConsent(user: SessionUser, studentId: string, fi
     create: { studentId, [field]: value, updatedBy: user.name },
     update: { [field]: value, updatedBy: user.name },
   });
-  if (field === "card") {
-    if (value) await prisma.studentCard.upsert({ where: { studentId }, create: { studentId, token: newCardToken() }, update: {} });
-    else await prisma.studentCard.deleteMany({ where: { studentId } });
-  }
+  if (field === "card") await syncCardWithConsent(studentId, value);
   await recordChange(user, studentId, value ? AUDIT_ACTION.authorized : AUDIT_ACTION.revoked, CONSENT_LABEL[field]);
   invalidateStudent(studentId);
 }

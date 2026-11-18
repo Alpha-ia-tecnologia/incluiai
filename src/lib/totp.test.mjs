@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { base32Decode, base32Encode, groupSecret, hashRecoveryCode, matchTotpStep, newRecoveryCodes, newTotpSecret, otpauthUri, totpAt, totpStep, verifyTotp } from "./totp.ts";
+import { base32Decode, base32Encode, groupSecret, hashRecoveryCode, matchTotpStep, newRecoveryCodes, newTotpSecret, otpauthUri, totpAt, totpStep } from "./totp.ts";
 
 // Vetores da RFC 6238 (SHA-1, segredo "12345678901234567890"), com 8 dígitos.
 const RFC_SECRET = base32Encode(Buffer.from("12345678901234567890"));
@@ -21,11 +21,11 @@ test("base32 vai e volta", () => {
 test("verificação aceita a janela vizinha e recusa o resto", () => {
   const secret = newTotpSecret();
   const now = 1_760_000_000_000;
-  assert.equal(verifyTotp(secret, totpAt(secret, now), now), true);
-  assert.equal(verifyTotp(secret, totpAt(secret, now - 30_000), now), true);
-  assert.equal(verifyTotp(secret, totpAt(secret, now - 90_000), now), false);
-  assert.equal(verifyTotp(secret, "12345", now), false);
-  assert.equal(verifyTotp(secret, `${totpAt(secret, now).slice(0, 3)} ${totpAt(secret, now).slice(3)}`, now), true);
+  assert.equal(matchTotpStep(secret, totpAt(secret, now), now) !== null, true);
+  assert.equal(matchTotpStep(secret, totpAt(secret, now - 30_000), now) !== null, true);
+  assert.equal(matchTotpStep(secret, totpAt(secret, now - 90_000), now) !== null, false);
+  assert.equal(matchTotpStep(secret, "12345", now) !== null, false);
+  assert.equal(matchTotpStep(secret, `${totpAt(secret, now).slice(0, 3)} ${totpAt(secret, now).slice(3)}`, now) !== null, true);
 });
 
 test("janela do código, para recusar o mesmo código duas vezes", () => {

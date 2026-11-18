@@ -3,7 +3,7 @@ import type { FunctionalProfile, Student } from "@prisma/client";
 import { db } from "./prisma";
 import { AUDIT_ACTION, recordChange } from "./audit";
 import { assertStudentTeam, type SessionUser } from "./auth";
-import { parseJson } from "./format";
+import { firstName, parseJson } from "./format";
 import { CHANNELS } from "./scale";
 import { isActivityContext } from "./pedagogy-rules";
 import { activityRow, type ActivityCard } from "./activity-engine";
@@ -11,7 +11,7 @@ import { studentAI } from "./agents/capabilities";
 import { runAiJob } from "./agents/job";
 import { materialContextText } from "./agents/context";
 import { runMaterialAgent } from "./agents/material-agent";
-import { guidanceForPlan, parseAccepted } from "./health-report";
+import { guidanceForPlan, parseAccepted } from "./health-reports-core";
 import { applicableRules } from "./rules";
 import { generateMaterialImages } from "./images/material-images";
 import { assertImagesAllowed } from "./images/save";
@@ -27,7 +27,7 @@ export type MaterialRequest = { kind: string; topic: string; context: string; ob
 export function profileFacts(student: Pick<Student, "name">, profile: FunctionalProfile): ProfileFacts {
   const sensory = parseJson<Record<string, string>>(profile.sensoryProfile, {});
   return {
-    firstName: student.name.split(" ")[0],
+    firstName: firstName(student.name),
     expressiveChannel: profile.expressiveChannel,
     expressiveLabel: CHANNELS[profile.expressiveChannel] ?? profile.expressiveChannel,
     receptiveLabel: CHANNELS[profile.receptiveChannel] ?? profile.receptiveChannel,

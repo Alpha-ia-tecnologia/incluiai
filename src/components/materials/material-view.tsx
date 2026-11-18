@@ -234,4 +234,3 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
   );
 }
 
-export type { MaterialActivity };

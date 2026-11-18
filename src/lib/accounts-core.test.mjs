@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { accessChanged, accountSchoolProblem, canManageAccount, mergeLinks, passwordProblem, temporaryPassword } from "./user-admin.ts";
+import { accessChanged, accountSchoolProblem, canManageAccount, mergeLinks, passwordProblem, temporaryPassword } from "./accounts-core.ts";
 import { assignableRoles, isAccountManager } from "./roles.ts";
 
 const secretaria = { id: "s", role: "secretaria", schoolId: null };

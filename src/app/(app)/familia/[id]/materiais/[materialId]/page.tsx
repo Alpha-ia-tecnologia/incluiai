@@ -7,8 +7,6 @@ import { familyMaterialWhere } from "@/lib/policy";
 import { MaterialView } from "@/components/materials/material-view";
 import { PrintButton } from "@/components/print-button";
 
-export const dynamic = "force-dynamic";
-
 export default async function FamilyMaterialPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const prisma = await db();
   const { id, materialId } = await params;

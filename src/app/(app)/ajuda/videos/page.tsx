@@ -6,8 +6,6 @@ import { tutorialsFor } from "@/lib/tutorials";
 import { PageHeader } from "@/components/ui";
 import { TutorialCard } from "@/components/tutorial-card";
 
-export const dynamic = "force-dynamic";
-
 export default async function TutorialsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

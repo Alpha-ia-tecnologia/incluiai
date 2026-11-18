@@ -7,7 +7,7 @@ import { invalidateStudent } from "./invalidate";
 import { requiredUpload } from "./uploads";
 import { UserError } from "./user-error";
 import { saveCaseStudy } from "./case-studies";
-import { REPORT_UPLOAD, acceptedSuggestions, canRetryReading, cleanReportFileName, parseReading, sniffReportType, type ReportStatus, type ReviewChoice } from "./health-report";
+import { REPORT_UPLOAD, acceptedSuggestions, canRetryReading, cleanReportFileName, parseReading, sniffReportType, type ReportStatus, type ReviewChoice } from "./health-reports-core";
 import { processHealthReport } from "./agents/health-report-reader";
 
 async function assertReportTeam(user: SessionUser, studentId: string) {

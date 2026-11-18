@@ -6,8 +6,6 @@ import { requireStudentPage } from "@/lib/page-context";
 import { PrintButton } from "@/components/print-button";
 import { MaterialView } from "@/components/materials/material-view";
 
-export const dynamic = "force-dynamic";
-
 export default async function PrintMaterialPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const prisma = await db();
   const { id, materialId } = await params;

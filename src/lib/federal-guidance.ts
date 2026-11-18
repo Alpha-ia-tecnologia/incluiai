@@ -45,13 +45,14 @@ export function specialEducationAnswer(value: string | null | undefined): Specia
 // O laudo não pode ser exigido. O estudo só respalda a declaração quando conclui
 // que o estudante é público da educação especial: "em avaliação" ou "não é
 // público" não respaldam.
-export function censusReference(input: { caseStudyConcluded: boolean; hasActivePlan: boolean; specialEducation?: SpecialEducationAnswer }): { backed: boolean; records: CensusReferenceRecord[]; pending: string | null } {
+export function censusReference(caseStudy: { status: string; content: { publicoAlvo?: string } } | null, hasActivePlan: boolean): { backed: boolean; records: CensusReferenceRecord[]; pending: string | null } {
   const records: CensusReferenceRecord[] = [];
-  const answer = input.specialEducation ?? null;
-  const studyCounts = input.caseStudyConcluded && answer !== "em_avaliacao" && answer !== "nao";
+  const concluded = caseStudy?.status === "concluido";
+  const answer = specialEducationAnswer(caseStudy?.content.publicoAlvo);
+  const studyCounts = concluded && answer !== "em_avaliacao" && answer !== "nao";
   if (studyCounts) records.push("Estudo de caso");
-  if (input.hasActivePlan) records.push("PAEE", "PEI");
-  const pending = !input.caseStudyConcluded || studyCounts ? null
+  if (hasActivePlan) records.push("PAEE", "PEI");
+  const pending = !concluded || studyCounts ? null
     : answer === "em_avaliacao" ? "O estudo de caso está concluído, mas registra que a equipe ainda avalia se o estudante é público da educação especial."
       : "O estudo de caso concluiu que o estudante não é público da educação especial.";
   return { backed: records.length > 0, records, pending };

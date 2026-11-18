@@ -12,8 +12,6 @@ import { EmptyState } from "@/components/ui";
 import { JourneyBar, TONE_CLASSES } from "@/components/journey-ui";
 import { HowToRead } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 const STATUS_LABELS: Record<Chapter["status"], string> = {
   concluido: "Concluído",
   agora: "Você está aqui",

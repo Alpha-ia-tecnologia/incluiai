@@ -1,16 +1,21 @@
+import type { StudentAlert } from "./insights";
+
+const ALERT_QUESTION: Record<StudentAlert["kind"], string> = {
+  sem_plano: "O plano precisa ser revisado ou os prazos ajustados?",
+  plano_vencido: "O plano precisa ser revisado ou os prazos ajustados?",
+  sem_registro: "O que explica a ausência de registros recentes? Como retomar o acompanhamento?",
+  queda_participacao: "A queda de participação é situacional? Vale revisar o nível de apoio ou o interesse âncora?",
+};
+
 export function meetingQuestions(input: {
-  alerts: { message: string }[];
+  alerts: Pick<StudentAlert, "kind">[];
   stalledObjectives: string[];
   workedStrategies: string[];
   hasFamilyNote: boolean;
   hasIntersector: boolean;
 }): string[] {
   const q: string[] = [];
-  for (const a of input.alerts) {
-    if (a.message.includes("plano")) q.push("O plano precisa ser revisado ou os prazos ajustados?");
-    else if (a.message.includes("registro")) q.push("O que explica a ausência de registros recentes? Como retomar o acompanhamento?");
-    else if (a.message.includes("participação")) q.push("A queda de participação é situacional? Vale revisar o nível de apoio ou o interesse âncora?");
-  }
+  for (const alert of input.alerts) q.push(ALERT_QUESTION[alert.kind]);
   for (const obj of input.stalledObjectives) {
     q.push(`O objetivo "${obj}" está sem avanço — o próximo passo está grande demais? Vale fracionar?`);
   }
@@ -22,5 +27,3 @@ export function meetingQuestions(input: {
   if (q.length === 0) q.push("O acompanhamento está estável — quais metas ampliar para o próximo ciclo?");
   return q;
 }
-
-export { MATERIAL_KINDS, type MaterialContent, type MaterialKind } from "./material-content";

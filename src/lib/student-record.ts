@@ -48,6 +48,17 @@ export function stageOf(stage: string, gradeYear: string): string | null {
   return Number(year) <= 5 ? "anos_iniciais" : "anos_finais";
 }
 
+// Corte etário de 31 de março.
+export function stageFromAge(birthDate: string, now: Date): string {
+  const [year, month] = birthDate.split("-").map(Number);
+  const age = now.getUTCFullYear() - year - (month > 3 ? 1 : 0);
+  if (age <= 5) return "educacao_infantil";
+  if (age <= 10) return "anos_iniciais";
+  if (age <= 14) return "anos_finais";
+  if (age <= 17) return "ensino_medio";
+  return "eja";
+}
+
 export function dateOf(text: string): string | null {
   const value = text.trim();
   const br = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(value);

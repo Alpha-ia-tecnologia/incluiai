@@ -22,15 +22,15 @@ npm run dev              # http://localhost:3000
 
 Testes: `npm run test:unit` (regras puras), `BASE=http://127.0.0.1:3214 node e2e-test.mjs` (jornadas no navegador) e `BASE=… node visual-check.mjs [pasta]` (todas as telas: acessibilidade com axe, sem rolagem horizontal a 320 px, um único h1 e sem erro de cliente; `TEXT_SCALE=3` repete tudo com o texto no tamanho maior). Os dois últimos rodam contra um build (`next build` + `next start`) com um banco de demonstração.
 
-Opcional — IA (todas as chaves no `.env`, comentadas como exemplo):
-- `ANTHROPIC_API_KEY` liga os agentes de IA (modelo padrão `claude-opus-5-5`; troque com `ANTHROPIC_MODEL`).
+Opcional — IA (todas as chaves no `.env`, comentadas como exemplo; a aplicação lê cada variável de ambiente num lugar só, `src/lib/env-config.ts`):
+- `ANTHROPIC_API_KEY` liga os agentes de IA (modelo padrão `claude-opus-5-5`; troque com `ANTHROPIC_MODEL`; o assistente usa o mesmo modelo, ou o de `ASSISTANT_MODEL`).
 - **Autorizações da família** (`/familia/[id]`, cartão Autorizações): a IA só recebe dados de um estudante cuja família autorizou o uso (sem isso, plano, atividades, materiais e apoios do DUA saem pelas regras da plataforma e o assistente não consulta o estudante), e o terapeuta só vê o estudante e envia orientações com a conexão autorizada. A família pode retirar as autorizações a qualquer momento; cada decisão fica no histórico de acessos.
 - `SESSION_COOKIE_SECURE`: em produção o cookie da sessão só trafega por HTTPS. Para testar o build de produção em `http://` fora do `localhost`/`127.0.0.1`, use `SESSION_COOKIE_SECURE=0`.
 - `NETWORK_NAME` (ex.: `NETWORK_NAME="Secretaria Municipal de Educação de …"`): nome da rede no cabeçalho das atividades impressas do banco de recursos (plano de atividade, registro da aplicação e folhas de material). Sem a variável, o cabeçalho traz a linha "Rede de ensino" em branco; escola, turma, data, estudante e professor(a) são sempre preenchidos à mão.
 - `REQUIRE_2FA=1` (recomendado em produção): a equipe da escola e a da rede só entram com a verificação em duas etapas; quem ainda não ligou liga logo depois da senha, em `/login/duas-etapas`. Sem a variável, cada pessoa liga quando quiser em **Segurança da conta** (`/conta/seguranca`, no menu com o nome). Família e terapeuta podem ligar, sem obrigação.
-- `DEEPSEEK_API_KEY` **com** `DEEPSEEK_ENABLED=1` liga o DeepSeek como fallback quando o Claude falha (sem a ligação explícita, a chave sozinha não basta) (modelo padrão `deepseek-flash`; troque com `DEEPSEEK_MODEL`). **LGPD:** a DeepSeek processa e armazena dados na China; cada uso fica registrado no histórico de acessos visto pela família.
-- `OPENAI_API_KEY` liga as imagens de apoio das atividades (pictogramas), pela OpenAI (modelo padrão `gpt-image-2.5-flare`; troque com `OPENAI_IMAGE_MODEL`).
-- `SMTP_URL` (ex.: `smtps://usuario:senha@smtp.prefeitura.gov.br`) **com** `EMAIL_FROM` ligam o e-mail dos avisos, para quem escolher recebê-lo. `APP_URL` é o endereço da plataforma que vai no link do e-mail.
+- `DEEPSEEK_API_KEY` **com** `DEEPSEEK_ENABLED=1` liga o DeepSeek como fallback quando o Claude falha (sem a ligação explícita, a chave sozinha não basta) (modelo padrão `deepseek-flash`; troque com `DEEPSEEK_MODEL`; `DEEPSEEK_BASE_URL` troca o endereço da API). **LGPD:** a DeepSeek processa e armazena dados na China; cada uso fica registrado no histórico de acessos visto pela família.
+- `OPENAI_API_KEY` liga as imagens de apoio das atividades (pictogramas), pela OpenAI (modelo padrão `gpt-image-2.5-flare`; troque com `OPENAI_IMAGE_MODEL`; `OPENAI_BASE_URL` troca o endereço da API).
+- `SMTP_URL` (ex.: `smtps://usuario:senha@smtp.prefeitura.gov.br`) **com** `EMAIL_FROM` ligam o e-mail dos avisos, para quem escolher recebê-lo. `APP_URL` é o endereço da plataforma que vai no link do e-mail e no QR da carteirinha (sem ele, vale o endereço pelo qual a pessoa acessou).
 
 ### Contas de demonstração (senha `demo123`)
 
@@ -243,7 +243,7 @@ No planejamento com DUA, a aba **Níveis** gera, a partir da atividade da turma 
 - As três têm o mesmo tema, o mesmo objetivo e a mesma habilidade da BNCC.
 - Sem IA, a plataforma gera os níveis por regras: o padrão é a atividade organizada; com mais apoio, uma ordem por linha e o apoio de cada questão; com desafio, explicar ou criar uma pergunta parecida.
 - Cada nível é ajustado, aprovado e impresso à parte, e a folha não diz o nível.
-- Regras puras em `src/lib/task-adaptation.ts`, com testes.
+- Regras puras em `src/lib/adapted-tasks-core.ts`, com testes.
 
 ## Sondagem com linha de base e reavaliação
 
@@ -434,7 +434,7 @@ O INEP não tem API pública. A troca oficial é o **arquivo de migração** (TX
     - Os tipos de deficiência não são guardados: a plataforma não precisa deles.
     - Ao aplicar ou descartar, a prévia perde os dados das pessoas.
 
-Regras puras em `src/lib/educacenso.ts` e `src/lib/census-rules.ts`, com testes.
+Regras puras em `src/lib/educacenso.ts`, `src/lib/census-core.ts` e `src/lib/student-identity.ts` (quem é o mesmo estudante), com testes; a verificação e o agendador ficam em `src/lib/census-monitor.ts`.
 
 ## Habilidades da BNCC
 
@@ -478,7 +478,7 @@ Todas as telas têm o botão de Libras do VLibras, o tradutor do governo federal
 
 Em **Pessoas e acessos** (`/usuarios`), a gestão cuida das contas sem depender de quem administra o banco:
 
-- **Quem gerencia quem** (`src/lib/user-admin.ts`, com testes): a Secretaria cuida da equipe das escolas e da rede (não das famílias: ela vê a rede em números); a gestão e a coordenação cuidam da equipe da própria escola, das famílias e dos terapeutas dos estudantes dela. Ninguém altera a própria conta por aqui.
+- **Quem gerencia quem** (`src/lib/accounts-core.ts`, com testes): a Secretaria cuida da equipe das escolas e da rede (não das famílias: ela vê a rede em números); a gestão e a coordenação cuidam da equipe da própria escola, das famílias e dos terapeutas dos estudantes dela. Ninguém altera a própria conta por aqui.
 - **Criar:** nome, e-mail, perfil e escola (equipe) ou estudantes vinculados (família e terapeuta, um ou mais). A plataforma gera uma **senha temporária**, mostrada uma vez para a gestão entregar; no primeiro acesso, a pessoa cria a própria senha (`/login/nova-senha`) antes de entrar.
 - **Alterar:** perfil, escola e vínculos (a escola só mexe nos vínculos com estudantes dela). Mudou o acesso, as sessões da pessoa são encerradas.
 - **Senha esquecida:** nova senha temporária, com as sessões encerradas. **Celular perdido:** a gestão desliga as duas etapas, e a pessoa liga de novo no próximo acesso.
@@ -546,16 +546,16 @@ A trilha sonora de fundo é `scripts/tutoriais/trilha.flac`. Ela entra uns 16 dB
   - `plan-rules.ts` — proposta de plano pelo motor de regras (sem IA)
 - `images/` — imagens de apoio das atividades pela OpenAI (sequência visual dos passos, ilustração ou cartões de escolha), geradas sob pedido ou junto com as atividades. O pedido não leva nome nem dados pessoais; a imagem fica no banco e é servida por `/api/atividades/[id]/imagem` só para quem tem acesso ao estudante
 - `dua/` — planejamento com DUA: `domain.ts` (modelo, validação, evidências, próximos passos, materiais), `access.ts` (quem lê, edita, valida e compartilha), `checks.ts` (preparação do contexto, sugestões por regras e verificações), `suggestion-agents.ts` (os agentes das sugestões em grafo: analista das barreiras, um especialista por princípio do DUA e revisor), e a camada de dados (`plannings.ts`, `suggestions.ts`, `supports.ts`, `applications.ts`, `materials.ts`, `indicators.ts`). Testes com `node --test` ao lado (`*.test.mjs`). A ficha do estudante tem também testes de ponta a ponta com Playwright (`e2e-playwright/`, `BASE=http://localhost:3213 npm run test:e2e:playwright`, com o Chrome do sistema e a plataforma já no ar): cadastro, abas, trilha, estudo de caso, registro de referência do Censo, plano, Como aprende, impressão do banco de recursos e telas de gestão, sem chamar os agentes de IA
-- `materials.ts` — perguntas para reunião
+- `meeting-questions.ts` — perguntas para reunião
 - `material-content.ts` (puro, com testes) — os 6 tipos de material de apoio, o conteúdo (cartões com descrição do pictograma, como preparar e usar, atividades para aplicar com o que registrar depois, porquê de cada adaptação), as verificações e o motor de regras; `material-generate.ts` — geração pela IA (`agents/material-agent.ts`) ou pelas regras, aprovação, imagens por cartão (`images/material-images.ts`) e "levar para Atividades"
 - `agents/material-agent.ts` — os agentes do material de apoio, em grafo: o Criador de materiais faz os cartões; os agentes da sala comum, do AEE e da família criam, em paralelo, a atividade que aplica os cartões em cada contexto; o Revisor do material confere a aderência ao pedido, ao objetivo do plano, ao perfil e às regras de adaptação e devolve só a parte reprovada (uma correção; o que sobrar vira ponto para o professor conferir). Testado sem chamar a API em `material-agent.test.mjs`
 - `insights.ts` — tendências por objetivo, alertas, estratégias que funcionaram
 - `games/games-core.ts` (puro, com testes) — jogos educativos: temas, rotinas, rodadas, nível sugerido pelo apoio e a nota do registro
 - `student-card-core.ts` (puro, com testes) e `student-card.ts` — carteirinha digital: código do QR, foto sem metadados, telefone, "Como me ajudar" e quem vê ou faz a carteirinha
-- `health-report.ts` — laudos do estudo de caso: arquivos aceitos, campos que a leitura pode sugerir, revisão e junção ao estudo de caso; `agents/health-report-reader.ts` — extração do texto do PDF, anonimização própria de laudo e leitura pelo Claude
+- `health-reports-core.ts` (puro) e `health-reports.ts` — laudos do estudo de caso: arquivos aceitos, campos que a leitura pode sugerir, revisão e junção ao estudo de caso; `agents/health-report-reader.ts` — extração do texto do PDF, anonimização própria de laudo e leitura pelo Claude
 - `auth.ts` — sessão, hash e controle de acesso por perfil
 - `bncc-core.ts` (puro, com testes) e `bncc.ts` — base da BNCC: recorte pelo estudante, busca e sugestão de habilidades
-- `user-admin.ts` (puro, com testes) e `accounts.ts` — gestão de contas: escopo de quem gerencia, vínculos, senha temporária e histórico
+- `accounts-core.ts` (puro, com testes) e `accounts.ts` — gestão de contas: escopo de quem gerencia, vínculos, senha temporária e histórico
 - `totp.ts` (puro, com testes dos vetores da RFC 6238) e `two-factor.ts` — verificação em duas etapas: código do aplicativo, QR code desenhado no servidor (biblioteca `qrcode`, nada sai para serviço externo) e códigos de recuperação
 
 ## Salvaguardas (itens 14 e 17.7)

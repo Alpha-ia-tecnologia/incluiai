@@ -12,8 +12,6 @@ import { DataBoard, DataCard } from "@/components/data-viz";
 import { VersionSteps, type VersionStep } from "@/components/viz/version-steps";
 import { Assurances, HowToRead } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 const OBJECT_TYPE_LABEL: Record<string, string> = {
   planejamento: "Planejamento",
   versao: "Versão",

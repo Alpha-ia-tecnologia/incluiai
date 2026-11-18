@@ -245,11 +245,6 @@ html[data-text-scale] .status-pill { white-space: normal; }
 .dashboard-side { align-self: start; border-radius: 30px; background: var(--surface-muted); padding: 22px 18px; }
 .pastel-card { transition: transform 180ms ease, box-shadow 180ms ease; }
 a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2); }
-.stat-card { min-height: 177px; border-radius: 22px; padding: 20px 22px; }
-.stat-lilac { background: var(--lilac); }
-.stat-lilac-soft { background: var(--lilac-soft); }
-.stat-lilac-cool { background: var(--lilac-cool); }
-.stat-lilac-warm { background: var(--lilac-warm); }
 @layer components { .ui-card { border: 1px solid var(--line); border-radius: 22px; background: var(--paper-raised); padding: 22px; } }
 /* Painel de indicadores: quadro cinza com cartões brancos, destaque em marinho
    (dash-hero + surface-navy), texturas listradas e linha de etapas. As ações,
@@ -336,7 +331,7 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
 @keyframes respira { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes sprout { from { opacity: 0; transform: scaleY(0.2); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: no-preference) {
-  main .ui-card, main .dash-card, main .pastel-card, main .stat-card, main .page-hero { animation: rise 260ms var(--ease-alpha) both; }
+  main .ui-card, main .dash-card, main .pastel-card, main .page-hero { animation: rise 260ms var(--ease-alpha) both; }
   main .dash-board > :nth-child(2) { animation-delay: 40ms; }
   main .dash-board > :nth-child(3) { animation-delay: 80ms; }
   main .dash-board > :nth-child(n + 4) { animation-delay: 120ms; }
@@ -380,13 +375,11 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
 @media (max-width: 1279px) {
   .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
   .dashboard-side { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-  .dashboard-profile { grid-column: 1 / -1; }
 }
 @media (max-width: 767px) {
   .app-frame { display: block; margin: 8px; padding: 0; min-height: calc(100dvh - 16px); border-radius: 24px; }
   .nav-rail { display: none; }
   .app-content { padding: 18px 18px 92px; }
-  .stat-card { min-height: 156px; padding: 16px; border-radius: 19px; }
   .ui-card { padding: 18px; border-radius: 19px; }
   .dashboard-side { display: block; padding: 22px 18px; }
   .dashboard-side > section + section { margin-top: 26px; }

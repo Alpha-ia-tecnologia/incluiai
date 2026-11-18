@@ -1,74 +1,9 @@
 import Link from "next/link";
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { supportInfo } from "@/lib/scale";
-import { Character, type CharacterVariant } from "./character";
+import type { CharacterVariant } from "@/lib/characters";
+import { Character } from "./character";
 import { BUTTON_CLS, type ButtonVariant } from "./form-styles";
-
-function ProgressRing({ pct }: { pct: number }) {
-  const r = 24;
-  const c = 2 * Math.PI * r;
-  const clamped = Math.min(100, Math.max(0, pct));
-  return (
-    <svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label={`${clamped}%`} className="shrink-0 -rotate-90">
-      <circle cx="32" cy="32" r={r} fill="none" stroke="var(--line)" strokeWidth="6" />
-      <circle
-        cx="32" cy="32" r={r} fill="none"
-        stroke="var(--brand)" strokeWidth="6" strokeLinecap="round"
-        strokeDasharray={`${(clamped / 100) * c} ${c}`}
-        className="viz-ring"
-      />
-      <text x="32" y="32" transform="rotate(90 32 32)" textAnchor="middle" dominantBaseline="central"
-        className="fill-[var(--ink)] text-sm font-semibold tabular-nums">
-        {clamped}%
-      </text>
-    </svg>
-  );
-}
-
-type KpiTone = "info" | "amber" | "coral" | "green" | "neutral";
-
-const KPI_CARD_TONES: Record<KpiTone, string> = {
-  info: "bg-sky-soft/60",
-  amber: "bg-amber-soft",
-  coral: "bg-coral-soft",
-  green: "bg-green-soft",
-  neutral: "bg-surface-muted",
-};
-
-const KPI_ICON_TONES: Record<KpiTone, string> = {
-  info: "bg-sky-soft text-sky-ink",
-  amber: "bg-amber-soft text-amber",
-  coral: "bg-coral-soft text-coral",
-  green: "bg-green-soft text-green",
-  neutral: "bg-line/60 text-ink-soft",
-};
-
-export function KpiCard({
-  value, label, sub, pct, icon: Icon, tone = "info",
-}: {
-  value: string | number;
-  label: string;
-  sub?: string;
-  pct?: number | null;
-  icon?: ComponentType<{ size?: number | string; className?: string; "aria-hidden"?: boolean }>;
-  tone?: KpiTone;
-}) {
-  return (
-    <Card className={`flex items-center gap-4 ${KPI_CARD_TONES[tone]}`}>
-      <div className="min-w-0 flex-1">
-        {Icon ? (
-          <span className={`mb-3 inline-flex size-9 items-center justify-center rounded-full ${KPI_ICON_TONES[tone]}`}>
-            <Icon size={16} aria-hidden />
-          </span>
-        ) : null}
-        <div className={`font-display text-4xl font-medium leading-none ${tone === "coral" ? "text-coral" : "text-ink"}`}>{value}</div>
-        <div className="mt-1.5 text-xs font-medium text-ink/80">{label}</div>
-        {sub ? <div className="mt-0.5 text-xs text-ink/80">{sub}</div> : null}
-      </div>
-      {typeof pct === "number" ? <ProgressRing pct={pct} /> : null}
-    </Card>
-  );
-}
 
 export function PageHeader({ title, lede, actions, level = 1 }: { title: string; lede?: string; actions?: ReactNode; level?: 1 | 2 }) {
   const Heading = level === 1 ? "h1" : "h2";
@@ -105,15 +40,6 @@ export function PageHero({ title, lede, eyebrow, character, actions, children, p
       </div>
       <Character variant={character} className="row-start-1 w-14 sm:col-start-2 sm:w-32 lg:w-40" preload={preload} />
     </section>
-  );
-}
-
-export function HeroStat({ value, label }: { value: ReactNode; label: string }) {
-  return (
-    <div className="min-w-0 rounded-xl bg-paper-raised px-4 py-3">
-      <p className="font-display font-bold text-2xl leading-none tracking-tight text-ink tabular-nums">{value}</p>
-      <p className="mt-1.5 text-xs leading-snug text-ink-soft">{label}</p>
-    </div>
   );
 }
 

@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 import { planningContext } from "@/lib/page-context";
 import { canReadFiles, isAIEnabled } from "@/lib/agents/capabilities";
 import { taskContent } from "@/lib/adapted-tasks";
-import { LEVEL_LABEL, type LevelKey } from "@/lib/task-adaptation";
+import { LEVEL_LABEL, type LevelKey } from "@/lib/adapted-tasks-core";
 import { formatDate } from "@/lib/format";
 import { adaptTask, saveTask } from "@/actions/adapted-tasks";
 import { Badge, Card, SectionTitle } from "@/components/ui";
@@ -13,8 +13,6 @@ import { AdaptedView } from "@/components/adapted/adapted-view";
 import { AdaptedEditor } from "@/components/adapted/adapted-editor";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
-
-export const dynamic = "force-dynamic";
 
 const ORDER: LevelKey[] = ["mais_apoio", "padrao", "desafio"];
 

@@ -8,7 +8,7 @@ import { registerResourceUse } from "@/actions/resources";
 import { ActionForm } from "@/components/action-form";
 import { CONTEXTS, STAGES } from "@/lib/scale";
 import { parseJson } from "@/lib/format";
-import { COMPLEXITY_LABELS, RESOURCE_TYPES, resourcePresentation } from "@/lib/resource-bank";
+import { COMPLEXITY_LABELS, resourcePresentation, resourceTypeLabel } from "@/lib/resource-bank";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { DataBoard, DataCard, StatTile } from "@/components/data-viz";
 import { BarList, SIGNAL } from "@/components/charts";
@@ -26,8 +26,6 @@ import {
   PackageOpen, ListChecks, SlidersHorizontal, ClipboardCheck, Sprout,
 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
 export default async function ResourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
@@ -43,7 +41,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   const guide = resourcePresentation(resource);
   const network = await networkName();
-  const resourceType = RESOURCE_TYPES[resource.resourceType] ?? resource.resourceType;
+  const resourceType = resourceTypeLabel(resource.resourceType);
   const successRate = percentOf(resource.positiveOutcomes, resource.timesUsed);
   const outcomes = [
     { key: "boa_resposta", label: "Boa resposta", value: resource.positiveOutcomes, color: SIGNAL.lime },
@@ -149,9 +147,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           const materials = parseJson<string[]>(activity.materials, []);
           const steps = parseJson<string[]>(activity.steps, []);
           const adaptations = parseJson<string[]>(activity.adaptations, []);
-          const activityRate = activity.timesUsed > 0
-            ? Math.round((activity.positiveOutcomes / activity.timesUsed) * 100)
-            : null;
+          const activityRate = percentOf(activity.positiveOutcomes, activity.timesUsed);
           const register = registerResourceUse.bind(null, resource.id, activity.id);
           const sheets = activityPrintMaterials(resource.title, activity.title);
 

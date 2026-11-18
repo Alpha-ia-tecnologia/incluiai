@@ -1,6 +1,7 @@
 import "server-only";
 import { headers } from "next/headers";
-import { MunicipalityUnavailableError, currentTenant, isPlatformArea, platformDomain, type MunicipalityRecord, type Tenant } from "./prisma";
+import { MunicipalityUnavailableError, currentTenant, isPlatformArea, type MunicipalityRecord, type Tenant } from "./prisma";
+import { platformDomain } from "./env-config";
 import { DEFAULT_BRAND, normalizeHex, type BrandColors } from "./branding/palette";
 import { municipalityAddress, requestHost } from "./tenancy-core";
 

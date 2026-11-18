@@ -17,7 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Character } from "@/components/character";
-import { CreatedNotice } from "@/components/materials/created-notice";
+import { CreatedNotice } from "@/components/created-notice";
 import { Assurances } from "@/components/explain";
 import { BUTTON_CLS } from "@/components/form-styles";
 import {

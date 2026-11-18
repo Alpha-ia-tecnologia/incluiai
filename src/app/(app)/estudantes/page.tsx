@@ -18,8 +18,6 @@ import { JOURNEY_STEPS } from "@/lib/dashboard";
 import { percentOf } from "@/lib/series";
 import { ArrowLeft, ArrowRight, FileSpreadsheet, Layers, Plus, Search, Sprout } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
 type Query = { [key: string]: string | string[] | undefined };
 const first = (value: string | string[] | undefined) => typeof value === "string" ? value : "";
 const normalized = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim();

@@ -1,15 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectEdition, identityKeys, normalizeName, parseEducacensoFile, parseInterval, schedulesOverlap, specialEdPersons, titleCase, toIsoDate } from "./educacenso.ts";
+import { detectEdition, parseEducacensoFile, parseInterval, schedulesOverlap, specialEdPersons, titleCase, toIsoDate } from "./educacenso.ts";
 import { sampleFile } from "./educacenso.fixture.mjs";
 
-test("datas, nomes, horários e chaves de identidade", () => {
+test("datas, nomes e horários", () => {
   assert.equal(toIsoDate("12/03/2019"), "2019-03-12");
   assert.equal(toIsoDate("30/02/2018"), "");
   assert.equal(toIsoDate("2019-03-12"), "");
-  assert.equal(normalizeName("  Lívia   Martins "), "LIVIA MARTINS");
   assert.equal(titleCase("MARIA DA SILVA E SOUZA"), "Maria da Silva e Souza");
-  assert.deepEqual(identityKeys({ name: "Dante Ribeiro", inepId: "1234", cpf: "111.222.333-44", birthDate: "2019-03-12" }), ["inep:1234", "cpf:11122233344", "nb:DANTE RIBEIRO|2019-03-12"]);
   assert.deepEqual(parseInterval("07:30-11:00"), [450, 660]);
   assert.deepEqual(parseInterval("11:00-07:00"), [0, 0]);
   assert.deepEqual(parseInterval(""), [0, 0]);

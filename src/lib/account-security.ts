@@ -5,7 +5,7 @@ import { isPlatformRole } from "./roles";
 import { LOGIN_WINDOW_MS, loginBlocked } from "./session-core";
 import { newTotpSecret } from "./totp";
 import { confirmTwoFactor, consumeSecondFactor, newRecoveryCodesFor } from "./two-factor";
-import { passwordProblem } from "./user-admin";
+import { passwordProblem } from "./accounts-core";
 import { UserError } from "./user-error";
 
 type Actor = { id: string; name: string; role: string };
@@ -24,6 +24,11 @@ export const ACCOUNT_EVENT = {
   recoveryCodesRenewed: "gerou novos códigos de recuperação",
 } as const;
 type AccountEvent = (typeof ACCOUNT_EVENT)[keyof typeof ACCOUNT_EVENT];
+
+export async function accountEvents(userId: string, take: number) {
+  const prisma = await db();
+  return prisma.accountEvent.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take });
+}
 
 export async function recordAccountEvent(userId: string, actor: Actor, action: AccountEvent, detail?: string): Promise<void> {
   const prisma = await db();

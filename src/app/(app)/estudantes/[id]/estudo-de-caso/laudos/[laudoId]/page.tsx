@@ -4,15 +4,13 @@ import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, Sprout, Trash2 } from "
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
-import { REPORT_FIELDS, canRetryReading, isReadingStalled, parseAccepted, parseReading, reviewRows, type ReviewRow } from "@/lib/health-report";
+import { REPORT_FIELDS, canRetryReading, isReadingStalled, parseAccepted, parseReading, reviewRows, type ReviewRow } from "@/lib/health-reports-core";
 import { formatDate } from "@/lib/format";
 import { deleteHealthReportAction, retryHealthReportAction, reviewHealthReportAction } from "@/actions/health-reports";
 import { AIDisclaimer, ButtonLink, Card, PageHeader } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
 import { ActionForm } from "@/components/action-form";
 import { choiceCls, BUTTON_CLS, linkCls } from "@/components/form-styles";
-
-export const dynamic = "force-dynamic";
 
 const h3 = "text-base font-semibold text-ink";
 const quote = (value: string) => `“${value}”`;

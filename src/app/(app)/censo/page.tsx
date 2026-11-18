@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, CalendarClock, EyeOff, FileDown, GitCompareArrows, ShieldCheck, Upload, UserLock } from "lucide-react";
-import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { censusOverview } from "@/lib/census";
-import { getMonitor } from "@/lib/census-core";
-import { brMoment, fundebComparison, monitorState } from "@/lib/census-rules";
+import { getMonitor, recentChecks } from "@/lib/census-monitor";
+import { brMoment, fundebComparison, monitorState } from "@/lib/census-core";
 import { STAGE_GROUPS } from "@/lib/educacenso";
 import { smallNumber } from "@/lib/assessment";
-import { parseJson } from "@/lib/format";
 import { saveCensusWindow, saveFndeCount, verifyCensusNow } from "@/actions/census";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
@@ -17,19 +15,16 @@ import { Assurances, HowToRead, Steps } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";
 import { CENSUS_RULES } from "@/lib/federal-guidance";
 
-export const dynamic = "force-dynamic";
-
 const STATUS_TONE = { ativo: "green", aguardando: "brand", fora: "amber", desligado: "neutral" } as const;
 
 // Censo Escolar (Educacenso): o INEP não tem API. A escola exporta o arquivo de migração.
 export default async function CensusPage() {
-  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const overview = await censusOverview(user);
   if (!overview) redirect("/");
   const now = new Date();
-  const [{ row: monitor, config }, checks] = await Promise.all([getMonitor(now), prisma.censusCheck.findMany({ orderBy: { at: "desc" }, take: 10 })]);
+  const [{ row: monitor, config }, checks] = await Promise.all([getMonitor(now), recentChecks()]);
   const state = monitorState(config, now, checks[0]?.at ?? null);
   const { access, totals } = overview;
   const count = (value: number) => (access.network ? smallNumber(value) : String(value));
@@ -171,14 +166,11 @@ export default async function CensusPage() {
           <h2 id="censo-historico" className="text-base font-medium text-ink">Histórico das verificações</h2>
           {checks.length ? (
             <ul className="grid gap-2 text-sm text-ink">
-              {checks.map((check) => {
-                const schools = parseJson<{ schoolId: string }[]>(check.schools, []);
-                return (
-                  <li key={check.id} className="rounded-xl bg-surface-muted/60 px-4 py-2.5">
-                    <span className="font-medium">{brMoment(check.at)}</span> · {check.trigger === "agendada" ? "agendada" : `manual, por ${check.actorName}`} · {check.ok ? `${check.confirmed} confirmados e ${count(check.pending)} com pendência em ${schools.length === 1 ? "1 escola" : `${schools.length} escolas`}` : "nenhuma escola com arquivo aplicado"}
-                  </li>
-                );
-              })}
+              {checks.map((check) => (
+                <li key={check.id} className="rounded-xl bg-surface-muted/60 px-4 py-2.5">
+                  <span className="font-medium">{brMoment(check.at)}</span> · {check.trigger === "agendada" ? "agendada" : `manual, por ${check.actorName}`} · {check.ok ? `${check.confirmed} confirmados e ${count(check.pending)} com pendência em ${check.schools === 1 ? "1 escola" : `${check.schools} escolas`}` : "nenhuma escola com arquivo aplicado"}
+                </li>
+              ))}
             </ul>
           ) : (
             <EmptyState character="care" title="Nenhuma verificação ainda" hint="Aparecem nos horários da janela ou em Verificar agora." />

@@ -7,8 +7,6 @@ import { DRAFT_NOTICE } from "@/lib/dua/domain";
 import { PrintButton } from "@/components/print-button";
 import { MaterialMetaList, materialMeta } from "@/components/dua/materials/material-meta";
 
-export const dynamic = "force-dynamic";
-
 export default async function MaterialPrintPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const { id, materialId } = await params;
   const { user } = await planningContext(id);

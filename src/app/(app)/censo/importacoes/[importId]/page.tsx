@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookmarkCheck, FileX2, Link2, ShieldCheck, TriangleAlert, UserPlus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { loadImport, maskCpf } from "@/lib/census";
-import { brMoment, type FieldDiff, type PlanItem } from "@/lib/census-rules";
+import { brMoment, type FieldDiff, type PlanItem } from "@/lib/census-core";
 import { STAGES } from "@/lib/scale";
 import { STAGE_GROUPS } from "@/lib/educacenso";
 import { applyCensusImport, decideCensusPerson, discardCensusImport, undoCensusDecision } from "@/actions/census";
@@ -13,8 +13,6 @@ import { DataBoard, StatTile } from "@/components/data-viz";
 import { CensusApplyForm, CensusDecisionForm } from "@/components/census/census-forms";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, Steps } from "@/components/explain";
-
-export const dynamic = "force-dynamic";
 
 const brDay = (iso: string) => (iso ? iso.split("-").reverse().join("/") : "sem data");
 const shown = (diff: FieldDiff, value: string) => (diff.field === "cpf" ? maskCpf(value) || "vazio" : diff.field === "birthDate" ? (value ? brDay(value) : "vazio") : value || "vazio");

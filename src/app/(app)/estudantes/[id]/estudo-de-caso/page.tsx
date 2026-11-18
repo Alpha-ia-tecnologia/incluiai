@@ -12,12 +12,10 @@ import { PillLink } from "@/components/pill-link";
 import { Character } from "@/components/character";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { PrintButton } from "@/components/print-button";
-import { CreatedNotice } from "@/components/materials/created-notice";
+import { CreatedNotice } from "@/components/created-notice";
 import { HealthReportsNote } from "@/components/health-report-note";
 import { ActionForm } from "@/components/action-form";
 import { hintCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
-
-export const dynamic = "force-dynamic";
 
 function FieldInput({ field, value }: { field: CaseStudyField; value: string }) {
   const label = field.requiredToConclude ? `${field.label} *` : field.label;

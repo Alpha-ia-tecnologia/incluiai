@@ -7,8 +7,6 @@ import { formatDuration } from "@/lib/tutorials-core";
 import { Badge, PageHeader } from "@/components/ui";
 import { TutorialCard } from "@/components/tutorial-card";
 
-export const dynamic = "force-dynamic";
-
 export default async function TutorialPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

@@ -7,8 +7,6 @@ import { can } from "@/lib/roles";
 import { PageHero, Card } from "@/components/ui";
 import { ArrowRight } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
 export default async function FamilyPortalIndex() {
   const prisma = await db();
   const user = await getCurrentUser();

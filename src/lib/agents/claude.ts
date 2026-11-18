@@ -1,11 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { AgentOutputError, type AgentModel, type AgentRequest } from "./types";
+import { claudeSettings } from "../env-config";
 
-export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+export const CLAUDE_MODEL = claudeSettings().model;
 
 let client: Anthropic | null = null;
-export const claudeClient = () => (client ??= new Anthropic());
+export const claudeClient = () => (client ??= new Anthropic({ apiKey: claudeSettings().apiKey }));
 
 // Se o modelo recusar por política, a API tenta o substituto recomendado.
 export const SERVER_FALLBACK = { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" } as const;

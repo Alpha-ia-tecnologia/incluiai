@@ -7,7 +7,7 @@ import { AUDIT_ACTION, recordChange } from "../audit";
 import { runAiJob } from "./job";
 import { DOCUMENT_MARKER_LIST, DOCUMENT_PATTERNS, replacePatterns } from "./redactor";
 import { SAFEGUARDS } from "../pedagogy-rules";
-import { REPORT_FIELDS, REPORT_FIELD_KEYS, fieldOptions, normalizeReading, type RawReading } from "../health-report";
+import { REPORT_FIELDS, REPORT_FIELD_KEYS, fieldOptions, normalizeReading, type RawReading } from "../health-reports-core";
 
 // Fica fora dos arquivos "use server" para não virar uma ação pública.
 

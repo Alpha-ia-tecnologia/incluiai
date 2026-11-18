@@ -28,8 +28,6 @@ import { UsageMeter } from "@/components/viz/usage-meter";
 import { Character } from "@/components/character";
 import { PrintButton } from "@/components/print-button";
 
-export const dynamic = "force-dynamic";
-
 const ACCESS_LABELS: Record<string, string> = { [AUDIT_ACTION.viewed]: "Consultas", [AUDIT_ACTION.created]: "Inclusões", [AUDIT_ACTION.edited]: "Alterações", [AUDIT_ACTION.sent]: "Envios à IA de reserva (DeepSeek)" };
 const SHORT_ALERTS: Record<string, string> = { sem_registro: "Sem registro há 7+ dias", plano_vencido: "Revisão vencida", sem_plano: "Sem plano", queda_participacao: "Queda de participação" };
 
@@ -175,7 +173,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       };
     }
     const current = g[gaugeKey];
-    const delta = current.value !== null && current.previous !== null ? current.value - current.previous : null;
+    const delta = pointsDelta(current);
     const pill = current.value === null ? { tone: "neutral" as Tone, text: "Sem registros" }
       : delta === null ? { tone: "neutral" as Tone, text: period === "tudo" ? "Todo o histórico" : "Sem comparação" }
         : delta > 0 ? { tone: "good" as Tone, text: `▲ ${delta} pts` }

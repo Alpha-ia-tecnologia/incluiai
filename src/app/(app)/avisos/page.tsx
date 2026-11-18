@@ -1,27 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bell } from "lucide-react";
-import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { emailConfigured } from "@/lib/email";
 import { formatDate } from "@/lib/format";
+import { readNotices } from "@/lib/notifications";
 import { setNoticePrefs } from "@/actions/notifications";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { NoticePrefsForm } from "@/components/notice-forms";
 
-export const dynamic = "force-dynamic";
-
 export default async function NoticesPage() {
-  const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const [notices, prefs] = await Promise.all([
-    prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 50 }),
-    prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { notifyByEmail: true, weeklyCheckIn: true } }),
-  ]);
-  const unread = new Set(notices.filter((notice) => !notice.readAt).map((notice) => notice.id));
-  if (unread.size) await prisma.notification.updateMany({ where: { userId: user.id, readAt: null }, data: { readAt: new Date() } });
+  const { notices, unread, prefs } = await readNotices(user);
   return (
     <>
       <PageHeader title="Avisos" />

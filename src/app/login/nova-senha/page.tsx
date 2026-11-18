@@ -5,8 +5,6 @@ import { setPasswordAtLogin } from "@/actions/account";
 import { LoginStepFrame } from "@/components/login-step-frame";
 import { PasswordForm } from "@/components/password-form";
 
-export const dynamic = "force-dynamic";
-
 export default async function NewPasswordPage() {
   if (await getCurrentUser()) redirect("/");
   const pending = await getPendingLogin();

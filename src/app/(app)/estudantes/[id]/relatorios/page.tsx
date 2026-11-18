@@ -10,8 +10,6 @@ import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/
 import { NewReportForm } from "@/components/reports/report-forms";
 import { Assurances, Steps } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 export default async function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;

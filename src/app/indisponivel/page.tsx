@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { TenantStatus } from "@/components/tenant-status";
-import { currentTenant, platformDomain } from "@/lib/prisma";
+import { currentTenant } from "@/lib/prisma";
+import { platformDomain } from "@/lib/env-config";
 import { isAvailable } from "@/lib/tenant";
 
 export default async function UnavailablePage() {

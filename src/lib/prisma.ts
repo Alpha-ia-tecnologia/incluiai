@@ -2,7 +2,8 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { isAbsolute, resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
-import { PLATFORM_HEADER, TENANT_HEADER, municipalityDatabaseUrl, normalizeDomain, parseHost, requestHost, sqliteFile, type MunicipalityStatus } from "./tenancy-core";
+import { PLATFORM_HEADER, TENANT_HEADER, municipalityDatabaseUrl, parseHost, requestHost, sqliteFile, type MunicipalityStatus } from "./tenancy-core";
+import { isProduction, municipalityDatabaseTemplate, platformDomain } from "./env-config";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -12,7 +13,7 @@ const globalForPrisma = globalThis as unknown as {
 
 const client = globalForPrisma.prisma ?? new PrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
+if (!isProduction()) {
   globalForPrisma.prisma = client;
 }
 
@@ -39,8 +40,6 @@ export type Tenant =
   | { kind: "neutro" }
   | { kind: "municipio"; slug: string; municipality: MunicipalityRecord | null };
 
-export const platformDomain = () => normalizeDomain(process.env.PLATFORM_DOMAIN);
-
 export function platformDb(): PrismaClient {
   return client;
 }
@@ -48,7 +47,7 @@ export function platformDb(): PrismaClient {
 // O SQLite relativo vira absoluto (a partir da pasta prisma/, como faz o Prisma CLI):
 // o cliente e o CLI, rodando de lugares diferentes, abrem o mesmo arquivo.
 export function municipalityUrl(dbName: string, connectionLimit?: number): string {
-  const url = municipalityDatabaseUrl(process.env.MUNICIPIO_DATABASE_URL ?? "", dbName, connectionLimit);
+  const url = municipalityDatabaseUrl(municipalityDatabaseTemplate(), dbName, connectionLimit);
   const file = sqliteFile(url);
   return file && !isAbsolute(file) ? `file:${resolve(process.cwd(), "prisma", file)}${url.slice(`file:${file}`.length)}` : url;
 }

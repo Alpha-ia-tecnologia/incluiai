@@ -6,7 +6,7 @@ import { can } from "@/lib/roles";
 import { loadPlanningFor } from "@/lib/dua/shared";
 import { taskContent } from "@/lib/adapted-tasks";
 import { adaptedDocx } from "@/lib/adapted-docx";
-import { printSettings } from "@/lib/task-adaptation";
+import { printSettings } from "@/lib/adapted-tasks-core";
 import { parseJson } from "@/lib/format";
 import { unavailableResponse } from "@/lib/tenant";
 import { UserError } from "@/lib/user-error";

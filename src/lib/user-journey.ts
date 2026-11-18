@@ -10,7 +10,7 @@ import { firstName, formatDate, parseJson } from "./format";
 import { CHANNELS } from "./scale";
 import { usesAac } from "./pedagogy-rules";
 import { todayInBrazil, upcomingEvents } from "./commemorative-dates";
-import type { CharacterVariant } from "@/components/character";
+import type { CharacterVariant } from "./characters";
 
 export type JourneyMarkKey = "boas_vindas" | "painel" | "recursos" | "calendario" | "cadastros" | "familia_inicio" | "terapeuta_inicio";
 

@@ -5,14 +5,12 @@ import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { studentConsent } from "@/lib/consent";
 import { canReadFiles } from "@/lib/agents/capabilities";
-import { reportStatus } from "@/lib/health-report";
+import { reportStatus } from "@/lib/health-reports-core";
 import { formatDate } from "@/lib/format";
 import { uploadHealthReportAction } from "@/actions/health-reports";
 import { HealthReportUpload } from "@/components/health-report-upload";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
-
-export const dynamic = "force-dynamic";
 
 const sizeText = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 

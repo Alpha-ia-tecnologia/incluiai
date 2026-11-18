@@ -5,14 +5,13 @@ import { redirect } from "next/navigation";
 import { ArrowUpRight, BookOpen, Building2, GraduationCap, Heart, IdCard, School, ShieldCheck, Sparkles, Sprout, Users } from "lucide-react";
 import { PENDING_CARD_COOKIE } from "@/lib/student-card";
 import { getCurrentUser, getPlatformUser } from "@/lib/auth";
-import { db, isPlatformArea } from "@/lib/prisma";
+import { isPlatformArea } from "@/lib/prisma";
 import { currentBrand } from "@/lib/tenant";
 import { LoginForm } from "@/components/login-form";
 import { PlatformLogin } from "@/components/plataforma/platform-login";
 import { Character } from "@/components/character";
 import { roleLabel } from "@/lib/roles";
-
-export const dynamic = "force-dynamic";
+import { demoAccounts } from "@/lib/accounts";
 
 const PROFILES = [
   { role: "secretaria", scope: "A rede inteira e os indicadores", icon: Building2, color: "var(--sky-soft)" },
@@ -24,7 +23,6 @@ const PROFILES = [
 ];
 
 export default async function LoginPage() {
-  const prisma = await db();
   if (await isPlatformArea()) {
     if (await getPlatformUser()) redirect("/plataforma");
     return <PlatformLogin />;
@@ -32,13 +30,13 @@ export default async function LoginPage() {
   const user = await getCurrentUser();
   if (user) redirect("/");
   const brand = await currentBrand();
-  const demoAccounts = await prisma.user.findMany({ where: { demo: true, deactivatedAt: null }, select: { email: true, role: true } });
-  const demo = demoAccounts.length > 0;
+  const accounts = await demoAccounts();
+  const demo = accounts.length > 0;
   const fromCard = Boolean((await cookies()).get(PENDING_CARD_COOKIE)?.value);
   const cards = PROFILES.flatMap((profile) => {
     const label = roleLabel(profile.role);
     if (!demo) return [{ ...profile, label, key: profile.role, detail: profile.scope }];
-    const account = demoAccounts.find((item) => item.role === profile.role);
+    const account = accounts.find((item) => item.role === profile.role);
     return account ? [{ ...profile, label, key: account.email, detail: account.email }] : [];
   });
 

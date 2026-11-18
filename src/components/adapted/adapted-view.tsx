@@ -1,5 +1,5 @@
 import { CheckSquare, MessageCircle, Paintbrush, PencilLine, Spline, TextCursorInput } from "lucide-react";
-import { ANSWER_FORMAT_LABEL, highlightParts, printPages, type AdaptedContent, type AnswerFormat } from "@/lib/task-adaptation";
+import { ANSWER_FORMAT_LABEL, ANSWER_LINES, answerSpaceOf, highlightParts, printPages, type AdaptedContent, type AnswerFormat } from "@/lib/adapted-tasks-core";
 
 const FORMAT_ICON: Record<AnswerFormat, typeof PencilLine> = {
   escrever: PencilLine, marcar: CheckSquare, ligar: Spline, completar: TextCursorInput, desenhar: Paintbrush, oral: MessageCircle,
@@ -32,6 +32,7 @@ export function AdaptedView({ content, highlight, icons, largeText = false, item
         <ol key={pageIndex} className={`grid min-w-0 gap-4 ${pageIndex > 0 ? "print:break-before-page" : ""}`}>
           {page.map((item) => {
             const Icon = FORMAT_ICON[item.answerFormat];
+            const space = answerSpaceOf(item);
             return (
               <li key={item.number} className="min-w-0 rounded-2xl border border-line bg-paper p-4 print:break-inside-avoid">
                 <div className="flex min-w-0 items-start gap-3">
@@ -39,15 +40,15 @@ export function AdaptedView({ content, highlight, icons, largeText = false, item
                   <div className="min-w-0 flex-1">
                     <Prompt text={item.prompt} highlight={highlight} />
                     {icons ? <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-soft"><Icon size={18} aria-hidden /> {ANSWER_FORMAT_LABEL[item.answerFormat]}</p> : null}
-                    {item.options.length ? (
+                    {space === "alternativas" ? (
                       <ul className="mt-3 grid gap-2">
                         {item.options.map((option) => (
                           <li key={option} className="flex items-start gap-2"><span aria-hidden className="mt-1 size-5 shrink-0 rounded border-2 border-ink/50" /><span>{option}</span></li>
                         ))}
                       </ul>
-                    ) : item.answerFormat === "escrever" || item.answerFormat === "completar" ? (
-                      <div aria-hidden className="mt-3 grid gap-5 pt-2">{[0, 1].map((line) => <span key={line} className="block border-b border-ink/30" />)}</div>
-                    ) : item.answerFormat === "desenhar" ? (
+                    ) : space === "linhas" ? (
+                      <div aria-hidden className="mt-3 grid gap-5 pt-2">{Array.from({ length: ANSWER_LINES }, (_, line) => <span key={line} className="block border-b border-ink/30" />)}</div>
+                    ) : space === "desenho" ? (
                       <div aria-hidden className="mt-3 h-32 rounded-xl border-2 border-dashed border-ink/30" />
                     ) : null}
                     {item.support && !forStudent ? <p className="mt-3 rounded-xl bg-sky-soft/60 px-3 py-2 text-sm text-ink print:hidden"><span className="font-medium">Para o professor:</span> {item.support}</p> : null}

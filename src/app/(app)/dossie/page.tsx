@@ -14,8 +14,6 @@ import { EvidenceBadge } from "@/components/dossier/evidence-list";
 import { Assurances, HowToRead } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";
 
-export const dynamic = "force-dynamic";
-
 const FILTERS = [{ value: "", label: "Todos os estudantes" }, { value: "pendentes", label: "Só com pendências" }];
 
 function Totals({ students, network }: { students: StudentEvidence[]; network: boolean }) {

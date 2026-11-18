@@ -9,8 +9,6 @@ import { StudentImportForm } from "@/components/student-import-form";
 import { linkCls } from "@/components/form-styles";
 import { Assurances, HowToRead } from "@/components/explain";
 
-export const dynamic = "force-dynamic";
-
 const REQUIRED = [
   ["nome", "nome completo do estudante"],
   ["nascimento", "DD/MM/AAAA"],

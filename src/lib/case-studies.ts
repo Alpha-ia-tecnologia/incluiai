@@ -6,7 +6,7 @@ import { AUDIT_ACTION, recordChange } from "./audit";
 import { invalidateStudent } from "./invalidate";
 import { UserError } from "./user-error";
 import { CASE_STUDY_FIELDS, CLINICAL_CASE_FIELDS, RETIRED_CASE_FIELDS, conductedByAee, missingToConclude, parseCaseStudy, type CaseStudyContent } from "./case-study";
-import { mergeIntoCaseStudy, type ReportAccepted } from "./health-report";
+import { mergeIntoCaseStudy, type ReportAccepted } from "./health-reports-core";
 
 const MAX_LENGTH = 3000;
 

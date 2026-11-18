@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { IMPORT_TEMPLATE, mapHeader, parseCsv, readStudentSheet, studentKey } from "./student-import.ts";
+import { IMPORT_TEMPLATE, mapHeader, parseCsv, readStudentSheet } from "./student-import.ts";
 import { dateOf, readStudentRecord, shiftOf, stageOf } from "./student-record.ts";
 
 const today = new Date("2026-10-19T12:00:00Z");
@@ -74,7 +74,6 @@ test("limites e planilhas sem dados", () => {
   assert.match(readStudentSheet("nome;nascimento;ano;turma;turno;responsavel", today).problem, /só tem o cabeçalho/);
   const many = ["nome;nascimento;ano;turma;turno;responsavel", ...Array.from({ length: 501 }, (_, i) => `Pessoa ${i};01/01/2015;2º ano;A;manhã;R`)].join("\n");
   assert.match(readStudentSheet(many, today).problem, /no máximo 500/);
-  assert.equal(studentKey("Ána  Lima", "2015-01-01"), studentKey("ana lima", "2015-01-01"));
 });
 
 test("o formulário de cadastro segue as mesmas regras da planilha", () => {

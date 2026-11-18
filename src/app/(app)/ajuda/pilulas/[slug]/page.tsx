@@ -8,8 +8,6 @@ import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { ReadAloud } from "@/components/read-aloud";
 import { linkCls } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 export default async function PillPage({ params }: { params: Promise<{ slug: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

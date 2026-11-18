@@ -7,7 +7,7 @@ import { formField } from "@/lib/form-data";
 import { runAction, runFormAction } from "@/lib/server-action";
 import { UPLOAD_LIMIT_BYTES, megabytes, optionalUpload } from "@/lib/uploads";
 import { createAdaptedTask, createLevels, deleteAdaptedTask, saveAdaptedTask, transcribeTask, type TaskScope, type TaskText } from "@/lib/adapted-tasks";
-import type { AdaptedContent, AnswerFormat } from "@/lib/task-adaptation";
+import type { AdaptedContent, AnswerFormat } from "@/lib/adapted-tasks-core";
 
 const taskForm = z.object({
   intent: formField.text(),

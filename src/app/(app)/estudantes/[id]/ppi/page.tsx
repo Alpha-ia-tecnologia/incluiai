@@ -37,8 +37,6 @@ import { HatchedDonut, Legend } from "@/components/charts";
 import { ObjectiveScale } from "@/components/viz/student-viz";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();

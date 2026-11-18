@@ -12,8 +12,6 @@ import { StudentCardView } from "@/components/student-card-view";
 import { CardPhotoForm } from "@/components/student-card-forms";
 import { BUTTON_CLS } from "@/components/form-styles";
 
-export const dynamic = "force-dynamic";
-
 export default async function StudentCardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { student } = await requireStudentPage(id, "Carteirinha", { tab: "carteirinha" });

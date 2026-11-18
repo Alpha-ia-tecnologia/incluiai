@@ -4,6 +4,8 @@
 // Posições conferidas nas planilhas oficiais do INEP, "Layout de Importação e
 // Exportação do Educacenso" 2025 (Matrícula Inicial, versão 2) e 2026.
 
+import { digitsOnly, normalizeName } from "./student-identity.ts";
+
 export type Edition = 2025 | 2026;
 export type Dependency = "federal" | "estadual" | "municipal" | "privada" | "";
 // Escola (registro 00): dependência administrativa (campo 21), categoria da escola
@@ -114,8 +116,6 @@ export const ASSESSMENT_RESOURCE_LABELS = [
 const field = (fields: string[], position: number) => (fields[position - 1] ?? "").trim();
 const flag = (fields: string[], position: number) => field(fields, position) === "1";
 
-export const normalizeName = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
-export const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
 export function toIsoDate(brazilian: string): string {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(brazilian.trim());
@@ -323,11 +323,3 @@ export function parseEducacensoFile(content: string): ParsedCensusFile {
 }
 
 export const specialEdPersons = (parsed: ParsedCensusFile) => parsed.persons.filter((person) => person.enrolled && (person.special || person.hasAee));
-
-export function identityKeys(person: { inepId?: string | null; cpf?: string | null; name: string; birthDate?: string | null }): string[] {
-  const keys: string[] = [];
-  if (person.inepId) keys.push(`inep:${digitsOnly(person.inepId)}`);
-  if (person.cpf && digitsOnly(person.cpf).length === 11) keys.push(`cpf:${digitsOnly(person.cpf)}`);
-  if (person.birthDate) keys.push(`nb:${normalizeName(person.name)}|${person.birthDate}`);
-  return keys;
-}

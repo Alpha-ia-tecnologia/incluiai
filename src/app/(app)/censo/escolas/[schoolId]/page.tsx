@@ -3,18 +3,15 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Check, CircleCheck, Eye, FileDown, TriangleAlert, Upload } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { canOpenSchool, schoolReferences } from "@/lib/census";
-import { schoolCoverage } from "@/lib/census-core";
-import { BLOCKING_ISSUES, COVERAGE_HINT, COVERAGE_LABEL, ISSUE_LABEL, MATCH_LABEL, brMoment, schoolFundebNote, type CoverageRow, type CoverageStatus } from "@/lib/census-rules";
-import { parseJson } from "@/lib/format";
+import { canOpenSchool, schoolImports, schoolReferences } from "@/lib/census";
+import { schoolCoverage } from "@/lib/census-monitor";
+import { BLOCKING_ISSUES, COVERAGE_HINT, COVERAGE_LABEL, ISSUE_LABEL, MATCH_LABEL, brMoment, schoolFundebNote, type CoverageRow, type CoverageStatus } from "@/lib/census-core";
 import { saveSchoolInep, saveStudentInep, uploadCensusFile } from "@/actions/census";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { CensusUploadForm, InepForm } from "@/components/census/census-forms";
 import { HowToRead, Steps } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";
 import { CENSUS_RULES } from "@/lib/federal-guidance";
-
-export const dynamic = "force-dynamic";
 
 const PENDING: Exclude<CoverageStatus, "dupla">[] = ["ausente", "sem_aee", "sem_comum", "sem_marcacao"];
 const blocked = (row: CoverageRow) => row.issues.some((issue) => BLOCKING_ISSUES.has(issue));
@@ -39,7 +36,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
   if (!school) notFound();
   const [result, imports, references] = await Promise.all([
     schoolCoverage(schoolId),
-    prisma.censusImport.findMany({ where: { schoolId }, orderBy: { createdAt: "desc" }, take: 5, select: { id: true, status: true, createdAt: true, createdByName: true, result: true } }),
+    schoolImports(schoolId),
     schoolReferences(schoolId),
   ]);
   // Orientação do INEP: estudo de caso concluído ou PAEE respaldam a declaração no Censo.
@@ -168,16 +165,13 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
           <section aria-labelledby="censo-importacoes" className="grid min-w-0 gap-2">
             <h2 id="censo-importacoes" className="text-base font-medium text-ink">Importações</h2>
             <ul className="grid gap-2 text-sm text-ink">
-              {imports.map((item) => {
-                const summary = parseJson<{ created: number; updated: number } | null>(item.result, null);
-                return (
-                  <li key={item.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-muted/60 px-4 py-2.5">
-                    <span className="font-medium">{brMoment(item.createdAt)}</span> · {item.createdByName}
-                    <Badge tone={item.status === "aplicada" ? "green" : item.status === "previa" ? "brand" : "neutral"}>{IMPORT_STATUS[item.status] ?? item.status}</Badge>
-                    {summary ? <span className="text-ink-soft">{summary.created} cadastrados, {summary.updated} atualizados</span> : null}
-                  </li>
-                );
-              })}
+              {imports.map((item) => (
+                <li key={item.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-muted/60 px-4 py-2.5">
+                  <span className="font-medium">{brMoment(item.createdAt)}</span> · {item.createdByName}
+                  <Badge tone={item.status === "aplicada" ? "green" : item.status === "previa" ? "brand" : "neutral"}>{IMPORT_STATUS[item.status] ?? item.status}</Badge>
+                  {item.summary ? <span className="text-ink-soft">{item.summary.created} cadastrados, {item.summary.updated} atualizados</span> : null}
+                </li>
+              ))}
             </ul>
           </section>
         ) : null}

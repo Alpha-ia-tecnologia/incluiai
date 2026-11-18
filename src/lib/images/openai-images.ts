@@ -1,8 +1,8 @@
 // Geração de imagens pela API da OpenAI (https://developers.openai.com/api/docs/guides/image-generation).
 import { UserError } from "../user-error";
+import { openaiSettings } from "../env-config";
 
-export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2.5-flare";
-const BASE_URL = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
+export const IMAGE_MODEL = openaiSettings().imageModel;
 const TIMEOUT_MS = 180_000;
 
 export type ImageSize = "1024x1024" | "1536x1024" | "1024x1536";
@@ -20,11 +20,12 @@ type ImagesResponse = {
 };
 
 export async function generateImage(prompt: string, size: ImageSize): Promise<{ data: Uint8Array<ArrayBuffer>; mimeType: string; model: string }> {
+  const { apiKey, baseUrl } = openaiSettings();
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}/images/generations`, {
+    response = await fetch(`${baseUrl}/images/generations`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(TIMEOUT_MS),
       body: JSON.stringify({
         model: IMAGE_MODEL,

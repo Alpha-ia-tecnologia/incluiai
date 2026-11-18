@@ -1,5 +1,5 @@
 import { LoadingScreen } from "@/components/skeleton";
 
 export default function Loading() {
-  return <LoadingScreen kind="hero" label="Carregando o painel" />;
+  return <LoadingScreen label="Carregando o painel" />;
 }
