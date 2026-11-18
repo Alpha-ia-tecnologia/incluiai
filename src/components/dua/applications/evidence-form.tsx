@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { ClipboardCheck } from "lucide-react";
 import { registerDuaEvidence } from "@/actions/dua";
-import { CRITERION_STATUSES, CRITERION_STATUS_LABEL, type CriterionStatus } from "@/lib/dua/domain";
+import { CRITERION_STATUS, CRITERION_STATUSES, type CriterionStatus } from "@/lib/dua/domain";
 import { Field, FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
@@ -85,7 +85,7 @@ export function EvidenceForm({ planningId, applicationId, student, criteria, str
                   {CRITERION_STATUSES.map((status) => (
                     <label key={status} className="flex min-h-11 min-w-0 items-center gap-2 text-sm text-ink">
                       <input type="radio" name={`criterio-${criterion.id}`} value={status} defaultChecked={(defaults.statuses[criterion.id] ?? "nao_registrado") === status} className="size-4 shrink-0 accent-[var(--brand)]" />
-                      <span className="min-w-0">{CRITERION_STATUS_LABEL[status]}</span>
+                      <span className="min-w-0">{CRITERION_STATUS[status].label}</span>
                     </label>
                   ))}
                 </div>

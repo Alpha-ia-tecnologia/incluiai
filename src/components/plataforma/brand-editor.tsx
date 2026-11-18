@@ -174,7 +174,7 @@ export function BrandEditor({ suggest, initial, municipalityName }: {
                             <span className="font-mono text-ink">{swatch.hex}</span>
                             <span className="text-ink-soft"> · {Math.round(swatch.share * 100)}% do logo</span>
                           </span>
-                          {swatch.hex === primary ? <Badge tone="brand">principal</Badge> : null}
+                          {swatch.hex === primary ? <Badge tone="info">principal</Badge> : null}
                           {swatch.hex === menu ? <Badge>menu</Badge> : null}
                           <span className="flex gap-1.5">
                             <button type="button" onClick={() => setByHand("primary", swatch.hex)} aria-label={`Usar ${swatch.hex} como cor principal`} className={`${BUTTON_CLS.quiet} px-3`}>Principal</button>
@@ -234,7 +234,7 @@ export function BrandEditor({ suggest, initial, municipalityName }: {
               </div>
               <p className="mt-4 text-sm text-ink">Um <span className={linkCls}>link no texto</span> leva a outra tela.</p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Badge tone="brand">Em dia</Badge>
+                <Badge tone="info">Em dia</Badge>
                 <StatusPill tone="info">Informativo</StatusPill>
               </div>
             </div>

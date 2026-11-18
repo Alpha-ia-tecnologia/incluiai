@@ -1,10 +1,10 @@
 import { z } from "zod/v4";
 import { UserError } from "./user-error.ts";
+import { dayFromInput } from "./dates.ts";
 
-// Datas vindas de <input type="date"> ao meio-dia, para não trocar de dia pelo fuso.
 export function dateFromInput(value: string, label = "a data"): Date {
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(Number.NaN);
-  if (Number.isNaN(date.getTime())) throw new UserError(`Informe ${label} no formato dia/mês/ano.`);
+  const date = dayFromInput(value);
+  if (!date) throw new UserError(`Informe ${label} no formato dia/mês/ano.`);
   return date;
 }
 

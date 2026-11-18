@@ -2,7 +2,7 @@ import { History, LockKeyhole, RefreshCw, ShieldAlert, Trash2, Users } from "luc
 import { Assurances } from "@/components/explain";
 import { requireStudentPage } from "@/lib/page-context";
 import { loadCardView } from "@/lib/student-card";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { removeCardPhoto, rotateStudentCard, uploadCardPhoto } from "@/actions/student-card";
 import { Card, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AEE_SERVICE_OPTIONS, ASSESSMENT_ACCESSIBILITY_OPTIONS, PLAN_DOCUMENT_KEYS, censusDifferences, missingCount, missingPlanItems, planDefaultsFromCaseStudy, planDocumentsFromForm } from "./plan-documents.ts";
+import { AEE_SERVICE_OPTIONS, ASSESSMENT_ACCESSIBILITY_OPTIONS, PAEE_ITEMS, PEI_ITEMS, PLAN_DOCUMENT_KEYS, PROPOSAL_LIST_KEYS, censusDifferences, missingCount, missingPlanItems, planDefaultsFromCaseStudy, planDocumentsFromForm } from "./plan-documents.ts";
 import { AEE_SERVICE_LABELS, ASSESSMENT_RESOURCE_LABELS } from "./educacenso.ts";
 import { CENSUS_RULES, FEDERAL_SOURCE_LINE, INEP_CENSUS_GUIDANCE, censusReference, specialEducationAnswer } from "./federal-guidance.ts";
 
@@ -18,7 +18,7 @@ test("o que falta: conteúdo mínimo e autoria (o estudante não entra na conta)
   const missing = missingPlanItems({ aeeTeacher: "Ana", participants: "O próprio estudante", accessibilityResources: "Lupa", aeeStrategies: "CAA" });
   assert.deepEqual(missing.paee.map((item) => item.key), ["assistiveTech", "supportStaff", "networkDemands"]);
   assert.deepEqual(missing.pei.map((item) => item.key), ["aeeServices", "commonRoomStrategies", "assessmentAccessibility", "monitoring", "familyFeedback"]);
-  assert.deepEqual(missing.authorship, ["professor(a) da classe comum", "participação da família"]);
+  assert.deepEqual(missing.authorship.map((item) => item.label), ["professor(a) da classe comum", "participação da família"]);
   assert.equal(missingCount({}), 13);
   const full = Object.fromEntries(PLAN_DOCUMENT_KEYS.map((key) => [key, key === "participants" ? "Família" : "Registrado"]));
   assert.equal(missingCount(full), 0);
@@ -81,4 +81,10 @@ test("plano e Censo: aponta só a diferença que dá para conferir", () => {
   assert.deepEqual(censusDifferences(plan, null), []);
   assert.deepEqual(censusDifferences(plan, { aee: false, services: [] }), []);
   assert.deepEqual(censusDifferences({}, same), []);
+});
+
+test("os itens do PAEE (art. 10) e do PEI (art. 11) e o que a IA propõe saem do mesmo esquema", () => {
+  assert.deepEqual(PAEE_ITEMS.map((item) => item.key), ["accessibilityResources", "assistiveTech", "supportStaff", "networkDemands"]);
+  assert.deepEqual(PEI_ITEMS.map((item) => item.key), ["aeeServices", "aeeStrategies", "commonRoomStrategies", "assessmentAccessibility", "monitoring", "familyFeedback"]);
+  assert.deepEqual([...PROPOSAL_LIST_KEYS], [...PAEE_ITEMS, ...PEI_ITEMS].map((item) => item.key));
 });

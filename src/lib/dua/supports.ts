@@ -5,7 +5,7 @@ import { assertStudentTeam, studentForbidden, type SessionUser } from "../auth";
 import { UserError } from "../user-error";
 import { canWorkWithStudent } from "../policy";
 import { can } from "../roles";
-import { parseJson } from "../format";
+import { parseJson, readList } from "../format";
 import { BARRIERS, CHANNELS, supportInfo } from "../scale";
 import { CASE_STUDY_FIELDS, parseCaseStudy } from "../case-study";
 import {
@@ -18,7 +18,7 @@ import { AUDIT_ACTION, recordChange } from "../audit";
 
 const CASE_STUDY_REFS = ["barreiras", "potencialidades", "aprendeMelhor", "gostaEscola", "achaDificil", "comoSeSente", "comunicacaoEscola", "recursos"];
 
-const list = (value: string | null | undefined) => parseJson<string[]>(value, []).filter(Boolean).join(", ");
+const list = (value: string | null | undefined) => readList(value).filter(Boolean).join(", ");
 
 export async function profileReferences(user: SessionUser, studentId: string): Promise<ProfileRef[]> {
   const prisma = await db();
@@ -48,7 +48,7 @@ export async function profileReferences(user: SessionUser, studentId: string): P
     add("calmingStrategies", "O que ajuda a se regular", list(profile.calmingStrategies));
     add("triggers", "O que pode desorganizar", list(profile.triggers));
     add("interests", "Interesses", list(profile.interests));
-    add("barriers", "Barreiras ativas", parseJson<string[]>(profile.barriers, []).map((item) => BARRIERS[item] ?? item).join(", "));
+    add("barriers", "Barreiras ativas", readList(profile.barriers).map((item) => BARRIERS[item] ?? item).join(", "));
     add("strengths", "Potencialidades", profile.strengths ?? "");
   }
   if (caseStudy) {

@@ -4,9 +4,9 @@ import { ArrowRight, CheckCircle2, ChevronDown, ClipboardList, Pencil, Save, Spr
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { saveCaseStudyAction } from "@/actions/case-study";
-import { AEE_TEACHER, CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, ESSENTIAL_GROUPS, parseCaseStudy, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
-import { splitItems } from "@/lib/form-options";
-import { formatDate } from "@/lib/format";
+import { AEE_TEACHER } from "@/lib/federal-guidance";
+import { CASE_STUDY_SECTIONS, CLINICAL_CASE_FIELDS, ESSENTIAL_GROUPS, parseCaseStudy, type CaseStudyContent, type CaseStudyField } from "@/lib/case-study";
+import { formatDate } from "@/lib/dates";
 import { Badge, ButtonLink, Card, PageHeader } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { Character } from "@/components/character";
@@ -16,6 +16,7 @@ import { CreatedNotice } from "@/components/created-notice";
 import { HealthReportsNote } from "@/components/health-report-note";
 import { ActionForm } from "@/components/action-form";
 import { hintCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
+import { splitItems } from "@/lib/format";
 
 function FieldInput({ field, value }: { field: CaseStudyField; value: string }) {
   const label = field.requiredToConclude ? `${field.label} *` : field.label;

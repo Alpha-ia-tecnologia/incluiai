@@ -20,7 +20,7 @@ export default async function PillPage({ params }: { params: Promise<{ slug: str
       <Link href="/ajuda#pilulas" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline"><ArrowLeft size={16} aria-hidden /> Formação em pílulas</Link>
       <PageHeader title={pill.title} lede={pill.summary} actions={<ReadAloud targetId="pilula" label="Ouvir esta pílula" />} />
       <article id="pilula" className="grid min-w-0 gap-6">
-        <p className="flex flex-wrap gap-2"><Badge tone="brand"><BookOpen size={12} aria-hidden /> Leitura de {readingMinutes(pill)} min</Badge></p>
+        <p className="flex flex-wrap gap-2"><Badge tone="info"><BookOpen size={12} aria-hidden /> Leitura de {readingMinutes(pill)} min</Badge></p>
         <section aria-labelledby="pilula-porque">
           <h2 id="pilula-porque" className="mb-2 text-base font-medium text-ink">Por que importa</h2>
           <p className="text-sm leading-relaxed text-ink">{pill.why}</p>

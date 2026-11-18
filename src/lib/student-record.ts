@@ -1,4 +1,5 @@
 import type { Problem } from "./user-error.ts";
+import { brDay, brYmd } from "./dates.ts";
 
 export type StudentFields = {
   name: string;
@@ -51,7 +52,7 @@ export function stageOf(stage: string, gradeYear: string): string | null {
 // Corte etário de 31 de março.
 export function stageFromAge(birthDate: string, now: Date): string {
   const [year, month] = birthDate.split("-").map(Number);
-  const age = now.getUTCFullYear() - year - (month > 3 ? 1 : 0);
+  const age = brYmd(now).year - year - (month > 3 ? 1 : 0);
   if (age <= 5) return "educacao_infantil";
   if (age <= 10) return "anos_iniciais";
   if (age <= 14) return "anos_finais";
@@ -76,7 +77,7 @@ export function shiftOf(text: string): string {
   if (["manha", "matutino"].includes(value)) return "manha";
   if (["tarde", "vespertino"].includes(value)) return "tarde";
   if (value === "integral") return "integral";
-  if (["noite", "noturno"].includes(value)) return "Noite";
+  if (["noite", "noturno"].includes(value)) return "noite";
   return text.trim().slice(0, 40);
 }
 
@@ -87,7 +88,7 @@ export function readStudentRecord(fields: StudentFields, today: Date = new Date(
   const problem = (field: keyof StudentFields, message: string) => problems.push({ field, message });
   const name = oneLine(fields.name);
   if (name.length < 3) problem("name", "nome em branco ou curto demais");
-  const todayIso = today.toISOString().slice(0, 10);
+  const todayIso = brDay(today);
   const birthDate = dateOf(fields.birthDate);
   if (!birthDate) problem("birthDate", "nascimento inválido (use DD/MM/AAAA)");
   else if (birthDate > todayIso) problem("birthDate", "nascimento no futuro");

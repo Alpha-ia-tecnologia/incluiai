@@ -4,21 +4,21 @@ import { ArrowRight, CircleCheck, LockKeyhole, Search, Sparkles, UserCheck } fro
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { classOptions, listPlannings } from "@/lib/dua/plannings";
-import { REVIEW_STATE_LABEL, SHARING_LABEL, type ReviewState } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { REVIEW_STATE, SHARING, type ReviewState } from "@/lib/dua/domain";
+import { formatDate } from "@/lib/dates";
+import { plural } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHero, SectionTitle } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { NewPlanningForm } from "@/components/dua/new-planning-form";
 import { ReviewBadge } from "@/components/dua/badges";
 import { BUTTON_CLS, inputCls, labelCls } from "@/components/form-styles";
-import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
-import { SIGNAL, StackedBar } from "@/components/charts";
+import { DataBoard, DataCard, StatTile, segmentsOf, withSegmentColors } from "@/components/data-viz";
+import { StackedBar } from "@/components/charts";
 import { DonutSummary } from "@/components/viz/donut-summary";
 import { UsageMeter } from "@/components/viz/usage-meter";
 import { Assurances } from "@/components/explain";
 
 const REVIEW_ORDER: ReviewState[] = ["rascunho", "em_revisao", "validado"];
-const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 
 const QUESTIONS = [
   "O que os estudantes precisam aprender?",
@@ -42,14 +42,11 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
   ]);
   const reusable = all.map((item) => ({ value: item.id, label: `${item.title}${item.validatedVersion ? ` (versão ${item.validatedVersion} validada)` : " (rascunho)"}` }));
 
-  const reviewStates = withSegmentColors(REVIEW_ORDER.map((state) => ({ key: state, label: REVIEW_STATE_LABEL[state], value: all.filter((item) => item.state === state).length })));
+  const reviewStates = withSegmentColors(REVIEW_ORDER.map((state) => ({ key: state, ...REVIEW_STATE[state], value: all.filter((item) => item.state === state).length })));
   const totalApplications = all.reduce((sum, item) => sum + item.applications, 0);
   const applied = all.filter((item) => item.applications > 0).length;
   const shared = all.filter((item) => item.sharing === "compartilhado").length;
-  const sharing = [
-    { key: "compartilhado", label: SHARING_LABEL.compartilhado, value: shared, color: SIGNAL.cyan },
-    { key: "privado", label: SHARING_LABEL.privado, value: all.length - shared, color: SIGNAL.track },
-  ];
+  const sharing = segmentsOf(SHARING, (key) => (key === "compartilhado" ? shared : all.length - shared)).reverse();
 
   return (
     <>
@@ -128,7 +125,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
                   <span className="flex flex-wrap items-center gap-2">
                     <ReviewBadge state={item.state} />
                     <Badge tone="neutral">Versão {item.version}</Badge>
-                    {item.sharing === "compartilhado" ? <Badge tone="brand">{SHARING_LABEL.compartilhado}</Badge> : null}
+                    {item.sharing === "compartilhado" ? <Badge tone={SHARING.compartilhado.tone}>{SHARING.compartilhado.label}</Badge> : null}
                   </span>
                   <span className="font-display text-xl font-medium text-ink">{item.title}</span>
                   {item.objective ? <span className="line-clamp-2 text-sm text-ink-soft">{item.objective}</span> : null}

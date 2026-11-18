@@ -1,11 +1,12 @@
 import Image from "next/image";
-import { ArrowRight, CircleCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Badge, ButtonLink } from "@/components/ui";
-import { formatDate, parseJson } from "@/lib/format";
+import { parseJson, plural } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialKind } from "@/lib/material-content";
 import { cardPictogram, type PictogramKey } from "@/lib/pictograms";
 import { Pictogram } from "./pictogram";
-import { materialImageUrl } from "./material-view";
+import { MaterialStatusBadge, materialImageUrl } from "./material-view";
 
 export type MaterialSummary = {
   id: string;
@@ -19,7 +20,6 @@ export type MaterialSummary = {
   pictogram: PictogramKey;
 };
 
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 export function materialSummary(material: { id: string; title: string; kind: string; status: string; content: string; createdAt: Date; images: { createdAt: Date }[] }): MaterialSummary {
   const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
@@ -49,8 +49,8 @@ export function MaterialGalleryCard({ studentId, material, href }: { studentId: 
         )}
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-1.5">
-        <Badge tone="brand">{material.kindLabel}</Badge>
-        {material.approved ? <Badge tone="green"><CircleCheck size={12} aria-hidden /> Aprovado para uso</Badge> : <Badge tone="amber">Aguarda aprovação</Badge>}
+        <Badge tone="info">{material.kindLabel}</Badge>
+        <MaterialStatusBadge approved={material.approved} />
       </div>
       <h3 id={titleId} className="mt-2 break-words font-display text-xl font-medium leading-snug text-ink">{material.title}</h3>
       <p className="mt-1 text-sm tabular-nums text-ink-soft">

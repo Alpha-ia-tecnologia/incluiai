@@ -5,10 +5,11 @@ import { requireStudentPage } from "@/lib/page-context";
 import { newReport } from "@/actions/reports";
 import { currentSemester } from "@/lib/period-report";
 import { periodLabel, reportData } from "@/lib/reports";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { NewReportForm } from "@/components/reports/report-forms";
 import { Assurances, Steps } from "@/components/explain";
+import { REPORT_STATUS, labelOf, toneOf } from "@/lib/scale";
 
 export default async function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
@@ -53,7 +54,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
                     <p className="text-sm font-medium text-ink"><Link href={`/estudantes/${id}/relatorios/${report.id}`} className="underline-offset-4 hover:underline">Período de {periodLabel(reportData(report.data))}</Link></p>
                     <p className="mt-1 text-xs text-ink-soft">{report.status === "validado" ? `Validado por ${report.validatedByName} em ${formatDate(report.validatedAt!)}` : `Rascunho, atualizado em ${formatDate(report.updatedAt)}`}</p>
                   </div>
-                  {report.status === "validado" ? <Badge tone="green"><CircleCheck size={12} aria-hidden /> Validado</Badge> : <Badge tone="amber">Rascunho</Badge>}
+                  <Badge tone={toneOf(REPORT_STATUS, report.status)}>{report.status === "validado" ? <CircleCheck size={12} aria-hidden /> : null} {labelOf(REPORT_STATUS, report.status)}</Badge>
                 </li>
               ))}
             </ul>

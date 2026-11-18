@@ -1,4 +1,4 @@
-import { smallNumber } from "@/lib/assessment";
+import { REASSESS_WEEKS, smallNumber } from "@/lib/assessment";
 import Link from "next/link";
 import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
@@ -7,36 +7,36 @@ import { ArrowRight, ArrowUpRight, CalendarDays, Check, CircleSlash, Lightbulb, 
 import { getCurrentUser } from "@/lib/auth";
 import { AUDIT_ACTION } from "@/lib/audit";
 import {
-  ALERT_LABELS, GAUGES, PERIODS, loadDashboard, parseGauge, parsePeriod,
+  GAUGES, PERIODS, loadDashboard, parseGauge, parsePeriod,
   type DashboardGauge, type DashboardPeriod,
 } from "@/lib/dashboard";
-import { supportInfo } from "@/lib/scale";
+import { supportInfo, shortOf } from "@/lib/scale";
+import { ALERTS } from "@/lib/insights";
 import { can, roleLabel } from "@/lib/roles";
-import { firstName, formatDate, formatDateShort } from "@/lib/format";
-import { CALENDAR_THEMES, MONTH_SHORT, monthParam, relativeLabel, todayInBrazil, upcomingEvents } from "@/lib/commemorative-dates";
+import { firstName, plural } from "@/lib/format";
+import { CALENDAR_THEMES, relativeLabel, upcomingEvents } from "@/lib/commemorative-dates";
+import { MONTH_SHORT, brYmd, formatDate, formatDateNumeric, formatDateShort, formatDateTime, monthKey } from "@/lib/dates";
 import { duaIndicators } from "@/lib/dua/indicators";
-import { AI_BLOCK_DECISION_LABEL } from "@/lib/dua/domain";
+import { AI_BLOCK_DECISION } from "@/lib/dua/domain";
 import { EmptyState } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, HowToRead } from "@/components/explain";
 import {
   BarList, ColumnChart, HatchedDonut, HatchedGauge, Legend, MonthGrid, SIGNAL, StackedBar, SupportScale, type ChartSegment,
 } from "@/components/charts";
-import { RingStat, StatTile, StatusPill, TONE_CLASSES, TrendBadge, withSegmentColors, type Tone } from "@/components/data-viz";
+import { RingStat, StatTile, StatusPill, TONE_CLASSES, TONE_COLOR, TrendBadge, withSegmentColors } from "@/components/data-viz";
+import type { Tone } from "@/lib/scale";
 import { ShareRing } from "@/components/viz/share-ring";
 import { UsageMeter } from "@/components/viz/usage-meter";
 import { Character } from "@/components/character";
 import { PrintButton } from "@/components/print-button";
 
 const ACCESS_LABELS: Record<string, string> = { [AUDIT_ACTION.viewed]: "Consultas", [AUDIT_ACTION.created]: "Inclusões", [AUDIT_ACTION.edited]: "Alterações", [AUDIT_ACTION.sent]: "Envios à IA de reserva (DeepSeek)" };
-const SHORT_ALERTS: Record<string, string> = { sem_registro: "Sem registro há 7+ dias", plano_vencido: "Revisão vencida", sem_plano: "Sem plano", queda_participacao: "Queda de participação" };
 
 const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const oneDecimal = (value: number) => Math.round(value * 10) / 10;
-const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 const pointsDelta = (gauge: { value: number | null; previous: number | null }) => (gauge.value !== null && gauge.previous !== null ? gauge.value - gauge.previous : null);
 const pointsText = (delta: number) => `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)} ${Math.abs(delta) === 1 ? "ponto" : "pontos"}`;
-const shortDate = (date: Date) => date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit" });
 
 function CardHeader({ title, hint, help, href, linkLabel }: { title: string; hint?: string; help?: ReactNode; href?: string; linkLabel?: string }) {
   return (
@@ -148,9 +148,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const { scope, overview: o, attention: a, journey: j, gauges: g, calendar: cal, learning: l, records: r, activities: act, ai, profile: p, family: f, resources: res, team } = data;
   const dua = await duaIndicators(user, { start: scope.start, now: scope.now, schoolId: scope.schoolId, schoolName: scope.schoolName });
   const periodText = PERIODS[period].toLowerCase();
-  const today = todayInBrazil(scope.now);
+  const today = brYmd(scope.now);
   const upcomingDates = upcomingEvents(today).slice(0, 4);
-  const updatedAt = scope.now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const updatedAt = formatDateTime(scope.now);
 
   const href = (changes: { periodo?: DashboardPeriod; indicador?: DashboardGauge }) => {
     const params = new URLSearchParams();
@@ -243,11 +243,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ];
 
   const duaPeriod = dua ? `${PERIODS[period]}${dua.period.start ? ` (de ${formatDate(dua.period.start)} a ${formatDate(dua.period.end)})` : ` (até ${formatDate(dua.period.end)})`}` : "";
-  const duaDecisions: ChartSegment[] = dua ? [
-    { key: "aceito", label: AI_BLOCK_DECISION_LABEL.aceito, value: dua.decisions.aceito, color: SIGNAL.lime },
-    { key: "editado", label: AI_BLOCK_DECISION_LABEL.editado, value: dua.decisions.editado, color: SIGNAL.cyan },
-    { key: "recusado", label: AI_BLOCK_DECISION_LABEL.recusado, value: dua.decisions.recusado, color: SIGNAL.yellow },
-  ] : [];
+  const duaDecisions: ChartSegment[] = dua ? (["aceito", "editado", "recusado"] as const).map((key) => ({ key, label: AI_BLOCK_DECISION[key].label, value: dua.decisions[key], color: TONE_COLOR[AI_BLOCK_DECISION[key].tone] })) : [];
 
   const support = l.support;
   const supportDrop = support.initial !== null && support.latest !== null ? oneDecimal(oneDecimal(support.initial) - oneDecimal(support.latest)) : null;
@@ -406,8 +402,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                           <th scope="col" className="px-1 py-2.5 font-normal">Escola</th>
                           <th scope="col" className="px-1 py-2.5 text-right font-normal">Estudantes</th>
                           <th scope="col" className="px-1 py-2.5 text-right font-normal">Com aviso</th>
-                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">Sem plano</th>
-                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">Revisão vencida</th>
+                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">{shortOf(ALERTS, "sem_plano")}</th>
+                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">{shortOf(ALERTS, "plano_vencido")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line border-t border-line tabular-nums">
@@ -445,13 +441,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                             </td>
                             <td className="hidden px-1 py-3 sm:table-cell">
                               {student.plan === "ativo" ? <><p>Ativo</p><p className="mt-0.5 text-xs text-ink-soft">revisão {student.reviewDate ? formatDateShort(student.reviewDate) : ""}</p></>
-                                : student.plan === "vencido" ? <><p className="text-signal-orange-ink">Revisão vencida</p><p className="mt-0.5 text-xs text-ink-soft">desde {student.reviewDate ? formatDateShort(student.reviewDate) : ""}</p></>
-                                  : <p className="text-signal-orange-ink">Sem plano</p>}
+                                : student.plan === "vencido" ? <><p className="text-signal-orange-ink">{shortOf(ALERTS, "plano_vencido")}</p><p className="mt-0.5 text-xs text-ink-soft">desde {student.reviewDate ? formatDateShort(student.reviewDate) : ""}</p></>
+                                  : <p className="text-signal-orange-ink">{shortOf(ALERTS, "sem_plano")}</p>}
                             </td>
-                            <td className="hidden whitespace-nowrap px-1 py-3 text-ink-soft md:table-cell">{student.lastRecord ? shortDate(student.lastRecord) : "Nenhum"}</td>
+                            <td className="hidden whitespace-nowrap px-1 py-3 text-ink-soft md:table-cell">{student.lastRecord ? formatDateNumeric(student.lastRecord) : "Nenhum"}</td>
                             <td className="px-1 py-3">
                               <StatusPill tone={student.alerts.length ? "alert" : "good"}>{student.alerts.length ? plural(student.alerts.length, "aviso", "avisos") : "Em dia"}</StatusPill>
-                              {student.alerts.length ? <p className="mt-1 text-xs leading-snug text-ink-soft">{student.alerts.map((kind) => SHORT_ALERTS[kind]).join(" · ")}</p> : null}
+                              {student.alerts.length ? <p className="mt-1 text-xs leading-snug text-ink-soft">{student.alerts.map((kind) => shortOf(ALERTS, kind)).join(" · ")}</p> : null}
                             </td>
                             <td className="px-1 py-2.5 text-right">
                               <Link href={student.next.href} className="circle-link" title={`Próximo passo: ${student.next.label}`} aria-label={`${student.name}: ${student.next.label}`}><ArrowUpRight size={16} aria-hidden /></Link>
@@ -467,7 +463,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <p id="avisos-por-tipo" className="mb-2 text-xs font-medium text-ink">Avisos em {scope.schoolName ?? "toda a rede"}</p>
                   <CountList
                     labelledBy="avisos-por-tipo"
-                    items={a.byKind.map((kind) => ({ key: kind.key, value: kind.value, label: SHORT_ALERTS[kind.key] ?? ALERT_LABELS[kind.key], tone: kind.value ? "alert" : "good" }))}
+                    items={a.byKind.map((kind) => ({ key: kind.key, value: kind.value, label: kind.short, tone: kind.value ? "alert" : "good" }))}
                   />
                 </div>
               </section>
@@ -585,7 +581,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <StackedBar segments={withSegmentColors(l.criterion)} />
               </div>
               <div className="dash-card">
-                <CardHeader title="Sondagem" hint={`${smallNumber(l.assessment.withBaseline)} de ${plural(l.assessment.total, "estudante", "estudantes")} com linha de base`} help="Em dia: sondagem reaplicada nas últimas 12 semanas." />
+                <CardHeader title="Sondagem" hint={`${smallNumber(l.assessment.withBaseline)} de ${plural(l.assessment.total, "estudante", "estudantes")} com linha de base`} help={`Em dia: sondagem reaplicada nas últimas ${REASSESS_WEEKS} semanas.`} />
                 <p className="font-display text-3xl font-bold tracking-tight text-ink"><span className="tabular-nums">{smallNumber(l.assessment.upToDate)}</span> <span className="text-base text-ink-soft">em dia</span></p>
                 {l.assessment.improved.some((row) => row.value > 0) ? (
                   <ul className="mt-3 grid gap-1 text-sm text-ink-soft">
@@ -804,7 +800,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <ul className="space-y-1.5">
                     {upcomingDates.map((event) => (
                       <li key={event.key}>
-                        <Link href={`/calendario?mes=${monthParam(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-surface-muted">
+                        <Link href={`/calendario?mes=${monthKey(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-surface-muted">
                           <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-xs">{MONTH_SHORT[event.start.month - 1]}</span></span>
                           <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-xs text-ink-soft">{relativeLabel(event, today)}</span></span>
                         </Link>

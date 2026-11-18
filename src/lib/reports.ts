@@ -8,14 +8,12 @@ import { invalidateStudent } from "./invalidate";
 import { UserError } from "./user-error";
 import { bnccSkill } from "./bncc";
 import { parseCaseStudy } from "./case-study";
-import { splitItems } from "./form-options";
 import { DIMENSIONS } from "./scale";
-import { brDate, draftOpinion, opinionProblem, periodProblem, supportAt, topItems, type ReportData } from "./period-report";
+import { draftOpinion, opinionProblem, periodProblem, supportAt, topItems, type ReportData } from "./period-report";
+import { dayEnd, dayStart, isoToBr } from "./dates";
 import { compareAreas } from "./assessment";
 import { answersOf } from "./assessments";
-
-const dayStart = (iso: string) => new Date(`${iso}T00:00:00-03:00`);
-const dayEnd = (iso: string) => new Date(`${iso}T23:59:59-03:00`);
+import { splitItems } from "./format";
 
 export async function collectReportData(studentId: string, start: string, end: string): Promise<ReportData> {
   const prisma = await db();
@@ -77,7 +75,7 @@ export async function collectReportData(studentId: string, start: string, end: s
 }
 
 export const reportData = (stored: string): ReportData => JSON.parse(stored) as ReportData;
-export const periodLabel = (data: Pick<ReportData, "period">) => `${brDate(data.period.start)} a ${brDate(data.period.end)}`;
+export const periodLabel = (data: Pick<ReportData, "period">) => `${isoToBr(data.period.start)} a ${isoToBr(data.period.end)}`;
 
 export async function createReport(user: SessionUser, studentId: string, start: string, end: string) {
   const prisma = await db();

@@ -5,7 +5,7 @@ import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { taskContent } from "@/lib/adapted-tasks";
 import { printSettings } from "@/lib/adapted-tasks-core";
-import { parseJson } from "@/lib/format";
+import { readList } from "@/lib/format";
 import { PrintButton } from "@/components/print-button";
 import { AdaptedView } from "@/components/adapted/adapted-view";
 
@@ -15,7 +15,7 @@ export default async function PrintAdaptedTaskPage({ params }: { params: Promise
   await requireStudentPage(id, "Impressão de atividade adaptada");
   const task = await prisma.adaptedTask.findFirst({ where: { id: taskId, studentId: id } });
   if (!task) notFound();
-  const options = parseJson<string[]>(task.options, []);
+  const options = readList(task.options);
   return (
     <div className="max-w-3xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">

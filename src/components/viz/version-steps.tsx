@@ -1,4 +1,6 @@
 import { Check } from "lucide-react";
+import { REVIEW_STATE } from "@/lib/dua/domain";
+import type { Tone } from "@/lib/scale";
 
 export type VersionStep = {
   version: number;
@@ -9,10 +11,12 @@ export type VersionStep = {
   current: boolean;
 };
 
-const MARKER: Record<VersionStep["kind"], string> = {
-  validado: "hatch bg-signal-lime text-ink-strong",
-  em_revisao: "border-2 border-signal-yellow bg-signal-yellow-soft text-ink-strong",
-  rascunho: "border-2 border-dashed border-line bg-paper-raised text-ink-soft",
+const MARKER: Record<Tone, string> = {
+  good: "hatch bg-signal-lime text-ink-strong",
+  mid: "border-2 border-signal-yellow bg-signal-yellow-soft text-ink-strong",
+  alert: "border-2 border-signal-orange bg-paper-raised text-ink-strong",
+  info: "border-2 border-accent-sky bg-paper-raised text-ink-strong",
+  neutral: "border-2 border-dashed border-line bg-paper-raised text-ink-soft",
 };
 
 export function VersionSteps({ steps, label }: { steps: ReadonlyArray<VersionStep>; label: string }) {
@@ -31,7 +35,7 @@ export function VersionSteps({ steps, label }: { steps: ReadonlyArray<VersionSte
                 </>
               ) : null}
               <a href={step.href} className="flex min-h-11 min-w-0 items-start gap-3 rounded-2xl p-1 transition-colors hover:bg-surface-muted sm:flex-col sm:items-center sm:px-2 sm:text-center">
-                <span aria-hidden className={`relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${MARKER[step.kind]}`}>
+                <span aria-hidden className={`relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${MARKER[REVIEW_STATE[step.kind].tone]}`}>
                   {step.kind === "validado" ? <Check size={17} strokeWidth={3} /> : step.version}
                 </span>
                 <span className="min-w-0 pb-1">

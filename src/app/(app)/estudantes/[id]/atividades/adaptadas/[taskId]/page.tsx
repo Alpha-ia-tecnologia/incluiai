@@ -5,7 +5,8 @@ import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { taskContent } from "@/lib/adapted-tasks";
 import { printSettings } from "@/lib/adapted-tasks-core";
-import { parseJson, formatDate } from "@/lib/format";
+import { readList } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { removeStudentTask, saveTask } from "@/actions/adapted-tasks";
 import { Badge, Card, SectionTitle } from "@/components/ui";
 import { BnccTag } from "@/components/bncc-tag";
@@ -13,6 +14,7 @@ import { AdaptedView } from "@/components/adapted/adapted-view";
 import { AdaptedEditor } from "@/components/adapted/adapted-editor";
 import { ActionForm } from "@/components/action-form";
 import { BUTTON_CLS, linkCls } from "@/components/form-styles";
+import { ADAPTED_TASK_STATUS, toneOf } from "@/lib/scale";
 
 export default async function AdaptedTaskPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const prisma = await db();
@@ -21,7 +23,7 @@ export default async function AdaptedTaskPage({ params }: { params: Promise<{ id
   const task = await prisma.adaptedTask.findFirst({ where: { id: taskId, studentId: id } });
   if (!task) notFound();
   const content = taskContent(task.content, task.title);
-  const options = parseJson<string[]>(task.options, []);
+  const options = readList(task.options);
   const editing = task.status !== "aprovada" && can.edit;
   const view = { highlight: options.includes("destacar_comando"), icons: options.includes("apoio_visual") };
   return (
@@ -34,8 +36,8 @@ export default async function AdaptedTaskPage({ params }: { params: Promise<{ id
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="brand">{task.kind === "prova" ? "Prova adaptada" : "Atividade adaptada"}</Badge>
-        {task.status === "aprovada" ? <Badge tone="green"><CircleCheck size={12} aria-hidden /> Aprovada por {task.approvedBy} em {formatDate(task.approvedAt!)}</Badge> : <Badge tone="amber">Rascunho: revise antes de usar</Badge>}
+        <Badge tone="info">{task.kind === "prova" ? "Prova adaptada" : "Atividade adaptada"}</Badge>
+        <Badge tone={toneOf(ADAPTED_TASK_STATUS, task.status)}>{task.status === "aprovada" ? <><CircleCheck size={12} aria-hidden /> {ADAPTED_TASK_STATUS.aprovada.label} por {task.approvedBy} em {formatDate(task.approvedAt!)}</> : `${ADAPTED_TASK_STATUS.rascunho.label}: revise antes de usar`}</Badge>
         <Badge>{task.source === "ia" ? "Adaptada com IA" : "Adaptada pelas regras"}</Badge>
         {task.bnccCode ? <BnccTag code={task.bnccCode} /> : null}
       </div>

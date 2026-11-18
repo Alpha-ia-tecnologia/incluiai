@@ -7,7 +7,7 @@ import { isAIEnabled } from "@/lib/agents/capabilities";
 import { studentsInReach } from "@/lib/dua/shared";
 import { listSuggestions } from "@/lib/dua/suggestions";
 import { listSupports, planObjectives, profileReferences } from "@/lib/dua/supports";
-import { formatDate } from "@/lib/format";
+import { brDay, formatDate } from "@/lib/dates";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { Field } from "@/components/form-kit";
 import { BUTTON_CLS, inputCls, linkCls } from "@/components/form-styles";
@@ -18,11 +18,6 @@ import { Assurances, HowToRead } from "@/components/explain";
 type StudentOptions = { profileOptions: ProfileOption[]; objectives: ObjectiveOption[] };
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
-
-function todayInput() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-}
 
 async function optionsFor(user: SessionUser, studentId: string): Promise<StudentOptions> {
   const [refs, objectives] = await Promise.all([profileReferences(user, studentId), planObjectives(user, studentId)]);
@@ -49,7 +44,7 @@ export default async function SupportsPage({ params, searchParams }: { params: P
   const selectedOptions = selected ? options.get(selected.id) ?? null : null;
   const selectedCount = selected ? supports.filter((support) => support.student.id === selected.id).length : 0;
   const aiOn = isAIEnabled();
-  const today = todayInput();
+  const today = brDay();
 
   return (
     <div className="grid min-w-0 gap-6">

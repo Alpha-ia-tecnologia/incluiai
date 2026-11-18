@@ -3,6 +3,8 @@
 // nas fontes oficiais (Planalto, Câmara, Senado, ONU/OMS); datas sem norma
 // federal trazem a origem descrita como tal.
 
+import { MONTH_NAMES, dayIndex, daysInMonth, type YMD } from "./dates.ts";
+
 export type CalendarTheme = "direitos" | "comunicacao" | "visual" | "neuro" | "intelectual" | "fisica" | "saude";
 
 export const CALENDAR_THEMES: Record<CalendarTheme, { label: string; chip: string; dot: string }> = {
@@ -175,35 +177,12 @@ export const MONTHLY_CAMPAIGNS: { month: number; title: string; text: string; th
   { month: 9, title: "Setembro Azul", text: "mês de visibilidade da comunidade surda.", theme: "comunicacao", chip: "bg-sky-soft text-sky-ink" },
 ];
 
-export const MONTH_NAMES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-export const MONTH_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-
-export type YMD = { year: number; month: number; day: number };
-
 export type CalendarEvent = {
   key: string;
   entry: CommemorativeDate;
   start: YMD;
   end: YMD;
 };
-
-export function todayInBrazil(now = new Date()): YMD {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
-  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
-  return { year: get("year"), month: get("month"), day: get("day") };
-}
-
-export function daysInMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
-export function dayIndex({ year, month, day }: YMD): number {
-  return Date.UTC(year, month - 1, day) / 86_400_000;
-}
-
-export function weekdayOf(date: YMD): number {
-  return new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();
-}
 
 export function monthEvents(year: number, month: number): CalendarEvent[] {
   return COMMEMORATIVE_DATES.filter((entry) => entry.month === month)
@@ -240,8 +219,4 @@ export function dateRangeLabel(event: CalendarEvent): string {
   if (dayIndex(start) === dayIndex(end)) return `${start.day} de ${month}`;
   if (start.month === end.month) return `${start.day} a ${end.day} de ${month}`;
   return `${start.day} de ${month} a ${end.day} de ${MONTH_NAMES[end.month - 1]}`;
-}
-
-export function monthParam(year: number, month: number): string {
-  return `${year}-${String(month).padStart(2, "0")}`;
 }

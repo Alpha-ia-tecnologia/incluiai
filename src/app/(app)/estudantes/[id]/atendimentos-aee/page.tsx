@@ -1,10 +1,10 @@
 import { requireStudentPage } from "@/lib/page-context";
 import { listAeeSessions } from "@/lib/aee-sessions";
-import { AEE_SESSION_STATUSES, AEE_SESSION_STATUS_LABEL, type AeeSessionStatus } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { AEE_SESSION_STATUS, AEE_SESSION_STATUSES, labelOf, toneOf } from "@/lib/scale";
+import { brDay, formatDate } from "@/lib/dates";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { AeeSessionForm } from "@/components/aee-session-form";
-import { DataBoard, DataCard, SEGMENT_COLORS } from "@/components/data-viz";
+import { DataBoard, DataCard, TONE_COLOR } from "@/components/data-viz";
 import { Swatch } from "@/components/charts";
 import { percentOf, sessionsByMonth } from "@/lib/series";
 import { RingTile } from "@/components/viz/ring-tile";
@@ -12,21 +12,14 @@ import { StackedColumns } from "@/components/viz/stacked-columns";
 import { Assurances, HowToRead } from "@/components/explain";
 import { MessageSquareText, NotebookPen } from "lucide-react";
 
-const STATUS_TONE: Record<AeeSessionStatus, "green" | "amber" | "neutral"> = { realizado: "green", falta: "amber", cancelamento: "neutral" };
-
-function todayInput() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-}
-
 export default async function AeeSessionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { user, can } = await requireStudentPage(id, "Atendimentos AEE", { tab: "atendimentos-aee" });
   const { sessions, summary } = await listAeeSessions(user, id);
   const canRecord = can.recordAee;
   const total = AEE_SESSION_STATUSES.reduce((sum, status) => sum + summary[status], 0);
-  const series = AEE_SESSION_STATUSES.map((status) => ({ key: status, label: AEE_SESSION_STATUS_LABEL[status], color: SEGMENT_COLORS[status] }));
-  const months = sessionsByMonth(sessions, 6).map((month) => ({ label: month.label, title: month.title, counts: { realizado: month.realizado, falta: month.falta, cancelamento: month.cancelamento } }));
+  const series = AEE_SESSION_STATUSES.map((status) => ({ key: status, label: AEE_SESSION_STATUS[status].label, color: TONE_COLOR[AEE_SESSION_STATUS[status].tone] }));
+  const months = sessionsByMonth(sessions, 6).map((month) => ({ label: month.label, title: month.title, counts: Object.fromEntries(AEE_SESSION_STATUSES.map((status) => [status, month[status]])) }));
 
   return (
     <>
@@ -53,14 +46,14 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
               pct={percentOf(summary.realizado, total)}
               label="Atendimentos realizados"
               value={total ? `${summary.realizado} de ${total}` : "Sem base"}
-              color={SEGMENT_COLORS.realizado}
+              color={TONE_COLOR[AEE_SESSION_STATUS.realizado.tone]}
               hint={total ? "Entre os atendimentos registrados." : "Ainda não há atendimento registrado para calcular."}
             >
               <dl className="grid gap-1.5 border-t border-line pt-3 text-sm">
                 {AEE_SESSION_STATUSES.map((status) => (
                   <div key={status} className="flex min-w-0 items-center gap-2">
-                    <Swatch color={SEGMENT_COLORS[status]} />
-                    <dt className="min-w-0 flex-1 text-ink">{AEE_SESSION_STATUS_LABEL[status]}</dt>
+                    <Swatch color={TONE_COLOR[AEE_SESSION_STATUS[status].tone]} />
+                    <dt className="min-w-0 flex-1 text-ink">{AEE_SESSION_STATUS[status].label}</dt>
                     <dd className="font-medium tabular-nums text-ink">{summary[status]}</dd>
                   </div>
                 ))}
@@ -77,7 +70,7 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
         {canRecord ? (
           <Card className="min-w-0">
             <SectionTitle>Registrar atendimento</SectionTitle>
-            <AeeSessionForm studentId={id} today={todayInput()} />
+            <AeeSessionForm studentId={id} today={brDay()} />
           </Card>
         ) : (
           <p className="text-sm text-ink-soft">A frequência do AEE é registrada pelo professor do AEE ou pela coordenação.</p>
@@ -88,13 +81,12 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
           {sessions.length ? (
             <ul className="grid min-w-0 gap-3">
               {sessions.map((session) => {
-                const status = session.status as AeeSessionStatus;
                 return (
                   <li key={session.id} className="min-w-0">
                     <Card className="min-w-0">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="text-sm font-semibold text-ink">{formatDate(session.date)}</h3>
-                        <Badge tone={STATUS_TONE[status] ?? "neutral"}>{AEE_SESSION_STATUS_LABEL[status] ?? session.status}</Badge>
+                        <Badge tone={toneOf(AEE_SESSION_STATUS, session.status)}>{labelOf(AEE_SESSION_STATUS, session.status)}</Badge>
                       </div>
                       {session.reason ? <p className="mt-2 break-words text-sm text-ink"><span className="font-medium">Motivo: </span>{session.reason}</p> : null}
                       {session.note ? <p className="mt-2 whitespace-pre-line break-words text-sm text-ink-soft"><span className="font-medium text-ink">Observação: </span>{session.note}</p> : null}

@@ -15,7 +15,7 @@ export const MATERIAL_KINDS: { kind: MaterialKind; label: string; description: s
 export const MATERIAL_KIND_LABEL = Object.fromEntries(MATERIAL_KINDS.map((item) => [item.kind, item.label])) as Record<MaterialKind, string>;
 export const isMaterialKind = (value: string): value is MaterialKind => MATERIAL_KINDS.some((item) => item.kind === value);
 
-export const MATERIAL_CONTEXTS = ACTIVITY_CONTEXTS.map((value) => ({ value, label: CONTEXTS[value] }));
+export const MATERIAL_CONTEXTS = ACTIVITY_CONTEXTS.map((value) => ({ value, label: CONTEXTS[value].label }));
 
 export const MATERIAL_TOPICS = [
   "Chegada à escola", "Hora do lanche", "Ida ao banheiro", "Troca de sala ou de atividade", "Recreio",

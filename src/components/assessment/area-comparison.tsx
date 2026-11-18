@@ -1,7 +1,8 @@
 import type { AreaKey } from "@/lib/assessment";
+import { supportOffset } from "@/lib/scale";
 
 const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
-const position = (value: number) => `${(value / 5) * 100}%`;
+const position = (value: number) => `${supportOffset(value) * 100}%`;
 
 export function AreaComparison({ rows }: { rows: { area: AreaKey; label: string; start: number | null; end: number | null; change: number | null }[] }) {
   const shown = rows.filter((row) => row.start !== null || row.end !== null);
@@ -15,7 +16,7 @@ export function AreaComparison({ rows }: { rows: { area: AreaKey; label: string;
             {row.start !== null ? <span className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink-strong bg-white" style={{ left: position(row.start) }} /> : null}
             {row.end !== null ? <span className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink-strong" style={{ left: position(row.end) }} /> : null}
           </div>
-          <div aria-hidden className="mt-1 flex justify-between text-xs text-ink-soft"><span>Independente (0)</span><span>Mais apoio (5)</span></div>
+          <div aria-hidden className="mt-1 flex justify-between text-xs text-ink-soft"><span>Mais apoio (5)</span><span>Independente (0)</span></div>
           <p className="mt-1 text-sm text-ink-soft">
             {row.start !== null && row.end !== null && row.change !== null
               ? `Linha de base ${decimal(row.start)}, agora ${decimal(row.end)}: ${row.change > 0 ? `precisa de ${decimal(row.change)} ${row.change === 1 ? "nível" : "níveis"} de apoio a menos` : row.change < 0 ? `precisa de ${decimal(-row.change)} ${row.change === -1 ? "nível" : "níveis"} de apoio a mais` : "o apoio está igual"}.`

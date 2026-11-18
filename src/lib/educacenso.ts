@@ -5,6 +5,7 @@
 // Exportação do Educacenso" 2025 (Matrícula Inicial, versão 2) e 2026.
 
 import { digitsOnly, normalizeName } from "./student-identity.ts";
+import { isIsoDay } from "./dates.ts";
 
 export type Edition = 2025 | 2026;
 export type Dependency = "federal" | "estadual" | "municipal" | "privada" | "";
@@ -121,8 +122,8 @@ export function toIsoDate(brazilian: string): string {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(brazilian.trim());
   if (!match) return "";
   const [, day, month, year] = match;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-  return date.getUTCMonth() === Number(month) - 1 && date.getUTCDate() === Number(day) ? `${year}-${month}-${day}` : "";
+  const iso = `${year}-${month}-${day}`;
+  return isIsoDay(iso) ? iso : "";
 }
 
 const PARTICLES = new Set(["da", "de", "do", "das", "dos", "e"]);

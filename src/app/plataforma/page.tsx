@@ -5,7 +5,7 @@ import { requirePlatformUser } from "@/lib/auth";
 import { platformDb } from "@/lib/prisma";
 import { addressOf, versioned } from "@/lib/tenant";
 import { STATUS_LABELS, STATUS_TONES, type MunicipalityStatus } from "@/lib/tenancy-core";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { Badge, EmptyState, PageHero } from "@/components/ui";
 import { linkCls, BUTTON_CLS } from "@/components/form-styles";
 

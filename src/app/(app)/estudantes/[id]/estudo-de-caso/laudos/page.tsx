@@ -6,7 +6,7 @@ import { requireStudentPage } from "@/lib/page-context";
 import { studentConsent } from "@/lib/consent";
 import { canReadFiles } from "@/lib/agents/capabilities";
 import { reportStatus } from "@/lib/health-reports-core";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { uploadHealthReportAction } from "@/actions/health-reports";
 import { HealthReportUpload } from "@/components/health-report-upload";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -85,7 +85,7 @@ export default async function HealthReportsPage({
                           {formatDate(report.createdAt)} · anexado por {report.uploadedBy} · {sizeText(report.size)}
                         </span>
                       </span>
-                      <Badge tone={status.needsReview ? "brand" : report.reviewedAt ? "green" : "neutral"}>{status.needsReview ? "Revisar sugestões" : status.label}</Badge>
+                      <Badge tone={status.needsReview ? "info" : report.reviewedAt ? "good" : "neutral"}>{status.needsReview ? "Revisar sugestões" : status.label}</Badge>
                       <ArrowRight size={16} className="shrink-0 text-ink-soft transition-transform group-hover:translate-x-1 motion-reduce:transition-none" aria-hidden />
                     </Link>
                   </li>

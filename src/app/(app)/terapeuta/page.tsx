@@ -8,7 +8,8 @@ import { can } from "@/lib/roles";
 import { createIntersectorReport } from "@/actions/intersector";
 import { loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
-import { parseJson, formatDate } from "@/lib/format";
+import { readList } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { CHANNELS } from "@/lib/scale";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { MultiChoiceField } from "@/components/choice-field";
@@ -61,7 +62,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
   const latest = reports[0];
   const latestSeen = seenAt[0] ?? null;
   const p = student.profile;
-  const interests = parseJson<string[]>(p?.interests ?? null, []);
+  const interests = readList(p?.interests ?? null);
   const create = createIntersectorReport.bind(null, student.id);
   const firstName = student.name.split(" ")[0];
 

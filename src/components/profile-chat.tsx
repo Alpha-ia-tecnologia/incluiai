@@ -34,9 +34,9 @@ import {
   INTEREST_OPTIONS,
   STRENGTH_OPTIONS,
   TRIGGER_OPTIONS,
-  splitItems,
 } from "@/lib/form-options";
 import type { ActionResult } from "@/lib/action-result";
+import { splitItems } from "@/lib/format";
 
 type Answer = string | string[];
 export type ProfileAnswers = Record<string, Answer>;

@@ -1,10 +1,7 @@
-import { ACCESSIBILITY_RESOURCE_OPTIONS, AEE_STRATEGY_OPTIONS, COMMON_ROOM_STRATEGY_OPTIONS } from "../form-options.ts";
-import {
-  AEE_SERVICE_OPTIONS, ASSESSMENT_ACCESSIBILITY_OPTIONS, ASSISTIVE_TECH_OPTIONS, FAMILY_FEEDBACK_OPTIONS, MONITORING_OPTIONS,
-  NETWORK_DEMAND_OPTIONS, SUPPORT_STAFF_OPTIONS, canonicalItems, outsideOptions,
-} from "../plan-documents.ts";
+import { AEE_SERVICE_OPTIONS, PROPOSAL_FIELDS, SUPPORT_STAFF_OPTIONS, canonicalItems, outsideOptions } from "../plan-documents.ts";
 import { OBJECTIVES_PER_PLAN, OBJECTIVE_DEADLINE_WEEKS, hasClinicalTerm } from "../pedagogy-rules.ts";
 import { DIMENSIONS } from "../scale.ts";
+import { REVIEW_WEEKS } from "../plan-lifecycle.ts";
 import { ANALYST_SYSTEM, PAEE_SYSTEM, PEI_SYSTEM, PLANNER_SYSTEM, PLAN_REVIEWER_SYSTEM } from "./prompts.ts";
 import {
   CaseAnalysisSchema, DIMENSION_KEYS, ObjectivesProposalSchema, PLAN_PARTS, PaeeProposalSchema, PeiProposalSchema, PlanReviewSchema,
@@ -20,15 +17,9 @@ import { runReviewedGraph, type ReviewedGraph } from "./reviewed-graph.ts";
 const PART_LABEL: Record<PlanPart, string> = { paee: "PAEE", pei: "PEI", objetivos: "objetivos" };
 const CLINICAL_PROBLEM = { problema: "Há linguagem clínica.", correcao: "Descreva o que o estudante faz e de que apoio precisa, sem termos clínicos." };
 
-const optionLines = (fields: [string, readonly string[]][]) => fields.map(([field, options]) => `- ${field}: ${options.join("; ")}`).join("\n");
-const PAEE_OPTIONS = optionLines([
-  ["accessibilityResources", ACCESSIBILITY_RESOURCE_OPTIONS], ["assistiveTech", ASSISTIVE_TECH_OPTIONS],
-  ["supportStaff", SUPPORT_STAFF_OPTIONS], ["networkDemands", NETWORK_DEMAND_OPTIONS],
-]);
-const PEI_OPTIONS = optionLines([
-  ["aeeServices", AEE_SERVICE_OPTIONS], ["aeeStrategies", AEE_STRATEGY_OPTIONS], ["commonRoomStrategies", COMMON_ROOM_STRATEGY_OPTIONS],
-  ["assessmentAccessibility", ASSESSMENT_ACCESSIBILITY_OPTIONS], ["monitoring", MONITORING_OPTIONS], ["familyFeedback", FAMILY_FEEDBACK_OPTIONS],
-]);
+const optionLines = (part: "paee" | "pei") => PROPOSAL_FIELDS.filter((field) => field.part === part).map((field) => `- ${field.key}: ${field.options.join("; ")}`).join("\n");
+const PAEE_OPTIONS = optionLines("paee");
+const PEI_OPTIONS = optionLines("pei");
 
 
 export function checkPaee(paee: PaeeProposal): PlanProblem[] {
@@ -81,17 +72,10 @@ const cleanItems = (items: string[], limit: number) =>
 export function normalizePlanProposal(proposal: PlanProposal): PlanProposal {
   return {
     initialSituation: cleanItems(proposal.initialSituation, 8),
-    commonRoomStrategies: canonicalItems(proposal.commonRoomStrategies, COMMON_ROOM_STRATEGY_OPTIONS),
-    aeeStrategies: canonicalItems(proposal.aeeStrategies, AEE_STRATEGY_OPTIONS),
-    accessibilityResources: canonicalItems(proposal.accessibilityResources, ACCESSIBILITY_RESOURCE_OPTIONS),
-    assistiveTech: canonicalItems(proposal.assistiveTech ?? [], ASSISTIVE_TECH_OPTIONS),
-    supportStaff: canonicalItems(proposal.supportStaff ?? [], SUPPORT_STAFF_OPTIONS, { strict: true }),
-    networkDemands: canonicalItems(proposal.networkDemands ?? [], NETWORK_DEMAND_OPTIONS),
-    aeeServices: canonicalItems(proposal.aeeServices ?? [], AEE_SERVICE_OPTIONS, { strict: true, limit: AEE_SERVICE_OPTIONS.length }),
-    assessmentAccessibility: canonicalItems(proposal.assessmentAccessibility ?? [], ASSESSMENT_ACCESSIBILITY_OPTIONS),
-    monitoring: canonicalItems(proposal.monitoring ?? [], MONITORING_OPTIONS, { limit: 4 }),
-    familyFeedback: canonicalItems(proposal.familyFeedback ?? [], FAMILY_FEEDBACK_OPTIONS, { limit: 4 }),
-    reviewWeeks: clamp(proposal.reviewWeeks, 4, 26, 12),
+    ...Object.fromEntries(PROPOSAL_FIELDS.map((field) => [field.key, canonicalItems(proposal[field.key] ?? [], field.options, {
+      strict: "strict" in field && field.strict, limit: "limit" in field ? field.limit : undefined,
+    })])) as Record<(typeof PROPOSAL_FIELDS)[number]["key"], string[]>,
+    reviewWeeks: clamp(proposal.reviewWeeks, 4, 26, REVIEW_WEEKS),
     objectives: proposal.objectives.slice(0, OBJECTIVES_PER_PLAN.max).map((objective) => {
       const currentSupport = clamp(objective.currentSupport, 0, 5, 3);
       const target = clamp(objective.targetSupport, 0, 5, currentSupport - 1);
@@ -133,8 +117,9 @@ const PLAN_GRAPH: ReviewedGraph<string, PlanPart, PlanDrafts, CaseAnalysis, Plan
         agent: PLAN_PIPELINE.writers.paee, system: PAEE_SYSTEM, schema: PaeeProposalSchema, effort: "medium",
         prompt: `${common}\n\nOpções de cada campo:\n${PAEE_OPTIONS}${revision}\n\nProponha o PAEE.`,
       });
-      const filled = [paee.accessibilityResources, paee.assistiveTech, paee.supportStaff, paee.networkDemands].filter((items) => items.length).length;
-      return { draft: paee as PlanDrafts[typeof part], summary: revision ? "Corrigiu o PAEE com base na revisão." : `Propôs o PAEE: ${filled} de 4 itens avaliados a partir do caso.` };
+      const items = Object.values(paee);
+      const filled = items.filter((list) => list.length).length;
+      return { draft: paee as PlanDrafts[typeof part], summary: revision ? "Corrigiu o PAEE com base na revisão." : `Propôs o PAEE: ${filled} de ${items.length} itens avaliados a partir do caso.` };
     }
     if (part === "pei") {
       const pei = await model({

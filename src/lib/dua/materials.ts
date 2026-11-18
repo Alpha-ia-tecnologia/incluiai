@@ -4,7 +4,7 @@ import { studentForbidden, type SessionUser } from "../auth";
 import { UserError } from "../user-error";
 import { canWorkWithStudent } from "../policy";
 import { can } from "../roles";
-import { parseJson } from "../format";
+import { parseJson, readList } from "../format";
 import {
   MATERIAL_ACCESSIBILITY, MATERIAL_FORMATS, MATERIAL_FORMAT_LABEL, buildActivityScript, buildSupportScript,
   type DuaSupportData, type MaterialFormat, type MaterialScope, type MaterialSection,
@@ -139,7 +139,7 @@ const viewOf = (row: MaterialRow, canValidate: boolean): MaterialView => ({
   scope: row.scope as MaterialScope,
   student: row.student ? { id: row.student.id, name: row.student.name } : null,
   sections: parseJson<MaterialSection[]>(row.content, []),
-  accessibility: parseJson<string[]>(row.accessibility, []),
+  accessibility: readList(row.accessibility),
   aiParticipation: row.aiParticipation,
   state: row.state as MaterialView["state"],
   revision: row.revision,

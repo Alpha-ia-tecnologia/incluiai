@@ -179,7 +179,7 @@ const MATERIAL_GRAPH: ReviewedGraph<MaterialInput, Part, MaterialDrafts, null, s
     const design = drafts.material!;
     const activity = await model({
       agent: MATERIAL_PIPELINE.writers[context], system: MATERIAL_ACTIVITY_SYSTEM[context], schema: MaterialActivitySchema, effort: "medium",
-      prompt: `${input.request}\n\n## Material de apoio a aplicar\n${design.title}: ${design.purpose}\nCartões, em ordem:\n${cardsText(design)}${revision}\n\nCrie a atividade para ${CONTEXTS[context].toLowerCase()}.`,
+      prompt: `${input.request}\n\n## Material de apoio a aplicar\n${design.title}: ${design.purpose}\nCartões, em ordem:\n${cardsText(design)}${revision}\n\nCrie a atividade para ${CONTEXTS[context].label.toLowerCase()}.`,
     });
     return { draft: activity as MaterialDrafts[typeof part], summary: revision ? `Refez "${activity.title}" com as correções.` : `Propôs "${activity.title}" para aplicar o material.` };
   },

@@ -1,7 +1,7 @@
 import type { DiaryEntry, Objective, Plan } from "@prisma/client";
-import { splitItems } from "./form-options";
-
-export type Trend = "avancando" | "estavel" | "atencao" | "sem_dados";
+import { DAY_MS, isPastDay } from "./dates";
+import { splitItems } from "./format";
+import type { Term, Trend } from "./scale";
 
 export interface ObjectiveInsight {
   objectiveId: string;
@@ -61,8 +61,14 @@ export interface StudentAlert {
   message: string;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_DAYS_WITHOUT_ENTRY = 7;
+
+export const ALERTS: Record<StudentAlert["kind"], Term> = {
+  sem_plano: { label: "Sem plano individual ativo", short: "Sem plano", tone: "alert" },
+  plano_vencido: { label: "Plano com revisão vencida", short: "Revisão vencida", tone: "alert" },
+  sem_registro: { label: `Sem registro de aula há mais de ${MAX_DAYS_WITHOUT_ENTRY} dias`, short: `Sem registro há ${MAX_DAYS_WITHOUT_ENTRY}+ dias`, tone: "alert" },
+  queda_participacao: { label: "Queda de participação", tone: "alert" },
+};
 
 export function studentAlerts(input: {
   plans: Plan[];
@@ -75,13 +81,12 @@ export function studentAlerts(input: {
 
   if (!activePlan) {
     alerts.push({ kind: "sem_plano", message: "Estudante sem plano individual ativo." });
-  } else if (new Date(activePlan.reviewDate).getTime() < now.getTime()) {
+  } else if (isPastDay(activePlan.reviewDate, now)) {
     alerts.push({ kind: "plano_vencido", message: "O plano individual passou da data de revisão." });
   }
 
-  const lastEntry = [...input.entries].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  )[0];
+  const entries = [...input.entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const lastEntry = entries.at(-1);
   if (!lastEntry || now.getTime() - new Date(lastEntry.date).getTime() > MAX_DAYS_WITHOUT_ENTRY * DAY_MS) {
     alerts.push({
       kind: "sem_registro",
@@ -89,7 +94,7 @@ export function studentAlerts(input: {
     });
   }
 
-  const recent = input.entries.slice(-6);
+  const recent = entries.slice(-6);
   const refusals = recent.filter((e) => e.participation === "recusou").length;
   if (recent.length >= 4 && refusals >= Math.ceil(recent.length / 2)) {
     alerts.push({

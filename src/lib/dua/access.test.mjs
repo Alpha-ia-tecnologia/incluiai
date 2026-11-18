@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { collaboratorIds, planningAccess, readablePlanningsWhere } from "./access.ts";
+import { collaboratorIds, collaboratorWhere, planningAccess, readCollaborators, readablePlanningsWhere, writeCollaborators } from "./access.ts";
 import { can } from "../roles.ts";
 
 const user = (id, role, schoolId = "escola-1") => ({ id, role, schoolId });
@@ -80,4 +80,13 @@ test("filtro de listas equivale à leitura", () => {
   });
   assert.deepEqual(readablePlanningsWhere(user("ana", "coordenacao")).OR.at(-1), schoolScope);
   assert.deepEqual(readablePlanningsWhere(user("rede", "gestao", null)).OR.at(-1), {});
+});
+
+test("colaboradores: o que se grava é o que a busca por id encontra, e leitura tolera lixo", () => {
+  const stored = writeCollaborators([{ id: "c1x", name: "Ana \"Nina\"" }, { id: "c2y", name: "Bruno" }]);
+  assert.deepEqual(readCollaborators(stored), [{ id: "c1x", name: "Ana \"Nina\"" }, { id: "c2y", name: "Bruno" }]);
+  assert.ok(stored.includes(collaboratorWhere("c2y").collaborators.contains));
+  assert.ok(!stored.includes(collaboratorWhere("c2").collaborators.contains));
+  assert.deepEqual(collaboratorIds("não é json"), []);
+  assert.deepEqual(collaboratorIds('[{"name":"sem id"},{"id":"c3"}]'), ["c3"]);
 });

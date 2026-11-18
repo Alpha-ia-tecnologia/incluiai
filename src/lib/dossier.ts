@@ -3,9 +3,11 @@ import type { Prisma } from "@prisma/client";
 import { db } from "./prisma";
 import { parseCaseStudy } from "./case-study";
 import { censusMetaOf } from "./census";
-import { evidenceGroups, evidenceSummary, type EvidenceGroup } from "./evidence";
+import { RECENT_AEE_DAYS, RECENT_DIARY_DAYS, evidenceGroups, evidenceSummary, type EvidenceGroup } from "./evidence";
+import { DAY_MS } from "./dates";
+import { PLAN_DOCUMENT_KEYS, type PlanDocumentKey } from "./plan-documents";
 
-const DAY = 86_400_000;
+const PLAN_DOCUMENT_SELECT = Object.fromEntries(PLAN_DOCUMENT_KEYS.map((key) => [key, true])) as Record<PlanDocumentKey, true>;
 
 export type StudentEvidence = { id: string; name: string; className: string; schoolId: string; school: string; groups: EvidenceGroup[]; summary: ReturnType<typeof evidenceSummary> };
 
@@ -20,17 +22,14 @@ export async function loadEvidence(where: Prisma.StudentWhereInput, now: Date = 
       plans: {
         where: { status: "ativo" }, orderBy: { createdAt: "desc" }, take: 1,
         select: {
-          createdAt: true, reviewedAt: true, reviewDate: true, _count: { select: { objectives: true } },
-          aeeTeacher: true, regularTeacher: true, participants: true,
-          accessibilityResources: true, assistiveTech: true, supportStaff: true, networkDemands: true,
-          aeeServices: true, aeeStrategies: true, commonRoomStrategies: true, assessmentAccessibility: true, monitoring: true, familyFeedback: true,
+          createdAt: true, reviewedAt: true, reviewDate: true, _count: { select: { objectives: true } }, ...PLAN_DOCUMENT_SELECT,
         },
       },
-      aeeSessions: { where: { date: { gte: new Date(now.getTime() - 30 * DAY), lte: now } }, select: { status: true } },
+      aeeSessions: { where: { date: { gte: new Date(now.getTime() - RECENT_AEE_DAYS * DAY_MS), lte: now } }, select: { status: true } },
       reports: { where: { status: "validado" }, orderBy: { validatedAt: "desc" }, take: 1, select: { validatedAt: true } },
       assessments: { orderBy: { appliedAt: "desc" }, take: 1, select: { appliedAt: true } },
       consent: { select: { aiUse: true, therapistLink: true, updatedBy: true, updatedAt: true } },
-      _count: { select: { adaptedTasks: { where: { status: "aprovada" } }, diaryEntries: { where: { date: { gte: new Date(now.getTime() - 60 * DAY) } } } } },
+      _count: { select: { adaptedTasks: { where: { status: "aprovada" } }, diaryEntries: { where: { date: { gte: new Date(now.getTime() - RECENT_DIARY_DAYS * DAY_MS) } } } } },
     },
   });
   return students.map((student) => {

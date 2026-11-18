@@ -7,20 +7,18 @@ import { answersOf } from "./assessments";
 import type { SessionUser } from "./auth";
 import { canAccessStudent, isFamilyOf, linkedStudentIds } from "./policy";
 import { can } from "./roles";
-import { objectiveTrend, studentAlerts, type StudentAlert, type Trend } from "./insights";
-import { getStudentNextStep } from "./student-journey";
-import { splitItems } from "./form-options";
-import { parseJson } from "./format";
+import { ALERTS, objectiveTrend, studentAlerts, type StudentAlert } from "./insights";
+import { JOURNEY_STEPS, getStudentNextStep, journeyFacts } from "./student-journey";
+import { parseJson, splitItems, readList } from "./format";
 import { aiProviders } from "./agents/capabilities";
 import { usesAac } from "./pedagogy-rules";
 import { MATERIAL_KINDS } from "./material-content";
-import { MONTH_NAMES, MONTH_SHORT, todayInBrazil } from "./commemorative-dates";
-import { BARRIERS, CHANNELS, CONTEXTS, CRITERION_MET, DIMENSIONS, PARTICIPATION, SENSORY_AREAS, SENSORY_LABELS, STAGES } from "./scale";
+import { DAY_MS, MONTH_NAMES, MONTH_SHORT, brYmd, formatDateShort, isPastDay, monthIndex, monthOfIndex, monthStart } from "./dates";
+import { ACTIVITY_STATUS, BARRIERS, CHANNELS, CONTEXTS, CRITERION_MET, DIMENSIONS, PARTICIPATION, PREPARED_ACTIVITY_STATUSES, SENSORY_AREAS, SENSORY_LABELS, STAGES, TREND, shortOf, type Term, type Tone } from "./scale";
 
-const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
 const REVIEW_HORIZON_DAYS = 30;
-const PREPARED = new Set(["aceita", "aplicada"]);
+const prepared = (status: string) => PREPARED_ACTIVITY_STATUSES.includes(status);
 
 export const PERIODS = {
   "30d": "Últimos 30 dias",
@@ -34,41 +32,24 @@ export function parsePeriod(value: unknown): DashboardPeriod {
   return typeof value === "string" && Object.hasOwn(PERIODS, value) ? (value as DashboardPeriod) : "ano";
 }
 
-export const ALERT_LABELS: Record<StudentAlert["kind"], string> = {
-  sem_plano: "Sem plano individual ativo",
-  plano_vencido: "Plano com revisão vencida",
-  sem_registro: "Sem registro de aula há mais de 7 dias",
-  queda_participacao: "Queda de participação",
-};
-
-export const TREND_LABELS: Record<Trend, string> = {
-  avancando: "Avançando",
-  estavel: "Estável",
-  atencao: "Pede atenção",
-  sem_dados: "Ainda sem registros",
-};
-
 export const SOURCE_LABELS: Record<string, string> = {
   regras: "Motor de regras",
   ia: "Agentes de IA",
   professor: "Criadas pelo professor",
 };
 
-// America/Sao_Paulo, UTC−3, sem horário de verão.
-const brazilMidnight = (year: number, month: number, day = 1) => new Date(Date.UTC(year, month - 1, day, 3));
-
 export function periodStart(period: DashboardPeriod, now: Date): Date | null {
   if (period === "30d") return new Date(now.getTime() - 30 * DAY_MS);
   if (period === "90d") return new Date(now.getTime() - 90 * DAY_MS);
-  if (period === "ano") return brazilMidnight(todayInBrazil(now).year, 1);
+  if (period === "ano") return monthStart(brYmd(now).year * 12);
   return null;
 }
 
 export function previousRange(period: DashboardPeriod, start: Date | null, now: Date): { from: Date; to: Date } | null {
   if (!start) return null;
   if (period === "ano") {
-    const year = todayInBrazil(now).year - 1;
-    return { from: brazilMidnight(year, 1), to: new Date(Date.UTC(year, now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes())) };
+    const year = brYmd(now).year - 1;
+    return { from: monthStart(year * 12), to: new Date(Date.UTC(year, now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes())) };
   }
   return { from: new Date(start.getTime() - (now.getTime() - start.getTime())), to: start };
 }
@@ -84,14 +65,6 @@ export function parseGauge(value: unknown): DashboardGauge {
   return typeof value === "string" && Object.hasOwn(GAUGES, value) ? (value as DashboardGauge) : "jornada";
 }
 
-export const JOURNEY_STEPS = [
-  { key: "estudo", label: "Estudo de caso", step: 1 },
-  { key: "plano", label: "Plano e objetivo", step: 2 },
-  { key: "perfil", label: "Perfil", step: 3 },
-  { key: "atividade", label: "Atividade", step: 4 },
-  { key: "registro", label: "Registro de aula", step: 5 },
-] as const;
-
 export type MonthState = "registro" | "sem_registro" | "aberto" | "recesso" | "antes" | "futuro";
 
 export type Bucket = { label: string; title: string; start: Date; end: Date };
@@ -102,27 +75,25 @@ export function timeBuckets(period: DashboardPeriod, start: Date | null, now: Da
     const buckets: Bucket[] = [];
     for (let time = start.getTime(); time < now.getTime(); time += WEEK_MS) {
       const from = new Date(time);
-      const label = from.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" });
+      const label = formatDateShort(from);
       buckets.push({ label, title: `Semana de ${label}`, start: from, end: new Date(Math.min(time + WEEK_MS, end.getTime())) });
     }
     return buckets;
   }
-  const today = todayInBrazil(now);
-  const first = todayInBrazil(start ?? earliest ?? now);
-  const lastIndex = today.year * 12 + today.month - 1;
-  const firstIndex = first.year * 12 + first.month - 1;
+  const lastIndex = monthIndex(now);
+  const firstIndex = monthIndex(start ?? earliest ?? now);
+  const firstYear = monthOfIndex(firstIndex).year;
   const yearly = lastIndex - firstIndex >= 24;
   const step = yearly ? 12 : 1;
   const buckets: Bucket[] = [];
-  for (let index = yearly ? first.year * 12 : firstIndex; index <= lastIndex; index += step) {
-    const year = Math.floor(index / 12);
-    const month = (index % 12) + 1;
+  for (let index = yearly ? firstYear * 12 : firstIndex; index <= lastIndex; index += step) {
+    const { year, month } = monthOfIndex(index);
     const next = index + step;
     buckets.push({
-      label: yearly ? String(year) : `${MONTH_SHORT[month - 1]}${first.year !== today.year ? `/${String(year).slice(2)}` : ""}`,
+      label: yearly ? String(year) : `${MONTH_SHORT[month - 1]}${firstYear !== monthOfIndex(lastIndex).year ? `/${String(year).slice(2)}` : ""}`,
       title: yearly ? String(year) : `${MONTH_NAMES[month - 1]} de ${year}`,
-      start: brazilMidnight(year, month),
-      end: next > lastIndex ? end : brazilMidnight(Math.floor(next / 12), (next % 12) + 1),
+      start: monthStart(index),
+      end: next > lastIndex ? end : monthStart(next),
     });
   }
   return buckets;
@@ -137,9 +108,9 @@ function countBy<T>(items: T[], key: (item: T) => string | null | undefined): Ma
   return counts;
 }
 
-function labeledRows(counts: Map<string, number>, labels: Record<string, string>) {
-  const known = Object.entries(labels).map(([key, label]) => ({ key, label, value: counts.get(key) ?? 0 }));
-  const extra = [...counts].filter(([key]) => !(key in labels)).map(([key, value]) => ({ key, label: key, value }));
+function labeledRows(counts: Map<string, number>, table: Readonly<Record<string, Term | string>>): { key: string; label: string; tone: Tone; value: number }[] {
+  const known = Object.entries(table).map(([key, term]) => (typeof term === "string" ? { key, label: term, tone: "neutral" as const, value: counts.get(key) ?? 0 } : { key, label: term.label, tone: term.tone, value: counts.get(key) ?? 0 }));
+  const extra = [...counts].filter(([key]) => !(key in table)).map(([key, value]) => ({ key, label: key, tone: "neutral" as const, value }));
   return [...known, ...extra];
 }
 
@@ -224,27 +195,10 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const alertsByStudent = students.map((student) => ({ student, alerts: studentAlerts({ plans: student.plans, entries: student.diaryEntries, now }) }));
   const reviewLimit = new Date(now.getTime() + REVIEW_HORIZON_DAYS * DAY_MS);
 
-  const nextSteps = students.map((student) => {
-    const plan = activePlanOf(student);
-    return getStudentNextStep({
-      id: student.id,
-      caseStudy: (student.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null,
-      hasProfile: !!student.profile,
-      hasPlan: !!plan,
-      hasObjective: !!plan?.objectives.some((objective) => objective.status === "ativo"),
-      hasPreparedActivity: student.activities.some((activity) => PREPARED.has(activity.status)),
-      hasDiary: student.diaryEntries.length > 0,
-    });
-  });
-  const prepared = (student: ScopedStudent) => student.activities.some((activity) => PREPARED.has(activity.status));
-  const stepDone: Record<(typeof JOURNEY_STEPS)[number]["key"], (student: ScopedStudent) => boolean> = {
-    estudo: (student) => student.caseStudy?.status === "concluido",
-    perfil: (student) => !!student.profile,
-    plano: (student) => !!activePlanOf(student)?.objectives.some((objective) => objective.status === "ativo"),
-    atividade: prepared,
-    registro: (student) => student.diaryEntries.some((entry) => inPeriod(entry.date)),
-  };
-  const doneSteps = students.map((student) => JOURNEY_STEPS.filter((step) => stepDone[step.key](student)).length);
+  const facts = students.map((student) => journeyFacts(student));
+  const nextSteps = students.map((student, index) => getStudentNextStep({ id: student.id, ...facts[index] }));
+  const periodFacts = students.map((student, index) => ({ ...facts[index], hasDiary: student.diaryEntries.some((entry) => inPeriod(entry.date)) }));
+  const doneSteps = periodFacts.map((item) => JOURNEY_STEPS.filter((step) => step.done(item)).length);
 
   const range = previousRange(period, start, now);
   const previousEntries = range ? entries.filter((entry) => entry.date >= range.from && entry.date < range.to) : [];
@@ -252,7 +206,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const fullParticipation = (entry: (typeof entries)[number]) => entry.participation === "total";
   const criterionMet = (entry: (typeof entries)[number]) => entry.criterionMet === "sim";
 
-  const monthIndex = (date: Date) => { const day = todayInBrazil(date); return day.year * 12 + day.month - 1; };
   const monthCounts = countBy(entries, (entry) => String(monthIndex(entry.date)));
   const todayIndex = monthIndex(now);
   const firstIndex = entries.length ? Math.min(...entries.map((entry) => monthIndex(entry.date))) : null;
@@ -282,7 +235,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const sources = Object.keys(SOURCE_LABELS).map((source) => {
     const list = periodActivities.filter((activity) => activity.source === source);
     const decided = list.filter((activity) => activity.status !== "sugerida");
-    const used = decided.filter((activity) => PREPARED.has(activity.status)).length;
+    const used = decided.filter((activity) => prepared(activity.status)).length;
     return { source, label: SOURCE_LABELS[source], total: list.length, decided: decided.length, used, adhesion: percent(used, decided.length) };
   });
 
@@ -336,17 +289,17 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       studentsWithRecord,
       fullParticipation: participation.get("total") ?? 0,
       fullParticipationPct: percent(participation.get("total") ?? 0, periodEntries.length),
-      preparedActivities: periodActivities.filter((activity) => PREPARED.has(activity.status)).length,
+      preparedActivities: periodActivities.filter((activity) => prepared(activity.status)).length,
       pendingSuggestions: activities.filter((activity) => activity.status === "sugerida").length,
     },
     attention: {
       studentsWithAlerts: alertsByStudent.filter((item) => item.alerts.length).length,
-      byKind: (Object.keys(ALERT_LABELS) as StudentAlert["kind"][]).map((kind) => ({
-        key: kind, label: ALERT_LABELS[kind], value: alertsByStudent.filter((item) => item.alerts.some((alert) => alert.kind === kind)).length,
+      byKind: (Object.keys(ALERTS) as StudentAlert["kind"][]).map((kind) => ({
+        key: kind, label: ALERTS[kind].label, short: shortOf(ALERTS, kind), value: alertsByStudent.filter((item) => item.alerts.some((alert) => alert.kind === kind)).length,
       })),
       reviewsSoon: count((student) => {
         const plan = activePlanOf(student);
-        return !!plan && plan.reviewDate >= now && plan.reviewDate <= reviewLimit;
+        return !!plan && !isPastDay(plan.reviewDate, now) && plan.reviewDate <= reviewLimit;
       }),
       reviewHorizonDays: REVIEW_HORIZON_DAYS,
       students: students
@@ -360,7 +313,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
             name: student.name,
             className: student.className,
             school: student.school.name,
-            plan: !plan ? "sem_plano" as const : plan.reviewDate < now ? "vencido" as const : "ativo" as const,
+            plan: !plan ? "sem_plano" as const : isPastDay(plan.reviewDate, now) ? "vencido" as const : "ativo" as const,
             reviewDate: plan?.reviewDate ?? null,
             lastRecord: student.diaryEntries.at(-1)?.date ?? null,
             alerts: alerts.map((alert) => alert.kind),
@@ -370,8 +323,8 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     },
     journey: {
       steps: JOURNEY_STEPS.map((step) => ({
-        ...step,
-        done: count(stepDone[step.key]),
+        key: step.key, label: step.label, step: step.step,
+        done: periodFacts.filter((item) => step.done(item)).length,
         here: nextSteps.filter((next) => next.step === step.step).length,
       })),
       caseStudyDrafts: count((student) => student.caseStudy?.status === "rascunho"),
@@ -390,7 +343,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     },
     learning: {
       advancing: trends.get("avancando") ?? 0,
-      trends: (Object.keys(TREND_LABELS) as Trend[]).map((trend) => ({ key: trend, label: TREND_LABELS[trend], value: trends.get(trend) ?? 0 })),
+      trends: labeledRows(trends, TREND),
       support: {
         objectives: withRecords.length,
         initial: average(withRecords.map(({ objective }) => objective.currentSupport)),
@@ -413,7 +366,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
         };
       })(),
       reports: {
-        covered: count((student) => student.reports.some((report) => report.validatedAt && now.getTime() - report.validatedAt.getTime() <= 183 * 24 * 60 * 60 * 1000)),
+        covered: count((student) => student.reports.some((report) => report.validatedAt && now.getTime() - report.validatedAt.getTime() <= 183 * DAY_MS)),
         total,
       },
       bncc: {
@@ -435,7 +388,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
     },
     activities: {
       created: periodActivities.length,
-      byStatus: labeledRows(countBy(periodActivities, (activity) => activity.status), { sugerida: "Aguardando avaliação", aceita: "Aceita", aplicada: "Aplicada", rejeitada: "Rejeitada" }),
+      byStatus: labeledRows(countBy(periodActivities, (activity) => activity.status), ACTIVITY_STATUS),
       byContext: labeledRows(countBy(periodActivities, (activity) => activity.context), CONTEXTS),
       sources,
       rejectReasons: topItems(periodActivities.filter((activity) => activity.status === "rejeitada").map((activity) => activity.rejectReason?.trim() || "Sem motivo informado"), 3),
@@ -454,7 +407,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       byStage: labeledRows(countBy(students, (student) => student.stage), STAGES).filter((row) => row.value > 0),
       bySchool: schoolId ? [] : byValue(schools.map((school) => ({ key: school.id, label: school.name, value: count((student) => student.schoolId === school.id) }))),
       channels: byValue(labeledRows(countBy(profiles, (profile) => profile.expressiveChannel), CHANNELS)),
-      barriers: byValue(labeledRows(countBy(profiles.flatMap((profile) => parseJson<string[]>(profile.barriers, [])), (barrier) => barrier), BARRIERS)),
+      barriers: byValue(labeledRows(countBy(profiles.flatMap((profile) => readList(profile.barriers)), (barrier) => barrier), BARRIERS)),
       hypersensitivity: SENSORY_AREAS.map((area) => ({
         key: area, label: SENSORY_LABELS[area], value: profiles.filter((profile) => parseJson<Record<string, string>>(profile.sensoryProfile, {})[area] === "hiper").length,
       })),

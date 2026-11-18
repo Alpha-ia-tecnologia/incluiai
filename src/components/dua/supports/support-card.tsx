@@ -3,7 +3,7 @@ import { OriginBadge, ReviewBadge } from "@/components/dua/badges";
 import { SuggestionReview } from "@/components/dua/suggestion-review";
 import type { SupportView } from "@/lib/dua/supports";
 import type { SuggestionView } from "@/lib/dua/suggestions";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { SupportForm, type ObjectiveOption, type ProfileOption } from "./support-form";
 import { SupportSummary } from "./support-summary";
 import { StudentVoice } from "./student-voice";

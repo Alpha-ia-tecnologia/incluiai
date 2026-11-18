@@ -1,6 +1,6 @@
 import type { MaterialView } from "@/lib/dua/materials";
 import { MATERIAL_FORMAT_LABEL } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 
 export const AI_PARTICIPATION_LABEL: Record<string, string> = {
   nenhuma: "Sem participação de IA",

@@ -1,5 +1,6 @@
-const DAY = 86_400_000;
-const brDay = (date: Date) => date.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+import { DAY_MS, addDays, brDay } from "./dates.ts";
+
+export const REVIEW_WEEKS = 12;
 
 export function reviewOnTime(reviewedAt: Date, dueDate: Date): boolean {
   return brDay(reviewedAt) <= brDay(dueDate);
@@ -9,12 +10,12 @@ export const MAX_REVIEW_DAYS = 366;
 export function nextReviewProblem(next: Date, now: Date = new Date()): string | null {
   if (Number.isNaN(next.getTime())) return "Informe a data da próxima revisão.";
   if (brDay(next) <= brDay(now)) return "A próxima revisão precisa ser depois de hoje.";
-  if (next.getTime() - now.getTime() > MAX_REVIEW_DAYS * DAY) return "Marque a próxima revisão para daqui a no máximo um ano.";
+  if (next.getTime() - now.getTime() > MAX_REVIEW_DAYS * DAY_MS) return "Marque a próxima revisão para daqui a no máximo um ano.";
   return null;
 }
 
 export function suggestedNextReview(now: Date = new Date()): string {
-  return brDay(new Date(now.getTime() + 12 * 7 * DAY));
+  return addDays(brDay(now), REVIEW_WEEKS * 7);
 }
 
 export function reviewSummary(reviews: ReadonlyArray<{ onTime: boolean }>): { total: number; onTime: number; pct: number | null } {

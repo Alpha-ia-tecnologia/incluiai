@@ -3,12 +3,11 @@ import { randomUUID } from "node:crypto";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { can, rolesWith } from "../roles";
-import { parseJson } from "../format";
 import {
   BARRIER_CATEGORIES, BARRIER_STATUSES, DUA_PRINCIPLES, collectiveCopy, emptyDuaContent, emptyStrategyDetails, normalizeContent, validationProblems,
   type DuaContent, type DuaOrigin, type OriginKind, type ReviewState, type Sharing,
 } from "./domain";
-import { collaboratorIds, planningAccess, readablePlanningsWhere } from "./access";
+import { collaboratorIds, planningAccess, readCollaborators, readablePlanningsWhere, writeCollaborators } from "./access";
 import { validBnccCode } from "../bncc";
 import { NOT_FOUND, audit, clip, contentOf, latestVersion, loadPlanningFor } from "./shared";
 import { UserError } from "../user-error";
@@ -122,7 +121,7 @@ export async function loadPlanning(user: SessionUser, planningId: string) {
   const current = versions[0];
   if (!current) throw new UserError(NOT_FOUND, "not_found");
   return {
-    planning: { ...planning, collaboratorList: parseJson<Array<{ id: string; name: string }>>(planning.collaborators, []) },
+    planning: { ...planning, collaboratorList: readCollaborators(planning.collaborators) },
     access,
     current: { ...current, content: contentOf(current), state: current.state as ReviewState },
     versions: versions.map((version) => ({ id: version.id, version: version.version, state: version.state as ReviewState, validatedAt: version.validatedAt, validatedByName: version.validatedByName, updatedAt: version.updatedAt, updatedByName: version.updatedByName })),
@@ -283,7 +282,7 @@ export async function setCollaborators(user: SessionUser, planningId: string, us
   await loadPlanningFor(user, planningId, "share");
   const allowed = new Map((await collaboratorOptions(user, planningId)).map((item) => [item.id, item]));
   const chosen = [...new Set(userIds)].filter((id) => allowed.has(id)).map((id) => ({ id, name: allowed.get(id)!.name }));
-  await prisma.duaPlanning.update({ where: { id: planningId }, data: { collaborators: JSON.stringify(chosen) } });
+  await prisma.duaPlanning.update({ where: { id: planningId }, data: { collaborators: writeCollaborators(chosen) } });
   await audit(user, planningId, "definiu colaboradores", "planejamento", { detail: chosen.length ? chosen.map((item) => item.name).join(", ") : "Sem colaboradores" });
 }
 

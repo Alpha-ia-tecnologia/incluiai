@@ -31,7 +31,7 @@ test("etapa, data e turno", () => {
   assert.equal(dateOf("03/2017"), null);
   assert.equal(shiftOf("Manhã"), "manha");
   assert.equal(shiftOf("vespertino"), "tarde");
-  assert.equal(shiftOf("Noturno"), "Noite");
+  assert.equal(shiftOf("Noturno"), "noite");
 });
 
 test("o modelo para baixar: formato certo, mas os exemplos não viram estudantes", () => {

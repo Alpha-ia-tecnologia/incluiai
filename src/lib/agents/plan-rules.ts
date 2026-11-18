@@ -3,8 +3,9 @@ import { ACTION_SUGGESTIONS } from "../objective";
 import { applicableRules } from "../rules";
 import { studentAdaptations } from "../pedagogy-rules";
 import { parseCaseStudy } from "../case-study";
-import { splitItems } from "../form-options";
-import { parseJson } from "../format";
+import { splitItems, readList } from "../format";
+import { emptyProposalLists } from "../plan-documents";
+import { REVIEW_WEEKS } from "../plan-lifecycle";
 import type { PlanProposal } from "./schemas";
 import { DIMENSION_KEYS } from "./schemas";
 
@@ -23,7 +24,7 @@ function priorities(profile: FunctionalProfile | null, study: Record<string, str
       { dimension: "matematica", current: profile.mathSupport },
       { dimension: "interacao", current: profile.peerInteraction },
       { dimension: "autonomia", current: Math.round((profile.organization + profile.feeding + profile.hygiene) / 3) },
-      { dimension: "regulacao", current: parseJson<string[]>(profile.triggers, []).length ? 3 : 1 },
+      { dimension: "regulacao", current: readList(profile.triggers).length ? 3 : 1 },
     );
   } else {
     const needs = `${study.motivos ?? ""} ${study.necessidades ?? ""}`.toLowerCase();
@@ -50,15 +51,14 @@ export function proposePlanWithRules(profile: FunctionalProfile | null, caseStud
 
   return {
     initialSituation: initialSituation.length ? initialSituation : ["A equipe deve registrar o que o estudante já consegue fazer"],
+    ...emptyProposalLists(),
     commonRoomStrategies: [
       "Atividade da turma adaptada ao interesse",
       ...studentAdaptations(rules).map((rule) => rule.then),
     ],
     aeeStrategies: splitItems(study.necessidades).length ? splitItems(study.necessidades) : ["Atividades com o interesse âncora", "Ensino estruturado"],
     accessibilityResources: splitItems(study.recursos),
-    assistiveTech: [], supportStaff: [], networkDemands: [],
-    aeeServices: [], assessmentAccessibility: [], monitoring: [], familyFeedback: [],
-    reviewWeeks: 12,
+    reviewWeeks: REVIEW_WEEKS,
     objectives: priorities(profile, study).map(({ dimension, current }) => {
       const currentSupport = Math.min(5, Math.max(1, current));
       return {

@@ -1,11 +1,10 @@
 import { CircleCheck, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui";
-import { formatDate } from "@/lib/format";
-import { brDate, lessSupport, type ReportData, type ReportObjective } from "@/lib/period-report";
-import { supportInfo } from "@/lib/scale";
+import { formatDate, isoToBr } from "@/lib/dates";
+import { lessSupport, type ReportData, type ReportObjective } from "@/lib/period-report";
+import { OBJECTIVE_STATUS, REPORT_STATUS, labelOf, supportInfo, toneOf } from "@/lib/scale";
 
 const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
-const STATUS_LABEL: Record<string, string> = { ativo: "Em andamento", alcancado: "Alcançado", em_revisao: "Em revisão" };
 
 function Objective({ objective }: { objective: ReportObjective }) {
   const start = supportInfo(objective.supportStart);
@@ -14,8 +13,8 @@ function Objective({ objective }: { objective: ReportObjective }) {
     <li className="min-w-0 rounded-2xl border border-line bg-paper p-4 print:break-inside-avoid">
       <div className="flex flex-wrap items-center gap-2">
         <Badge>{objective.dimension}</Badge>
-        <Badge tone={objective.status === "alcancado" ? "green" : "neutral"}>{STATUS_LABEL[objective.status] ?? objective.status}</Badge>
-        {lessSupport(objective) ? <Badge tone="green">Menos apoio no período</Badge> : null}
+        <Badge tone={toneOf(OBJECTIVE_STATUS, objective.status)}>{labelOf(OBJECTIVE_STATUS, objective.status)}</Badge>
+        {lessSupport(objective) ? <Badge tone="good">Menos apoio no período</Badge> : null}
       </div>
       <p className="mt-2 text-sm leading-relaxed text-ink">{objective.description}</p>
       {objective.bncc ? <p className="mt-1 text-xs leading-relaxed text-ink-soft"><span className="font-medium text-ink">BNCC <span className="font-mono">{objective.bncc.code}</span> · {objective.bncc.component}:</span> {objective.bncc.description}</p> : null}
@@ -42,11 +41,11 @@ export function ReportView({ data, opinion, status, validatedByName, validatedAt
       <header className="min-w-0">
         <p className="text-sm text-ink-soft">{data.student.school} · {data.student.gradeYear} · {data.student.className}</p>
         <h2 id="relatorio-titulo" className="mt-1 break-words font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Relatório do período: {data.student.name}</h2>
-        <p className="mt-1 text-sm text-ink-soft">De {brDate(data.period.start)} a {brDate(data.period.end)}</p>
+        <p className="mt-1 text-sm text-ink-soft">De {isoToBr(data.period.start)} a {isoToBr(data.period.end)}</p>
         <p className="mt-3">
           {status === "validado"
-            ? <Badge tone="green"><CircleCheck size={12} aria-hidden /> Validado{validatedByName ? ` por ${validatedByName}` : ""}{validatedAt ? ` em ${formatDate(validatedAt)}` : ""}</Badge>
-            : <Badge tone="amber"><TriangleAlert size={12} aria-hidden /> Rascunho: a família ainda não vê</Badge>}
+            ? <Badge tone={REPORT_STATUS.validado.tone}><CircleCheck size={12} aria-hidden /> {REPORT_STATUS.validado.label}{validatedByName ? ` por ${validatedByName}` : ""}{validatedAt ? ` em ${formatDate(validatedAt)}` : ""}</Badge>
+            : <Badge tone={REPORT_STATUS.rascunho.tone}><TriangleAlert size={12} aria-hidden /> {REPORT_STATUS.rascunho.label}: a família ainda não vê</Badge>}
         </p>
       </header>
 

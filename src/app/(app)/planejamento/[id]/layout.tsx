@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { planningContext } from "@/lib/page-context";
-import { SHARING_LABEL, type Sharing } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { SHARING } from "@/lib/dua/domain";
+import { labelOf, toneOf } from "@/lib/scale";
+import { formatDate } from "@/lib/dates";
 import { Badge } from "@/components/ui";
 import { PlanningTabs } from "@/components/dua/planning-tabs";
 import { ReviewBadge } from "@/components/dua/badges";
@@ -28,8 +29,8 @@ export default async function PlanningLayout({ children, params }: { children: R
         <div className="mt-2 flex flex-wrap gap-1.5">
           <Badge tone="neutral">Versão {current.version}</Badge>
           <ReviewBadge state={current.state} />
-          <Badge tone={planning.sharing === "compartilhado" ? "brand" : "neutral"}>{SHARING_LABEL[planning.sharing as Sharing] ?? planning.sharing}</Badge>
-          {current.validatedAt ? <Badge tone="green">Validada por {current.validatedByName} em {formatDate(current.validatedAt)}</Badge> : null}
+          <Badge tone={toneOf(SHARING, planning.sharing)}>{labelOf(SHARING, planning.sharing)}</Badge>
+          {current.validatedAt ? <Badge tone="good">Validada por {current.validatedByName} em {formatDate(current.validatedAt)}</Badge> : null}
         </div>
       </div>
       <div className="mb-6">

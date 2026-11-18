@@ -2,19 +2,12 @@ import "server-only";
 import QRCode from "qrcode";
 import { db } from "./prisma";
 import { hashRecoveryCode, matchTotpStep, newRecoveryCodes, otpauthUri } from "./totp";
+import { readList, writeList } from "./format";
 
 type SecondFactorUser = { id: string; totpSecret: string | null; totpLastStep: number | null; recoveryCodes: string | null };
 
-const parseCodes = (stored: string | null): string[] => {
-  try {
-    const value: unknown = JSON.parse(stored ?? "[]");
-    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-  } catch {
-    return [];
-  }
-};
 
-export const recoveryCodesLeft = (stored: string | null) => parseCodes(stored).length;
+export const recoveryCodesLeft = (stored: string | null) => readList(stored).length;
 
 export async function consumeSecondFactor(user: SecondFactorUser, code: string): Promise<"aplicativo" | "recuperacao" | null> {
   const prisma = await db();
@@ -28,12 +21,12 @@ export async function consumeSecondFactor(user: SecondFactorUser, code: string):
     });
     return updated.count ? "aplicativo" : null;
   }
-  const hashes = parseCodes(user.recoveryCodes);
+  const hashes = readList(user.recoveryCodes);
   const hash = hashRecoveryCode(code);
   if (!hashes.includes(hash)) return null;
   const updated = await prisma.user.updateMany({
     where: { id: user.id, recoveryCodes: user.recoveryCodes },
-    data: { recoveryCodes: JSON.stringify(hashes.filter((item) => item !== hash)) },
+    data: { recoveryCodes: writeList(hashes.filter((item) => item !== hash)) },
   });
   return updated.count ? "recuperacao" : null;
 }
@@ -52,7 +45,7 @@ export async function confirmTwoFactor(userId: string, code: string): Promise<st
       totpPendingSecret: null,
       totpEnabledAt: new Date(),
       totpLastStep: step,
-      recoveryCodes: JSON.stringify(codes.map(hashRecoveryCode)),
+      recoveryCodes: writeList(codes.map(hashRecoveryCode)),
     },
   });
   return codes;
@@ -61,7 +54,7 @@ export async function confirmTwoFactor(userId: string, code: string): Promise<st
 export async function newRecoveryCodesFor(userId: string): Promise<string[]> {
   const prisma = await db();
   const codes = newRecoveryCodes();
-  await prisma.user.update({ where: { id: userId }, data: { recoveryCodes: JSON.stringify(codes.map(hashRecoveryCode)) } });
+  await prisma.user.update({ where: { id: userId }, data: { recoveryCodes: writeList(codes.map(hashRecoveryCode)) } });
   return codes;
 }
 

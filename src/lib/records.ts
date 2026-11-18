@@ -6,6 +6,7 @@ import { canAccessStudent, isFamilyActivity, isFamilyOf, isTherapistOf } from ".
 import { can, isLinkedRole } from "./roles";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
+import { dayFromInput } from "./dates";
 import { AUDIT_ACTION, auditEntry, recordChange } from "./audit";
 import { invalidateStudent } from "./invalidate";
 import { studentConsent } from "./consent";
@@ -146,7 +147,7 @@ export async function setObjectiveStatus(user: SessionUser, studentId: string, o
   const objective = await prisma.objective.findFirst({ where: { id: objectiveId, plan: { studentId } } });
   if (!objective) throw new UserError("Objetivo não encontrado para este estudante.", "not_found");
   await prisma.objective.update({ where: { id: objectiveId }, data: { status } });
-  await recordChange(user, studentId, AUDIT_ACTION.changed, `Objetivo: ${OBJECTIVE_STATUS[status]}`);
+  await recordChange(user, studentId, AUDIT_ACTION.changed, `Objetivo: ${OBJECTIVE_STATUS[status].label.toLowerCase()}`);
   if (status === "alcancado") {
     await prisma.timelineEvent.create({ data: { studentId, type: "conquista", title: "Objetivo alcançado", description: objective.description } });
   }
@@ -168,8 +169,6 @@ export async function decideActivity(user: SessionUser, studentId: string, activ
   invalidateStudent(studentId);
   return updated;
 }
-
-const dayAtNoon = (iso: string) => new Date(`${iso}T12:00:00`);
 
 type ObjectiveInput = {
   action: string;
@@ -209,8 +208,8 @@ export async function createStudentPlan(user: SessionUser, studentId: string, pl
   if (active) throw new UserError("Já existe um plano ativo para este estudante. Revise ou encerre o plano atual antes de criar outro.", "conflict");
   const initialSituation = plan.initialSituation.trim();
   if (!initialSituation) throw new UserError("Informe o que o estudante já consegue fazer.");
-  const reviewDate = dayAtNoon(plan.reviewDate);
-  if (Number.isNaN(reviewDate.getTime())) throw new UserError("Informe quando a equipe vai revisar o plano.");
+  const reviewDate = dayFromInput(plan.reviewDate);
+  if (!reviewDate) throw new UserError("Informe quando a equipe vai revisar o plano.");
   const draft = plan.proposalObjectives ? await prisma.planDraft.findUnique({ where: { studentId } }) : null;
   if (plan.proposalObjectives && !draft) throw new UserError("A proposta não foi encontrada. Gere uma nova proposta.", "not_found");
   const proposal = draft ? PlanProposalSchema.parse(JSON.parse(draft.content)) : null;
@@ -282,7 +281,7 @@ export async function reviewStudentPlan(user: SessionUser, studentId: string, pl
   if (!plan) throw new UserError("Plano ativo não encontrado para este estudante.", "not_found");
   const summary = input.summary.trim();
   if (!summary) throw new UserError("Conte o que a equipe decidiu na revisão.");
-  const nextReviewDate = dayAtNoon(input.nextReviewDate);
+  const nextReviewDate = dayFromInput(input.nextReviewDate) ?? new Date(Number.NaN);
   const problem = nextReviewProblem(nextReviewDate);
   if (problem) throw new UserError(problem);
   const now = new Date();

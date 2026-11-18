@@ -1,12 +1,12 @@
 import { SIGNAL } from "@/components/charts";
-import { supportInfo } from "@/lib/scale";
+import { clampSupport, supportInfo } from "@/lib/scale";
 
 const LEVELS = [5, 4, 3, 2, 1, 0];
 const center = (level: number) => `${((5 - level + 0.5) / 6) * 100}%`;
 
 export function SupportTrack({ current, target }: { current: number; target: number }) {
-  const today = Math.min(5, Math.max(0, Math.round(current)));
-  const goal = Math.min(5, Math.max(0, Math.round(target)));
+  const today = clampSupport(current);
+  const goal = clampSupport(target);
   const reached = today <= goal;
   return (
     <div className="min-w-0">

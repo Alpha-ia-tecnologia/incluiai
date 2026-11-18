@@ -21,7 +21,7 @@ export default async function TutorialPage({ params }: { params: Promise<{ id: s
       <Link href={tutorials.length > 1 ? "/ajuda/videos" : "/ajuda"} className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline"><ArrowLeft size={16} aria-hidden /> {tutorials.length > 1 ? "Vídeos" : "Ajuda"}</Link>
       <PageHeader title={tutorial.title} lede={tutorial.summary} />
       <p className="-mt-2 mb-5 flex flex-wrap gap-2">
-        <Badge tone="brand"><Clock size={12} aria-hidden /> {formatDuration(tutorial.seconds)}</Badge>
+        <Badge tone="info"><Clock size={12} aria-hidden /> {formatDuration(tutorial.seconds)}</Badge>
         <Badge>{tutorial.audience}</Badge>
       </p>
       <video controls preload="metadata" playsInline poster={tutorial.poster ? `/tutoriais/${tutorial.poster}` : undefined} className="aspect-video w-full rounded-2xl border border-line bg-ink-strong" aria-label={`Vídeo: ${tutorial.title}`}>

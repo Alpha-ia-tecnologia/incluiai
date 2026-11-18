@@ -1,23 +1,8 @@
-export function formatDate(d: Date | string): string {
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-}
-
 export function firstName(name: string): string {
   return name.replace(/\([^)]*\)/g, " ").split(/\s+/).find((part) => part.length > 1 && !part.includes(".")) ?? name;
 }
 
-export function formatDateShort(d: Date | string): string {
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
-
-export function ageFrom(birthDate: Date | string): number {
-  const b = new Date(birthDate);
-  const now = new Date();
-  let age = now.getFullYear() - b.getFullYear();
-  const m = now.getMonth() - b.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
-  return age;
-}
+export const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 export function parseJson<T>(value: string | null | undefined, fallback: T): T {
   if (!value) return fallback;
@@ -27,3 +12,17 @@ export function parseJson<T>(value: string | null | undefined, fallback: T): T {
     return fallback;
   }
 }
+
+export function splitItems(value: string | null | undefined, separator: "," | ";" = ";"): string[] {
+  const pattern = separator === "," ? /[,;\n]/ : /[;\n]/;
+  return (value ?? "").split(pattern).map((item) => item.trim()).filter(Boolean);
+}
+
+export const joinItems = (items: readonly string[], separator: "," | ";" = ";") => items.join(separator === "," ? ", " : "; ");
+
+export function readList(value: string | null | undefined): string[] {
+  const parsed = parseJson<unknown>(value, []);
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+}
+
+export const writeList = (items: readonly string[]) => JSON.stringify(items);

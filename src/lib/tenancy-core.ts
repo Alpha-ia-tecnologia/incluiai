@@ -16,7 +16,7 @@ export const STATUS_LABELS: Record<MunicipalityStatus, string> = {
   falhou: "Falhou",
 };
 
-export const STATUS_TONES = { provisionando: "brand", ativo: "green", suspenso: "amber", falhou: "coral" } as const satisfies Record<MunicipalityStatus, string>;
+export const STATUS_TONES = { provisionando: "info", ativo: "good", suspenso: "mid", falhou: "alert" } as const satisfies Record<MunicipalityStatus, string>;
 
 export const UFS: readonly string[] = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"];
 

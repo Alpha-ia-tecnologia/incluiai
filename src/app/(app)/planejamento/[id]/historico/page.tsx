@@ -1,8 +1,9 @@
 import { ChevronDown, EyeOff, GitBranch, Link2, Lock } from "lucide-react";
 import { planningContext } from "@/lib/page-context";
 import { collaboratorOptions, planningHistory } from "@/lib/dua/plannings";
-import { EXECUTION_STATE_LABEL, REVIEW_STATE_LABEL, type ExecutionState, type ReviewState } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { APPLICATION_STATE_CHANGED, EXECUTION_STATE, REVIEW_STATE, type ReviewState } from "@/lib/dua/domain";
+import { labelOf } from "@/lib/scale";
+import { formatDate, formatDateTime } from "@/lib/dates";
 import { roleLabel } from "@/lib/roles";
 import { Card, SectionTitle } from "@/components/ui";
 import { ReviewBadge } from "@/components/dua/badges";
@@ -22,11 +23,10 @@ const OBJECT_TYPE_LABEL: Record<string, string> = {
   sugestao: "Sugestão",
 };
 
-const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 const detailText = (action: string, detail: string | null) => {
   if (!detail) return null;
-  if (action === "mudou a situação da aplicação") return `Nova situação: ${EXECUTION_STATE_LABEL[detail as ExecutionState] ?? detail}`;
+  if (action === APPLICATION_STATE_CHANGED) return `Nova situação: ${labelOf(EXECUTION_STATE, detail)}`;
   return detail;
 };
 
@@ -40,7 +40,7 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
     version: version.version,
     href: `#versao-${version.version}`,
     kind: version.state as ReviewState,
-    stateLabel: REVIEW_STATE_LABEL[version.state as ReviewState] ?? version.state,
+    stateLabel: labelOf(REVIEW_STATE, version.state),
     dates: [
       `Criada em ${formatDate(version.createdAt)}`,
       version.validatedAt ? `Validada em ${formatDate(version.validatedAt)}` : version.submittedAt ? `Enviada para revisão em ${formatDate(version.submittedAt)}` : null,
@@ -85,9 +85,9 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
                   </div>
                   <dl className="mt-2 grid min-w-0 gap-1 text-sm">
                     <div className="min-w-0"><dt className="inline font-medium text-ink">Criada: </dt><dd className="inline text-ink-soft">por {version.createdByName} em {formatDate(version.createdAt)}</dd></div>
-                    <div className="min-w-0"><dt className="inline font-medium text-ink">Última edição: </dt><dd className="inline text-ink-soft">por {version.updatedByName} em {dateTime.format(version.updatedAt)}</dd></div>
+                    <div className="min-w-0"><dt className="inline font-medium text-ink">Última edição: </dt><dd className="inline text-ink-soft">por {version.updatedByName} em {formatDateTime(version.updatedAt)}</dd></div>
                     {version.submittedAt ? <div className="min-w-0"><dt className="inline font-medium text-ink">Enviada para revisão: </dt><dd className="inline text-ink-soft">em {formatDate(version.submittedAt)}</dd></div> : null}
-                    {version.validatedAt ? <div className="min-w-0"><dt className="inline font-medium text-ink">Validada: </dt><dd className="inline text-ink-soft">por {version.validatedByName ?? "—"} em {dateTime.format(version.validatedAt)}</dd></div> : null}
+                    {version.validatedAt ? <div className="min-w-0"><dt className="inline font-medium text-ink">Validada: </dt><dd className="inline text-ink-soft">por {version.validatedByName ?? "—"} em {formatDateTime(version.validatedAt)}</dd></div> : null}
                   </dl>
                   <details className="group mt-3 rounded-xl border border-line bg-paper">
                     <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium text-brand-strong [&::-webkit-details-marker]:hidden">
@@ -138,7 +138,7 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
                     <p className="min-w-0 break-words text-ink">
                       <span className="font-medium">{event.actorName}</span> <span className="text-ink-soft">({roleLabel(event.role)})</span> {event.action}
                     </p>
-                    <time dateTime={event.createdAt.toISOString()} className="shrink-0 text-xs text-ink-soft">{dateTime.format(event.createdAt)}</time>
+                    <time dateTime={event.createdAt.toISOString()} className="shrink-0 text-xs text-ink-soft">{formatDateTime(event.createdAt)}</time>
                   </div>
                   <p className="mt-1 text-xs text-ink-soft">
                     {OBJECT_TYPE_LABEL[event.objectType] ?? event.objectType}{event.versionNumber ? ` · versão ${event.versionNumber}` : ""}

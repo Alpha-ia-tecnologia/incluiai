@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleanCheckIn, noticeEmail, noticeTitle, weekStart } from "./family-contact.ts";
+import { cleanCheckIn, noticeEmail, noticeTitle } from "./family-contact.ts";
+import { weekStart } from "./dates.ts";
 
 test("semana pela segunda-feira, no horário de Brasília", () => {
   assert.equal(weekStart(new Date("2026-10-22T15:00:00Z")), "2026-10-19");

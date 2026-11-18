@@ -2,14 +2,13 @@ import Link from "next/link";
 import { CircleAlert, CircleCheck, Info, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
-import { STATUS_LABEL, type EvidenceGroup, type EvidenceStatus } from "@/lib/evidence";
+import { EVIDENCE_STATUS, type EvidenceGroup, type EvidenceStatus } from "@/lib/evidence";
 
-const TONE = { ok: "green", conferir: "amber", pendente: "coral", info: "neutral" } as const;
 const ICON = { ok: CircleCheck, conferir: TriangleAlert, pendente: CircleAlert, info: Info };
 
 export function EvidenceBadge({ status }: { status: EvidenceStatus }) {
   const Icon = ICON[status];
-  return <Badge tone={TONE[status]}><Icon size={12} aria-hidden /> {STATUS_LABEL[status]}</Badge>;
+  return <Badge tone={EVIDENCE_STATUS[status].tone}><Icon size={12} aria-hidden /> {EVIDENCE_STATUS[status].label}</Badge>;
 }
 
 export function EvidenceList({ groups, studentId, tabs }: { groups: EvidenceGroup[]; studentId: string; tabs?: ReadonlySet<string> }) {

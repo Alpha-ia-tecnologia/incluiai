@@ -3,7 +3,7 @@ import type { FunctionalProfile, Student } from "@prisma/client";
 import { db } from "./prisma";
 import { AUDIT_ACTION, recordChange } from "./audit";
 import { assertStudentTeam, type SessionUser } from "./auth";
-import { firstName, parseJson } from "./format";
+import { firstName, parseJson, readList } from "./format";
 import { CHANNELS } from "./scale";
 import { isActivityContext } from "./pedagogy-rules";
 import { activityRow, type ActivityCard } from "./activity-engine";
@@ -34,9 +34,9 @@ export function profileFacts(student: Pick<Student, "name">, profile: Functional
     commandSteps: profile.commandSteps,
     attentionMinutes: profile.attentionMinutes,
     toleranceMinutes: profile.taskToleranceMinutes,
-    interests: parseJson<string[]>(profile.interests, []).filter(Boolean),
-    calming: parseJson<string[]>(profile.calmingStrategies, []).filter(Boolean),
-    triggers: parseJson<string[]>(profile.triggers, []).filter(Boolean),
+    interests: readList(profile.interests).filter(Boolean),
+    calming: readList(profile.calmingStrategies).filter(Boolean),
+    triggers: readList(profile.triggers).filter(Boolean),
     sensitiveTo: Object.entries(sensory).filter(([, level]) => level === "hiper").map(([area]) => area),
     readingSupport: profile.readingSupport,
     fineMotorSupport: profile.fineMotor,

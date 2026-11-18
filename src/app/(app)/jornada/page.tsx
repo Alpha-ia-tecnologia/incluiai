@@ -4,12 +4,12 @@ import { ArrowRight, Check, CircleHelp, Hourglass, Lock, Sparkles, Trophy } from
 import { getCurrentUser } from "@/lib/auth";
 import type { ReactNode } from "react";
 import { loadJourney, recordJourneyMark, type Chapter, type ImpactItem } from "@/lib/user-journey";
-import { TREND_TEXT } from "@/lib/series";
+import { PARTICIPATION, TREND, legendOf } from "@/lib/scale";
 import { CountChips, DataCard, DotStrip, MiniColumns, QuoteCard, RingStat, Sparkline, StatTile, StatusPill, TONE_COLOR } from "@/components/data-viz";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { Character } from "@/components/character";
 import { EmptyState } from "@/components/ui";
-import { JourneyBar, TONE_CLASSES } from "@/components/journey-ui";
+import { JourneyBar, CHAPTER_CLASSES } from "@/components/journey-ui";
 import { HowToRead } from "@/components/explain";
 
 const STATUS_LABELS: Record<Chapter["status"], string> = {
@@ -26,7 +26,7 @@ function ChapterProgress({ chapter }: { chapter: Chapter }) {
   return (
     <div className="mt-3 max-w-xs" aria-hidden>
       <div className="h-2 overflow-hidden rounded-full bg-paper-raised">
-        <div className={`viz-grow-x h-full rounded-full ${TONE_CLASSES[chapter.tone].solid}`} style={{ width: `${pct}%` }} />
+        <div className={`viz-grow-x h-full rounded-full ${CHAPTER_CLASSES[chapter.tone].solid}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -79,7 +79,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
             {current ? (
-              <section aria-labelledby="agora-titulo" className={`mb-8 rounded-3xl p-5 sm:p-7 ${TONE_CLASSES[current.tone].soft}`}>
+              <section aria-labelledby="agora-titulo" className={`mb-8 rounded-3xl p-5 sm:p-7 ${CHAPTER_CLASSES[current.tone].soft}`}>
                 <h2 id="agora-titulo" className="font-display text-2xl font-medium leading-tight tracking-tight text-ink sm:text-3xl">
                   <span className="sr-only">Próximo passo, capítulo {currentIndex + 1}: </span>{current.title}
                 </h2>
@@ -117,7 +117,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
             <h2 className="mb-4 text-xl font-medium">Todos os capítulos</h2>
             <ol className="relative">
               {chapters.map((chapter, index) => {
-                const tone = TONE_CLASSES[chapter.tone];
+                const tone = CHAPTER_CLASSES[chapter.tone];
                 const last = index === chapters.length - 1;
                 return (
                   <li key={chapter.key} aria-current={chapter.status === "agora" ? "step" : undefined} className="relative flex gap-4 pb-6">
@@ -202,10 +202,10 @@ function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
   let chart: ReactNode = null;
   let trend: ReactNode = null;
   if (viz?.kind === "weekly") chart = <MiniColumns points={viz.points} label={`${item.label} por semana`} />;
-  if (viz?.kind === "dots") chart = <DotStrip items={viz.items} label={`${item.label}: uma marca por aula`} legend={PARTICIPATION_LEGEND} />;
+  if (viz?.kind === "dots") chart = <DotStrip items={viz.items} label={`${item.label}: uma marca por aula`} legend={legendOf(PARTICIPATION)} />;
   if (viz?.kind === "support") {
     chart = <Sparkline values={viz.values} domain={[0, 5]} invert label={`${item.label}: ${viz.values.join(", ")} (0 é independente, 5 é apoio físico total)`} />;
-    trend = <StatusPill tone={viz.trend === "avancando" ? "good" : viz.trend === "atencao" ? "alert" : "neutral"}>{TREND_TEXT[viz.trend]}</StatusPill>;
+    trend = <StatusPill tone={TREND[viz.trend].tone}>{TREND[viz.trend].label}</StatusPill>;
   }
   if (viz?.kind === "ring") {
     return (
@@ -221,6 +221,4 @@ function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
   }
   return <StatTile label={item.label} value={item.value} hint={item.hint} chart={chart} trend={trend} />;
 }
-
-const PARTICIPATION_LEGEND = [{ tone: "good" as const, label: "Toda a atividade" }, { tone: "mid" as const, label: "Parte" }, { tone: "alert" as const, label: "Recusou" }];
 

@@ -4,8 +4,9 @@ import { assertStudentTeam, type SessionUser } from "./auth";
 import { can } from "./roles";
 import { AUDIT_ACTION, recordChange } from "./audit";
 import { dateFromInput } from "./form-data";
+import { dayEnd, dayStart } from "./dates";
 import { UserError } from "./user-error";
-import { AEE_SESSION_STATUSES, type AeeSessionStatus } from "./dua/domain";
+import { AEE_SESSION_STATUSES, type AeeSessionStatus } from "./scale";
 
 export type AeeSessionInput = { date: string; status: string; reason: string; note: string };
 
@@ -17,7 +18,7 @@ export async function saveAeeSession(user: SessionUser, studentId: string, input
   const date = dateFromInput(input.date, "a data do atendimento");
   const reason = input.reason.trim().slice(0, 300);
   if (input.status !== "realizado" && !reason) throw new UserError("Diga o motivo da falta ou do cancelamento.");
-  const sameDay = await prisma.aeeSession.findFirst({ where: { studentId, date: { gte: new Date(`${input.date}T00:00:00`), lte: new Date(`${input.date}T23:59:59`) } }, select: { id: true } });
+  const sameDay = await prisma.aeeSession.findFirst({ where: { studentId, date: { gte: dayStart(input.date), lte: dayEnd(input.date) } }, select: { id: true } });
   const data = { date, status: input.status, reason: input.status === "realizado" ? null : reason, note: input.note.trim().slice(0, 1200) || null, authorId: user.id, authorName: user.name };
   if (sameDay) await prisma.aeeSession.update({ where: { id: sameDay.id }, data });
   else await prisma.aeeSession.create({ data: { ...data, studentId } });

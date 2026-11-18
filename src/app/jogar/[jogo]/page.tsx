@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { canAccessStudent } from "@/lib/policy";
 import { can } from "@/lib/roles";
 import { recordView } from "@/lib/audit";
-import { parseJson } from "@/lib/format";
+import { readList } from "@/lib/format";
 import {
   GAMES, ROUTINES, THEMES, emotionRounds, isAssociationMode, isGameKey, isLevel, isRoutineKey, isThemeKey, memoryDeck, quantityRounds,
   routineSteps, shuffle, suggestedLevel, themeFromInterests, wordRounds,
@@ -32,7 +32,7 @@ export default async function PlayPage({ params, searchParams }: { params: Promi
   if (query.estudante && (!student || !canAccessStudent(user, student))) redirect("/jogos");
 
   const level = isLevel(query.nivel) ? query.nivel : suggestedLevel(student?.profile ?? null);
-  const theme = isThemeKey(query.tema) ? query.tema : themeFromInterests(parseJson<string[]>(student?.profile?.interests ?? null, []));
+  const theme = isThemeKey(query.tema) ? query.tema : themeFromInterests(readList(student?.profile?.interests ?? null));
   let data: GameData;
   let detail: string | null;
   if (jogo === "memoria") {

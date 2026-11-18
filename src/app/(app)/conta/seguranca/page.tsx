@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 import { currentSessionId, getCurrentUser, twoFactorRequired } from "@/lib/auth";
 import { recoveryCodesLeft } from "@/lib/two-factor";
 import { accountEvents } from "@/lib/account-security";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { cancelTwoFactorSetup, disableTwoFactor, endOtherSessions, regenerateRecoveryCodes, startTwoFactorSetup } from "@/actions/two-factor";
 import { changeOwnPassword } from "@/actions/account";
 import { PasswordForm } from "@/components/password-form";
@@ -59,7 +59,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
         <Card>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 [&>h2]:mb-0">
             <SectionTitle>Verificação em duas etapas</SectionTitle>
-            {user.totpEnabledAt ? <Badge tone="green"><ShieldCheck size={14} aria-hidden /> Ligada</Badge> : <Badge tone="amber"><ShieldOff size={14} aria-hidden /> Desligada</Badge>}
+            {user.totpEnabledAt ? <Badge tone="good"><ShieldCheck size={14} aria-hidden /> Ligada</Badge> : <Badge tone="mid"><ShieldOff size={14} aria-hidden /> Desligada</Badge>}
           </div>
 
           {user.totpEnabledAt ? (

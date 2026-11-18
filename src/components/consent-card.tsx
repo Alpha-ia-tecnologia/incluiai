@@ -1,7 +1,7 @@
 import { Bot, CheckCircle2, CircleSlash, Eye, HeartHandshake, IdCard, Languages, QrCode, RefreshCw, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Undo2, UserCheck, type LucideIcon } from "lucide-react";
 import { setFamilyConsent } from "@/actions/consent";
-import type { ConsentField, StudentConsent } from "@/lib/consent";
-import { formatDate } from "@/lib/format";
+import { CONSENT_LABEL, type ConsentField, type StudentConsent } from "@/lib/consent";
+import { formatDate } from "@/lib/dates";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Badge, Card, SectionTitle } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
@@ -22,7 +22,7 @@ const ITEMS: Item[] = [
   {
     field: "aiUse",
     icon: Bot,
-    title: "Uso de inteligência artificial",
+    title: CONSENT_LABEL.aiUse,
     lines: [
       { icon: Sparkles, text: "A escola pode pedir à IA sugestões de plano, atividades e materiais." },
       { icon: ShieldCheck, text: "Antes do envio, nome, contatos e documentos viram marcadores.", guarantee: true },
@@ -34,7 +34,7 @@ const ITEMS: Item[] = [
   {
     field: "therapistLink",
     icon: HeartHandshake,
-    title: "Conexão com o terapeuta",
+    title: CONSENT_LABEL.therapistLink,
     lines: [
       { icon: Eye, text: "O terapeuta pode ver o perfil funcional (como aprende) e enviar orientações para a escola." },
       { icon: ShieldCheck, text: "Ele não vê notas, diário nem dados administrativos.", guarantee: true },
@@ -45,7 +45,7 @@ const ITEMS: Item[] = [
   {
     field: "card",
     icon: IdCard,
-    title: "Carteirinha digital",
+    title: CONSENT_LABEL.card,
     lines: [
       { icon: IdCard, text: "A escola pode fazer a carteirinha com foto, nome, escola e turma." },
       { icon: QrCode, text: "O código QR só abre o acompanhamento para quem entra na plataforma com permissão.", guarantee: true },
@@ -79,7 +79,7 @@ export function ConsentCard({ studentId, firstName, consent, canDecide }: {
             <li key={field} className="rounded-xl border border-line p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="flex items-center gap-2 text-sm font-medium text-ink"><Icon size={16} aria-hidden className="text-brand-strong" /> {title}</p>
-                {granted ? <Badge tone="green"><CheckCircle2 size={12} aria-hidden /> Autorizado</Badge> : <Badge tone="neutral">Não autorizado</Badge>}
+                {granted ? <Badge tone="good"><CheckCircle2 size={12} aria-hidden /> Autorizado</Badge> : <Badge tone="neutral">Não autorizado</Badge>}
               </div>
               <ul className="mt-3 grid gap-2 text-sm leading-snug text-ink">
                 {lines.map(({ icon: LineIcon, text, guarantee }) => (

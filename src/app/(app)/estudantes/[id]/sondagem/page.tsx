@@ -4,9 +4,9 @@ import { Assurances, HowToRead, Steps } from "@/components/explain";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { answersOf } from "@/lib/assessments";
-import { ITEMS, compareAreas, objectiveSuggestions, observed, reassessmentDue, referenceLabel, referenceYear, AREA_LABEL } from "@/lib/assessment";
+import { ITEMS, REASSESS_WEEKS, compareAreas, objectiveSuggestions, observed, reassessmentDue, referenceLabel, referenceYear, AREA_LABEL } from "@/lib/assessment";
 import { supportInfo } from "@/lib/scale";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { BnccTag } from "@/components/bncc-tag";
@@ -33,7 +33,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
             label="Como a sondagem acompanha o estudante"
             items={[
               { icon: ClipboardCheck, label: "Linha de base após o estudo de caso" },
-              { icon: RotateCcw, label: "Reaplique a cada 12 semanas" },
+              { icon: RotateCcw, label: `Reaplique a cada ${REASSESS_WEEKS} semanas` },
               { icon: TrendingUp, label: "Veja a evolução por área" },
             ]}
           />
@@ -53,7 +53,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ id:
         <Assurances label="O que a sondagem não faz" items={[{ icon: ShieldCheck, text: "Não classifica por diagnóstico" }]} />
         <p className="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
           Linha de base em {formatDate(baseline.appliedAt)}{assessments.length > 1 ? `; última aplicação em ${formatDate(latest.appliedAt)}` : ""}.
-          {due ? <Badge tone="amber">Reavaliação pendente: mais de 12 semanas</Badge> : <Badge tone="green">Reavaliação em dia</Badge>}
+          {due ? <Badge tone="mid">Reavaliação pendente: mais de {REASSESS_WEEKS} semanas</Badge> : <Badge tone="good">Reavaliação em dia</Badge>}
         </p>
         <Card>
           <SectionTitle>Apoio por área</SectionTitle>

@@ -2,9 +2,11 @@ import "server-only";
 import { db } from "../prisma";
 import { assertStudentTeam, type SessionUser } from "../auth";
 import { canWorkWithStudent } from "../policy";
-import { formatDate, parseJson } from "../format";
+import { parseJson, readList, writeList } from "../format";
+import { formatDate } from "../dates";
+import { CONTEXTS, labelOf } from "../scale";
 import {
-  APPLICATION_CONTEXTS, CRITERION_STATUSES, EXECUTION_STATES, followUpSuggestions, observationOf, resultFromCriteria,
+  APPLICATION_CONTEXTS, APPLICATION_STATE_CHANGED, CRITERION_STATUSES, EXECUTION_STATES, followUpSuggestions, observationOf, resultFromCriteria,
   type ApplicationContext, type CriterionStatus, type DuaContent, type DuaSupportData, type EvidenceObservation, type ExecutionState, type FollowUpSuggestion,
 } from "./domain";
 import { planningAccess, type PlanningAccess } from "./access";
@@ -57,13 +59,13 @@ export async function createApplication(user: SessionUser, planningId: string, i
       responsibles: JSON.stringify([{ id: user.id, name: user.name }]),
       resources: clip(input.resources, 1200) || null,
       organization: clip(input.organization, 1200) || null,
-      participantIds: JSON.stringify(participantIds),
+      participantIds: writeList(participantIds),
       notes: clip(input.notes, 2000) || null,
       createdById: user.id,
       createdByName: user.name,
     },
   });
-  await audit(user, planningId, "registrou aplicação", "aplicacao", { objectId: application.id, versionNumber: version.version, detail: `${input.context === "aee" ? "AEE" : "Sala comum"} · ${formatDate(date)}` });
+  await audit(user, planningId, "registrou aplicação", "aplicacao", { objectId: application.id, versionNumber: version.version, detail: `${CONTEXTS[input.context].label} · ${formatDate(date)}` });
   return application.id;
 }
 
@@ -84,16 +86,16 @@ export async function updateApplication(user: SessionUser, applicationId: string
   const { application, canManage } = await loadApplicationFor(user, applicationId);
   if (!canManage) throw new UserError("Só quem responde pela aplicação ou edita o planejamento altera a aplicação.", "forbidden");
   if (!EXECUTION_STATES.includes(input.state as ExecutionState)) throw new UserError("Situação de execução inválida.");
-  const current = parseJson<string[]>(application.participantIds, []);
+  const current = readList(application.participantIds);
   const added = await participantsInReach(user, input.addParticipantIds);
   const removable = (await prisma.student.findMany({ where: { id: { in: input.removeParticipantIds } }, select: { id: true, schoolId: true } })).filter((student) => canWorkWithStudent(user, student)).map((student) => student.id);
   const next = [...new Set([...current.filter((id) => !removable.includes(id)), ...added])];
   const updated = await prisma.duaApplication.updateMany({
     where: { id: applicationId, revision },
-    data: { state: input.state, ...(input.notes !== undefined ? { notes: clip(input.notes, 2000) || null } : {}), participantIds: JSON.stringify(next), revision: { increment: 1 } },
+    data: { state: input.state, ...(input.notes !== undefined ? { notes: clip(input.notes, 2000) || null } : {}), participantIds: writeList(next), revision: { increment: 1 } },
   });
   if (!updated.count) throw new UserError("Outro profissional alterou esta aplicação agora há pouco. Atualize a página.", "conflict");
-  if (input.state !== application.state) await audit(user, application.planningId, "mudou a situação da aplicação", "aplicacao", { objectId: applicationId, versionNumber: application.versionNumber, detail: input.state });
+  if (input.state !== application.state) await audit(user, application.planningId, APPLICATION_STATE_CHANGED, "aplicacao", { objectId: applicationId, versionNumber: application.versionNumber, detail: input.state });
 }
 
 export type EvidenceInput = {
@@ -112,7 +114,7 @@ export async function registerEvidence(user: SessionUser, applicationId: string,
   const prisma = await db();
   const { application } = await loadApplicationFor(user, applicationId);
   const student = await assertStudentTeam(user, studentId);
-  if (!parseJson<string[]>(application.participantIds, []).includes(studentId)) throw new UserError("Este estudante não está entre os participantes da aplicação.");
+  if (!readList(application.participantIds).includes(studentId)) throw new UserError("Este estudante não está entre os participantes da aplicação.");
   if (application.state === "cancelada") throw new UserError("A aplicação foi cancelada: não há evidência a registrar.");
   const content = contentOf(application.version);
   const criterionIds = new Set(content.criteria.map((item) => item.id));
@@ -123,7 +125,7 @@ export async function registerEvidence(user: SessionUser, applicationId: string,
   const data = {
     date: input.date ? dateFromInput(input.date, "a data do registro") : application.date,
     criteria: JSON.stringify(criteria),
-    optionsOffered: JSON.stringify([...new Set(input.optionsOffered)].filter((id) => strategyIds.has(id))),
+    optionsOffered: writeList([...new Set(input.optionsOffered)].filter((id) => strategyIds.has(id))),
     participationForm: clip(input.participationForm, 600),
     studentChoice: clip(input.studentChoice, 600),
     supportProvided: clip(input.supportProvided, 600),
@@ -144,7 +146,7 @@ export async function registerEvidence(user: SessionUser, applicationId: string,
     update: data,
   });
   await audit(user, application.planningId, existing ? "atualizou evidência" : "registrou evidência", "evidencia", { objectId: applicationId, versionNumber: application.versionNumber });
-  await recordChange(user, student.id, existing ? AUDIT_ACTION.edited : AUDIT_ACTION.created, `Evidência da atividade com DUA "${application.planning.title}" (${application.context === "aee" ? "AEE" : "sala comum"})`);
+  await recordChange(user, student.id, existing ? AUDIT_ACTION.edited : AUDIT_ACTION.created, `Evidência da atividade com DUA "${application.planning.title}" (${labelOf(CONTEXTS, application.context)})`);
 }
 
 export type EvidenceView = {
@@ -179,8 +181,8 @@ const evidenceView = (row: { id: string; studentId: string; date: Date; context:
     context: row.context as ApplicationContext,
     versionNumber: row.versionNumber,
     criteria: parseJson<Array<{ criterionId: string; status: CriterionStatus }>>(row.criteria, []).map((item) => ({ ...item, description: descriptions.get(item.criterionId) ?? "Critério da versão aplicada" })),
-    optionsOffered: parseJson<string[]>(row.optionsOffered, []).map((id) => strategies.get(id) ?? "").filter(Boolean),
-    optionIds: parseJson<string[]>(row.optionsOffered, []).filter((id) => strategies.has(id)),
+    optionsOffered: readList(row.optionsOffered).map((id) => strategies.get(id) ?? "").filter(Boolean),
+    optionIds: readList(row.optionsOffered).filter((id) => strategies.has(id)),
     participationForm: row.participationForm,
     studentChoice: row.studentChoice,
     supportProvided: row.supportProvided,
@@ -220,11 +222,11 @@ export async function listApplications(user: SessionUser, planningId: string): P
     include: { version: { select: { content: true } }, evidences: { include: { student: { select: { name: true, schoolId: true, id: true } } } } },
     orderBy: { date: "desc" },
   });
-  const allIds = [...new Set(rows.flatMap((row) => parseJson<string[]>(row.participantIds, [])))];
+  const allIds = [...new Set(rows.flatMap((row) => readList(row.participantIds)))];
   const students = await prisma.student.findMany({ where: { id: { in: allIds } }, select: { id: true, name: true, schoolId: true } });
   const visible = new Map(students.filter((student) => canWorkWithStudent(user, student)).map((student) => [student.id, student.name]));
   return rows.map((row) => {
-    const ids = parseJson<string[]>(row.participantIds, []);
+    const ids = readList(row.participantIds);
     const responsibles = parseJson<Person[]>(row.responsibles, []);
     const content = contentOf(row.version);
     return {

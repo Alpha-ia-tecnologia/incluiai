@@ -4,30 +4,20 @@ import { orNotFound, requireStudentPage } from "@/lib/page-context";
 import { listPlannings } from "@/lib/dua/plannings";
 import { listStudentSupports } from "@/lib/dua/supports";
 import { listStudentEvidence, studentFollowUp, type StudentEvidenceView } from "@/lib/dua/applications";
-import { APPLICATION_CONTEXTS, APPLICATION_CONTEXT_LABEL, CRITERION_STATUS_LABEL, OBSERVATION_LABEL, REVIEW_STATE_LABEL, type CriterionStatus } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { APPLICATION_CONTEXTS, CRITERION_STATUS, OBSERVATION, RESULT_STATUS, REVIEW_STATE, type ApplicationResult, type CriterionStatus } from "@/lib/dua/domain";
+import { formatDate } from "@/lib/dates";
+import { plural } from "@/lib/format";
 import { Badge, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { ReviewBadge } from "@/components/dua/badges";
 import { linkCls } from "@/components/form-styles";
 import { SupportSummary } from "@/components/dua/supports/support-summary";
 import { ParticipationStart } from "@/components/dua/student/participation-start";
-import { DataBoard, DataCard, DotStrip, withSegmentColors, type Tone } from "@/components/data-viz";
-import { BarList, SIGNAL, StackedBar, Swatch } from "@/components/charts";
+import { DataBoard, DataCard, DotStrip, TONE_COLOR, withSegmentColors } from "@/components/data-viz";
+import { CONTEXTS, labelOf, toneOf, type Tone } from "@/lib/scale";
+import { BarList, StackedBar, Swatch } from "@/components/charts";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
 
-const CRITERION_TONE: Record<CriterionStatus, "green" | "amber" | "coral" | "neutral"> = {
-  demonstrado: "green",
-  parcial: "amber",
-  ainda_nao_demonstrado: "coral",
-  sem_oportunidade: "neutral",
-  nao_registrado: "neutral",
-};
-
-const RESULT_TEXT: Record<"sim" | "parcial" | "nao", string> = {
-  sim: "Demonstrou os critérios observados.",
-  parcial: "Demonstrou em parte os critérios observados.",
-  nao: "Ainda não demonstrou os critérios observados.",
-};
+const resultTerm = (result: ApplicationResult) => CRITERION_STATUS[RESULT_STATUS[result]];
 
 export default async function StudentDuaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,7 +30,7 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
   ]));
   const planningOptions = plannings.map((planning) => ({
     id: planning.id,
-    label: `${planning.title}${planning.className ? ` · ${planning.className}` : ""} (versão ${planning.version}, ${REVIEW_STATE_LABEL[planning.state].toLowerCase()})`,
+    label: `${planning.title}${planning.className ? ` · ${planning.className}` : ""} (versão ${planning.version}, ${REVIEW_STATE[planning.state].label.toLowerCase()})`,
   }));
 
   return (
@@ -134,7 +124,7 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
                 {followUp.map((suggestion) => (
                   <li key={suggestion.text} className="min-w-0">
                     <Card className="min-w-0">
-                      <Badge tone="brand">Recomendação para a equipe</Badge>
+                      <Badge tone="info">Recomendação para a equipe</Badge>
                       <p className="mt-2 text-sm font-medium text-ink">{suggestion.text}</p>
                       <dl className="mt-2 grid gap-1 text-sm">
                         <div className="min-w-0"><dt className="inline font-medium text-ink">Com base em: </dt><dd className="inline break-words text-ink-soft">{suggestion.basis}</dd></div>
@@ -175,15 +165,15 @@ function EvidenceItem({ item }: { item: StudentEvidenceView }) {
             ) : item.planningTitle}
           </h3>
           <div className="flex flex-wrap gap-1.5">
-            <Badge tone="neutral">{APPLICATION_CONTEXT_LABEL[item.context] ?? item.context}</Badge>
+            <Badge tone={toneOf(CONTEXTS, item.context)}>{CONTEXTS[item.context]?.long ?? labelOf(CONTEXTS, item.context)}</Badge>
             <Badge tone="neutral">{formatDate(item.date)}</Badge>
           </div>
         </div>
         <p className="mt-1 text-xs text-ink-soft">Versão {item.versionNumber} da atividade · registrado por {item.authorName}</p>
 
         <p className="mt-3 text-sm text-ink">
-          <span className="font-medium">{OBSERVATION_LABEL[item.observation] ?? item.observation}.</span>{" "}
-          {item.result ? RESULT_TEXT[item.result] : "Sem resultado: nenhum critério observado (não conta como progresso)."}
+          <span className="font-medium">{labelOf(OBSERVATION, item.observation)}.</span>{" "}
+          {item.result ? `${resultTerm(item.result).label} os critérios observados.` : "Sem resultado: nenhum critério observado (não conta como progresso)."}
         </p>
 
         {item.criteria.length ? (
@@ -191,7 +181,7 @@ function EvidenceItem({ item }: { item: StudentEvidenceView }) {
             {item.criteria.map((criterion) => (
               <li key={criterion.criterionId} className="flex min-w-0 flex-wrap items-start justify-between gap-2 rounded-lg bg-surface-muted/60 px-3 py-2 text-sm">
                 <span className="min-w-0 break-words text-ink">{criterion.description}</span>
-                <Badge tone={CRITERION_TONE[criterion.status] ?? "neutral"}>{CRITERION_STATUS_LABEL[criterion.status] ?? criterion.status}</Badge>
+                <Badge tone={toneOf(CRITERION_STATUS, criterion.status)}>{labelOf(CRITERION_STATUS, criterion.status)}</Badge>
               </li>
             ))}
           </ul>
@@ -212,27 +202,21 @@ function EvidenceItem({ item }: { item: StudentEvidenceView }) {
   );
 }
 
-const RESULT_TONE: Record<"sim" | "parcial" | "nao", Tone> = { sim: "good", parcial: "mid", nao: "alert" };
-const RESULT_SHORT: Record<"sim" | "parcial" | "nao", string> = { sim: "demonstrou", parcial: "demonstrou em parte", nao: "ainda não demonstrou" };
 const RESULT_LEGEND: { tone: Tone; label: string }[] = [
-  { tone: "good", label: "Demonstrou" },
-  { tone: "mid", label: "Em parte" },
-  { tone: "alert", label: "Ainda não demonstrou" },
+  ...(Object.keys(RESULT_STATUS) as ApplicationResult[]).map((result) => ({ tone: resultTerm(result).tone, label: resultTerm(result).label })),
   { tone: "neutral", label: "Sem resultado (não conta)" },
 ];
-const CONTEXT_SHORT: Record<string, string> = { sala_comum: "Sala comum", aee: "AEE" };
-const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 
 function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidenceView> }) {
   if (!evidence.length) return null;
   const criteria = evidence.flatMap((item) => item.criteria);
   const count = (status: CriterionStatus) => criteria.filter((criterion) => criterion.status === status).length;
-  const observed = withSegmentColors((["demonstrado", "parcial", "ainda_nao_demonstrado"] as const).map((status) => ({ key: status, label: CRITERION_STATUS_LABEL[status], value: count(status) })));
-  const notObserved = (["sem_oportunidade", "nao_registrado"] as const).map((status) => ({ status, label: CRITERION_STATUS_LABEL[status], value: count(status) }));
+  const observed = withSegmentColors((["demonstrado", "parcial", "ainda_nao_demonstrado"] as const).map((status) => ({ key: status, ...CRITERION_STATUS[status], value: count(status) })));
+  const notObserved = (["sem_oportunidade", "nao_registrado"] as const).map((status) => ({ status, ...CRITERION_STATUS[status], value: count(status) }));
   const ordered = [...evidence].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(-30);
   const results = { sim: 0, parcial: 0, nao: 0, none: 0 };
   for (const item of ordered) results[item.result ?? "none"] += 1;
-  const contexts = APPLICATION_CONTEXTS.map((context) => ({ key: context, label: APPLICATION_CONTEXT_LABEL[context], value: evidence.filter((item) => item.context === context).length }));
+  const contexts = APPLICATION_CONTEXTS.map((context) => ({ key: context, label: CONTEXTS[context].long ?? CONTEXTS[context].label, value: evidence.filter((item) => item.context === context).length }));
 
   return (
     <section aria-labelledby="dua-resumo" className="min-w-0 max-w-3xl">
@@ -246,7 +230,7 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
             <ul className="mt-2 grid gap-1.5 text-sm">
               {notObserved.map((item) => (
                 <li key={item.status} className="flex min-w-0 items-center gap-2.5">
-                  <Swatch color={SIGNAL.track} />
+                  <Swatch color={TONE_COLOR[item.tone]} />
                   <span className="min-w-0 flex-1 text-ink">{item.label}</span>
                   <span className="text-xs tabular-nums text-ink-soft">{item.value}</span>
                 </li>
@@ -261,8 +245,8 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
             legend={RESULT_LEGEND}
             items={ordered.map((item) => ({
               key: item.id,
-              title: `${formatDate(item.date)}, ${CONTEXT_SHORT[item.context] ?? item.context}, ${item.planningTitle}: ${item.result ? RESULT_SHORT[item.result] : "sem resultado, nenhum critério observado"}`,
-              tone: item.result ? RESULT_TONE[item.result] : "neutral",
+              title: `${formatDate(item.date)}, ${labelOf(CONTEXTS, item.context)}, ${item.planningTitle}: ${item.result ? resultTerm(item.result).label.toLowerCase() : "sem resultado, nenhum critério observado"}`,
+              tone: item.result ? resultTerm(item.result).tone : "neutral",
             }))}
           />
           <p className="mt-3 text-xs leading-relaxed text-ink-soft">

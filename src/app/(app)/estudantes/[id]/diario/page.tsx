@@ -2,17 +2,15 @@ import { recentCheckIn } from "@/lib/notifications";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { createDiaryEntry } from "@/actions/diary";
-import { formatDate, parseJson } from "@/lib/format";
-import { PARTICIPATION, CRITERION_MET } from "@/lib/scale";
+import { readList } from "@/lib/format";
+import { formatDate, formatDateShort } from "@/lib/dates";
+import { PARTICIPATION, CRITERION_MET, TREND, shortOf, toneOf } from "@/lib/scale";
 import { roleLabel } from "@/lib/roles";
-import { axisDate, supportSeries, supportTrend, TREND_TEXT, weeklyCounts } from "@/lib/series";
+import { supportSeries, supportTrend, weeklyCounts } from "@/lib/series";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
 import { DataBoard, DataCard, MiniColumns, StatTile, StatusPill, SupportChart } from "@/components/data-viz";
-import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, TREND_TONE } from "@/components/viz/student-viz";
+import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter } from "@/components/viz/student-viz";
 import { DiaryForm } from "@/components/diary-form";
-
-const PARTICIPATION_TONES = { total: "green", parcial: "amber", recusou: "coral" } as const;
-const CRITERION_TONES = { sim: "green", parcial: "amber", nao: "coral" } as const;
 
 export default async function DiaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ activityId?: string | string[] }> }) {
   const prisma = await db();
@@ -56,7 +54,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
       {checkIn ? (
         <Card className="mb-6 max-w-3xl bg-sky-soft/60">
           <SectionTitle>Da família, nesta semana</SectionTitle>
-          <p className="text-sm leading-relaxed text-ink">{parseJson<string[]>(checkIn.answers, []).join(", ") || "Sem opções marcadas."}{checkIn.note ? ` "${checkIn.note}"` : ""}</p>
+          <p className="text-sm leading-relaxed text-ink">{readList(checkIn.answers).join(", ") || "Sem opções marcadas."}{checkIn.note ? ` "${checkIn.note}"` : ""}</p>
           <p className="mt-1 text-xs text-ink-soft">Respondido por {checkIn.authorName} em {formatDate(checkIn.createdAt)}.</p>
         </Card>
       ) : null}
@@ -77,12 +75,12 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
             >
               {trend.trend !== "sem_dados" ? (
                 <p className="mb-3">
-                  <StatusPill tone={TREND_TONE[trend.trend]}>{TREND_TEXT[trend.trend]}</StatusPill>
+                  <StatusPill tone={TREND[trend.trend].tone}>{TREND[trend.trend].label}</StatusPill>
                 </p>
               ) : null}
               <ChartFrame>
                 <SupportChart
-                  points={support.map((point) => ({ date: axisDate(point.date), value: point.value }))}
+                  points={support.map((point) => ({ date: formatDateShort(point.date), value: point.value }))}
                   start={singleObjective?.currentSupport}
                   target={singleObjective?.targetSupport}
                   label={`Nível de apoio em ${support.length} ${support.length === 1 ? "registro" : "registros"} de aula`}
@@ -118,11 +116,11 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
                 {entry.objective ? <p className="mt-3 text-sm text-ink"><span className="font-medium">Objetivo: </span>{entry.objective.action}</p> : null}
                 {entry.activity ? <p className="mt-1 text-sm text-ink"><span className="font-medium">Atividade: </span>{entry.activity.title}</p> : null}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Badge tone={PARTICIPATION_TONES[entry.participation as keyof typeof PARTICIPATION_TONES] ?? "neutral"}>
-                    Participação: {PARTICIPATION[entry.participation] ?? entry.participation}
+                  <Badge tone={toneOf(PARTICIPATION, entry.participation)}>
+                    Participação: {shortOf(PARTICIPATION, entry.participation)}
                   </Badge>
-                  <Badge tone={CRITERION_TONES[entry.criterionMet as keyof typeof CRITERION_TONES] ?? "neutral"}>
-                    Resultado esperado: {CRITERION_MET[entry.criterionMet] ?? entry.criterionMet}
+                  <Badge tone={toneOf(CRITERION_MET, entry.criterionMet)}>
+                    Resultado esperado: {shortOf(CRITERION_MET, entry.criterionMet)}
                   </Badge>
                 </div>
                 <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft"><span className="font-medium">Apoio:</span> <SupportMeter level={entry.supportLevel} /></p>

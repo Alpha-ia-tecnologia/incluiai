@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db, forEachMunicipality } from "./prisma";
-import { parseJson } from "./format";
+import { parseJson, readList } from "./format";
+import { calendarDay } from "./dates";
 import { notifyCensusPending } from "./notices";
 import { censusMonitorOn } from "./env-config";
 import { DEFAULT_MONITOR, inWindow, networkAeeEstimate, nextRun, publicRegularClasses, verifyCoverage, type Coverage, type MonitorConfig, type PlatformStudent, type SchoolInfo, type SnapshotPerson } from "./census-core";
@@ -11,12 +12,11 @@ const LOCK_MS = 10 * 60_000;
 const TICK_MS = 60_000;
 const INSTANCE = `${process.pid}:${randomUUID().slice(0, 8)}`;
 
-export const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 export async function schoolStudents(schoolId: string): Promise<PlatformStudent[]> {
   const prisma = await db();
   const students = await prisma.student.findMany({ where: { schoolId, status: "ativo" }, select: { id: true, name: true, birthDate: true, inepId: true, cpf: true }, orderBy: { name: "asc" } });
-  return students.map((student) => ({ ...student, birthDate: isoDay(student.birthDate) }));
+  return students.map((student) => ({ ...student, birthDate: calendarDay(student.birthDate) }));
 }
 
 export type NetworkSnapshot = { schoolId: string; name: string; info: SchoolInfo; persons: SnapshotPerson[]; regularOnly: string[]; importedAt: Date };
@@ -28,7 +28,7 @@ export async function networkSnapshots(): Promise<NetworkSnapshot[]> {
   return rows.map((row) => ({
     schoolId: row.schoolId, name: row.school.name, importedAt: row.importedAt,
     info: { ...NO_INFO, ...parseJson<Partial<SchoolInfo>>(row.schoolInfo, {}) },
-    persons: parseJson<SnapshotPerson[]>(row.persons, []), regularOnly: parseJson<string[]>(row.regularOnly, []),
+    persons: parseJson<SnapshotPerson[]>(row.persons, []), regularOnly: readList(row.regularOnly),
   }));
 }
 
@@ -82,7 +82,7 @@ export async function recentChecks() {
 }
 
 const configOf = (row: { enabled: boolean; periodStart: string; periodEnd: string; times: string }): MonitorConfig =>
-  ({ enabled: row.enabled, periodStart: row.periodStart, periodEnd: row.periodEnd, times: parseJson<string[]>(row.times, DEFAULT_MONITOR.times) });
+  ({ enabled: row.enabled, periodStart: row.periodStart, periodEnd: row.periodEnd, times: row.times ? readList(row.times) : DEFAULT_MONITOR.times });
 
 export async function getMonitor(now: Date = new Date()) {
   const prisma = await db();

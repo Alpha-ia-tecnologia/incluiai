@@ -10,13 +10,15 @@ import { getCurrentUser } from "@/lib/auth";
 import { landingFor, studentScopeWhere } from "@/lib/policy";
 import { can, isLinkedRole } from "@/lib/roles";
 import { studentAlerts } from "@/lib/insights";
-import { getStudentNextStep } from "@/lib/student-journey";
+import { nextStepOf } from "@/lib/student-journey";
 import { loadJourney } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
-import { firstName, formatDateShort } from "@/lib/format";
-import { PARTICIPATION_TEXT, PARTICIPATION_TONE, TREND_TEXT, supportTrend, weeklyCounts } from "@/lib/series";
-import { DotStrip, MiniColumns, Sparkline, StatTile, StatusPill, TONE_COLOR, type Tone } from "@/components/data-viz";
-import { CALENDAR_THEMES, MONTH_SHORT, monthParam, relativeLabel, todayInBrazil, upcomingEvents } from "@/lib/commemorative-dates";
+import { firstName } from "@/lib/format";
+import { supportTrend, weeklyCounts } from "@/lib/series";
+import { DotStrip, MiniColumns, Sparkline, StatTile, StatusPill, TONE_COLOR } from "@/components/data-viz";
+import { PARTICIPATION, TREND, labelOf, legendOf, toneOf } from "@/lib/scale";
+import { CALENDAR_THEMES, relativeLabel, upcomingEvents } from "@/lib/commemorative-dates";
+import { MONTH_SHORT, addDays, brDay, brYmd, dayStart, formatDateShort, monthKey, weekStart } from "@/lib/dates";
 import { ArrowRight, BookOpen, CalendarDays, ClipboardList, Plus, School, Users } from "lucide-react";
 
 export default async function SchoolDashboard() {
@@ -37,24 +39,20 @@ export default async function SchoolDashboard() {
       school: true,
       caseStudy: { select: { status: true } },
       profile: { select: { id: true } },
-      plans: { where: { status: "ativo" }, orderBy: { createdAt: "desc" }, take: 1, include: { objectives: { where: { status: "ativo" }, select: { id: true }, take: 1 } } },
+      plans: { where: { status: "ativo" }, orderBy: { createdAt: "desc" }, take: 1, include: { objectives: { where: { status: "ativo" }, select: { status: true }, take: 1 } } },
       diaryEntries: { orderBy: { date: "desc" }, take: 10 },
       activities: { where: { status: { in: ["sugerida", "aceita", "aplicada"] } }, select: { status: true } },
     },
     orderBy: { name: "asc" },
   });
   const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setHours(0, 0, 0, 0);
-  weekStart.setDate(weekStart.getDate() - 6);
-  const since = new Date(now);
-  since.setHours(0, 0, 0, 0);
-  since.setDate(since.getDate() - 8 * 7);
+  const lastSevenDays = dayStart(addDays(brDay(now), -6));
+  const since = dayStart(addDays(weekStart(now), -7 * 7));
   const recordDates = (await prisma.diaryEntry.findMany({
     where: { studentId: { in: students.map((student) => student.id) }, date: { gte: since, lte: now } },
     select: { date: true },
   })).map((entry) => entry.date);
-  const recentRecords = recordDates.filter((date) => date >= weekStart).length;
+  const recentRecords = recordDates.filter((date) => date >= lastSevenDays).length;
   const weekly = weeklyCounts(recordDates, 8, now);
   const pendingSuggestions = students.reduce((total, student) => total + student.activities.filter((activity) => activity.status === "sugerida").length, 0);
   const studentsWithSuggestions = students.filter((student) => student.activities.some((activity) => activity.status === "sugerida")).length;
@@ -64,7 +62,7 @@ export default async function SchoolDashboard() {
     student,
     alerts: studentAlerts({ plans: student.plans, entries: [...student.diaryEntries].reverse() }),
   })).filter((item) => item.alerts.length);
-  const today = todayInBrazil();
+  const today = brYmd();
   const upcomingDates = upcomingEvents(today).slice(0, 3);
   const managing = can(user.role, "adminTasks");
   const nominal = can(user.role, "seeNames");
@@ -137,7 +135,7 @@ export default async function SchoolDashboard() {
             <ul className="-mt-2 mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft" aria-label="Como ler os minigráficos">
               <li className="inline-flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 bg-ink" /> Apoio (subir é precisar de menos)</li>
               <li>Participação:</li>
-              {PARTICIPATION_LEGEND.map((item) => <li key={item.label} className="inline-flex items-center gap-1.5"><span aria-hidden className="hatch size-2.5 rounded-[3px]" style={{ backgroundColor: TONE_COLOR[item.tone] }} />{item.label}</li>)}
+              {legendOf(PARTICIPATION).map((item) => <li key={item.key} className="inline-flex items-center gap-1.5"><span aria-hidden className="hatch size-2.5 rounded-[3px]" style={{ backgroundColor: TONE_COLOR[item.tone] }} />{item.label}</li>)}
             </ul>
           ) : null}
           {students.length === 0 ? (
@@ -145,12 +143,7 @@ export default async function SchoolDashboard() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {shownStudents.map((student) => {
-                const next = getStudentNextStep({
-                  id: student.id, caseStudy: (student.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null, hasProfile: !!student.profile, hasPlan: !!student.plans.length,
-                  hasObjective: !!student.plans[0]?.objectives.length,
-                  hasPreparedActivity: student.activities.some((activity) => ["aceita", "aplicada"].includes(activity.status)),
-                  hasDiary: !!student.diaryEntries.length,
-                });
+                const next = nextStepOf(student);
                 return (
                   <article key={student.id} className="flex flex-col rounded-2xl border border-line bg-paper-raised p-5">
                     <h3 className="text-base font-medium"><Link href={`/estudantes/${student.id}`} className="inline-flex min-h-11 items-center hover:underline">{student.name}</Link></h3>
@@ -196,7 +189,7 @@ export default async function SchoolDashboard() {
         <section className={welcoming && !showAttention ? "" : "mt-6"} aria-labelledby="dates-title">
           <h2 id="dates-title" className="mb-3 text-base font-medium">Próximas datas inclusivas</h2>
           {upcomingDates.length ? <ul className="space-y-2">{upcomingDates.map((event) => (
-            <li key={event.key}><Link href={`/calendario?mes=${monthParam(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl bg-paper-raised p-3 transition-colors hover:bg-brand-soft">
+            <li key={event.key}><Link href={`/calendario?mes=${monthKey(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl bg-paper-raised p-3 transition-colors hover:bg-brand-soft">
               <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-xs">{MONTH_SHORT[event.start.month - 1]}</span></span>
               <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-xs text-ink-soft">{relativeLabel(event, today)}</span></span>
             </Link></li>
@@ -208,7 +201,6 @@ export default async function SchoolDashboard() {
   );
 }
 
-const PARTICIPATION_LEGEND: { tone: Tone; label: string }[] = [{ tone: "good", label: "Toda a atividade" }, { tone: "mid", label: "Parte" }, { tone: "alert", label: "Recusou" }];
 
 function RecentLessons({ name, entries }: { name: string; entries: ReadonlyArray<{ id: string; date: Date; supportLevel: number; participation: string }> }) {
   if (!entries.length) return null;
@@ -220,13 +212,13 @@ function RecentLessons({ name, entries }: { name: string; entries: ReadonlyArray
     <div className="mt-4 grid min-w-0 gap-2.5 rounded-2xl bg-surface-muted/70 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-ink-soft">{lessons.length === 1 ? "Última aula" : `Últimas ${lessons.length} aulas`}</p>
-        {trend !== "sem_dados" ? <StatusPill tone={trend === "avancando" ? "good" : trend === "atencao" ? "alert" : "neutral"}>{TREND_TEXT[trend]}</StatusPill> : null}
+        {trend !== "sem_dados" ? <StatusPill tone={TREND[trend].tone}>{TREND[trend].label}</StatusPill> : null}
       </div>
       {levels.length > 1 ? <Sparkline values={levels} domain={[0, 5]} invert height={32} label={`Nível de apoio de ${name} ${count}: ${levels.join(", ")} (0 é independente, 5 é apoio físico total)`} /> : null}
       <div className="min-w-0">
         <DotStrip
           label={`Participação de ${name} ${count}, da mais antiga à mais recente`}
-          items={lessons.map((entry) => ({ key: entry.id, title: `${formatDateShort(entry.date)}: ${PARTICIPATION_TEXT[entry.participation] ?? entry.participation}`, tone: PARTICIPATION_TONE[entry.participation] ?? "neutral" }))}
+          items={lessons.map((entry) => ({ key: entry.id, title: `${formatDateShort(entry.date)}: ${labelOf(PARTICIPATION, entry.participation).toLowerCase()}`, tone: toneOf(PARTICIPATION, entry.participation) }))}
         />
       </div>
     </div>

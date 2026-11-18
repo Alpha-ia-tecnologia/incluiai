@@ -5,7 +5,7 @@ import { Check, Pencil, ShieldAlert, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { decideDuaBlock, requestDuaSuggestion } from "@/actions/dua";
 import {
-  AI_BLOCK_DECISION_LABEL, AI_STATE_LABEL, AI_SUGGESTION_LABEL, BARRIER_STATUS_LABEL, DUA_PRINCIPLES, PRINCIPLE_LABEL,
+  AI_BLOCK_DECISION, AI_STATE, AI_SUGGESTION_LABEL, BARRIER_STATUS_LABEL, DUA_PRINCIPLES, PRINCIPLE_LABEL,
   type AiBlock, type AiPurpose, type DuaPrinciple, type ProfileRef,
 } from "@/lib/dua/domain";
 import type { SuggestionView } from "@/lib/dua/suggestions";
@@ -13,6 +13,7 @@ import { FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
 import { newId } from "./step-objective";
+import { formatDateTime } from "@/lib/dates";
 
 type Props = {
   planningId: string;
@@ -85,12 +86,12 @@ function SuggestionCard({ planningId, suggestion, canDecide, beforeChange }: { p
   return (
     <li className="min-w-0 rounded-xl bg-paper-raised p-4 shadow-e1">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="brand">{AI_SUGGESTION_LABEL}</Badge>
-        <Badge tone={suggestion.state === "bloqueado" || suggestion.state === "falhou" ? "coral" : waiting ? "amber" : "neutral"}>{AI_STATE_LABEL[suggestion.state]}</Badge>
+        <Badge tone="info">{AI_SUGGESTION_LABEL}</Badge>
+        <Badge tone={AI_STATE[suggestion.state].tone}>{AI_STATE[suggestion.state].label}</Badge>
         {suggestion.studentName ? <Badge tone="neutral">Apoio de {suggestion.studentName}</Badge> : null}
       </div>
       <p className="mt-2 text-xs leading-relaxed text-ink-soft">
-        Pedida por {suggestion.requestedByName} em {new Date(suggestion.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · versão {suggestion.versionNumber} do planejamento · {suggestion.provider === "ia" ? `IA (${suggestion.model ?? "sem resposta"})` : "regras da plataforma"} · instruções {suggestion.promptVersion}
+        Pedida por {suggestion.requestedByName} em {formatDateTime(suggestion.createdAt)} · versão {suggestion.versionNumber} do planejamento · {suggestion.provider === "ia" ? `IA (${suggestion.model ?? "sem resposta"})` : "regras da plataforma"} · instruções {suggestion.promptVersion}
         {suggestion.removedCount ? ` · ${suggestion.removedCount} identificador(es) trocado(s) antes do envio` : ""}
       </p>
       {suggestion.error ? <p role="alert" className="mt-3 flex items-start gap-2 rounded-xl bg-coral-soft px-3 py-2 text-sm text-coral"><ShieldAlert size={16} aria-hidden className="mt-0.5 shrink-0" /> {suggestion.error}</p> : null}
@@ -179,8 +180,8 @@ function BlockCard({ index, planningId, suggestionId, block, stale, canDecide, b
 
       {decided ? (
         <p ref={decisionRef} tabIndex={-1} className="mt-3 text-sm text-ink outline-none">
-          <Badge tone={block.decision === "recusado" ? "neutral" : "green"}>{AI_BLOCK_DECISION_LABEL[block.decision]}</Badge>{" "}
-          <span className="text-ink-soft">por {block.decidedBy?.name} em {block.decidedAt ? new Date(block.decidedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : ""}{block.reason ? ` · motivo: ${block.reason}` : ""}</span>
+          <Badge tone={AI_BLOCK_DECISION[block.decision].tone}>{AI_BLOCK_DECISION[block.decision].label}</Badge>{" "}
+          <span className="text-ink-soft">por {block.decidedBy?.name} em {block.decidedAt ? formatDateTime(block.decidedAt) : ""}{block.reason ? ` · motivo: ${block.reason}` : ""}</span>
         </p>
       ) : canDecide ? (
         <div className="mt-4 grid gap-3">
@@ -245,7 +246,7 @@ function BlockCard({ index, planningId, suggestionId, block, stale, canDecide, b
           <FormResult result={result} />
         </div>
       ) : (
-        <p className="mt-3 text-sm text-ink-soft">{AI_BLOCK_DECISION_LABEL.pendente}.</p>
+        <p className="mt-3 text-sm text-ink-soft">{AI_BLOCK_DECISION.pendente.label}.</p>
       )}
     </li>
   );

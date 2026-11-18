@@ -1,6 +1,6 @@
 import type { FunctionalProfile, Objective, Student } from "@prisma/client";
 import { applicableRules, type AdaptationRule } from "./rules";
-import { firstName as firstNameOf, parseJson } from "./format";
+import { firstName as firstNameOf, readList, writeList } from "./format";
 import { supportInfo } from "./scale";
 import { HOME_MAX_MINUTES, studentAdaptations, type ActivityContext } from "./pedagogy-rules";
 
@@ -53,8 +53,8 @@ export function activityRow(card: ActivityCard) {
     title: card.title,
     context: card.context,
     durationMinutes: card.durationMinutes,
-    materials: JSON.stringify(card.materials),
-    steps: JSON.stringify(card.steps),
+    materials: writeList(card.materials),
+    steps: writeList(card.steps),
     responseForm: card.responseForm,
     adaptations: JSON.stringify(card.adaptations),
     supportBelow: card.supportBelow,
@@ -63,7 +63,7 @@ export function activityRow(card: ActivityCard) {
     successCriterion: card.successCriterion,
     planB: card.planB,
     classParticipation: card.classParticipation ?? null,
-    reviewNotes: card.reviewNotes?.length ? JSON.stringify(card.reviewNotes) : null,
+    reviewNotes: card.reviewNotes?.length ? writeList(card.reviewNotes) : null,
     status: "sugerida",
     source: card.source,
   };
@@ -82,7 +82,7 @@ function supportLadder(objective: Objective, interest: string) {
 export function generateActivityCards(input: EngineInput): ActivityCard[] {
   const { student, profile, objective, lessonTopic } = input;
   const firstName = firstNameOf(student.name);
-  const interests = parseJson<string[]>(profile.interests, []);
+  const interests = readList(profile.interests);
   const interest = interests[0] ?? "tema preferido do estudante";
   const rules = applicableRules(profile);
   const adaptations = adaptationsFrom(rules);

@@ -1,5 +1,5 @@
-import { CRITERION_STATUS_LABEL, OBSERVATION_LABEL, type CriterionStatus, type EvidenceObservation } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { CRITERION_STATUS, OBSERVATION, type CriterionStatus, type EvidenceObservation } from "@/lib/dua/domain";
+import { formatDate } from "@/lib/dates";
 import { Badge } from "@/components/ui";
 
 export type EvidenceSummaryData = {
@@ -16,16 +16,6 @@ export type EvidenceSummaryData = {
   nextStep: string;
 };
 
-const STATUS_TONE: Record<CriterionStatus, "green" | "brand" | "amber" | "neutral"> = {
-  demonstrado: "green",
-  parcial: "brand",
-  ainda_nao_demonstrado: "amber",
-  sem_oportunidade: "neutral",
-  nao_registrado: "neutral",
-};
-
-export const observationTone = (observation: EvidenceObservation) => (observation === "observado" ? "green" : "neutral");
-
 export function EvidenceSummary({ evidence }: { evidence: EvidenceSummaryData }) {
   const texts = [
     { label: "Forma de participação", value: evidence.participationForm },
@@ -40,7 +30,7 @@ export function EvidenceSummary({ evidence }: { evidence: EvidenceSummaryData })
     <div className="min-w-0 rounded-xl bg-surface-muted p-3 text-sm">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <span className="font-medium text-ink">Registro atual</span>
-        <Badge tone={observationTone(evidence.observation)}>{OBSERVATION_LABEL[evidence.observation]}</Badge>
+        <Badge tone={OBSERVATION[evidence.observation].tone}>{OBSERVATION[evidence.observation].label}</Badge>
         <span className="text-ink-soft">Observação de {formatDate(evidence.date)} · registrada por {evidence.authorName}</span>
       </div>
       {evidence.criteria.length ? (
@@ -48,7 +38,7 @@ export function EvidenceSummary({ evidence }: { evidence: EvidenceSummaryData })
           {evidence.criteria.map((item) => (
             <li key={item.criterionId} className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="min-w-0 break-words text-ink-soft">{item.description}</span>
-              <Badge tone={STATUS_TONE[item.status]}>{CRITERION_STATUS_LABEL[item.status]}</Badge>
+              <Badge tone={CRITERION_STATUS[item.status].tone}>{CRITERION_STATUS[item.status].label}</Badge>
             </li>
           ))}
         </ul>

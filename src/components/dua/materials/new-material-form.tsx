@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { FileText, Sprout } from "lucide-react";
 import { createDuaMaterial } from "@/actions/dua";
-import { MATERIAL_ACCESSIBILITY, MATERIAL_FORMATS, MATERIAL_FORMAT_LABEL, REVIEW_STATE_LABEL, type MaterialFormat, type MaterialScope, type ReviewState } from "@/lib/dua/domain";
+import { MATERIAL_ACCESSIBILITY, MATERIAL_FORMATS, MATERIAL_FORMAT_LABEL, REVIEW_STATE, type MaterialFormat, type MaterialScope, type ReviewState } from "@/lib/dua/domain";
 import { Field, FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, linkCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
@@ -50,7 +50,7 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
         <Field id="mat-versao" label="Versão de origem" hint="Pode ser qualquer versão. Versão que ainda não foi validada gera material de rascunho.">
           {(control) => (
             <select {...control} value={versionNumber} onChange={(event) => setVersionNumber(Number(event.target.value))} className={inputCls}>
-              {versions.map((item) => <option key={item.version} value={item.version}>Versão {item.version} · {REVIEW_STATE_LABEL[item.state]}</option>)}
+              {versions.map((item) => <option key={item.version} value={item.version}>Versão {item.version} · {REVIEW_STATE[item.state].label}</option>)}
             </select>
           )}
         </Field>
@@ -63,7 +63,7 @@ export function NewMaterialForm({ planningId, versions, defaultVersion, canColle
         </Field>
         {chosen && chosen.state !== "validado" ? (
           <p className="rounded-xl bg-amber-soft px-3 py-2 text-sm leading-relaxed text-amber sm:col-span-2">
-            A versão {chosen.version} está como “{REVIEW_STATE_LABEL[chosen.state]}”: o material sai como rascunho, impresso com o aviso de RASCUNHO, e só pode ser validado depois que a versão for validada.
+            A versão {chosen.version} está como “{REVIEW_STATE[chosen.state].label}”: o material sai como rascunho, impresso com o aviso de RASCUNHO, e só pode ser validado depois que a versão for validada.
           </p>
         ) : null}
         <div className="sm:col-span-2">

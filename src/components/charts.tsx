@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import type { MonthState } from "@/lib/dashboard";
+import { supportOffset } from "@/lib/scale";
 
 export const SIGNAL = {
   brand: "var(--brand)",
@@ -180,7 +181,7 @@ export function HatchedGauge({ value, label, zones = [50, 80] }: { value: number
 }
 
 export function SupportScale({ initial, latest, target }: { initial: number; latest: number; target: number }) {
-  const position = (level: number) => `${((5 - Math.min(5, Math.max(0, level))) / 5) * 100}%`;
+  const position = (level: number) => `${supportOffset(level) * 100}%`;
   return (
     <div className="pt-6" aria-hidden>
       <div className="relative">

@@ -168,7 +168,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
               {imports.map((item) => (
                 <li key={item.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-muted/60 px-4 py-2.5">
                   <span className="font-medium">{brMoment(item.createdAt)}</span> · {item.createdByName}
-                  <Badge tone={item.status === "aplicada" ? "green" : item.status === "previa" ? "brand" : "neutral"}>{IMPORT_STATUS[item.status] ?? item.status}</Badge>
+                  <Badge tone={item.status === "aplicada" ? "good" : item.status === "previa" ? "info" : "neutral"}>{IMPORT_STATUS[item.status] ?? item.status}</Badge>
                   {item.summary ? <span className="text-ink-soft">{item.summary.created} cadastrados, {item.summary.updated} atualizados</span> : null}
                 </li>
               ))}

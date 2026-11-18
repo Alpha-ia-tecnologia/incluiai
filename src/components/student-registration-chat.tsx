@@ -22,8 +22,9 @@ import {
   AEE_FREQUENCY_OPTIONS,
   GRADES_BY_STAGE,
   GRADE_YEAR_OPTIONS,
-  splitItems,
 } from "@/lib/form-options";
+import { brDay, isoToBr } from "@/lib/dates";
+import { splitItems } from "@/lib/format";
 
 type Option = { value: string; label: string };
 type SchoolOption = Option & {
@@ -172,15 +173,9 @@ function buildSteps(schools: SchoolOption[]): Step[] {
   ];
 }
 
-function formatDate(value: string) {
-  if (!value) return "Não informado";
-  const [year, month, day] = value.split("-");
-  return `${day}/${month}/${year}`;
-}
-
 function valueLabel(step: Step, value: string, schools: SchoolOption[]) {
   if (!value) return "Não informado";
-  if (step.field === "birthDate") return formatDate(value);
+  if (step.field === "birthDate") return isoToBr(value);
   if (step.field === "schoolId") {
     return schools.find((school) => school.value === value)?.label ?? value;
   }
@@ -509,7 +504,7 @@ export function StudentRegistrationChat({ schools }: { schools: SchoolOption[] }
               aria-labelledby={`pergunta-${step.field}`}
               type={step.kind}
               autoFocus
-              max={step.kind === "date" ? new Date().toISOString().slice(0, 10) : undefined}
+              max={step.kind === "date" ? brDay() : undefined}
               autoComplete={step.kind === "tel" ? "tel" : "off"}
               className={fieldClass}
             />

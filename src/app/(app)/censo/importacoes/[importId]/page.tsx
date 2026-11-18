@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { loadImport, maskCpf } from "@/lib/census";
 import { brMoment, type FieldDiff, type PlanItem } from "@/lib/census-core";
 import { STAGES } from "@/lib/scale";
+import { isoToBr } from "@/lib/dates";
 import { STAGE_GROUPS } from "@/lib/educacenso";
 import { applyCensusImport, decideCensusPerson, discardCensusImport, undoCensusDecision } from "@/actions/census";
 import { ActionForm } from "@/components/action-form";
@@ -14,8 +15,7 @@ import { CensusApplyForm, CensusDecisionForm } from "@/components/census/census-
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, Steps } from "@/components/explain";
 
-const brDay = (iso: string) => (iso ? iso.split("-").reverse().join("/") : "sem data");
-const shown = (diff: FieldDiff, value: string) => (diff.field === "cpf" ? maskCpf(value) || "vazio" : diff.field === "birthDate" ? (value ? brDay(value) : "vazio") : value || "vazio");
+const shown = (diff: FieldDiff, value: string) => (diff.field === "cpf" ? maskCpf(value) || "vazio" : diff.field === "birthDate" ? (value ? isoToBr(value) : "vazio") : value || "vazio");
 const DECISION_LABEL = { link: "Vínculo escolhido na revisão", create: "Cadastrar: decidido na revisão", ignore: "Ignorado" };
 
 function Warnings({ item }: { item: PlanItem }) {
@@ -67,7 +67,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
             {review.map((item) => (
               <Card key={item.key}>
                 <h3 className="text-sm font-medium text-ink">{item.censusName}</h3>
-                <p className="mt-1 text-xs text-ink-soft">{item.create?.birthDate ? `Nascimento ${brDay(item.create.birthDate)}` : "Sem data de nascimento válida no arquivo"}{item.create?.inepId ? ` · ID INEP ${item.create.inepId}` : ""}</p>
+                <p className="mt-1 text-xs text-ink-soft">{item.create?.birthDate ? `Nascimento ${isoToBr(item.create.birthDate)}` : "Sem data de nascimento válida no arquivo"}{item.create?.inepId ? ` · ID INEP ${item.create.inepId}` : ""}</p>
                 <Warnings item={item} />
                 <div className="mt-4"><CensusDecisionForm action={decideCensusPerson.bind(null, importId, item.key)} personKey={item.key} candidates={item.candidates ?? []} canCreate={Boolean(item.create?.birthDate)} /></div>
               </Card>
@@ -82,8 +82,8 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
             <ul className="grid min-w-0 gap-3">
               {by("create").map((item) => (
                 <li key={item.key} className="min-w-0 rounded-2xl border border-line bg-paper-raised p-4">
-                  <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium text-ink">{item.create?.name}</span>{item.person.hasAee ? <Badge tone="brand">AEE</Badge> : null}{item.decision ? <Badge>{DECISION_LABEL[item.decision]}</Badge> : null}</div>
-                  <p className="mt-1 text-xs text-ink-soft">Nascimento {brDay(item.create?.birthDate ?? "")} · {STAGES[item.create?.stage ?? ""] ?? "Etapa a informar"} · turma {item.create?.className}{STAGE_GROUPS[item.person.stageGroup] ? ` (${STAGE_GROUPS[item.person.stageGroup]})` : ""}</p>
+                  <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium text-ink">{item.create?.name}</span>{item.person.hasAee ? <Badge tone="info">AEE</Badge> : null}{item.decision ? <Badge>{DECISION_LABEL[item.decision]}</Badge> : null}</div>
+                  <p className="mt-1 text-xs text-ink-soft">Nascimento {item.create?.birthDate ? isoToBr(item.create.birthDate) : "sem data"} · {STAGES[item.create?.stage ?? ""] ?? "Etapa a informar"} · turma {item.create?.className}{STAGE_GROUPS[item.person.stageGroup] ? ` (${STAGE_GROUPS[item.person.stageGroup]})` : ""}</p>
                   <Warnings item={item} />
                   {item.decision ? <div className="mt-2"><Undo importId={importId} personKey={item.key} /></div> : null}
                 </li>

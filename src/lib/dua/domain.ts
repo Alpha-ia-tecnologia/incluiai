@@ -1,5 +1,6 @@
 // Referência pedagógica: Diretrizes DUA 3.0 (CAST) — engajamento, representação
 // e ação e expressão. As perguntas da interface são uma tradução proposta.
+import type { Term } from "../scale.ts";
 
 export type DuaPrinciple = "engajamento" | "representacao" | "acao_expressao";
 export const DUA_PRINCIPLES: readonly DuaPrinciple[] = ["engajamento", "representacao", "acao_expressao"];
@@ -109,20 +110,37 @@ export function normalizeContent(value: Partial<DuaContent> | null | undefined):
 }
 
 export type ReviewState = "rascunho" | "em_revisao" | "validado";
-export const REVIEW_STATE_LABEL: Record<ReviewState, string> = { rascunho: "Rascunho", em_revisao: "Em revisão", validado: "Validado" };
+export const REVIEW_STATE: Record<ReviewState, Term> = {
+  rascunho: { label: "Rascunho", tone: "neutral" },
+  em_revisao: { label: "Em revisão", tone: "mid" },
+  validado: { label: "Validado", tone: "good" },
+};
 export type ExecutionState = "planejada" | "em_andamento" | "concluida" | "cancelada";
 export const EXECUTION_STATES: readonly ExecutionState[] = ["planejada", "em_andamento", "concluida", "cancelada"];
-export const EXECUTION_STATE_LABEL: Record<ExecutionState, string> = { planejada: "Planejada", em_andamento: "Em andamento", concluida: "Concluída", cancelada: "Cancelada" };
+export const EXECUTION_STATE: Record<ExecutionState, Term> = {
+  planejada: { label: "Planejada", tone: "neutral" },
+  em_andamento: { label: "Em andamento", tone: "info" },
+  concluida: { label: "Concluída", tone: "good" },
+  cancelada: { label: "Cancelada", tone: "mid" },
+};
+export const APPLICATION_STATE_CHANGED = "mudou a situação da aplicação";
 export type AiState = "solicitado" | "em_processamento" | "aguardando_revisao" | "aceito" | "recusado" | "bloqueado" | "falhou";
-export const AI_STATE_LABEL: Record<AiState, string> = {
-  solicitado: "Solicitado", em_processamento: "Em processamento", aguardando_revisao: "Aguardando revisão",
-  aceito: "Aceito", recusado: "Recusado", bloqueado: "Bloqueado", falhou: "Falhou",
+export const AI_STATE: Record<AiState, Term> = {
+  solicitado: { label: "Solicitado", tone: "neutral" },
+  em_processamento: { label: "Em processamento", tone: "neutral" },
+  aguardando_revisao: { label: "Aguardando revisão", tone: "mid" },
+  aceito: { label: "Aceito", tone: "neutral" },
+  recusado: { label: "Recusado", tone: "neutral" },
+  bloqueado: { label: "Bloqueado", tone: "alert" },
+  falhou: { label: "Falhou", tone: "alert" },
 };
 export type ApplicationContext = "sala_comum" | "aee";
 export const APPLICATION_CONTEXTS: readonly ApplicationContext[] = ["sala_comum", "aee"];
-export const APPLICATION_CONTEXT_LABEL: Record<ApplicationContext, string> = { sala_comum: "Sala comum", aee: "Atendimento educacional especializado (AEE)" };
 export type Sharing = "privado" | "compartilhado";
-export const SHARING_LABEL: Record<Sharing, string> = { privado: "Só a equipe do planejamento", compartilhado: "Compartilhado com a equipe da escola" };
+export const SHARING: Record<Sharing, Term> = {
+  privado: { label: "Só a equipe do planejamento", tone: "neutral" },
+  compartilhado: { label: "Compartilhado com a equipe da escola", tone: "info" },
+};
 
 export type DuaProblem = { field: string; message: string };
 
@@ -202,24 +220,27 @@ export function supportProblems(data: Pick<DuaSupportData, "support" | "purpose"
 
 export type CriterionStatus = "demonstrado" | "parcial" | "ainda_nao_demonstrado" | "sem_oportunidade" | "nao_registrado";
 export const CRITERION_STATUSES: readonly CriterionStatus[] = ["demonstrado", "parcial", "ainda_nao_demonstrado", "sem_oportunidade", "nao_registrado"];
-export const CRITERION_STATUS_LABEL: Record<CriterionStatus, string> = {
-  demonstrado: "Demonstrou",
-  parcial: "Demonstrou em parte",
-  ainda_nao_demonstrado: "Ainda não demonstrou",
-  sem_oportunidade: "Não houve oportunidade de observar",
-  nao_registrado: "Ainda não registrado",
+export const CRITERION_STATUS: Record<CriterionStatus, Term> = {
+  demonstrado: { label: "Demonstrou", tone: "good" },
+  parcial: { label: "Demonstrou em parte", tone: "mid" },
+  ainda_nao_demonstrado: { label: "Ainda não demonstrou", tone: "alert" },
+  sem_oportunidade: { label: "Não houve oportunidade de observar", tone: "neutral" },
+  nao_registrado: { label: "Ainda não registrado", tone: "neutral" },
 };
 const OBSERVED: ReadonlySet<CriterionStatus> = new Set(["demonstrado", "parcial", "ainda_nao_demonstrado"]);
 export const isObserved = (status: CriterionStatus) => OBSERVED.has(status);
 
 export type EvidenceObservation = "observado" | "sem_oportunidade" | "nao_registrado";
-export const OBSERVATION_LABEL: Record<EvidenceObservation, string> = {
-  observado: "Observado",
-  sem_oportunidade: "Não houve oportunidade de observar",
-  nao_registrado: "Ainda não registrado",
+export const OBSERVATION: Record<EvidenceObservation, Term> = {
+  observado: { label: "Observado", tone: "good" },
+  sem_oportunidade: CRITERION_STATUS.sem_oportunidade,
+  nao_registrado: CRITERION_STATUS.nao_registrado,
 };
 
-export function resultFromCriteria(criteria: ReadonlyArray<{ status: CriterionStatus }>): "sim" | "parcial" | "nao" | null {
+export type ApplicationResult = "sim" | "parcial" | "nao";
+export const RESULT_STATUS: Record<ApplicationResult, CriterionStatus> = { sim: "demonstrado", parcial: "parcial", nao: "ainda_nao_demonstrado" };
+
+export function resultFromCriteria(criteria: ReadonlyArray<{ status: CriterionStatus }>): ApplicationResult | null {
   const observed = criteria.filter((item) => isObserved(item.status));
   if (!observed.length) return null;
   if (observed.every((item) => item.status === "demonstrado")) return "sim";
@@ -261,7 +282,12 @@ export function followUpSuggestions(evidence: readonly FollowUpEvidence[], plann
 }
 
 export type AiBlockDecision = "pendente" | "aceito" | "editado" | "recusado";
-export const AI_BLOCK_DECISION_LABEL: Record<AiBlockDecision, string> = { pendente: "Aguardando decisão", aceito: "Aceito sem alteração", editado: "Aceito com edição", recusado: "Recusado" };
+export const AI_BLOCK_DECISION: Record<AiBlockDecision, Term> = {
+  pendente: { label: "Aguardando decisão", tone: "neutral" },
+  aceito: { label: "Aceito sem alteração", tone: "good" },
+  editado: { label: "Aceito com edição", tone: "info" },
+  recusado: { label: "Recusado", tone: "neutral" },
+};
 export type AiBlock = {
   id: string;
   objectiveConsidered: string;
@@ -337,7 +363,3 @@ export function buildSupportScript(content: DuaContent, format: MaterialFormat, 
 export type DuaIndicator = { key: string; label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null };
 export const ratio = (numerator: number, denominator: number) => (denominator > 0 ? Math.round((numerator / denominator) * 1000) / 10 : null);
 export const NO_BASE_TEXT = "Sem base para cálculo no período";
-
-export type AeeSessionStatus = "realizado" | "falta" | "cancelamento";
-export const AEE_SESSION_STATUSES: readonly AeeSessionStatus[] = ["realizado", "falta", "cancelamento"];
-export const AEE_SESSION_STATUS_LABEL: Record<AeeSessionStatus, string> = { realizado: "Realizado", falta: "Falta", cancelamento: "Cancelamento" };

@@ -6,8 +6,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { registerResourceUse } from "@/actions/resources";
 import { ActionForm } from "@/components/action-form";
-import { CONTEXTS, STAGES } from "@/lib/scale";
-import { parseJson } from "@/lib/format";
+import { CONTEXTS, STAGES, labelOf, toneOf } from "@/lib/scale";
+import { readList } from "@/lib/format";
 import { COMPLEXITY_LABELS, resourcePresentation, resourceTypeLabel } from "@/lib/resource-bank";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { DataBoard, DataCard, StatTile } from "@/components/data-viz";
@@ -62,7 +62,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         lede={resource.description}
         actions={
           <>
-            <Badge tone="brand">{resourceType}</Badge>
+            <Badge tone="info">{resourceType}</Badge>
             <ResourcePrintButton label="Imprimir atividades e materiais" />
           </>
         }
@@ -103,7 +103,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           <div className="flex flex-wrap gap-1.5">
             <Badge>{STAGES[resource.stage] ?? resource.stage}</Badge>
             <Badge>{resource.skillArea}</Badge>
-            <Badge tone="amber">{resource.accessibilityNeed}</Badge>
+            <Badge tone="mid">{resource.accessibilityNeed}</Badge>
             <Badge>{COMPLEXITY_LABELS[resource.complexity] ?? resource.complexity}</Badge>
           </div>
         </DataCard>
@@ -144,9 +144,9 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
       <div className="space-y-5">
         {resource.activities.map((activity, index) => {
-          const materials = parseJson<string[]>(activity.materials, []);
-          const steps = parseJson<string[]>(activity.steps, []);
-          const adaptations = parseJson<string[]>(activity.adaptations, []);
+          const materials = readList(activity.materials);
+          const steps = readList(activity.steps);
+          const adaptations = readList(activity.adaptations);
           const activityRate = percentOf(activity.positiveOutcomes, activity.timesUsed);
           const register = registerResourceUse.bind(null, resource.id, activity.id);
           const sheets = activityPrintMaterials(resource.title, activity.title);
@@ -163,10 +163,10 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
                   <div>
                     <h2 id={`titulo-${activity.id}`} className="font-display text-xl font-semibold text-ink">{activity.title}</h2>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      <Badge tone="brand">{CONTEXTS[activity.context] ?? activity.context}</Badge>
+                      <Badge tone={toneOf(CONTEXTS, activity.context)}>{labelOf(CONTEXTS, activity.context)}</Badge>
                       <Badge><Clock size={11} aria-hidden /> {activity.durationMinutes} minutos</Badge>
                       <Badge><Repeat size={11} aria-hidden /> {activity.timesUsed} {activity.timesUsed === 1 ? "aplicação" : "aplicações"}</Badge>
-                      {activityRate !== null ? <Badge tone="green">{activityRate}% de boa resposta</Badge> : null}
+                      {activityRate !== null ? <Badge tone="good">{activityRate}% de boa resposta</Badge> : null}
                     </div>
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
               <ActivityPrintPlan
                 network={network} resourceTitle={resource.title} resourceType={resourceType} activityTitle={activity.title}
-                context={CONTEXTS[activity.context] ?? activity.context} durationMinutes={activity.durationMinutes}
+                context={labelOf(CONTEXTS, activity.context)} durationMinutes={activity.durationMinutes}
                 objective={activity.objective} materials={materials} adaptations={adaptations} steps={steps}
                 evidenceCriterion={activity.evidenceCriterion} sheets={sheets}
               />

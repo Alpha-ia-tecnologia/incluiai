@@ -10,11 +10,14 @@ import {
   INTEREST_OPTIONS,
   STRENGTH_OPTIONS,
   type ChoiceOption,
-} from "./form-options";
-import { BARRIERS } from "./scale";
-import { AEE_TEACHER, REGULAR_TEACHER } from "./federal-guidance";
+} from "./form-options.ts";
+import { BARRIERS } from "./scale.ts";
+import { AEE_TEACHER, REGULAR_TEACHER } from "./federal-guidance.ts";
+import { joinItems, parseJson, splitItems } from "./format.ts";
 
-export { AEE_TEACHER, REGULAR_TEACHER };
+export const FAMILY_PARTICIPANT = "Família";
+export const STUDENT_PARTICIPANT = "O próprio estudante";
+export const LISTENING_NOT_POSSIBLE = "Não foi possível";
 
 export type CaseStudyField = {
   key: string;
@@ -46,7 +49,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
     fields: [
       {
         key: "encaminhadoPor", label: "Quem encaminhou o caso", type: "choice",
-        options: ["Professor(a) da sala comum", "Família", "Coordenação pedagógica", "Professor(a) do AEE", "Rede de saúde", "Assistência social", "Conselho Tutelar", "Transferência de outra escola"],
+        options: [REGULAR_TEACHER, FAMILY_PARTICIPANT, "Coordenação pedagógica", AEE_TEACHER, "Rede de saúde", "Assistência social", "Conselho Tutelar", "Transferência de outra escola"],
       },
       {
         key: "motivos", label: "Motivos do encaminhamento", type: "multi", wide: true,
@@ -88,10 +91,10 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
   {
     id: "estudante",
     title: "Escuta do estudante",
-    source: "O próprio estudante",
+    source: STUDENT_PARTICIPANT,
     description: "O que o estudante conta sobre si e sobre a escola, do jeito que consegue se expressar.",
     fields: [
-      { key: "formaEscuta", label: "Como a escuta foi feita", type: "choice", options: ["Conversa", "Desenho", "Prancha de comunicação", "Observação das escolhas", "Não foi possível"] },
+      { key: "formaEscuta", label: "Como a escuta foi feita", type: "choice", options: ["Conversa", "Desenho", "Prancha de comunicação", "Observação das escolhas", LISTENING_NOT_POSSIBLE] },
       { key: "comoSeSente", label: "Como se sente na escola", type: "choice", options: ["Bem e à vontade", "Às vezes desconfortável", "Com medo ou ansioso(a)", "Não quer vir para a escola", "Não foi possível identificar"] },
       {
         key: "gostaEscola", label: "O que mais gosta na escola", type: "multi", wide: true,
@@ -179,7 +182,7 @@ export const CASE_STUDY_SECTIONS: CaseStudySection[] = [
       {
         key: "participantes", label: "Quem participou do estudo de caso", type: "multi", requiredToConclude: true, wide: true,
         hint: "Conduz: professor(a) do AEE, com a sala comum e a família (INEP).",
-        options: [AEE_TEACHER, REGULAR_TEACHER, "Coordenação pedagógica", "Gestão escolar", "Família", "O próprio estudante", "Profissional de apoio", "Terapeuta"],
+        options: [AEE_TEACHER, REGULAR_TEACHER, "Coordenação pedagógica", "Gestão escolar", FAMILY_PARTICIPANT, STUDENT_PARTICIPANT, "Profissional de apoio", "Terapeuta"],
       },
       {
         key: "sintese", label: "Síntese do caso", type: "textarea", requiredToConclude: true, wide: true,
@@ -212,24 +215,13 @@ export const RETIRED_CASE_FIELDS: readonly string[] = [
 ];
 
 export function parseCaseStudy(content: string | null | undefined): CaseStudyContent {
-  if (!content) return {};
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    return {};
-  }
+  const parsed = parseJson<unknown>(content, null);
   if (!parsed || typeof parsed !== "object") return {};
   const study = { ...(parsed as CaseStudyContent) };
   for (const [key, names] of Object.entries(RENAMED)) {
-    if (typeof study[key] === "string") study[key] = study[key].split(";").map((item) => names[item.trim()] ?? item.trim()).join("; ");
+    if (typeof study[key] === "string") study[key] = joinItems(splitItems(study[key]).map((item) => names[item] ?? item));
   }
   return study;
-}
-
-export function sectionProgress(section: CaseStudySection, content: CaseStudyContent) {
-  const filled = section.fields.filter((field) => content[field.key]?.trim()).length;
-  return { filled, total: section.fields.length };
 }
 
 export const CLINICAL_CASE_FIELDS: ReadonlySet<string> = new Set(["diagnostico", "saude", "acompanhamentos", "moraCom"]);
@@ -241,9 +233,8 @@ export function missingToConclude(content: CaseStudyContent): CaseStudyField[] {
 }
 
 // O INEP descreve o estudo de caso conduzido pelo professor do AEE.
-const participantsOf = (content: CaseStudyContent) => (content.participantes ?? "").split(/[;\n]/).map((item) => item.trim());
+const participantsOf = (content: CaseStudyContent) => splitItems(content.participantes);
 export const conductedByAee = (content: CaseStudyContent) => participantsOf(content).includes(AEE_TEACHER);
-export const withRegularTeacher = (content: CaseStudyContent) => participantsOf(content).includes(REGULAR_TEACHER);
 
 export const CASE_STUDY_REQUIRED_MESSAGE =
   "Conclua o estudo de caso do estudante antes de criar o plano de ensino. O plano parte do que o estudo de caso levantou.";

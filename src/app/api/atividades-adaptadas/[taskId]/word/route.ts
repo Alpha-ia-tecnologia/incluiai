@@ -7,7 +7,7 @@ import { loadPlanningFor } from "@/lib/dua/shared";
 import { taskContent } from "@/lib/adapted-tasks";
 import { adaptedDocx } from "@/lib/adapted-docx";
 import { printSettings } from "@/lib/adapted-tasks-core";
-import { parseJson } from "@/lib/format";
+import { readList } from "@/lib/format";
 import { unavailableResponse } from "@/lib/tenant";
 import { UserError } from "@/lib/user-error";
 
@@ -29,7 +29,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tas
       return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
     }
   }
-  const options = parseJson<string[]>(task.options, []);
+  const options = readList(task.options);
   const dua = Boolean(task.planningId);
   const buffer = await adaptedDocx(taskContent(task.content, task.title), { ...printSettings(options), highlight: dua || options.includes("destacar_comando"), icons: dua || options.includes("apoio_visual") });
   const name = task.title.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "atividade";

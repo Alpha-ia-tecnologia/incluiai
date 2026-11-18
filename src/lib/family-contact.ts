@@ -25,14 +25,6 @@ export function noticeEmail(appUrl: string): { subject: string; text: string } {
   };
 }
 
-export function weekStart(date: Date = new Date()): string {
-  const iso = date.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
-  const day = new Date(`${iso}T12:00:00Z`);
-  const back = (day.getUTCDay() + 6) % 7;
-  day.setUTCDate(day.getUTCDate() - back);
-  return day.toISOString().slice(0, 10);
-}
-
 export const CHECKIN_OPTIONS = [
   "Dormiu bem",
   "Comeu bem",

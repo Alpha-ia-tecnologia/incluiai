@@ -6,11 +6,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { Character } from "@/components/character";
 import { Assurances } from "@/components/explain";
 import { PrintButton } from "@/components/print-button";
-import {
-  CALENDAR_THEMES, MONTHLY_CAMPAIGNS, MONTH_NAMES, MONTH_SHORT,
-  dateRangeLabel, dayIndex, daysInMonth, monthEvents, monthParam, relativeLabel, todayInBrazil, weekdayOf,
-  type CalendarEvent, type CalendarTheme, type YMD,
-} from "@/lib/commemorative-dates";
+import { CALENDAR_THEMES, MONTHLY_CAMPAIGNS, dateRangeLabel, monthEvents, relativeLabel, type CalendarEvent, type CalendarTheme } from "@/lib/commemorative-dates";
+import { MONTH_NAMES, MONTH_SHORT, brYmd, dayIndex, daysInMonth, monthKey, type YMD, weekdayOf } from "@/lib/dates";
 
 const WEEKDAYS = [["Dom", "domingo"], ["Seg", "segunda-feira"], ["Ter", "terça-feira"], ["Qua", "quarta-feira"], ["Qui", "quinta-feira"], ["Sex", "sexta-feira"], ["Sáb", "sábado"]];
 
@@ -45,10 +42,10 @@ export default async function CalendarPage({
   if (!user) redirect("/login");
   await recordJourneyMark(user.id, "calendario");
 
-  const today = todayInBrazil();
+  const today = brYmd();
   const { year, month } = parseMonth(filters.mes, today);
   const tema = filters.tema && filters.tema in CALENDAR_THEMES ? (filters.tema as CalendarTheme) : undefined;
-  const current = monthParam(year, month);
+  const current = monthKey(year, month);
   const isCurrentMonth = year === today.year && month === today.month;
   const prev = shiftMonth(year, month, -1);
   const next = shiftMonth(year, month, 1);
@@ -82,12 +79,12 @@ export default async function CalendarPage({
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Link href={calendarHref(monthParam(prev.year, prev.month), tema)} aria-label={`Mês anterior: ${MONTH_NAMES[prev.month - 1]} de ${prev.year}`} className="flex size-11 items-center justify-center rounded-full border border-line bg-paper-raised transition-colors hover:bg-brand-soft print:hidden"><ChevronLeft size={20} aria-hidden /></Link>
+          <Link href={calendarHref(monthKey(prev.year, prev.month), tema)} aria-label={`Mês anterior: ${MONTH_NAMES[prev.month - 1]} de ${prev.year}`} className="flex size-11 items-center justify-center rounded-full border border-line bg-paper-raised transition-colors hover:bg-brand-soft print:hidden"><ChevronLeft size={20} aria-hidden /></Link>
           <h2 className="min-w-0 text-center text-xl font-medium tracking-tight sm:min-w-48">{monthTitle}</h2>
-          <Link href={calendarHref(monthParam(next.year, next.month), tema)} aria-label={`Próximo mês: ${MONTH_NAMES[next.month - 1]} de ${next.year}`} className="flex size-11 items-center justify-center rounded-full border border-line bg-paper-raised transition-colors hover:bg-brand-soft print:hidden"><ChevronRight size={20} aria-hidden /></Link>
+          <Link href={calendarHref(monthKey(next.year, next.month), tema)} aria-label={`Próximo mês: ${MONTH_NAMES[next.month - 1]} de ${next.year}`} className="flex size-11 items-center justify-center rounded-full border border-line bg-paper-raised transition-colors hover:bg-brand-soft print:hidden"><ChevronRight size={20} aria-hidden /></Link>
         </div>
         <div className="flex items-center gap-2 print:hidden">
-          {!isCurrentMonth ? <Link href={calendarHref(monthParam(today.year, today.month), tema)} className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-brand-strong hover:bg-brand-soft">Voltar para o mês atual</Link> : null}
+          {!isCurrentMonth ? <Link href={calendarHref(monthKey(today.year, today.month), tema)} className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-brand-strong hover:bg-brand-soft">Voltar para o mês atual</Link> : null}
           <PrintButton label="Imprimir mês" />
         </div>
       </div>

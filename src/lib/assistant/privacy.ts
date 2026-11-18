@@ -3,14 +3,11 @@ import type { SessionUser } from "../auth";
 import { can } from "../roles";
 import { namesInScope } from "../agents/names-in-scope";
 import { createPseudonymizer, type PseudonymMap, type Pseudonymizer } from "../agents/redactor";
+import { parseJson } from "../format";
 
 export function parsePseudonyms(value: string | null | undefined): PseudonymMap {
-  try {
-    const parsed = value ? (JSON.parse(value) as Partial<PseudonymMap>) : {};
-    return { students: parsed.students ?? {}, schools: parsed.schools ?? {} };
-  } catch {
-    return { students: {}, schools: {} };
-  }
+  const parsed = parseJson<Partial<PseudonymMap> | null>(value, null);
+  return { students: parsed?.students ?? {}, schools: parsed?.schools ?? {} };
 }
 
 export async function loadPseudonymizer(user: SessionUser, map: PseudonymMap): Promise<Pseudonymizer & { studentIds: string[] }> {

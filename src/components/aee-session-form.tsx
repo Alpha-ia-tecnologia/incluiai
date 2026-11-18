@@ -3,18 +3,12 @@
 import { useState, type FormEvent } from "react";
 import { Save } from "lucide-react";
 import { saveAeeSessionAction } from "@/actions/aee-sessions";
-import { AEE_SESSION_STATUSES, AEE_SESSION_STATUS_LABEL, type AeeSessionStatus } from "@/lib/dua/domain";
+import { AEE_SESSION_STATUS, AEE_SESSION_STATUSES, type AeeSessionStatus } from "@/lib/scale";
 import { Field, FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
+import { isoToBr } from "@/lib/dates";
 
-const STATUS_HINT: Record<AeeSessionStatus, string> = {
-  realizado: "Aconteceu.",
-  falta: "Estava previsto e o estudante não veio.",
-  cancelamento: "Foi desmarcado.",
-};
-
-const dateLabel = (value: string) => value.split("-").reverse().join("/");
 
 export function AeeSessionForm({ studentId, today }: { studentId: string; today: string }) {
   const { result, pending, submit } = useActionResult();
@@ -34,7 +28,7 @@ export function AeeSessionForm({ studentId, today }: { studentId: string; today:
       reason: needsReason ? String(form.get("reason") ?? "") : "",
       note: String(form.get("note") ?? ""),
     }), {
-      message: `Atendimento de ${dateLabel(date)} registrado como ${AEE_SESSION_STATUS_LABEL[chosen].toLowerCase()}.`,
+      message: `Atendimento de ${isoToBr(date)} registrado como ${AEE_SESSION_STATUS[chosen].label.toLowerCase()}.`,
       onSuccess: () => {
         formElement.reset();
         setStatus("realizado");
@@ -55,8 +49,8 @@ export function AeeSessionForm({ studentId, today }: { studentId: string; today:
               <label key={option} className="flex min-h-11 items-start gap-2 py-1 text-sm text-ink">
                 <input type="radio" name="status" value={option} checked={status === option} onChange={() => setStatus(option)} className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
                 <span className="min-w-0">
-                  {AEE_SESSION_STATUS_LABEL[option]}
-                  <span className="block text-xs text-ink-soft">{STATUS_HINT[option]}</span>
+                  {AEE_SESSION_STATUS[option].label}
+                  <span className="block text-xs text-ink-soft">{AEE_SESSION_STATUS[option].hint}</span>
                 </span>
               </label>
             ))}

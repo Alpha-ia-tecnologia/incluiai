@@ -4,7 +4,7 @@ import { Search, ShieldCheck, UserPlus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { manageableAccounts } from "@/lib/accounts";
 import { accountSchool, assignableRoles, isAccountManager, isLinkedRole, roleLabel } from "@/lib/roles";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { PageHeader, Badge, ButtonLink, EmptyState } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
@@ -89,8 +89,8 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {account.deactivatedAt ? <Badge>Desativada</Badge> : account.mustChangePassword ? <Badge tone="amber">Primeiro acesso pendente</Badge> : null}
-                  {account.totpEnabledAt && !account.deactivatedAt ? <Badge tone="green"><ShieldCheck size={14} aria-hidden /> Duas etapas</Badge> : null}
+                  {account.deactivatedAt ? <Badge>Desativada</Badge> : account.mustChangePassword ? <Badge tone="mid">Primeiro acesso pendente</Badge> : null}
+                  {account.totpEnabledAt && !account.deactivatedAt ? <Badge tone="good"><ShieldCheck size={14} aria-hidden /> Duas etapas</Badge> : null}
                   <span className="text-xs text-ink-soft">{account.lastLoginAt ? `Último acesso: ${formatDate(account.lastLoginAt)}` : "Ainda não entrou"}</span>
                 </div>
               </li>

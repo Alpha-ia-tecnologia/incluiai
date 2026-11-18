@@ -2,8 +2,9 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, Plus, X } from "lucide-react";
-import { splitItems, type ChoiceOption } from "@/lib/form-options";
+import { type ChoiceOption } from "@/lib/form-options";
 import { inputCls, labelCls } from "@/components/form-styles";
+import { joinItems, splitItems } from "@/lib/format";
 
 const OTHER = "__outro__";
 
@@ -111,7 +112,7 @@ export function MultiChoiceField({
   const validityRef = useRef<HTMLInputElement>(null);
 
   const values = [...items.filter((item) => selected.includes(item.value)).map((item) => item.value), ...custom, ...(draft.trim() ? [draft.trim()] : [])];
-  const joined = values.join(separator === "," ? ", " : "; ");
+  const joined = joinItems(values, separator);
 
   useEffect(() => {
     validityRef.current?.setCustomValidity(required && values.length === 0 ? "Escolha ao menos uma opção ou digite em Outro." : "");

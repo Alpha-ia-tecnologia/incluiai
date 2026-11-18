@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { studentScopeWhere } from "@/lib/policy";
 import { can, isAccountManager } from "@/lib/roles";
-import { getStudentNextStep } from "@/lib/student-journey";
+import { JOURNEY_SELECT, JOURNEY_STEPS, LAST_STEP, STEP, getStudentNextStep, journeyFacts } from "@/lib/student-journey";
 import { generateBatchForClass } from "@/actions/activities";
 import { SHIFTS } from "@/lib/scale";
 import { ChoiceField } from "@/components/choice-field";
@@ -14,7 +14,6 @@ import { PageHero, Badge, EmptyState } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Character } from "@/components/character";
 import { StepTrack } from "@/components/viz/step-track";
-import { JOURNEY_STEPS } from "@/lib/dashboard";
 import { percentOf } from "@/lib/series";
 import { ArrowLeft, ArrowRight, FileSpreadsheet, Layers, Plus, Search, Sprout } from "lucide-react";
 
@@ -37,11 +36,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     where: studentScopeWhere(user),
     include: {
       school: true,
-      caseStudy: { select: { status: true } },
-      profile: { select: { id: true } },
-      plans: { where: { status: "ativo" }, orderBy: { createdAt: "desc" }, take: 1, include: { objectives: { where: { status: "ativo" }, select: { id: true }, take: 1 } } },
-      activities: { where: { status: { in: ["aceita", "aplicada"] } }, select: { id: true }, take: 1 },
-      diaryEntries: { select: { id: true }, take: 1 },
+      ...JOURNEY_SELECT,
     },
     orderBy: { name: "asc" },
   });
@@ -53,26 +48,16 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     (!selectedClass || `${student.schoolId}|${student.className}` === selectedClass)
   );
   const rows = students.map((student) => {
-    const progress = {
-      id: student.id, caseStudy: (student.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null, hasProfile: !!student.profile, hasPlan: !!student.plans.length,
-      hasObjective: !!student.plans[0]?.objectives.length,
-      hasPreparedActivity: !!student.activities.length, hasDiary: !!student.diaryEntries.length,
-    };
-    const steps = [
-      { label: JOURNEY_STEPS[0].label, done: progress.caseStudy === "concluido" },
-      { label: JOURNEY_STEPS[1].label, done: progress.hasPlan && progress.hasObjective },
-      { label: JOURNEY_STEPS[2].label, done: progress.hasProfile },
-      { label: JOURNEY_STEPS[3].label, done: progress.hasPreparedActivity },
-      { label: JOURNEY_STEPS[4].label, done: progress.hasDiary },
-    ];
-    return { student, next: getStudentNextStep(progress), steps };
+    const progress = { id: student.id, ...journeyFacts(student) };
+    const steps = JOURNEY_STEPS.map((step) => ({ label: step.label, done: step.done(progress) }));
+    return { student, progress, next: getStudentNextStep(progress), steps };
   });
   const byStep = JOURNEY_STEPS.map((step) => {
     const value = rows.filter((row) => row.next.step === step.step).length;
     const pct = percentOf(value, rows.length);
     return { key: step.key, label: `${step.step}. ${step.label}`, value, detail: pct === null ? undefined : `${pct}%` };
   });
-  const inRoutine = rows.filter((row) => row.next.step === 5 && row.steps[4].done).length;
+  const inRoutine = rows.filter((row) => row.next.step === LAST_STEP && row.progress.hasDiary).length;
   const nominal = can(user.role, "seeNames");
   const searching = query.length >= 3;
   const listed = nominal || searching ? rows : [];
@@ -148,13 +133,13 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
           ) : null}
           {listed.length ? (
             <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              {listed.map(({ student, next, steps }) => {
+              {listed.map(({ student, progress, next, steps }) => {
                 const base = `/estudantes/${student.id}`;
                 const selected = action === "registrar"
                   ? { href: `${base}/diario`, label: "Registrar aula", description: "Conte como foi a aula deste estudante." }
                   : action === "acompanhar"
                     ? { href: base, label: "Ver acompanhamento", description: "Veja o plano, as aulas registradas e os próximos passos." }
-                    : action === "preparar" && next.step >= 4
+                    : action === "preparar" && next.step >= STEP.atividade
                       ? { href: `${base}/atividades`, label: "Preparar atividade", description: "Veja as sugestões e escolha uma atividade para aplicar." }
                       : next;
                 return (
@@ -164,12 +149,12 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                       <div className="min-w-0"><h2 className="text-xl font-medium leading-snug">{student.name}</h2><p className="mt-1 text-sm text-ink-soft">{student.gradeYear} · {student.className} · {SHIFTS[student.shift] ?? student.shift}</p></div>
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-ink-soft">{student.school.name}</p>
-                    <div className="mt-3"><StepTrack steps={steps} current={next.step} note={next.step === 5 && steps[4].done ? "Na rotina de registros" : undefined} /></div>
+                    <div className="mt-3"><StepTrack steps={steps} current={next.step} note={next.step === LAST_STEP && progress.hasDiary ? "Na rotina de registros" : undefined} /></div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {student.status !== "ativo" ? <Badge>{student.status}</Badge> : null}
-                      {!student.plans.length ? <Badge tone="amber">{student.caseStudy?.status === "concluido" ? "Plano de ensino a criar" : "Estudo de caso a concluir"}</Badge> : !student.plans[0].objectives.length ? <Badge tone="amber">Objetivo a definir</Badge> : !student.profile ? <Badge tone="amber">Falta preencher como aprende</Badge> : <Badge tone="brand">Plano de ensino ativo</Badge>}
+                      {!progress.hasPlan ? <Badge tone="mid">{progress.caseStudy === "concluido" ? "Plano de ensino a criar" : "Estudo de caso a concluir"}</Badge> : !progress.hasObjective ? <Badge tone="mid">Objetivo a definir</Badge> : !progress.hasProfile ? <Badge tone="mid">Falta preencher como aprende</Badge> : <Badge tone="info">Plano de ensino ativo</Badge>}
                     </div>
-                    <p className="mb-4 mt-4 text-sm leading-relaxed text-ink-soft">{action === "preparar" && next.step < 4 ? `Antes de preparar a atividade: ${next.description}` : selected.description}</p>
+                    <p className="mb-4 mt-4 text-sm leading-relaxed text-ink-soft">{action === "preparar" && next.step < STEP.atividade ? `Antes de preparar a atividade: ${next.description}` : selected.description}</p>
                     <Link href={selected.href} className="task-action mt-auto">{selected.label}<ArrowRight size={16} className="shrink-0" aria-hidden /></Link>
                     {selected.href !== base ? <Link href={base} className="mt-2 inline-flex min-h-11 items-center justify-center text-sm font-medium text-brand-strong">Ver acompanhamento</Link> : null}
                   </article>

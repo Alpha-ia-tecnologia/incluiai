@@ -4,33 +4,20 @@ import { db } from "@/lib/prisma";
 import { SUMMARY_SECTION } from "@/lib/audit";
 import { objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insights";
 import { meetingQuestions } from "@/lib/meeting-questions";
-import { parseJson, formatDate } from "@/lib/format";
-import { CHANNELS, BARRIERS } from "@/lib/scale";
-import { axisDate, countItems, supportSeries, type Trend } from "@/lib/series";
+import { readList } from "@/lib/format";
+import { formatDate, formatDateShort } from "@/lib/dates";
+import { CHANNELS, BARRIERS, SHIFTS, TREND } from "@/lib/scale";
+import { countItems, supportSeries } from "@/lib/series";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
 import { guidanceForPlan, parseAccepted, reportStatus } from "@/lib/health-reports-core";
 import { censusReference } from "@/lib/federal-guidance";
-import type { FunctionalProfile } from "@prisma/client";
+import { PROFILE_SUPPORT_GROUPS } from "@/lib/functional-profile";
 import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
 import { DataBoard, DataCard, StatusPill, SupportBars, SupportChart } from "@/components/data-viz";
 import { BarList } from "@/components/charts";
-import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, TREND_TONE } from "@/components/viz/student-viz";
-import { TrendingDown, Minus, AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, CircleCheck, type LucideIcon } from "lucide-react";
-
-const TREND_META: Record<Trend, { label: string; icon: LucideIcon }> = {
-  avancando: { label: "Avançando", icon: TrendingDown },
-  estavel: { label: "Estável", icon: Minus },
-  atencao: { label: "Atenção", icon: AlertTriangle },
-  sem_dados: { label: "Sem registros", icon: Minus },
-};
-
-const PROFILE_SUPPORT = [
-  { title: "Aprendizagem", fields: [["readingSupport", "Leitura"], ["writingSupport", "Escrita"], ["mathSupport", "Matemática"]] },
-  { title: "Interação", fields: [["peerInteraction", "Interação com colegas"], ["adultInteraction", "Interação com adultos"], ["groupWork", "Trabalho em grupo"]] },
-  { title: "Autonomia", fields: [["organization", "Organização"], ["feeding", "Alimentação"], ["hygiene", "Higiene"], ["mobility", "Locomoção"]] },
-  { title: "Movimento", fields: [["fineMotor", "Coordenação fina"], ["grossMotor", "Coordenação ampla"]] },
-] as const satisfies ReadonlyArray<{ title: string; fields: ReadonlyArray<readonly [keyof FunctionalProfile, string]> }>;
+import { ChartFrame, CriterionBar, ParticipationDonut, SupportMeter, TREND_ICON } from "@/components/viz/student-viz";
+import { AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, CircleCheck } from "lucide-react";
 
 const NARROW_BARS = "lg:[&_li]:grid-cols-[minmax(0,1fr)_auto] lg:[&_li>span:nth-child(2)]:col-span-2 lg:[&_li>span:nth-child(2)]:row-start-2";
 
@@ -56,7 +43,6 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   const reportGuidance = guidanceForPlan(student.healthReports.filter((report) => report.reviewedAt).map((report) => parseAccepted(report.accepted)));
   const reportsToReview = can.clinical ? student.healthReports.filter((report) => reportStatus(report.status, report.reviewedAt).needsReview).length : 0;
 
-
   const activePlan = student.plans.find((p) => p.status === "ativo");
   const objectives = activePlan?.objectives.filter((o) => o.status === "ativo") ?? [];
   const alerts = studentAlerts({ plans: student.plans, entries: student.diaryEntries })
@@ -66,8 +52,8 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   const workedCounts = countItems(student.diaryEntries.map((entry) => entry.whatWorked), 8);
   const records = student.diaryEntries.length;
   const profile = student.profile;
-  const interests = parseJson<string[]>(student.profile?.interests ?? null, []);
-  const barriers = parseJson<string[]>(student.profile?.barriers ?? null, []);
+  const interests = readList(student.profile?.interests ?? null);
+  const barriers = readList(student.profile?.barriers ?? null);
 
   const stalledObjectives = objectives
     .filter((o) => objectiveTrend(o, student.diaryEntries).trend === "atencao")
@@ -124,14 +110,13 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
             <DataBoard>
               {objectives.map((obj) => {
                 const insight = objectiveTrend(obj, student.diaryEntries);
-                const meta = TREND_META[insight.trend];
-                const Icon = meta.icon;
-                const points = supportSeries(student.diaryEntries, obj.id).map((point) => ({ date: axisDate(point.date), value: point.value }));
+                const Icon = TREND_ICON[insight.trend];
+                const points = supportSeries(student.diaryEntries, obj.id).map((point) => ({ date: formatDateShort(point.date), value: point.value }));
                 return (
                   <article key={obj.id} aria-label={`Objetivo: ${obj.action}`} className="dash-card min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <p className="min-w-0 max-w-xl text-sm leading-relaxed text-ink">{obj.description}</p>
-                      <StatusPill tone={TREND_TONE[insight.trend]}><Icon size={12} aria-hidden /> {meta.label}</StatusPill>
+                      <StatusPill tone={TREND[insight.trend].tone}><Icon size={12} aria-hidden /> {TREND[insight.trend].label}</StatusPill>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                       <span>Apoio atual:</span> <SupportPill level={obj.currentSupport} />
@@ -235,15 +220,15 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               </div>
               <div>
                 <dt className="text-xs text-ink-soft">Do que gosta</dt>
-                <dd className="mt-1 flex flex-wrap gap-1">{interests.map((i) => <Badge key={i} tone="amber">{i}</Badge>)}</dd>
+                <dd className="mt-1 flex flex-wrap gap-1">{interests.map((i) => <Badge key={i} tone="mid">{i}</Badge>)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-ink-soft">O que dificulta a participação</dt>
-                <dd className="mt-1 flex flex-wrap gap-1">{barriers.map((b) => <Badge key={b} tone="coral">{BARRIERS[b] ?? b}</Badge>)}</dd>
+                <dd className="mt-1 flex flex-wrap gap-1">{barriers.map((b) => <Badge key={b} tone="alert">{BARRIERS[b] ?? b}</Badge>)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-ink-soft">Tempo de participação em uma atividade</dt>
-                <dd className="text-ink">{student.profile.taskToleranceMinutes} min · melhor turno: {student.profile.bestShift === "manha" ? "manhã" : "tarde"}</dd>
+                <dd className="text-ink">{student.profile.taskToleranceMinutes} min · melhor turno: {(SHIFTS[student.profile.bestShift] ?? student.profile.bestShift).toLowerCase()}</dd>
               </div>
               {student.profile.strengths ? (
                 <div>
@@ -261,10 +246,10 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               </summary>
               <p className="mt-1 text-xs leading-relaxed text-ink-soft">0 (IND) é fazer sozinho; 5 (FIS-T), apoio físico total. Menos casas, menos apoio.</p>
               <div className={`mt-4 space-y-4 ${NARROW_BARS}`}>
-                {PROFILE_SUPPORT.map((group) => (
+                {PROFILE_SUPPORT_GROUPS.map((group) => (
                   <div key={group.title} className="min-w-0">
                     <h4 className="mb-2 text-xs font-medium text-ink-soft">{group.title}</h4>
-                    <SupportBars rows={group.fields.map(([field, label]) => ({ label, level: profile[field] }))} />
+                    <SupportBars rows={group.fields.map(({ key, label }) => ({ label, level: profile[key] }))} />
                   </div>
                 ))}
               </div>
@@ -314,5 +299,4 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
     </div>
   );
 }
-
 

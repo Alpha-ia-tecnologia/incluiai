@@ -1,4 +1,5 @@
 import { can, roleScope, type Role } from "./roles.ts";
+import { PREPARED_ACTIVITY_STATUSES } from "./scale.ts";
 
 type Viewer = { role: Role; schoolId: string | null; studentIds: string[] };
 type Linked = { role: string; studentIds: string[] };
@@ -51,10 +52,9 @@ export function studentPathFor(user: Linked, studentId: string): string {
   return `/estudantes/${studentId}`;
 }
 
-const SHARED_ACTIVITY_STATUSES = ["aceita", "aplicada"];
-export const familyActivityWhere = { context: "casa", status: { in: SHARED_ACTIVITY_STATUSES } };
+export const familyActivityWhere = { context: "casa", status: { in: PREPARED_ACTIVITY_STATUSES } };
 export const isFamilyActivity = (activity: { context: string; status: string }): boolean =>
-  activity.context === familyActivityWhere.context && SHARED_ACTIVITY_STATUSES.includes(activity.status);
+  activity.context === familyActivityWhere.context && PREPARED_ACTIVITY_STATUSES.includes(activity.status);
 
 export const familyMaterialWhere = { status: "aprovado" };
 export const isFamilyMaterial = (material: { status: string }): boolean => material.status === familyMaterialWhere.status;

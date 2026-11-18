@@ -1,11 +1,13 @@
 ﻿import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
-import { formatDate } from "@/lib/format";
-import { TIMELINE_TYPES } from "@/lib/scale";
+import { brYmd, formatDate, formatMonth, monthKey } from "@/lib/dates";
+import { plural } from "@/lib/format";
+import { monthlyCounts } from "@/lib/series";
+import { AEE_SESSION_STATUS, CONTEXTS, TIMELINE_TYPES, labelOf, toneOf, type Term } from "@/lib/scale";
 import { listStudentEvidence } from "@/lib/dua/applications";
 import { listAeeSessions } from "@/lib/aee-sessions";
-import { AEE_SESSION_STATUS_LABEL, OBSERVATION_LABEL, type AeeSessionStatus } from "@/lib/dua/domain";
+import { OBSERVATION } from "@/lib/dua/domain";
 import { PageHeader, Badge, EmptyState } from "@/components/ui";
 import { CountChips, DataBoard, DataCard } from "@/components/data-viz";
 import { ColumnChart } from "@/components/charts";
@@ -14,59 +16,33 @@ import {
   AlertTriangle, Trophy, Package, Layers, CalendarCheck, CalendarX, House, type LucideIcon,
 } from "lucide-react";
 
-const TYPE_META: Record<string, { icon: LucideIcon; tone: "brand" | "amber" | "coral" | "green" | "neutral" }> = {
-  avaliacao: { icon: ClipboardList, tone: "brand" },
-  plano: { icon: FileText, tone: "brand" },
-  atendimento: { icon: HeartHandshake, tone: "neutral" },
-  reuniao: { icon: Users, tone: "neutral" },
-  transferencia: { icon: ArrowLeftRight, tone: "amber" },
-  alerta: { icon: AlertTriangle, tone: "coral" },
-  conquista: { icon: Trophy, tone: "green" },
-  recurso: { icon: Package, tone: "amber" },
-  familia: { icon: House, tone: "neutral" },
-  dua: { icon: Layers, tone: "brand" },
-  aee_realizado: { icon: CalendarCheck, tone: "green" },
-  aee_falta: { icon: CalendarX, tone: "amber" },
-  aee_cancelamento: { icon: CalendarX, tone: "neutral" },
+const TYPE_ICON: Record<string, LucideIcon> = {
+  avaliacao: ClipboardList, plano: FileText, atendimento: HeartHandshake, reuniao: Users, transferencia: ArrowLeftRight,
+  alerta: AlertTriangle, conquista: Trophy, recurso: Package, familia: House,
+  dua: Layers, aee_realizado: CalendarCheck, aee_falta: CalendarX, aee_cancelamento: CalendarX,
 };
+const OTHER: Term = { label: "Outro", tone: "neutral" };
+const DUA_ENTRY: Term = { label: "Atividade com DUA", tone: "info" };
+const aeeEntry = (status: string): Term => ({ label: "Frequência do AEE", tone: toneOf(AEE_SESSION_STATUS, status) });
 
-const EXTRA_TYPES: Record<string, string> = {
-  dua: "Atividade com DUA",
-  aee_realizado: "Frequência do AEE",
-  aee_falta: "Frequência do AEE",
-  aee_cancelamento: "Frequência do AEE",
-};
+type Entry = { key: string; date: Date; type: string; term: Term; title: string; description: string | null; context?: Term; link?: { href: string; label: string } };
 
-type Entry = { key: string; date: Date; type: string; title: string; description: string | null; context?: string; link?: { href: string; label: string } };
-
-const MONTH_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 const monthName = (date: Date) => {
-  const text = date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const text = formatMonth(date);
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-
-function monthlyEvents(entries: ReadonlyArray<Entry>, months: number, now: Date) {
-  const counts = new Map<string, number>();
-  for (const entry of entries) counts.set(monthKey(entry.date), (counts.get(monthKey(entry.date)) ?? 0) + 1);
-  return Array.from({ length: months }, (_, index) => {
-    const month = new Date(now.getFullYear(), now.getMonth() - (months - 1 - index), 1);
-    return { label: MONTH_SHORT[month.getMonth()], title: monthName(month), value: counts.get(monthKey(month)) ?? 0 };
-  });
-}
 
 function groupByMonth(entries: ReadonlyArray<Entry>) {
   const groups: { key: string; label: string; entries: Entry[] }[] = [];
   for (const entry of entries) {
-    const key = monthKey(entry.date);
+    const { year, month } = brYmd(entry.date);
+    const key = monthKey(year, month);
     const last = groups.at(-1);
     if (last?.key === key) last.entries.push(entry);
     else groups.push({ key, label: monthName(entry.date), entries: [entry] });
   }
   return groups;
 }
-
 
 export default async function TimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
@@ -82,31 +58,33 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
   ]);
 
   const entries: Entry[] = [
-    ...events.map((e) => ({ key: e.id, date: e.date, type: e.type, title: e.title, description: e.description })),
+    ...events.map((e) => ({ key: e.id, date: e.date, type: e.type, term: TIMELINE_TYPES[e.type] ?? OTHER, title: e.title, description: e.description })),
     ...evidences.map((evidence) => ({
       key: `dua-${evidence.id}`,
       date: evidence.date,
       type: "dua",
-      title: `Atividade com DUA: ${evidence.planningTitle}`,
-      description: `${OBSERVATION_LABEL[evidence.observation] ?? evidence.observation} · versão ${evidence.versionNumber} · registrado por ${evidence.authorName}`,
-      context: evidence.context === "aee" ? "AEE" : "Sala comum",
+      term: DUA_ENTRY,
+      title: `${DUA_ENTRY.label}: ${evidence.planningTitle}`,
+      description: `${labelOf(OBSERVATION, evidence.observation)} · versão ${evidence.versionNumber} · registrado por ${evidence.authorName}`,
+      context: CONTEXTS[evidence.context],
       link: evidence.canOpenPlanning ? { href: `/planejamento/${evidence.planningId}/aplicacao`, label: evidence.planningTitle } : undefined,
     })),
     ...sessions.map((session) => ({
       key: `aee-${session.id}`,
       date: session.date,
       type: `aee_${session.status}`,
-      title: `Atendimento do AEE: ${AEE_SESSION_STATUS_LABEL[session.status as AeeSessionStatus] ?? session.status}`,
+      term: aeeEntry(session.status),
+      title: `Atendimento do AEE: ${labelOf(AEE_SESSION_STATUS, session.status)}`,
       description: [session.reason ? `Motivo: ${session.reason}` : "", `registrado por ${session.authorName}`].filter(Boolean).join(" · "),
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  const months = monthlyEvents(entries, 12, new Date());
+  const months = monthlyCounts(entries.map((entry) => entry.date), 12);
   const lastYear = months.reduce((sum, month) => sum + month.value, 0);
   const groups = groupByMonth(entries);
   const byType = new Map<string, number>();
   for (const entry of entries) {
-    const label = TIMELINE_TYPES[entry.type] ?? EXTRA_TYPES[entry.type] ?? "Outro";
+    const label = entry.term.label;
     byType.set(label, (byType.get(label) ?? 0) + 1);
   }
   const typeCounts = [...byType].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt-BR"));
@@ -137,8 +115,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
                 </h2>
                 <ol className="relative ml-3 space-y-6 border-l-2 border-line pl-8">
                   {group.entries.map((e) => {
-                    const meta = TYPE_META[e.type] ?? TYPE_META.atendimento;
-                    const Icon = meta.icon;
+                    const Icon = TYPE_ICON[e.type] ?? HeartHandshake;
                     return (
                       <li key={e.key} className="relative">
                         <span className="absolute -left-[45px] flex size-7 items-center justify-center rounded-full border border-line bg-paper-raised text-brand-strong">
@@ -146,8 +123,8 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
                         </span>
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-medium text-ink-soft">{formatDate(e.date)}</span>
-                          <Badge tone={meta.tone}>{TIMELINE_TYPES[e.type] ?? EXTRA_TYPES[e.type]}</Badge>
-                          {e.context ? <Badge tone="neutral">{e.context}</Badge> : null}
+                          <Badge tone={e.term.tone}>{e.term.label}</Badge>
+                          {e.context ? <Badge tone={e.context.tone}>{e.context.label}</Badge> : null}
                         </div>
                         <h3 className="mt-1 font-medium text-ink">{e.title}</h3>
                         {e.description ? <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">{e.description}</p> : null}

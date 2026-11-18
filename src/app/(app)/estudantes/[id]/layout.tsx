@@ -3,12 +3,13 @@ import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/prisma";
 import { studentContext } from "@/lib/page-context";
-import { ageFrom } from "@/lib/format";
+import { ageFrom, formatTime } from "@/lib/dates";
 import { STAGES, SHIFTS } from "@/lib/scale";
 import { Badge } from "@/components/ui";
 import { StudentTabs } from "@/components/student-tabs";
 import { StudentJourney, StudentNextStepLink } from "@/components/student-journey";
 import { StudentHead } from "@/components/student-head";
+import { JOURNEY_SELECT, journeyFacts } from "@/lib/student-journey";
 
 export default async function StudentLayout({
   children,
@@ -20,31 +21,7 @@ export default async function StudentLayout({
   const prisma = await db();
   const { id } = await params;
   const { student, grant, can } = await studentContext(id);
-  const progress = can.edit ? await prisma.student.findUniqueOrThrow({
-    where: { id },
-    select: {
-      caseStudy: { select: { status: true } },
-      profile: { select: { id: true } },
-      plans: {
-        where: { status: "ativo" },
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { objectives: { where: { status: "ativo" }, take: 1, select: { id: true } } },
-      },
-      activities: { where: { status: { in: ["aceita", "aplicada"] } }, take: 1, select: { id: true } },
-      diaryEntries: { take: 1, select: { id: true } },
-    },
-  }) : null;
-
-  const journey = progress ? {
-    id: student.id,
-    caseStudy: (progress.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null,
-    hasProfile: Boolean(progress.profile),
-    hasPlan: progress.plans.length > 0,
-    hasObjective: (progress.plans[0]?.objectives.length ?? 0) > 0,
-    hasPreparedActivity: progress.activities.length > 0,
-    hasDiary: progress.diaryEntries.length > 0,
-  } : null;
+  const journey = can.edit ? { id, ...journeyFacts(await prisma.student.findUniqueOrThrow({ where: { id }, select: JOURNEY_SELECT })) } : null;
 
   return (
     <>
@@ -67,9 +44,9 @@ export default async function StudentLayout({
             </p>
             {student.aeeFrequency || student.supportProfessional || student.accessibilityNotes ? (
               <div className="student-head-detail mt-2 flex min-w-0 flex-wrap gap-1.5">
-                {student.aeeFrequency ? <Badge tone="brand">AEE {student.aeeFrequency}</Badge> : null}
-                {student.supportProfessional ? <Badge tone="green">Profissional de apoio</Badge> : null}
-                {student.accessibilityNotes ? <Badge tone="amber">{student.accessibilityNotes}</Badge> : null}
+                {student.aeeFrequency ? <Badge tone="info">AEE {student.aeeFrequency}</Badge> : null}
+                {student.supportProfessional ? <Badge tone="good">Profissional de apoio</Badge> : null}
+                {student.accessibilityNotes ? <Badge tone="mid">{student.accessibilityNotes}</Badge> : null}
               </div>
             ) : null}
           </div>
@@ -80,7 +57,7 @@ export default async function StudentLayout({
 
       {grant ? (
         <p role="status" className="mb-6 rounded-2xl bg-amber-soft px-4 py-3 text-sm leading-relaxed text-amber">
-          Acesso de leitura com motivo registrado, válido até {grant.expiresAt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}. A família vê este acesso; a Secretaria não altera a ficha.
+          Acesso de leitura com motivo registrado, válido até {formatTime(grant.expiresAt)}. A família vê este acesso; a Secretaria não altera a ficha.
         </p>
       ) : null}
       {journey ? <StudentJourney progress={journey} /> : null}

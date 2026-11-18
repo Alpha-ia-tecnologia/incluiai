@@ -1,4 +1,5 @@
 // Relatório do período (devolutiva à família, Portaria MEC nº 421/2026, art. 11, IV).
+import { brDay, daysBetween, isIsoDay, isoToBr } from "./dates.ts";
 
 export type ReportObjective = {
   description: string;
@@ -25,21 +26,16 @@ export type ReportData = {
   assessment?: { label: string; start: number | null; end: number | null }[] | null;
 };
 
-const DAY = 86_400_000;
-export const isoDay = (date: Date) => date.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
-export const brDate = (iso: string) => iso.split("-").reverse().join("/");
-
 export function currentSemester(today: Date = new Date()): { start: string; end: string } {
-  const [year, month] = isoDay(today).split("-").map(Number);
+  const [year, month] = brDay(today).split("-").map(Number);
   return month <= 6 ? { start: `${year}-01-01`, end: `${year}-06-30` } : { start: `${year}-07-01`, end: `${year}-12-31` };
 }
 
 export function periodProblem(start: string, end: string, today: Date = new Date()): string | null {
-  const valid = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(Date.parse(`${iso}T12:00:00Z`));
-  if (!valid(start) || !valid(end)) return "Informe o começo e o fim do período.";
+  if (!isIsoDay(start) || !isIsoDay(end)) return "Informe o começo e o fim do período.";
   if (end < start) return "O fim do período precisa ser depois do começo.";
-  if (start > isoDay(today)) return "O período precisa ter começado.";
-  if ((Date.parse(`${end}T12:00:00Z`) - Date.parse(`${start}T12:00:00Z`)) / DAY > 366) return "Escolha um período de até um ano.";
+  if (start > brDay(today)) return "O período precisa ter começado.";
+  if (daysBetween(start, end) > 366) return "Escolha um período de até um ano.";
   return null;
 }
 
@@ -65,7 +61,7 @@ export const lessSupport = (objective: ReportObjective) => objective.supportEnd 
 export function draftOpinion(data: ReportData): string {
   const name = data.student.name.split(" ")[0];
   const parts: string[] = [];
-  const when = `Entre ${brDate(data.period.start)} e ${brDate(data.period.end)}`;
+  const when = `Entre ${isoToBr(data.period.start)} e ${isoToBr(data.period.end)}`;
   const absences = `${data.aee.absences} ${data.aee.absences === 1 ? "falta" : "faltas"}`;
   parts.push(data.aee.done
     ? `${when}, ${name} participou de ${data.aee.done} ${data.aee.done === 1 ? "atendimento" : "atendimentos"} no AEE${data.aee.absences ? `, com ${absences}` : ", sem faltas"}.`

@@ -10,8 +10,7 @@ import {
 import { Field, FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
-
-const dateLabel = (value: string) => value.split("-").reverse().join("/");
+import { isoToBr } from "@/lib/dates";
 
 type Props = { planningId: string; studentId: string; supportId: string; entries: StudentVoiceEntry[]; canEdit: boolean; today: string };
 
@@ -54,10 +53,10 @@ export function StudentVoice({ planningId, studentId, supportId, entries, canEdi
               <p className="text-xs font-medium text-ink-soft">{STUDENT_VOICE_LABEL[entry.kind] ?? entry.kind}</p>
               <p className="mt-1 whitespace-pre-line break-words text-sm text-ink">{entry.text}</p>
               <p className="mt-1 break-words text-xs text-ink-soft">
-                Contexto: {entry.context} · {VOICE_ORIGIN_LABEL[entry.origin] ?? entry.origin} · {dateLabel(entry.date)}
+                Contexto: {entry.context} · {VOICE_ORIGIN_LABEL[entry.origin] ?? entry.origin} · {isoToBr(entry.date)}
               </p>
               {canEdit ? (
-                <button type="button" onClick={() => remove(entry)} disabled={pending} className={`${BUTTON_CLS.dangerOutline} mt-2`} aria-label={`Remover o registro de ${dateLabel(entry.date)}: ${STUDENT_VOICE_LABEL[entry.kind] ?? entry.kind}`}>
+                <button type="button" onClick={() => remove(entry)} disabled={pending} className={`${BUTTON_CLS.dangerOutline} mt-2`} aria-label={`Remover o registro de ${isoToBr(entry.date)}: ${STUDENT_VOICE_LABEL[entry.kind] ?? entry.kind}`}>
                   <Trash2 size={16} aria-hidden /> Remover
                 </button>
               ) : null}

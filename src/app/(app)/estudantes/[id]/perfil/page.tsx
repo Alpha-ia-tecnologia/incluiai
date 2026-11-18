@@ -1,15 +1,16 @@
 ﻿import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { upsertProfile } from "@/actions/profile";
-import { parseJson } from "@/lib/format";
+import { parseJson, readList } from "@/lib/format";
 import { SUPPORT_LEVELS, CHANNELS, BARRIERS, SENSORY_AREAS, SENSORY_LABELS, SENSORY_VALUES } from "@/lib/scale";
+import { SUPPORT_FIELD_LABEL, profileSuggestionsFromStudy } from "@/lib/functional-profile";
 import { ButtonLink, PageHeader, Card, SectionTitle } from "@/components/ui";
 import { PillLink } from "@/components/pill-link";
 import { ProfileChat } from "@/components/profile-chat";
 import type { ProfileAnswers } from "@/components/profile-chat";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { ActionForm } from "@/components/action-form";
-import { ATTENTION_MINUTES, CALMING_OPTIONS, EARLY_SIGN_OPTIONS, INTEREST_OPTIONS, STRENGTH_OPTIONS, TASK_TOLERANCE_MINUTES, TRIGGER_OPTIONS, splitItems } from "@/lib/form-options";
+import { ATTENTION_MINUTES, CALMING_OPTIONS, EARLY_SIGN_OPTIONS, INTEREST_OPTIONS, STRENGTH_OPTIONS, TASK_TOLERANCE_MINUTES, TRIGGER_OPTIONS } from "@/lib/form-options";
 import { parseCaseStudy } from "@/lib/case-study";
 import { MessageSquareText, ListChecks } from "lucide-react";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
@@ -48,21 +49,11 @@ export default async function ProfilePage({
   ]);
   const p = profile;
   const study = !p && caseStudy ? parseCaseStudy(caseStudy.content) : {};
-  const CHANNEL_FROM_STUDY: Record<string, string> = {
-    "Fala com frases curtas": "fala", "Gestos e apontar": "gestos", "Prancha de comunicação (CAA)": "caa_prancha", "PECS": "caa_pecs",
-    "Tablet com aplicativo de CAA": "caa_alta_tecnologia", "Libras": "libras", "Olhar e expressões faciais": "olhar_acionador",
-    "Vocalizações": "vocalizacoes", "Acionador": "olhar_acionador",
-  };
-  const suggested = {
-    expressiveChannel: splitItems(study.comunicacaoEscola).map((item) => CHANNEL_FROM_STUDY[item]).find(Boolean) ?? "",
-    interests: splitItems(study.interessesCasa).map((item) => item.replace(/,/g, " ")),
-    barriers: splitItems(study.barreiras).map((item) => Object.entries(BARRIERS).find(([, label]) => label === item)?.[0] ?? item),
-    strengths: study.potencialidades ?? "",
-  };
+  const suggested = profileSuggestionsFromStudy(study);
   const hasSuggestions = Boolean(suggested.expressiveChannel || suggested.interests.length || suggested.barriers.length || suggested.strengths);
   const sensory = parseJson<Record<string, string>>(p?.sensoryProfile ?? null, {});
-  const barriers = parseJson<string[]>(p?.barriers ?? null, []);
-  const csv = (v: string | null | undefined) => parseJson<string[]>(v ?? null, []).join(", ");
+  const barriers = readList(p?.barriers ?? null);
+  const csv = (v: string | null | undefined) => readList(v ?? null).join(", ");
   const upsert = upsertProfile.bind(null, id);
   const initialAnswers: ProfileAnswers = p
     ? {
@@ -179,9 +170,9 @@ export default async function ProfilePage({
           <Card>
             <SectionTitle>Aprendizagem</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <SupportSelect name="readingSupport" label="Leitura" defaultValue={p?.readingSupport ?? 2} />
-              <SupportSelect name="writingSupport" label="Escrita" defaultValue={p?.writingSupport ?? 2} />
-              <SupportSelect name="mathSupport" label="Matemática" defaultValue={p?.mathSupport ?? 2} />
+              <SupportSelect name="readingSupport" label={SUPPORT_FIELD_LABEL.readingSupport} defaultValue={p?.readingSupport ?? 2} />
+              <SupportSelect name="writingSupport" label={SUPPORT_FIELD_LABEL.writingSupport} defaultValue={p?.writingSupport ?? 2} />
+              <SupportSelect name="mathSupport" label={SUPPORT_FIELD_LABEL.mathSupport} defaultValue={p?.mathSupport ?? 2} />
               <ChoiceField name="attentionMinutes" label="Tempo de atenção" options={ATTENTION_MINUTES} defaultValue={String(p?.attentionMinutes ?? 10)} required otherType="number" otherMin={1} otherMax={120} otherPlaceholder="Minutos" />
             </div>
           </Card>
@@ -189,13 +180,13 @@ export default async function ProfilePage({
           <Card>
             <SectionTitle>Interação e autonomia</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <SupportSelect name="peerInteraction" label="Interação com colegas" defaultValue={p?.peerInteraction ?? 2} />
-              <SupportSelect name="adultInteraction" label="Interação com adultos" defaultValue={p?.adultInteraction ?? 1} />
-              <SupportSelect name="groupWork" label="Trabalho em grupo" defaultValue={p?.groupWork ?? 2} />
-              <SupportSelect name="organization" label="Organização de materiais" defaultValue={p?.organization ?? 2} />
-              <SupportSelect name="feeding" label="Alimentação" defaultValue={p?.feeding ?? 0} />
-              <SupportSelect name="hygiene" label="Higiene" defaultValue={p?.hygiene ?? 0} />
-              <SupportSelect name="mobility" label="Deslocamento" defaultValue={p?.mobility ?? 0} />
+              <SupportSelect name="peerInteraction" label={SUPPORT_FIELD_LABEL.peerInteraction} defaultValue={p?.peerInteraction ?? 2} />
+              <SupportSelect name="adultInteraction" label={SUPPORT_FIELD_LABEL.adultInteraction} defaultValue={p?.adultInteraction ?? 1} />
+              <SupportSelect name="groupWork" label={SUPPORT_FIELD_LABEL.groupWork} defaultValue={p?.groupWork ?? 2} />
+              <SupportSelect name="organization" label={SUPPORT_FIELD_LABEL.organization} defaultValue={p?.organization ?? 2} />
+              <SupportSelect name="feeding" label={SUPPORT_FIELD_LABEL.feeding} defaultValue={p?.feeding ?? 0} />
+              <SupportSelect name="hygiene" label={SUPPORT_FIELD_LABEL.hygiene} defaultValue={p?.hygiene ?? 0} />
+              <SupportSelect name="mobility" label={SUPPORT_FIELD_LABEL.mobility} defaultValue={p?.mobility ?? 0} />
             </div>
           </Card>
 
@@ -212,8 +203,8 @@ export default async function ProfilePage({
               ))}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <SupportSelect name="fineMotor" label="Movimentos das mãos e dos dedos" defaultValue={p?.fineMotor ?? 1} />
-              <SupportSelect name="grossMotor" label="Movimentos do corpo" defaultValue={p?.grossMotor ?? 0} />
+              <SupportSelect name="fineMotor" label={SUPPORT_FIELD_LABEL.fineMotor} defaultValue={p?.fineMotor ?? 1} />
+              <SupportSelect name="grossMotor" label={SUPPORT_FIELD_LABEL.grossMotor} defaultValue={p?.grossMotor ?? 0} />
             </div>
             <label className="mt-4 flex min-h-11 items-center gap-2 text-sm text-ink">
               <input type="checkbox" name="usesWheelchairOrOrthosis" defaultChecked={p?.usesWheelchairOrOrthosis} className="size-4 accent-[var(--brand)]" />
@@ -225,13 +216,13 @@ export default async function ProfilePage({
             <SectionTitle>Bem-estar e ritmo</SectionTitle>
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <MultiChoiceField name="triggers" label="O que causa desconforto" options={TRIGGER_OPTIONS} defaultValue={parseJson<string[]>(p?.triggers ?? null, [])} separator="," />
+                <MultiChoiceField name="triggers" label="O que causa desconforto" options={TRIGGER_OPTIONS} defaultValue={readList(p?.triggers ?? null)} separator="," />
               </div>
               <div className="sm:col-span-2">
-                <MultiChoiceField name="earlySigns" label="Como demonstra que precisa de uma pausa" options={EARLY_SIGN_OPTIONS} defaultValue={parseJson<string[]>(p?.earlySigns ?? null, [])} separator="," />
+                <MultiChoiceField name="earlySigns" label="Como demonstra que precisa de uma pausa" options={EARLY_SIGN_OPTIONS} defaultValue={readList(p?.earlySigns ?? null)} separator="," />
               </div>
               <div className="sm:col-span-2">
-                <MultiChoiceField name="calmingStrategies" label="Estratégias que acalmam" options={CALMING_OPTIONS} defaultValue={parseJson<string[]>(p?.calmingStrategies ?? null, [])} separator="," />
+                <MultiChoiceField name="calmingStrategies" label="Estratégias que acalmam" options={CALMING_OPTIONS} defaultValue={readList(p?.calmingStrategies ?? null)} separator="," />
               </div>
               <div>
                 <label htmlFor="bestShift" className={labelCls}>Melhor turno</label>
@@ -246,7 +237,7 @@ export default async function ProfilePage({
 
           <Card className="border-amber/50">
             <SectionTitle>Do que o estudante gosta</SectionTitle>
-            <MultiChoiceField name="interests" label="Escolha de 3 a 5 temas *" options={INTEREST_OPTIONS} defaultValue={p ? parseJson<string[]>(p.interests, []) : suggested.interests} required separator="," />
+            <MultiChoiceField name="interests" label="Escolha de 3 a 5 temas *" options={INTEREST_OPTIONS} defaultValue={p ? readList(p.interests) : suggested.interests} required separator="," />
           </Card>
 
           <Card>

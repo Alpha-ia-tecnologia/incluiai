@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight, Minus, Quote } from "lucide-react";
+import { supportInfo, supportOffset, supportTone, type Term, type Tone } from "@/lib/scale";
 import { HatchedDonut, SIGNAL, type ChartSegment } from "./charts";
 
-export type Tone = "good" | "mid" | "alert" | "neutral" | "info";
 export const TONE_CLASSES: Record<Tone, string> = {
   good: "bg-signal-lime text-ink-strong",
   mid: "bg-signal-yellow text-ink-strong",
@@ -13,20 +13,13 @@ export const TONE_CLASSES: Record<Tone, string> = {
 };
 export const TONE_COLOR: Record<Tone, string> = { good: SIGNAL.lime, mid: SIGNAL.yellow, alert: SIGNAL.orange, neutral: SIGNAL.track, info: SIGNAL.cyan };
 
-export const SEGMENT_COLORS: Record<string, string> = {
-  total: SIGNAL.lime, sim: SIGNAL.lime, avancando: SIGNAL.lime, aplicada: SIGNAL.lime, demonstrado: SIGNAL.lime, alcancado: SIGNAL.lime, validado: SIGNAL.lime,
-  parcial: SIGNAL.yellow, sugerida: SIGNAL.yellow, em_revisao: SIGNAL.yellow,
-  recusou: SIGNAL.orange, nao: SIGNAL.orange, atencao: SIGNAL.orange, rejeitada: SIGNAL.orange, ainda_nao_demonstrado: SIGNAL.orange,
-  estavel: SIGNAL.cyan, aceita: SIGNAL.cyan, ativo: SIGNAL.cyan, realizado: SIGNAL.cyan, rascunho: SIGNAL.cyan,
-  falta: SIGNAL.yellow, cancelamento: SIGNAL.track, sem_oportunidade: SIGNAL.track, nao_registrado: SIGNAL.track, sem_dados: SIGNAL.track,
-};
-export const withSegmentColors = (rows: ReadonlyArray<{ key: string; label: string; value: number }>): ChartSegment[] =>
-  rows.map((row) => ({ ...row, color: SEGMENT_COLORS[row.key] ?? SIGNAL.lime }));
+export const withSegmentColors = (rows: ReadonlyArray<{ key: string; label: string; value: number; tone: Tone }>): ChartSegment[] =>
+  rows.map((row) => ({ key: row.key, label: row.label, value: row.value, color: TONE_COLOR[row.tone] }));
+export const segmentsOf = (table: Readonly<Record<string, Term>>, count: (key: string) => number): ChartSegment[] =>
+  Object.entries(table).map(([key, term]) => ({ key, label: term.label, value: count(key), color: TONE_COLOR[term.tone] }));
 
-export const supportColor = (level: number) => (level <= 1 ? SIGNAL.lime : level <= 3 ? SIGNAL.yellow : SIGNAL.orange);
-const SUPPORT_CODES = ["IND", "SUP", "VERB", "MOD", "FIS-P", "FIS-T"];
-const SUPPORT_NAMES = ["Independente", "Supervisão", "Instrução verbal", "Modelo", "Apoio físico parcial", "Apoio físico total"];
-const levelText = (level: number) => `${SUPPORT_NAMES[Math.round(Math.min(5, Math.max(0, level)))]} (${level.toLocaleString("pt-BR", { maximumFractionDigits: 1 })})`;
+export const supportColor = (level: number) => TONE_COLOR[supportTone(level)];
+const levelText = (level: number) => `${supportInfo(level).label} (${level.toLocaleString("pt-BR", { maximumFractionDigits: 1 })})`;
 const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
 export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode }) {
@@ -115,14 +108,14 @@ export function Sparkline({ values, label, domain, invert = false, color = SIGNA
 export function SupportChart({ points, start, target, label, height = 168 }: { points: ReadonlyArray<{ date: string; value: number }>; start?: number | null; target?: number | null; label: string; height?: number }) {
   if (points.length < 2) return <p className="text-sm text-ink-soft">Com dois registros ou mais, a evolução do apoio aparece aqui.</p>;
   const x = (index: number) => (index / (points.length - 1)) * 100;
-  const y = (level: number) => (Math.min(5, Math.max(0, level)) / 5) * 100;
+  const y = (level: number) => (1 - supportOffset(level)) * 100;
   const line = points.map((point, index) => `${index ? "L" : "M"}${x(index).toFixed(2)},${y(point.value).toFixed(2)}`).join(" ");
   const middle = Math.floor((points.length - 1) / 2);
   return (
     <figure className="min-w-0">
       <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2">
         <div className="flex flex-col justify-between text-right text-xs leading-none text-ink-soft" style={{ height }} aria-hidden>
-          <span>0 · IND</span><span>5 · FIS-T</span>
+          <span>0 · {supportInfo(0).code}</span><span>5 · {supportInfo(5).code}</span>
         </div>
         <div className="relative min-w-0" style={{ height }}>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" role="img" aria-label={label}>
@@ -192,14 +185,14 @@ export function SupportBars({ rows }: { rows: ReadonlyArray<{ label: string; lev
   return (
     <ul className="grid min-w-0 gap-2.5">
       {rows.map((row) => {
-        const level = Math.round(Math.min(5, Math.max(0, row.level)));
+        const level = supportInfo(row.level).level;
         return (
           <li key={row.label} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[10rem_minmax(0,1fr)_auto]">
             <span className="min-w-0 text-ink">{row.label}</span>
             <span aria-hidden className="col-span-2 row-start-2 flex gap-1 sm:col-span-1 sm:row-start-auto">
               {[1, 2, 3, 4, 5].map((cell) => <span key={cell} className={`h-2.5 flex-1 rounded-full ${cell <= level ? "hatch viz-grow-x" : ""}`} style={{ backgroundColor: cell <= level ? supportColor(level) : SIGNAL.track }} />)}
             </span>
-            <span className="text-right text-xs tabular-nums text-ink-soft"><span className="font-medium text-ink">{SUPPORT_CODES[level]}</span><span className="max-sm:sr-only"> · {SUPPORT_NAMES[level]}</span></span>
+            <span className="text-right text-xs tabular-nums text-ink-soft"><span className="font-medium text-ink">{supportInfo(level).code}</span><span className="max-sm:sr-only"> · {supportInfo(level).label}</span></span>
           </li>
         );
       })}

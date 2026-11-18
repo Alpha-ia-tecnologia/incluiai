@@ -9,7 +9,7 @@ import { syncCardWithConsent } from "./student-card";
 
 export type ConsentField = "aiUse" | "therapistLink" | "card";
 const CONSENT_FIELDS: readonly ConsentField[] = ["aiUse", "therapistLink", "card"];
-export const CONSENT_LABEL: Record<ConsentField, string> = { aiUse: "Uso de IA", therapistLink: "Conexão com o terapeuta", card: "Carteirinha digital" };
+export const CONSENT_LABEL: Record<ConsentField, string> = { aiUse: "Uso de inteligência artificial", therapistLink: "Conexão com o terapeuta", card: "Carteirinha digital" };
 
 export type StudentConsent = { aiUse: boolean; therapistLink: boolean; card: boolean; updatedAt: Date | null; updatedBy: string | null };
 

@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { studentScopeWhere } from "@/lib/policy";
 import { can } from "@/lib/roles";
-import { parseJson } from "@/lib/format";
+import { readList } from "@/lib/format";
 import { suggestedLevel, themeFromInterests } from "@/lib/games/games-core";
 import { GamesHub, type HubStudent } from "@/components/games/games-hub";
 
@@ -27,7 +27,7 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
       firstName: student.name.split(" ")[0],
       detail: `${student.gradeYear} · ${student.className}`,
       level: suggestedLevel(student.profile),
-      theme: themeFromInterests(parseJson<string[]>(student.profile?.interests ?? null, [])),
+      theme: themeFromInterests(readList(student.profile?.interests ?? null)),
     }));
 
   return <GamesHub students={students} initialStudentId={estudante ?? null} />;

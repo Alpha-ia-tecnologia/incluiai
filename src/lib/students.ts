@@ -10,6 +10,7 @@ import { UserError } from "./user-error";
 import { readStudentRecord, type StudentFields, type StudentRecord } from "./student-record";
 import { readStudentSheet } from "./student-import";
 import { nameBirthKey, normalizeName } from "./student-identity";
+import { calendarDay, dayFromInput } from "./dates";
 
 const ORIGIN = {
   cadastro: { title: "Cadastro no prontuário municipal", description: "Estudante incluído na plataforma.", detail: "Cadastro do estudante" },
@@ -25,7 +26,7 @@ export function newStudentData(actor: AuditActor, student: NewStudent, origin: k
   const { title, description, detail } = ORIGIN[origin];
   return {
     ...student,
-    birthDate: new Date(`${student.birthDate}T12:00:00`),
+    birthDate: dayFromInput(student.birthDate)!,
     hasAEE: true,
     avatarHue: Math.floor(Math.random() * 360),
     timeline: { create: { type: "avaliacao", title, description } },
@@ -66,7 +67,7 @@ export async function checkStudentSheet(user: SessionUser, schoolId: string, tex
   const { rows, problem } = readStudentSheet(text);
   if (problem) throw new UserError(problem);
   const current = await prisma.student.findMany({ where: { schoolId: school.id }, select: { name: true, birthDate: true } });
-  const known = new Set(current.map((student) => nameBirthKey(student.name, student.birthDate.toISOString().slice(0, 10))));
+  const known = new Set(current.map((student) => nameBirthKey(student.name, calendarDay(student.birthDate))));
   const names = new Set(current.map((student) => normalizeName(student.name)));
   const sheet: SheetCheck = { school, ready: [], existing: [], invalid: [] };
   for (const row of rows) {

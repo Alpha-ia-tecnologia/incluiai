@@ -6,15 +6,13 @@ import { linkableStudents, managedAccount, schoolsFor } from "@/lib/accounts";
 import { accountEvents } from "@/lib/account-security";
 import { resetAccountPassword, resetAccountTwoFactor, setAccountActive, updateAccount } from "@/actions/users";
 import { assignableRoles, isAccountManager, roleLabel } from "@/lib/roles";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/dates";
 import { PageHeader, Card, SectionTitle, Badge } from "@/components/ui";
 import { AccountForm } from "@/components/accounts/account-form";
 import { ResetPassword } from "@/components/accounts/reset-password";
 import { ActionForm } from "@/components/action-form";
 import { BUTTON_CLS, linkCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
-
-const when = (date: Date) => date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, user] = await Promise.all([params, getCurrentUser()]);
@@ -35,9 +33,9 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
       <Link href="/usuarios" className={`mb-4 inline-flex min-h-11 items-center gap-2 text-sm ${linkCls}`}><ArrowLeft size={16} aria-hidden /> Pessoas e acessos</Link>
       <PageHeader title={account.name} lede={`${roleLabel(account.role)} · ${account.email}`} />
       <div className="mb-6 flex flex-wrap gap-2">
-        {active ? <Badge tone="green">Ativa</Badge> : <Badge>Desativada em {formatDate(account.deactivatedAt!)}</Badge>}
-        {account.mustChangePassword && active ? <Badge tone="amber">Primeiro acesso pendente</Badge> : null}
-        {account.totpEnabledAt ? <Badge tone="brand"><ShieldCheck size={14} aria-hidden /> Duas etapas ligadas</Badge> : null}
+        {active ? <Badge tone="good">Ativa</Badge> : <Badge>Desativada em {formatDate(account.deactivatedAt!)}</Badge>}
+        {account.mustChangePassword && active ? <Badge tone="mid">Primeiro acesso pendente</Badge> : null}
+        {account.totpEnabledAt ? <Badge tone="info"><ShieldCheck size={14} aria-hidden /> Duas etapas ligadas</Badge> : null}
         <Badge>{account.lastLoginAt ? `Último acesso: ${formatDate(account.lastLoginAt)}` : "Ainda não entrou"}</Badge>
       </div>
 
@@ -112,7 +110,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                 <li key={event.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
                   <p className="text-sm text-ink"><strong className="font-medium">{event.actorName}</strong> ({roleLabel(event.actorRole)}) {event.action}</p>
                   {event.detail ? <p className="mt-0.5 text-sm text-ink-soft">{event.detail}</p> : null}
-                  <p className="mt-0.5 text-xs text-ink-soft"><time dateTime={event.createdAt.toISOString()}>{when(event.createdAt)}</time></p>
+                  <p className="mt-0.5 text-xs text-ink-soft"><time dateTime={event.createdAt.toISOString()}>{formatDateTime(event.createdAt)}</time></p>
                 </li>
               ))}
             </ol>

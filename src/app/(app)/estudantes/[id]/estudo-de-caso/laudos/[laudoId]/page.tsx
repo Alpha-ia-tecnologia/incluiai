@@ -5,7 +5,7 @@ import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
 import { REPORT_FIELDS, canRetryReading, isReadingStalled, parseAccepted, parseReading, reviewRows, type ReviewRow } from "@/lib/health-reports-core";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { deleteHealthReportAction, retryHealthReportAction, reviewHealthReportAction } from "@/actions/health-reports";
 import { AIDisclaimer, ButtonLink, Card, PageHeader } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";

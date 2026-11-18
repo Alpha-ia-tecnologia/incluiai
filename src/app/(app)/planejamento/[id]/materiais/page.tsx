@@ -3,7 +3,7 @@ import { CircleCheck, FileText, Layers, ListChecks, Printer, ShieldCheck } from 
 import { planningContext } from "@/lib/page-context";
 import { libraryOptions, listMaterials } from "@/lib/dua/materials";
 import { listSupports } from "@/lib/dua/supports";
-import { REVIEW_STATE_LABEL } from "@/lib/dua/domain";
+import { REVIEW_STATE } from "@/lib/dua/domain";
 import { Badge, Card, EmptyState, SectionTitle } from "@/components/ui";
 import { ReviewBadge } from "@/components/dua/badges";
 import { BUTTON_CLS } from "@/components/form-styles";
@@ -68,10 +68,10 @@ export default async function MaterialsPage({ params }: { params: Promise<{ id: 
                       <h3 className="min-w-0 break-words text-base font-medium text-ink">{material.title}</h3>
                       <div className="flex flex-wrap gap-1.5">
                         <ReviewBadge state={material.state} />
-                        <Badge tone={material.scope === "individual" ? "brand" : "neutral"}>{material.scope === "individual" ? "Individual" : "Coletivo"}</Badge>
+                        <Badge tone={material.scope === "individual" ? "info" : "neutral"}>{material.scope === "individual" ? "Individual" : "Coletivo"}</Badge>
                       </div>
                     </div>
-                    <MaterialMetaList className="mt-2" items={materialMeta(material, { versionState: state ? REVIEW_STATE_LABEL[state].toLowerCase() : undefined })} />
+                    <MaterialMetaList className="mt-2" items={materialMeta(material, { versionState: state ? REVIEW_STATE[state].label.toLowerCase() : undefined })} />
                     {material.state !== "validado" && state && state !== "validado" ? (
                       <p className="mt-3 text-sm text-ink-soft">A versão {material.versionNumber} ainda não foi validada: valide o planejamento antes de validar este material.</p>
                     ) : null}

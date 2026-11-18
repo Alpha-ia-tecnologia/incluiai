@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireStudentPage } from "@/lib/page-context";
 import { loadEvidence } from "@/lib/dossier";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { PrintButton } from "@/components/print-button";
 import { EvidenceList } from "@/components/dossier/evidence-list";
 import { FEDERAL_SOURCE_LINE } from "@/lib/federal-guidance";

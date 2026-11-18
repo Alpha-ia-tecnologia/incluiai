@@ -9,9 +9,10 @@ import { parseEducacensoFile, specialEdPersons, type CensusPerson, type ParseSta
 import { digitsOnly, identityKeys } from "./student-identity";
 import { parseCaseStudy } from "./case-study";
 import { buildSyncPlan, censusCounts, cleanMonitorConfig, regularOnlyIds, schoolFundebNote, sumCounts, toSnapshot, type AeeEstimate, type CensusCounts, type CoverageRow, type MonitorConfig, type ReviewDecision, type SchoolInfo, type SyncPlan } from "./census-core";
-import { aeeEstimate, isoDay, networkSnapshots, runVerification, saveFndeCount, saveMonitorConfig, schoolCoverage, schoolStudents } from "./census-monitor";
+import { aeeEstimate, networkSnapshots, runVerification, saveFndeCount, saveMonitorConfig, schoolCoverage, schoolStudents } from "./census-monitor";
 import { censusReference, type CensusReferenceRecord } from "./federal-guidance";
 import { UserError } from "./user-error";
+import { DAY_MS, calendarDay, dayFromInput } from "./dates";
 import { invalidateStudent } from "./invalidate";
 
 export type CensusAccess = { network: boolean; schoolId: string | null; canImport: boolean; canConfigure: boolean };
@@ -69,7 +70,7 @@ export async function analyzeCensusFile(user: SessionUser, schoolId: string, con
 async function elsewhereCheck(schoolId: string): Promise<(keys: string[]) => boolean> {
   const prisma = await db();
   const others = await prisma.student.findMany({ where: { NOT: { schoolId } }, select: { name: true, birthDate: true, inepId: true, cpf: true } });
-  const keys = new Set(others.flatMap((student) => identityKeys({ ...student, birthDate: isoDay(student.birthDate) })));
+  const keys = new Set(others.flatMap((student) => identityKeys({ ...student, birthDate: calendarDay(student.birthDate) })));
   return (candidate) => candidate.some((key) => keys.has(key));
 }
 
@@ -156,7 +157,7 @@ export async function applyImport(user: SessionUser, importId: string): Promise<
         const data: { census: string; name?: string; birthDate?: Date; inepId?: string; cpf?: string } = { census: meta(person) };
         for (const diff of item.diffs) {
           if (diff.field === "name") data.name = diff.to;
-          else if (diff.field === "birthDate") data.birthDate = new Date(`${diff.to}T12:00:00`);
+          else if (diff.field === "birthDate") data.birthDate = dayFromInput(diff.to) ?? undefined;
           else if (diff.field === "inepId") data.inepId = diff.to;
           else if (diff.field === "cpf") data.cpf = diff.to;
         }
@@ -250,7 +251,7 @@ export async function censusOverview(user: SessionUser) {
   const prisma = await db();
   const access = censusAccess(user);
   if (!access) return null;
-  const since = new Date(Date.now() - 60 * 86_400_000);
+  const since = new Date(Date.now() - 60 * DAY_MS);
   const schools = await prisma.school.findMany({
     where: access.schoolId ? { id: access.schoolId } : {},
     orderBy: { name: "asc" },

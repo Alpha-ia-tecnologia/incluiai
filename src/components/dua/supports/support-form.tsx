@@ -8,11 +8,11 @@ import { BARRIER_STATUSES, BARRIER_STATUS_LABEL, type DuaSupportData } from "@/l
 import { Field, FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
+import { OBJECTIVE_STATUS, labelOf } from "@/lib/scale";
 
 export type ProfileOption = { field: string; label: string; value: string; source: string; dateLabel: string; version: string };
 export type ObjectiveOption = { id: string; description: string; status: string };
 
-const OBJECTIVE_STATUS: Record<string, string> = { ativo: "ativo", alcancado: "alcançado", em_revisao: "em revisão" };
 
 type Props = {
   planningId: string;
@@ -134,7 +134,7 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
                   <input type="checkbox" name="objectiveIds" value={objective.id} defaultChecked={linked.has(objective.id)} className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
                   <span className="min-w-0 break-words">
                     {objective.description}
-                    {objective.status !== "ativo" ? <span className="text-ink-soft"> ({OBJECTIVE_STATUS[objective.status] ?? objective.status})</span> : null}
+                    {objective.status !== "ativo" ? <span className="text-ink-soft"> ({labelOf(OBJECTIVE_STATUS, objective.status).toLowerCase()})</span> : null}
                   </span>
                 </label>
               </li>

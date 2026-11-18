@@ -1,6 +1,6 @@
 import type { Activity, FunctionalProfile } from "@prisma/client";
-import { parseJson } from "../format";
-import { CONTEXTS } from "../scale";
+import { parseJson, readList } from "../format";
+import { CONTEXTS, labelOf } from "../scale";
 import type { ImageSize } from "./openai-images";
 
 export const IMAGE_KINDS = [
@@ -20,7 +20,7 @@ export const STYLE = [
 ].join(" ");
 
 export function visualPreferences(profile: Pick<FunctionalProfile, "interests" | "sensoryProfile"> | null): string[] {
-  const theme = parseJson<string[]>(profile?.interests ?? null, []).slice(0, 2);
+  const theme = readList(profile?.interests ?? null).slice(0, 2);
   const calm = parseJson<Record<string, string>>(profile?.sensoryProfile ?? null, {}).visual === "hiper";
   return [
     theme.length ? `Quando couber, use como tema visual: ${theme.join(" e ")}.` : "",
@@ -30,10 +30,10 @@ export function visualPreferences(profile: Pick<FunctionalProfile, "interests" |
 
 export function buildActivityImagePrompt(activity: Activity, profile: FunctionalProfile | null, kindOrDescription: string) {
   const kind = kindOrDescription;
-  const steps = parseJson<string[]>(activity.steps, []).slice(0, 6);
-  const materials = parseJson<string[]>(activity.materials, []);
+  const steps = readList(activity.steps).slice(0, 6);
+  const materials = readList(activity.materials);
   const title = activity.title;
-  const where = `Contexto: ${CONTEXTS[activity.context] ?? activity.context}.`;
+  const where = `Contexto: ${labelOf(CONTEXTS, activity.context)}.`;
 
   let content: string;
   let altText: string;

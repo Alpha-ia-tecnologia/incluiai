@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "../prisma";
 import type { SessionUser } from "../auth";
 import { can, rolesWith } from "../roles";
-import { parseJson } from "../format";
+import { parseJson, readList } from "../format";
 import { NO_BASE_TEXT, ratio, type AiBlock, type DuaIndicator } from "./domain";
 
 export type DuaIndicatorsResult = {
@@ -46,7 +46,7 @@ export async function duaIndicators(user: SessionUser, scope: { start: Date | nu
   let pairs = 0;
   let documented = 0;
   for (const application of applications) {
-    const participants = parseJson<string[]>(application.participantIds, []);
+    const participants = readList(application.participantIds);
     pairs += participants.length;
     documented += participants.filter((id) => application.evidences.some((evidence) => evidence.studentId === id && evidence.observation !== "nao_registrado")).length;
   }

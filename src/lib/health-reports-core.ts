@@ -2,9 +2,10 @@
 // 04/2014).
 
 import { CASE_STUDY_FIELDS, type CaseStudyContent, type CaseStudyField } from "./case-study";
-import { splitItems, type ChoiceOption } from "./form-options";
+import type { ChoiceOption } from "./form-options";
 import { hasClinicalTerm } from "./pedagogy-rules";
 import { UPLOAD_LIMIT_BYTES, megabytes } from "./uploads";
+import { joinItems, parseJson, splitItems } from "./format";
 
 export const REPORT_UPLOAD = {
   maxBytes: UPLOAD_LIMIT_BYTES.healthReport,
@@ -124,16 +125,7 @@ export function normalizeReading(raw: RawReading): ReportReading {
   };
 }
 
-function parse<T>(value: string | null | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-export const parseReading = (value: string | null | undefined) => parse<ReportReading | null>(value, null);
+export const parseReading = (value: string | null | undefined) => parseJson<ReportReading | null>(value, null);
 
 export type ReviewChoice = { guidance: string[]; fields: Partial<Record<ReportFieldKey, string[]>> };
 
@@ -149,7 +141,7 @@ export function acceptedSuggestions(reading: ReportReading, choice: ReviewChoice
   }
   return accepted;
 }
-export const parseAccepted = (value: string | null | undefined) => parse<ReportAccepted>(value, { guidance: [], fields: {} });
+export const parseAccepted = (value: string | null | undefined) => parseJson<ReportAccepted>(value, { guidance: [], fields: {} });
 
 const PLACEHOLDERS = new Set(["Nenhuma", "Nenhum", "Sem diagnóstico", "Em investigação"]);
 
@@ -188,7 +180,7 @@ export function mergeIntoCaseStudy(content: CaseStudyContent, fields: ReportAcce
     }
     const concrete = values.some((value) => !PLACEHOLDERS.has(value));
     const current = splitItems(content[field.key]).filter((value) => !(concrete && PLACEHOLDERS.has(value)));
-    next[field.key] = [...new Set([...current, ...values])].join("; ");
+    next[field.key] = joinItems([...new Set([...current, ...values])]);
   }
   return next;
 }

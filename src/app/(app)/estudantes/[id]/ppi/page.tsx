@@ -3,15 +3,15 @@ import { ConsentNote } from "@/components/consent-note";
 import { db } from "@/lib/prisma";
 import { createPlan, createObjective, markObjectiveStatus, reviewPlan, closePlan, updatePlanDocuments } from "@/actions/plan";
 import { activatePlanDraft, discardPlanDraft, generatePlanDraft } from "@/actions/plan-ai";
-import { formatDate } from "@/lib/format";
-import { SUPPORT_LEVELS, DIMENSIONS } from "@/lib/scale";
+import { addDays, brDay, daysUntil, formatDate, isPastDay } from "@/lib/dates";
+import { SUPPORT_LEVELS, DIMENSIONS, OBJECTIVE_STATUS, labelOf, toneOf, type Tone } from "@/lib/scale";
 import { CONDITION_SUGGESTIONS, CRITERION_SUGGESTIONS, buildObjectiveDescription } from "@/lib/objective";
 import { studentAI } from "@/lib/agents/capabilities";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded, parseCaseStudy } from "@/lib/case-study";
 import { PlanProposalSchema, type CaseAnalysis, type PlanProposal } from "@/lib/agents/schemas";
 import type { TraceStep } from "@/lib/agents/types";
 import { DEADLINE_WEEKS, INITIAL_SITUATION_OPTIONS } from "@/lib/form-options";
-import { PAEE_ITEMS, PEI_ITEMS, censusDifferences, mergeProposalDefaults, missingCount, missingPlanItems, planDefaultsFromCaseStudy, type CensusDifference, type PlanDocuments, type PlanItem } from "@/lib/plan-documents";
+import { PAEE_ITEMS, PEI_ITEMS, PLAN_FIELD_LABEL, censusDifferences, mergeProposalDefaults, missingCount, missingPlanItems, planDefaultsFromCaseStudy, type CensusDifference, type PlanDocuments, type PlanItem } from "@/lib/plan-documents";
 import { censusMetaOf } from "@/lib/census";
 import { PLAN_RULES } from "@/lib/federal-guidance";
 import { FederalGuidance } from "@/components/federal-guidance";
@@ -32,7 +32,7 @@ import { listStudentSupports } from "@/lib/dua/supports";
 import { ReviewBadge } from "@/components/dua/badges";
 import { percentOf } from "@/lib/series";
 import { CLOSE_REASONS, reviewSummary, suggestedNextReview } from "@/lib/plan-lifecycle";
-import { DataBoard, DataCard, RingStat, StatusPill, TONE_COLOR, withSegmentColors, type Tone } from "@/components/data-viz";
+import { DataBoard, DataCard, RingStat, StatusPill, TONE_COLOR, segmentsOf } from "@/components/data-viz";
 import { HatchedDonut, Legend } from "@/components/charts";
 import { ObjectiveScale } from "@/components/viz/student-viz";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
@@ -50,7 +50,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   });
   const plan = plans.find((p) => p.status === "ativo");
   const pastPlans = plans.filter((p) => p.status === "encerrado");
-  const overdue = plan && new Date(plan.reviewDate).getTime() < new Date().getTime();
+  const overdue = plan && isPastDay(plan.reviewDate);
 
   if (!plan && !editable) {
     return (
@@ -207,22 +207,17 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const today = new Date();
   const elapsed = percentOf(today.getTime() - plan.createdAt.getTime(), new Date(plan.reviewDate).getTime() - plan.createdAt.getTime());
   const elapsedPct = elapsed === null ? null : Math.min(100, Math.max(0, elapsed));
-  const daysLeft = daysUntil(new Date(plan.reviewDate), today);
-  const reviewTone: Tone = overdue || daysLeft < 0 ? "alert" : daysLeft <= 14 ? "mid" : "info";
+  const daysLeft = daysUntil(plan.reviewDate, today);
+  const reviewTone: Tone = overdue ? "alert" : daysLeft <= 14 ? "mid" : "info";
   const reviewStatus = daysLeft < 0 ? "Data de revisão passou" : daysLeft === 0 ? "Revisão hoje" : daysLeft <= 14 ? "Revisão próxima" : "No prazo";
-  const countStatus = (status: string) => plan.objectives.filter((objective) => objective.status === status).length;
-  const objectiveStatus = withSegmentColors([
-    { key: "ativo", label: "Ativos", value: countStatus("ativo") },
-    { key: "alcancado", label: "Alcançados", value: countStatus("alcancado") },
-    { key: "em_revisao", label: "Em revisão", value: countStatus("em_revisao") },
-  ]);
+  const objectiveStatus = segmentsOf(OBJECTIVE_STATUS, (status) => plan.objectives.filter((objective) => objective.status === status).length);
 
   return (
     <>
       <PageHeader level={2}
         title="Plano de ensino (PAEE e PEI)"
         lede={`Criado em ${formatDate(plan.createdAt)} · data de revisão: ${formatDate(plan.reviewDate)}`}
-        actions={<div className="flex flex-wrap items-center gap-2"><PillLink slug="objetivo-bncc" />{overdue ? <Badge tone="coral">Hora de revisar com a equipe</Badge> : <Badge tone="green">Plano ativo</Badge>}</div>}
+        actions={<div className="flex flex-wrap items-center gap-2"><PillLink slug="objetivo-bncc" />{overdue ? <Badge tone="alert">Hora de revisar com a equipe</Badge> : <Badge tone="good">Plano ativo</Badge>}</div>}
       />
       <FederalGuidance rules={PLAN_RULES} summary="Quem elabora o PAEE e o PEI" className="mb-6 max-w-3xl" />
 
@@ -294,7 +289,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               <li key={item.id} className="rounded-xl border border-line p-3.5">
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
                   {formatDate(item.reviewedAt)}
-                  {item.onTime ? <Badge tone="green">No prazo</Badge> : <Badge tone="amber">Fora do prazo (marcada para {formatDate(item.dueDate)})</Badge>}
+                  {item.onTime ? <Badge tone="good">No prazo</Badge> : <Badge tone="mid">Fora do prazo (marcada para {formatDate(item.dueDate)})</Badge>}
                 </p>
                 <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink">{item.summary}</p>
                 <p className="mt-1.5 text-xs text-ink-soft">{item.reviewerName} · próxima: {formatDate(item.nextReviewDate)}</p>
@@ -309,14 +304,14 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         <p className="text-sm leading-relaxed text-ink">{plan.initialSituation}</p>
       </Card>
       <div className="mb-4 grid min-w-0 gap-4 lg:grid-cols-2">
-        <PlanDocumentCard id="paee" title="PAEE" norm="art. 10" teacherLabel="Professor(a) do AEE" teacher={plan.aeeTeacher} participants={plan.participants} items={PAEE_ITEMS} plan={plan} missing={missing.paee} alsoMissing={missing.authorship.filter((item) => item === "participação da família")} showMissing={editable} />
-        <PlanDocumentCard id="pei" title="PEI" norm="art. 11" teacherLabel="Professor(a) da classe comum" teacher={plan.regularTeacher} items={PEI_ITEMS} plan={plan} missing={missing.pei} showMissing={editable} differences={differences} />
+        <PlanDocumentCard id="paee" title="PAEE" norm="art. 10" teacherLabel={PLAN_FIELD_LABEL.aeeTeacher} teacher={plan.aeeTeacher} participants={plan.participants} items={PAEE_ITEMS} plan={plan} missing={missing.paee} alsoMissing={missing.authorship.filter((item) => item.key === "participants").map((item) => item.label)} showMissing={editable} />
+        <PlanDocumentCard id="pei" title="PEI" norm="art. 11" teacherLabel={PLAN_FIELD_LABEL.regularTeacher} teacher={plan.regularTeacher} items={PEI_ITEMS} plan={plan} missing={missing.pei} showMissing={editable} differences={differences} />
       </div>
       {editable ? (
         <details id="completar-paee-pei" className="mb-6 max-w-3xl scroll-mt-6 rounded-2xl border border-line p-4">
           <summary className="flex min-h-11 cursor-pointer flex-wrap items-center gap-2 py-2 text-sm font-medium text-brand-strong">
             <FilePen size={16} aria-hidden /> {missingTotal ? "Completar o PAEE e o PEI" : "Editar o PAEE e o PEI"}
-            {missingTotal ? <Badge tone="amber">{missingTotal} a registrar</Badge> : null}
+            {missingTotal ? <Badge tone="mid">{missingTotal} a registrar</Badge> : null}
           </summary>
           <ActionForm action={updateDocuments} className="mt-4 grid gap-5">
             <PlanDocumentFields idPrefix="editar" defaults={{ ...plan, aeeServices: plan.aeeServices ?? suggested.aeeServices ?? null, assessmentAccessibility: plan.assessmentAccessibility ?? suggested.assessmentAccessibility ?? null }} />
@@ -339,8 +334,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <Card key={obj.id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <p className="max-w-xl text-sm leading-relaxed text-ink">{obj.description}</p>
-                {obj.status === "alcancado" ? <Badge tone="green">Alcançado</Badge> :
-                 obj.status === "em_revisao" ? <Badge tone="amber">Em revisão</Badge> : <Badge tone="brand">Ativo</Badge>}
+                <Badge tone={toneOf(OBJECTIVE_STATUS, obj.status)}>{labelOf(OBJECTIVE_STATUS, obj.status)}</Badge>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
                 <Badge>{DIMENSIONS[obj.dimension] ?? obj.dimension}</Badge>
@@ -475,16 +469,6 @@ async function latestSupportByObjective(studentId: string, objectiveIds: string[
   return latest;
 }
 
-function daysUntil(date: Date, today: Date) {
-  const start = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
-  return Math.round((start(date) - start(today)) / 86_400_000);
-}
-
-function dateInput(weeks: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + weeks * 7);
-  return date.toISOString().slice(0, 10);
-}
 
 function ProposalReview({ studentId, studentName, proposal, analysis, trace, source, createdBy, createdAt, aiOn, documentDefaults }: {
   studentId: string;
@@ -508,7 +492,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
           <SectionTitle>Proposta de plano</SectionTitle>
           <p className="-mt-2 text-xs text-ink-soft">Pedida por {createdBy} em {formatDate(createdAt)}.</p>
         </div>
-        <Badge tone={source === "ia" ? "brand" : "neutral"}>{source === "ia" ? <><Sparkles size={12} aria-hidden /> Agentes de IA</> : "Motor de regras"}</Badge>
+        <Badge tone={source === "ia" ? "info" : "neutral"}>{source === "ia" ? <><Sparkles size={12} aria-hidden /> Agentes de IA</> : "Motor de regras"}</Badge>
       </div>
 
       {analysis ? (
@@ -540,7 +524,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
           />
           <div>
             <label htmlFor="proposal-review-date" className={labelCls}>Quando a equipe vai revisar este plano? *</label>
-            <input id="proposal-review-date" name="reviewDate" type="date" required defaultValue={dateInput(proposal.reviewWeeks)} className={inputCls} />
+            <input id="proposal-review-date" name="reviewDate" type="date" required defaultValue={addDays(brDay(), proposal.reviewWeeks * 7)} className={inputCls} />
           </div>
           <fieldset>
             <legend className={labelCls}>Objetivos propostos: marque os que entram no plano</legend>
@@ -606,7 +590,7 @@ function PlanDocumentCard({ id, title, norm, teacherLabel, teacher, participants
       </div>
       <dl className="grid gap-3 text-sm">
         {teacher ? <div><dt className="font-medium text-ink">{teacherLabel}</dt><dd className="mt-1 break-words text-ink-soft">{teacher}</dd></div> : null}
-        {participants ? <div><dt className="font-medium text-ink">Também participaram</dt><dd className="mt-1 break-words text-ink-soft">{participants}</dd></div> : null}
+        {participants ? <div><dt className="font-medium text-ink">{PLAN_FIELD_LABEL.participants}</dt><dd className="mt-1 break-words text-ink-soft">{participants}</dd></div> : null}
         {recorded.map((item) => <div key={item.key}><dt className="font-medium text-ink">{item.label}</dt><dd className="mt-1 break-words text-ink-soft">{plan[item.key]}</dd></div>)}
       </dl>
       {showMissing && (missing.length || alsoMissing.length || !teacher) ? (

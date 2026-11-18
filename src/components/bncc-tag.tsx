@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui";
 
 export function BnccTag({ code, detail = false }: { code: string; detail?: boolean }) {
   const skill = bnccSkill(code);
-  if (!skill) return <Badge tone="amber">BNCC {code}: código não encontrado na base</Badge>;
+  if (!skill) return <Badge tone="mid">BNCC {code}: código não encontrado na base</Badge>;
   if (!detail) return <span title={`${skill.component}: ${skill.description}`}><Badge>BNCC {skill.code}</Badge></span>;
   return (
     <p className="w-full text-xs leading-relaxed text-ink-soft">

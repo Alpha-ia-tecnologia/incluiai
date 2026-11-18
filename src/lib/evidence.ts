@@ -2,6 +2,11 @@
 // MEC nº 421/2026 e da orientação do INEP para o Censo Escolar. Não é parecer jurídico.
 import { AEE_TEACHER, REGULAR_TEACHER, censusReference } from "./federal-guidance.ts";
 import { censusDifferences, missingPlanItems, type CensusDeclared, type PlanDocuments } from "./plan-documents.ts";
+import { reassessmentDue } from "./assessment.ts";
+import { FAMILY_PARTICIPANT, LISTENING_NOT_POSSIBLE, STUDENT_PARTICIPANT } from "./case-study.ts";
+import { DAY_MS, formatDateNumeric as day, isPastDay } from "./dates.ts";
+import { plural, splitItems as list } from "./format.ts";
+import type { Term } from "./scale.ts";
 
 export type EvidenceStatus = "ok" | "conferir" | "pendente" | "info";
 export type EvidenceItem = { id: string; label: string; short: string; norm: string; status: EvidenceStatus; detail: string; tab: string };
@@ -20,18 +25,20 @@ export type EvidenceInput = {
   census?: (CensusDeclared & { syncedAt?: string }) | null;
 };
 
-export const STATUS_LABEL: Record<EvidenceStatus, string> = { ok: "Em dia", conferir: "Conferir", pendente: "Pendente", info: "Informação" };
+export const EVIDENCE_STATUS: Record<EvidenceStatus, Term> = {
+  ok: { label: "Em dia", tone: "good" },
+  conferir: { label: "Conferir", tone: "mid" },
+  pendente: { label: "Pendente", tone: "alert" },
+  info: { label: "Informação", tone: "neutral" },
+};
 
-const DAY = 86_400_000;
 const YEAR_DAYS = 365;
 const REPORT_DAYS = 200;
-const REASSESS_DAYS = 84;
-const day = (date: Date) => date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
-const daysSince = (date: Date, now: Date) => (now.getTime() - date.getTime()) / DAY;
-const list = (value: string | undefined) => (value ?? "").split(/[;\n]/).map((item) => item.trim()).filter(Boolean);
+export const RECENT_AEE_DAYS = 30;
+export const RECENT_DIARY_DAYS = 60;
+const daysSince = (date: Date, now: Date) => (now.getTime() - date.getTime()) / DAY_MS;
 const filled = (value: string | null | undefined) => Boolean(value?.trim());
 const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
   const { now, caseStudy, plan } = input;
@@ -70,11 +77,11 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
         !caseStudy ? "Ainda não começou." : absent.length ? `Registre em Quem participou: ${absent.map(lowerFirst).join(" e ")}.` : "Professores do AEE e da sala comum participaram.");
     })(),
     item("familia", "Família", "Participação da família", "Decreto, art. 11, § 3º", "estudo-de-caso",
-      interviewed.length || participants.includes("Família") ? "ok" : "pendente",
-      interviewed.length ? `Entrevista com: ${interviewed.join(", ")}.` : participants.includes("Família") ? "A família participou do estudo." : "Registre a entrevista com a família."),
+      interviewed.length || participants.includes(FAMILY_PARTICIPANT) ? "ok" : "pendente",
+      interviewed.length ? `Entrevista com: ${interviewed.join(", ")}.` : participants.includes(FAMILY_PARTICIPANT) ? "A família participou do estudo." : "Registre a entrevista com a família."),
     (() => {
-      const heard = filled(content.formaEscuta) && content.formaEscuta !== "Não foi possível";
-      const status: EvidenceStatus = heard || participants.includes("O próprio estudante") ? "ok" : content.formaEscuta === "Não foi possível" ? "conferir" : "pendente";
+      const heard = filled(content.formaEscuta) && content.formaEscuta !== LISTENING_NOT_POSSIBLE;
+      const status: EvidenceStatus = heard || participants.includes(STUDENT_PARTICIPANT) ? "ok" : content.formaEscuta === LISTENING_NOT_POSSIBLE ? "conferir" : "pendente";
       const detail = heard ? `Escuta por: ${content.formaEscuta}.` : status === "ok" ? "O estudante participou do estudo." : status === "conferir" ? "A escuta não foi possível: tente outra forma, como desenho, prancha ou observação das escolhas." : "Registre a escuta do estudante.";
       return item("estudante", "Estudante", "Participação do estudante", "Decreto, art. 11, § 3º", "estudo-de-caso", status, detail);
     })(),
@@ -100,10 +107,10 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
       plan ? `Plano de ensino desde ${day(plan.createdAt)}: um só documento para o PAEE e o PEI.` : concluded ? "Monte o plano de ensino a partir do estudo de caso." : "Depende do estudo de caso concluído."),
     item("autoria", "Autoria", "Quem elaborou o PAEE e o PEI", "INEP, Censo Escolar; Portaria, arts. 10 e 11", "ppi",
       !plan ? "pendente" : authorship.length ? "conferir" : "ok",
-      !plan ? "Sem plano." : authorship.length ? `Registre no plano: ${authorship.join(", ")}.` : `PAEE: ${plan.aeeTeacher}. PEI: ${plan.regularTeacher}. Com: ${list(plan.participants ?? "").join(", ")}.`),
+      !plan ? "Sem plano." : authorship.length ? `Registre no plano: ${authorship.map((item) => item.label).join(", ")}.` : `PAEE: ${plan.aeeTeacher}. PEI: ${plan.regularTeacher}. Com: ${list(plan.participants ?? "").join(", ")}.`),
     item("revisao", "Revisão anual", "Revisão anual do plano", "Portaria, art. 7º, § 3º", "ppi",
-      !plan || !last ? "pendente" : daysSince(last, now) > YEAR_DAYS ? "pendente" : plan.reviewDate < now ? "conferir" : "ok",
-      !plan || !last ? "Sem plano." : daysSince(last, now) > YEAR_DAYS ? `A última revisão foi em ${day(last)}, há mais de um ano.` : plan.reviewDate < now ? `Revisado em ${day(last)}; a revisão marcada para ${day(plan.reviewDate)} passou.` : `${plan.reviewedAt ? "Revisado" : "Feito"} em ${day(last)}; próxima revisão em ${day(plan.reviewDate)}.`),
+      !plan || !last ? "pendente" : daysSince(last, now) > YEAR_DAYS ? "pendente" : isPastDay(plan.reviewDate, now) ? "conferir" : "ok",
+      !plan || !last ? "Sem plano." : daysSince(last, now) > YEAR_DAYS ? `A última revisão foi em ${day(last)}, há mais de um ano.` : isPastDay(plan.reviewDate, now) ? `Revisado em ${day(last)}; a revisão marcada para ${day(plan.reviewDate)} passou.` : `${plan.reviewedAt ? "Revisado" : "Feito"} em ${day(last)}; próxima revisão em ${day(plan.reviewDate)}.`),
     item("paee_recursos", "Recursos", "PAEE: materiais e recursos contra as barreiras", "Portaria, art. 10, I", "ppi",
       resources.length || filled(plan?.accessibilityResources) ? "ok" : "pendente",
       filled(plan?.accessibilityResources) ? "Recursos de acessibilidade registrados no plano." : resources.length ? "Recursos indicados no estudo de caso." : "Registre os recursos de acessibilidade no plano."),
@@ -123,7 +130,7 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
     item("pei_monitoramento", "Monitoramento", "PEI: acompanhamento e monitoramento do plano", "Portaria, art. 11, III", filled(plan?.monitoring) ? "diario" : "ppi",
       input.diaryRecent && filled(plan?.monitoring) ? "ok" : input.diaryRecent || filled(plan?.monitoring) ? "conferir" : "pendente",
       [
-        input.diaryRecent ? `${plural(input.diaryRecent, "registro de aula", "registros de aula")} nos últimos 60 dias.` : "Nenhum registro de aula nos últimos 60 dias.",
+        input.diaryRecent ? `${plural(input.diaryRecent, "registro de aula", "registros de aula")} nos últimos ${RECENT_DIARY_DAYS} dias.` : `Nenhum registro de aula nos últimos ${RECENT_DIARY_DAYS} dias.`,
         filled(plan?.monitoring) ? `Previsto no PEI: ${list(plan?.monitoring ?? "").join(", ")}.` : "Registre no PEI como o plano será acompanhado.",
       ].join(" ")),
     item("pei_devolutiva", "Devolutiva", "PEI: devolutivas à família", "Portaria, art. 11, IV", "relatorios",
@@ -155,10 +162,10 @@ export function evidenceGroups(input: EvidenceInput): EvidenceGroup[] {
   const followItems: EvidenceItem[] = [
     item("aee", "AEE no mês", "Atendimentos do AEE", "Portaria, art. 7º, V", "atendimentos-aee",
       done ? "ok" : absences + cancelled ? "conferir" : "pendente",
-      done + absences + cancelled ? `Nos últimos 30 dias: ${plural(done, "realizado", "realizados")}, ${plural(absences, "falta", "faltas")} e ${plural(cancelled, "cancelamento", "cancelamentos")}.` : "Nenhum atendimento registrado nos últimos 30 dias."),
+      done + absences + cancelled ? `Nos últimos ${RECENT_AEE_DAYS} dias: ${plural(done, "realizado", "realizados")}, ${plural(absences, "falta", "faltas")} e ${plural(cancelled, "cancelamento", "cancelamentos")}.` : `Nenhum atendimento registrado nos últimos ${RECENT_AEE_DAYS} dias.`),
     item("sondagem", "Sondagem", "Avaliação contínua (sondagem)", "Portaria, art. 7º, § 3º", "sondagem",
-      input.assessmentAt && daysSince(input.assessmentAt, now) <= REASSESS_DAYS ? "ok" : "conferir",
-      !input.assessmentAt ? "Sem linha de base." : daysSince(input.assessmentAt, now) <= REASSESS_DAYS ? `Última aplicação em ${day(input.assessmentAt)}.` : `Última aplicação em ${day(input.assessmentAt)}: a reavaliação venceu.`),
+      input.assessmentAt && !reassessmentDue(input.assessmentAt, now) ? "ok" : "conferir",
+      !input.assessmentAt ? "Sem linha de base." : !reassessmentDue(input.assessmentAt, now) ? `Última aplicação em ${day(input.assessmentAt)}.` : `Última aplicação em ${day(input.assessmentAt)}: a reavaliação venceu.`),
     item("autorizacoes", "Autorizações", "Autorizações da família (IA e terapeuta)", "LGPD, art. 14", "", "info",
       input.consent?.decidedAt
         ? `Decididas em ${day(input.consent.decidedAt)}: uso da IA ${input.consent.aiUse ? "autorizado" : "não autorizado"}; conexão com o terapeuta ${input.consent.therapistLink ? "autorizada" : "não autorizada"}.`

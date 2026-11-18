@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import { Character } from "@/components/character";
 import { BUTTON_CLS } from "@/components/form-styles";
-import { getStudentNextStep, type StudentJourneyInput } from "@/lib/student-journey";
+import { JOURNEY_STEPS, LAST_STEP, getStudentNextStep, type StudentJourneyInput } from "@/lib/student-journey";
 
 export function StudentJourney({ progress }: { progress: StudentJourneyInput }) {
   const pathname = usePathname();
@@ -14,11 +14,7 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
   const next = getStudentNextStep(progress);
 
   const steps = [
-    { label: "Estudo de caso", href: `${base}/estudo-de-caso`, complete: progress.caseStudy === "concluido" },
-    { label: "Planejar", href: `${base}/ppi`, complete: progress.hasPlan && progress.hasObjective },
-    { label: "Conhecer", href: `${base}/perfil`, complete: progress.hasProfile },
-    { label: "Preparar", href: `${base}/atividades`, complete: progress.hasPreparedActivity },
-    { label: "Registrar", href: `${base}/diario`, complete: progress.hasDiary },
+    ...JOURNEY_STEPS.map((step) => ({ label: step.action, href: `${base}/${step.path}`, complete: step.done(progress) })),
     { label: "Ver evolução", href: `${base}/linha-do-tempo`, complete: false },
   ];
 
@@ -29,7 +25,7 @@ export function StudentJourney({ progress }: { progress: StudentJourneyInput }) 
         <div className="min-w-0 flex-1">
           <h2 className="text-xl font-semibold text-ink">Próximo passo: {next.label}</h2>
           <Link href={next.href} className={`${BUTTON_CLS.primary} mt-3`}>
-            {next.step === 5 ? "Registrar aula" : "Continuar"} <ArrowRight size={16} aria-hidden />
+            {next.step === LAST_STEP ? "Registrar aula" : "Continuar"} <ArrowRight size={16} aria-hidden />
           </Link>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { titleCase, type CensusPerson, type Dependency } from "./educacenso.ts";
 import { digitsOnly, findMatch, identityKeys, normalizeName, type MatchBy } from "./student-identity.ts";
 import { stageFromAge } from "./student-record.ts";
 import { UserError } from "./user-error.ts";
+import { addDays, atBrasiliaTime, brDay, daysBetween, formatDateNumeric, formatTime, isIsoDay, isoToBr } from "./dates.ts";
 
 export type PlatformStudent = { id: string; name: string; birthDate: string; inepId: string | null; cpf: string | null };
 export const MATCH_LABEL: Record<MatchBy, string> = { inep: "ID INEP", cpf: "CPF", nome_nascimento: "nome e nascimento", nome: "nome", manual: "vínculo manual" };
@@ -293,48 +294,43 @@ export type MonitorStatus = "ativo" | "aguardando" | "fora" | "desligado";
 // Matrícula inicial: data de referência na última quarta-feira de maio, coleta e retificação até o fim de agosto.
 export const DEFAULT_MONITOR: MonitorConfig = { enabled: true, periodStart: "2027-05-26", periodEnd: "2027-08-31", times: ["08:00", "16:00"] };
 
-const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_WINDOW_DAYS = 400;
-export const brDayOf = (date: Date) => date.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
-const validDay = (value: string) => DAY_PATTERN.test(value) && new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) === value;
-const nextDay = (day: string) => new Date(Date.parse(`${day}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
-const brDate = (day: string) => `${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(0, 4)}`;
-export const brMoment = (date: Date) => `${brDate(brDayOf(date))} às ${date.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}`;
+export const brMoment = (date: Date) => `${formatDateNumeric(date)} às ${formatTime(date)}`;
 
 export function cleanMonitorConfig(raw: MonitorConfig): MonitorConfig {
   const times = [...new Set(raw.times.map((time) => time.trim()).filter(Boolean))].sort();
-  if (!validDay(raw.periodStart) || !validDay(raw.periodEnd)) throw new UserError("Informe as datas de início e fim da janela.");
+  if (!isIsoDay(raw.periodStart) || !isIsoDay(raw.periodEnd)) throw new UserError("Informe as datas de início e fim da janela.");
   if (raw.periodStart > raw.periodEnd) throw new UserError("O fim da janela vem antes do início.");
-  if ((Date.parse(raw.periodEnd) - Date.parse(raw.periodStart)) / 86_400_000 > MAX_WINDOW_DAYS) throw new UserError("A janela tem mais de 400 dias: confira as datas.");
+  if (daysBetween(raw.periodStart, raw.periodEnd) > MAX_WINDOW_DAYS) throw new UserError("A janela tem mais de 400 dias: confira as datas.");
   if (!times.length || times.length > 4 || !times.every((time) => TIME_PATTERN.test(time))) throw new UserError("Informe de 1 a 4 horários, como 08:00.");
   return { enabled: raw.enabled, periodStart: raw.periodStart, periodEnd: raw.periodEnd, times };
 }
 
 export function nextRun(config: MonitorConfig, now: Date): Date | null {
-  if (!config.enabled || !validDay(config.periodStart) || !validDay(config.periodEnd)) return null;
+  if (!config.enabled || !isIsoDay(config.periodStart) || !isIsoDay(config.periodEnd)) return null;
   const times = [...new Set(config.times.filter((time) => TIME_PATTERN.test(time)))].sort();
   if (!times.length) return null;
-  const today = brDayOf(now);
+  const today = brDay(now);
   let day = today > config.periodStart ? today : config.periodStart;
-  for (let step = 0; step <= MAX_WINDOW_DAYS && day <= config.periodEnd; step += 1, day = nextDay(day)) {
+  for (let step = 0; step <= MAX_WINDOW_DAYS && day <= config.periodEnd; step += 1, day = addDays(day, 1)) {
     for (const time of times) {
-      const candidate = new Date(`${day}T${time}:00-03:00`);
+      const candidate = atBrasiliaTime(day, time);
       if (candidate.getTime() > now.getTime()) return candidate;
     }
   }
   return null;
 }
 
-export const inWindow = (config: MonitorConfig, now: Date) => brDayOf(now) >= config.periodStart && brDayOf(now) <= config.periodEnd;
+export const inWindow = (config: MonitorConfig, now: Date) => brDay(now) >= config.periodStart && brDay(now) <= config.periodEnd;
 
 export function monitorState(config: MonitorConfig, now: Date, lastRunAt: Date | null): { status: MonitorStatus; title: string; text: string; nextRunAt: Date | null } {
   if (!config.enabled) return { status: "desligado", title: "Monitor desligado", text: "Nenhuma verificação automática. Ligue o monitor para conferir o Censo nos horários da janela.", nextRunAt: null };
   const next = nextRun(config, now);
   if (!next) {
     const since = lastRunAt ? `Última verificação em ${brMoment(lastRunAt)}.` : "Nenhuma verificação nesta janela.";
-    return { status: "fora", title: "Fora da janela do Censo", text: `${since} A janela terminou em ${brDate(config.periodEnd)}: configure a do próximo Censo.`, nextRunAt: null };
+    return { status: "fora", title: "Fora da janela do Censo", text: `${since} A janela terminou em ${isoToBr(config.periodEnd)}: configure a do próximo Censo.`, nextRunAt: null };
   }
-  if (brDayOf(now) < config.periodStart) return { status: "aguardando", title: "Aguardando a janela do Censo", text: `A janela começa em ${brDate(config.periodStart)}. Primeira verificação: ${brMoment(next)}.`, nextRunAt: next };
-  return { status: "ativo", title: "Monitor ativo", text: `Próxima verificação: ${brMoment(next)}. Janela de ${brDate(config.periodStart)} a ${brDate(config.periodEnd)}.`, nextRunAt: next };
+  if (brDay(now) < config.periodStart) return { status: "aguardando", title: "Aguardando a janela do Censo", text: `A janela começa em ${isoToBr(config.periodStart)}. Primeira verificação: ${brMoment(next)}.`, nextRunAt: next };
+  return { status: "ativo", title: "Monitor ativo", text: `Próxima verificação: ${brMoment(next)}. Janela de ${isoToBr(config.periodStart)} a ${isoToBr(config.periodEnd)}.`, nextRunAt: next };
 }

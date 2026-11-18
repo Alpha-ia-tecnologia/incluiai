@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { LoaderCircle, Sprout } from "lucide-react";
-import { SUPPORT_LEVELS } from "@/lib/scale";
+import { CRITERION_MET, PARTICIPATION, SUPPORT_LEVELS } from "@/lib/scale";
 import { roleLabel, rolesWith } from "@/lib/roles";
 import { RECOMMENDATION_OPTIONS, WHAT_WORKED_OPTIONS } from "@/lib/form-options";
 import { VoiceNote } from "@/components/voice-note";
@@ -12,16 +12,8 @@ import { inputCls, labelCls, choiceCls } from "@/components/form-styles";
 import type { ActionResult } from "@/lib/action-result";
 
 
-const participationChoices = [
-  ["total", "Participou de toda a atividade"],
-  ["parcial", "Participou de parte da atividade"],
-  ["recusou", "Recusou participar"],
-];
-const criterionChoices = [
-  ["sim", "Sim, realizou o que era esperado"],
-  ["parcial", "Realizou uma parte"],
-  ["nao", "Ainda não realizou o esperado"],
-];
+const participationChoices = Object.entries(PARTICIPATION).map(([value, term]) => [value, term.answer]);
+const criterionChoices = Object.entries(CRITERION_MET).map(([value, term]) => [value, term.answer]);
 const roleOptions = rolesWith("pedagogical").map((value) => ({ value, label: roleLabel(value) }));
 
 export function DiaryForm({

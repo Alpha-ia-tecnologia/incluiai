@@ -15,7 +15,7 @@ import { Assurances, HowToRead, Steps } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";
 import { CENSUS_RULES } from "@/lib/federal-guidance";
 
-const STATUS_TONE = { ativo: "green", aguardando: "brand", fora: "amber", desligado: "neutral" } as const;
+const STATUS_TONE = { ativo: "good", aguardando: "info", fora: "mid", desligado: "neutral" } as const;
 
 // Censo Escolar (Educacenso): o INEP não tem API. A escola exporta o arquivo de migração.
 export default async function CensusPage() {
@@ -147,7 +147,7 @@ export default async function CensusPage() {
               <li key={school.id} className="min-w-0 rounded-2xl border border-line bg-paper-raised p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="min-w-0 break-words text-sm font-medium text-ink">{school.name}</h3>
-                  {school.coverage ? (school.coverage.pending ? <Badge tone="amber">{count(school.coverage.pending)} com pendência</Badge> : <Badge tone="green">Sem pendências</Badge>) : <Badge>Sem arquivo aplicado</Badge>}
+                  {school.coverage ? (school.coverage.pending ? <Badge tone="mid">{count(school.coverage.pending)} com pendência</Badge> : <Badge tone="good">Sem pendências</Badge>) : <Badge>Sem arquivo aplicado</Badge>}
                 </div>
                 <p className="mt-1 text-xs text-ink-soft">{school.inepCode ? `INEP ${school.inepCode}` : "Sem código INEP"}{school.importedAt ? ` · arquivo aplicado em ${brMoment(school.importedAt)}${school.importedByName ? ` por ${school.importedByName}` : ""}` : ""}</p>
                 {school.note && school.note.tone !== "ok" ? <p className="mt-2 text-xs leading-relaxed text-amber">{school.note.text}</p> : null}

@@ -1,5 +1,7 @@
 // Versão 1 do instrumento: rascunho da plataforma para a equipe pedagógica
 // revisar. Itens próprios (nenhum copiado de instrumento com direitos autorais).
+import { DAY_MS } from "./dates.ts";
+import { REVIEW_WEEKS } from "./plan-lifecycle.ts";
 
 export const INSTRUMENT_VERSION = "sondagem-2026-10-v1";
 
@@ -126,7 +128,7 @@ export function objectiveSuggestions(answers: Answers, limit = 6): AssessmentIte
     .slice(0, limit);
 }
 
-export const REASSESS_DAYS = 84;
-export const reassessmentDue = (lastAppliedAt: Date | null, now: Date = new Date()) => !lastAppliedAt || now.getTime() - lastAppliedAt.getTime() > REASSESS_DAYS * 86_400_000;
+export const REASSESS_WEEKS = REVIEW_WEEKS;
+export const reassessmentDue = (lastAppliedAt: Date | null, now: Date = new Date()) => !lastAppliedAt || now.getTime() - lastAppliedAt.getTime() > REASSESS_WEEKS * 7 * DAY_MS;
 
 export const smallNumber = (count: number) => (count > 0 && count < 5 ? "menos de 5" : String(count));

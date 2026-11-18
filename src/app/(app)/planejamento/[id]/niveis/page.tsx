@@ -5,7 +5,7 @@ import { planningContext } from "@/lib/page-context";
 import { canReadFiles, isAIEnabled } from "@/lib/agents/capabilities";
 import { taskContent } from "@/lib/adapted-tasks";
 import { LEVEL_LABEL, type LevelKey } from "@/lib/adapted-tasks-core";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { adaptTask, saveTask } from "@/actions/adapted-tasks";
 import { Badge, Card, SectionTitle } from "@/components/ui";
 import { AdaptForm } from "@/components/adapted/adapt-form";
@@ -13,6 +13,7 @@ import { AdaptedView } from "@/components/adapted/adapted-view";
 import { AdaptedEditor } from "@/components/adapted/adapted-editor";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
+import { ADAPTED_TASK_STATUS, labelOf, toneOf } from "@/lib/scale";
 
 const ORDER: LevelKey[] = ["mais_apoio", "padrao", "desafio"];
 
@@ -64,8 +65,8 @@ export default async function LevelsPage({ params, searchParams }: { params: Pro
               return (
                 <Card key={task.id} className="min-w-0">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <Badge tone="brand">{LEVEL_LABEL[task.level as LevelKey] ?? task.level}</Badge>
-                    {task.status === "aprovada" ? <Badge tone="green"><CircleCheck size={12} aria-hidden /> Aprovada</Badge> : <Badge tone="amber">Rascunho</Badge>}
+                    <Badge tone="info">{LEVEL_LABEL[task.level as LevelKey] ?? task.level}</Badge>
+                    <Badge tone={toneOf(ADAPTED_TASK_STATUS, task.status)}>{task.status === "aprovada" ? <CircleCheck size={12} aria-hidden /> : null} {labelOf(ADAPTED_TASK_STATUS, task.status)}</Badge>
                     <Badge>{task.source === "ia" ? "Com IA" : "Pelas regras"}</Badge>
                   </div>
                   <AdaptedView content={content} highlight icons />

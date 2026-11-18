@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { supportInfo } from "@/lib/scale";
+import { supportInfo, supportTone, type Tone } from "@/lib/scale";
 import type { CharacterVariant } from "@/lib/characters";
 import { Character } from "./character";
 import { BUTTON_CLS, type ButtonVariant } from "./form-styles";
@@ -59,17 +59,15 @@ export function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
-type BadgeTone = "brand" | "amber" | "coral" | "green" | "neutral";
-
-const BADGE_TONES: Record<BadgeTone, string> = {
-  brand: "bg-brand-soft text-brand-strong",
-  amber: "bg-amber-soft text-amber",
-  coral: "bg-coral-soft text-coral",
-  green: "bg-green-soft text-green",
+const BADGE_TONES: Record<Tone, string> = {
+  info: "bg-brand-soft text-brand-strong",
+  mid: "bg-amber-soft text-amber",
+  alert: "bg-coral-soft text-coral",
+  good: "bg-green-soft text-green",
   neutral: "bg-line/60 text-ink-soft",
 };
 
-export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; children: ReactNode }) {
+export function Badge({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${BADGE_TONES[tone]}`}>
       {children}
@@ -79,9 +77,8 @@ export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; childr
 
 export function SupportPill({ level }: { level: number }) {
   const info = supportInfo(level);
-  const hue = ["green", "green", "brand", "amber", "coral", "coral"][Math.min(5, Math.max(0, level))] as BadgeTone;
   return (
-    <Badge tone={hue}>
+    <Badge tone={supportTone(level)}>
       <span className="font-semibold">{info.code}</span>
       <span className="hidden sm:inline">· {info.label}</span>
     </Badge>

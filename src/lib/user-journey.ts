@@ -1,15 +1,16 @@
-import { PARTICIPATION_TEXT, PARTICIPATION_TONE, countItems, percentOf, supportSeries, supportTrend, weeklyCounts, type SeriesPoint, type Trend, type VizTone } from "./series";
+import { countItems, percentOf, supportSeries, supportTrend, weeklyCounts, type SeriesPoint } from "./series";
 import { summarySeenByTeam } from "./audit";
 import { db } from "./prisma";
 import type { SessionUser } from "./auth";
 import { familyActivityWhere, studentScopeWhere } from "./policy";
 import { roleGroup, rolesWith, teachingContext, type Group } from "./roles";
 import { objectiveTrend } from "./insights";
-import { getStudentNextStep } from "./student-journey";
-import { firstName, formatDate, parseJson } from "./format";
-import { CHANNELS } from "./scale";
+import { JOURNEY_STEPS, LAST_STEP, nextStepOf } from "./student-journey";
+import { firstName, plural, readList } from "./format";
+import { DAY_MS, brYmd, formatDate, isPastDay } from "./dates";
+import { CHANNELS, PARTICIPATION, PREPARED_ACTIVITY_STATUSES, labelOf, toneOf, type Tone, type Trend } from "./scale";
 import { usesAac } from "./pedagogy-rules";
-import { todayInBrazil, upcomingEvents } from "./commemorative-dates";
+import { upcomingEvents } from "./commemorative-dates";
 import type { CharacterVariant } from "./characters";
 
 export type JourneyMarkKey = "boas_vindas" | "painel" | "recursos" | "calendario" | "cadastros" | "familia_inicio" | "terapeuta_inicio";
@@ -35,9 +36,9 @@ export type Chapter = {
 export type Milestone = { key: string; title: string; description: string; achieved: boolean; date: Date | null };
 export type ImpactViz =
   | { kind: "weekly"; points: SeriesPoint[] }
-  | { kind: "ring"; pct: number | null; tone: VizTone }
+  | { kind: "ring"; pct: number | null; tone: Tone }
   | { kind: "support"; values: number[]; delta: number | null; trend: Trend }
-  | { kind: "dots"; items: { key: string; title: string; tone: VizTone }[] };
+  | { kind: "dots"; items: { key: string; title: string; tone: Tone }[] };
 export type ImpactItem = { label: string; value: string; hint?: string; viz?: ImpactViz };
 
 export type Journey = {
@@ -60,9 +61,8 @@ export type Journey = {
 
 type ChapterInput = Omit<Chapter, "status" | "progress" | "date" | "evidence" | "waiting"> & Partial<Pick<Chapter, "progress" | "date" | "evidence" | "waiting">>;
 
-const DAY_MS = 86_400_000;
+const RECENT_DAYS = 30;
 const HOME_DONE_PREFIX = "Fizemos em casa";
-const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 const listText = (items: string[]) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} e ${items.at(-1)}`);
 const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -154,7 +154,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
         caseStudy: { select: { status: true, concludedAt: true, updatedAt: true } },
         profile: { select: { expressiveChannel: true, interests: true, updatedAt: true } },
         plans: { include: { objectives: true }, orderBy: { createdAt: "desc" } },
-        activities: { where: { status: { in: ["aceita", "aplicada"] } }, orderBy: { createdAt: "asc" }, select: { title: true, createdAt: true } },
+        activities: { where: { status: { in: PREPARED_ACTIVITY_STATUSES } }, orderBy: { createdAt: "asc" }, select: { title: true, status: true, createdAt: true } },
         diaryEntries: { orderBy: { date: "asc" } },
         familyNotes: { orderBy: { date: "desc" }, take: 1, select: { note: true, date: true, author: true } },
       },
@@ -169,21 +169,13 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
   const allObjectives = s.plans.flatMap((plan) => plan.objectives);
   const entries = s.diaryEntries;
   const lastEntry = entries.at(-1);
-  const interests = parseJson<string[]>(s.profile?.interests, []);
+  const interests = readList(s.profile?.interests);
   const reviewed = allObjectives.filter((objective) => objective.status === "alcancado" || objective.status === "em_revisao");
   const advancing = activeObjectives.filter((objective) => objectiveTrend(objective, entries).trend === "avancando");
   const caseDone = s.caseStudy?.status === "concluido";
 
-  const next = getStudentNextStep({
-    id: s.id,
-    caseStudy: (s.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null,
-    hasProfile: !!s.profile,
-    hasPlan: !!activePlan,
-    hasObjective: activeObjectives.length > 0,
-    hasPreparedActivity: s.activities.length > 0,
-    hasDiary: entries.length > 0,
-  });
-  const preferred = (["estudo", "planejar", "conhecer", "preparar", entries.length ? "acompanhar" : "registrar"] as const)[next.step - 1];
+  const next = nextStepOf(s);
+  const preferred = next.step === LAST_STEP && entries.length ? "acompanhar" : JOURNEY_STEPS[next.step - 1].key;
 
   const chapters = withStatus([
     {
@@ -199,7 +191,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: caseDone ? "Ver o estudo de caso" : s.caseStudy ? "Continuar o estudo de caso" : "Fazer o estudo de caso", href: `${path}/estudo-de-caso` },
     },
     {
-      key: "planejar", tone: "peach",
+      key: "plano", tone: "peach",
       title: `Combinar o que ${name} vai aprender`,
       story: `Defina com a equipe um objetivo observável: o que ${name} vai fazer, com qual apoio, critério e prazo.`,
       why: "Um objetivo claro mostra se o apoio está diminuindo, sem depender de nota.",
@@ -209,7 +201,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: activeObjectives.length ? "Abrir o plano de ensino" : "Criar o plano e o objetivo", href: `${path}/ppi` },
     },
     {
-      key: "conhecer", tone: "sky",
+      key: "perfil", tone: "sky",
       title: `Conhecer como ${name} aprende`,
       story: `Registre como ${name} se comunica, do que gosta e quais apoios ajudam.`,
       why: "Atividades que partem dos interesses do estudante prendem a atenção e reduzem as recusas.",
@@ -219,7 +211,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: s.profile ? "Ver como aprende" : "Contar como aprende", href: `${path}/perfil` },
     },
     {
-      key: "preparar", tone: "teal",
+      key: "atividade", tone: "teal",
       title: `Preparar uma aula com ${name} junto da turma`,
       story: "Escolha o objetivo e o conteúdo e aceite a sugestão que vai usar. A decisão é sua.",
       why: "Inclusão é participar da mesma aula, com os apoios certos.",
@@ -229,7 +221,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
       action: { label: "Preparar uma atividade", href: `${path}/atividades` },
     },
     {
-      key: "registrar", tone: "sage",
+      key: "registro", tone: "sage",
       title: "Registrar como foi a aula",
       story: `Três escolhas: participação, apoio e o que aconteceu. A observação é opcional.`,
       why: "Cada registro mostra o que funcionou e orienta a próxima aula.",
@@ -258,7 +250,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     impact.push({ label: "Aulas registradas", value: String(entries.length), hint: `Última em ${formatDate(lastEntry!.date)} · por semana, nas últimas 8`, viz: { kind: "weekly", points: weeklyCounts(entries.map((entry) => entry.date), 8) } });
     impact.push({
       label: "Participação plena", value: `${Math.round((full / entries.length) * 100)}%`, hint: `${full} de ${entries.length} aulas · da mais antiga à mais recente`,
-      viz: { kind: "dots", items: entries.slice(-16).map((entry) => ({ key: entry.id, title: `${formatDate(entry.date)}: ${PARTICIPATION_TEXT[entry.participation] ?? entry.participation}`, tone: PARTICIPATION_TONE[entry.participation] ?? "neutral" })) },
+      viz: { kind: "dots", items: entries.slice(-16).map((entry) => ({ key: entry.id, title: `${formatDate(entry.date)}: ${labelOf(PARTICIPATION, entry.participation).toLowerCase()}`, tone: toneOf(PARTICIPATION, entry.participation) })) },
     });
   }
   if (withEntries.length) {
@@ -318,7 +310,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
       select: {
         id: true,
         plans: { where: { status: "ativo" }, select: { reviewDate: true, objectives: { where: { status: "ativo" }, select: { id: true }, take: 1 } } },
-        diaryEntries: { where: { date: { gte: new Date(now.getTime() - 30 * DAY_MS) } }, select: { id: true }, take: 1 },
+        diaryEntries: { where: { date: { gte: new Date(now.getTime() - RECENT_DAYS * DAY_MS) } }, select: { id: true }, take: 1 },
         familyNotes: { select: { id: true }, take: 1 },
         intersectorReports: { select: { id: true }, take: 1 },
       },
@@ -327,10 +319,10 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
   const total = students.length;
   const withPlan = students.filter((student) => student.plans.some((plan) => plan.objectives.length)).length;
   const plans = students.flatMap((student) => student.plans);
-  const onTime = plans.filter((plan) => plan.reviewDate >= now).length;
+  const onTime = plans.filter((plan) => !isPastDay(plan.reviewDate, now)).length;
   const recorded = students.filter((student) => student.diaryEntries.length).length;
   const connected = students.filter((student) => student.familyNotes.length || student.intersectorReports.length).length;
-  const nextDate = upcomingEvents(todayInBrazil(now))[0];
+  const nextDate = upcomingEvents(brYmd(now))[0];
   const place = school?.name ?? "sua escola";
 
   const chapters = withStatus([
@@ -363,7 +355,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
       story: "Estudante sem registro? Pergunte à equipe do que ela precisa.",
       why: "Queda no ritmo de registros costuma anteceder o abandono do acompanhamento.",
       done: total > 0 && recorded === total, progress: ratio(recorded, total),
-      evidence: `${recorded} de ${plural(total, "estudante", "estudantes")} com aula registrada nos últimos 30 dias.`,
+      evidence: `${recorded} de ${plural(total, "estudante", "estudantes")} com aula registrada nos últimos ${RECENT_DAYS} dias.`,
       action: { label: "Ver o ritmo de registros", href: "/painel#aulas" },
     },
     {
@@ -398,7 +390,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
     impact: [
       { label: "Estudantes acompanhados", value: String(total) },
       { label: "Com plano e objetivo", value: total ? `${Math.round((withPlan / total) * 100)}%` : "—", hint: `${withPlan} de ${total} estudantes`, viz: { kind: "ring", pct: percentOf(withPlan, total), tone: "good" } },
-      { label: "Com aula registrada", value: String(recorded), hint: `de ${total} estudantes, nos últimos 30 dias`, viz: { kind: "ring", pct: percentOf(recorded, total), tone: "info" } },
+      { label: "Com aula registrada", value: String(recorded), hint: `de ${total} estudantes, nos últimos ${RECENT_DAYS} dias`, viz: { kind: "ring", pct: percentOf(recorded, total), tone: "info" } },
     ],
     strategies: [], quote: null,
     milestones: ids.length ? await teamMilestones(ids) : [],
@@ -424,7 +416,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
   const withPlan = students.filter((student) => student.plans.some((plan) => plan.objectives.length)).length;
   const caa = students.filter((student) => student.profile && usesAac(student.profile.expressiveChannel));
   const caaReady = caa.filter((student) => student.accessibilityNotes?.trim()).length;
-  const nextDate = upcomingEvents(todayInBrazil(new Date()))[0];
+  const nextDate = upcomingEvents(brYmd(new Date()))[0];
 
   const chapters = withStatus([
     {
@@ -602,7 +594,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
   const reports = s.intersectorReports;
   const last = reports.at(-1);
   const seen = last ? await summarySeenByTeam(s.id, last.createdAt) : null;
-  const interests = parseJson<string[]>(s.profile?.interests, []);
+  const interests = readList(s.profile?.interests);
 
   const chapters = withStatus([
     {

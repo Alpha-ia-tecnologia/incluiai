@@ -9,7 +9,7 @@ import { requiredUpload } from "./uploads";
 import { UserError } from "./user-error";
 import { canWorkWithStudent, isFamilyOf } from "./policy";
 import { CHANNELS, SHIFTS } from "./scale";
-import { parseJson } from "./format";
+import { readList } from "./format";
 import { FAMILY_MEMBER_OPTIONS } from "./form-options";
 import { CARD_PHOTO_UPLOAD, cardHelp, formatPhone, hasHelp, newCardToken, normalizePhone, sniffCardPhoto, stripPhotoMetadata, type CardHelp } from "./student-card-core";
 
@@ -53,8 +53,8 @@ export async function loadCardView(studentId: string): Promise<CardView | null> 
     ? cardHelp({
       channel: CHANNELS[profile.expressiveChannel] ?? null,
       commandSteps: profile.commandSteps,
-      calming: parseJson<string[]>(profile.calmingStrategies, []),
-      triggers: parseJson<string[]>(profile.triggers, []),
+      calming: readList(profile.calmingStrategies),
+      triggers: readList(profile.triggers),
     })
     : null;
   const parts = student.name.trim().split(/\s+/);

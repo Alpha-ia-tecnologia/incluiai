@@ -1,18 +1,12 @@
 import type { DiaryEntry, FunctionalProfile, Objective, Student } from "@prisma/client";
 import { db } from "../prisma";
-import { parseJson, ageFrom } from "../format";
-import { BARRIERS, CHANNELS, DIMENSIONS, SENSORY_LABELS, SENSORY_VALUES, STAGES, SUPPORT_LEVELS, supportInfo } from "../scale";
+import { parseJson, splitItems, readList } from "../format";
+import { ageFrom } from "../dates";
+import { BARRIERS, CHANNELS, DIMENSIONS, OBJECTIVE_STATUS, PARTICIPATION, SENSORY_LABELS, SENSORY_VALUES, SHIFTS, STAGES, SUPPORT_LEVELS, labelOf, supportInfo } from "../scale";
 import { CASE_STUDY_FIELDS, caseFieldLeavesPlatform, parseCaseStudy } from "../case-study";
-import { splitItems } from "../form-options";
+import { PROFILE_SUPPORT_FIELDS } from "../functional-profile";
 import { strategiesThatWorked } from "../insights";
 import { guidanceForPlan, parseAccepted } from "../health-reports-core";
-
-const SUPPORT_FIELDS: [keyof FunctionalProfile, string][] = [
-  ["readingSupport", "Leitura"], ["writingSupport", "Escrita"], ["mathSupport", "Matemática"],
-  ["peerInteraction", "Interação com colegas"], ["adultInteraction", "Interação com adultos"], ["groupWork", "Trabalho em grupo"],
-  ["feeding", "Alimentação"], ["hygiene", "Higiene"], ["mobility", "Deslocamento"], ["organization", "Organização de materiais"],
-  ["fineMotor", "Movimentos finos"], ["grossMotor", "Movimentos amplos"],
-];
 
 const supportText = (level: number) => {
   const info = supportInfo(level);
@@ -28,16 +22,16 @@ export function profileText(profile: FunctionalProfile) {
   const sensoryNotes = Object.entries(sensory)
     .filter(([, value]) => value && value !== "tipica")
     .map(([area, value]) => `${SENSORY_LABELS[area] ?? area}: ${(SENSORY_VALUES[value] ?? value).toLowerCase()}`);
-  const list = (value: string) => parseJson<string[]>(value, []).join(", ") || "não informado";
+  const list = (value: string) => readList(value).join(", ") || "não informado";
   return [
     `Comunicação: expressa-se por ${CHANNELS[profile.expressiveChannel] ?? profile.expressiveChannel}; compreende melhor por ${CHANNELS[profile.receptiveChannel] ?? profile.receptiveChannel}; compreende comandos de ${profile.commandSteps} etapa(s).`,
-    `Níveis de apoio (0 ${SUPPORT_LEVELS[0].label.toLowerCase()} a 5 ${SUPPORT_LEVELS[5].label.toLowerCase()}): ${SUPPORT_FIELDS.map(([field, label]) => `${label}: ${supportText(profile[field] as number)}`).join("; ")}.`,
-    `Atenção: cerca de ${profile.attentionMinutes} min. Permanece na tarefa por cerca de ${profile.taskToleranceMinutes} min. Melhor turno: ${profile.bestShift === "tarde" ? "tarde" : "manhã"}.`,
+    `Níveis de apoio (0 ${SUPPORT_LEVELS[0].label.toLowerCase()} a 5 ${SUPPORT_LEVELS[5].label.toLowerCase()}): ${PROFILE_SUPPORT_FIELDS.map(({ key, label }) => `${label}: ${supportText(profile[key])}`).join("; ")}.`,
+    `Atenção: cerca de ${profile.attentionMinutes} min. Permanece na tarefa por cerca de ${profile.taskToleranceMinutes} min. Melhor turno: ${(SHIFTS[profile.bestShift] ?? profile.bestShift).toLowerCase()}.`,
     sensoryNotes.length ? `Sensorial: ${sensoryNotes.join("; ")}.` : "Sensorial: sem particularidades registradas.",
     profile.usesWheelchairOrOrthosis ? "Usa cadeira de rodas ou órtese." : "",
     `Situações de desconforto: ${list(profile.triggers)}. Sinais de que precisa de pausa: ${list(profile.earlySigns)}. O que acalma: ${list(profile.calmingStrategies)}.`,
     `Interesses âncora: ${list(profile.interests)}.`,
-    `Barreiras: ${parseJson<string[]>(profile.barriers, []).map((item) => BARRIERS[item] ?? item).join(", ") || "não informadas"}.`,
+    `Barreiras: ${readList(profile.barriers).map((item) => BARRIERS[item] ?? item).join(", ") || "não informadas"}.`,
     profile.strengths ? `Pontos fortes: ${profile.strengths}.` : "",
   ].filter(Boolean).join("\n");
 }
@@ -56,12 +50,11 @@ function diaryText(entries: DiaryEntry[]) {
   if (entries.length === 0) return "Ainda não há registros de aula.";
   const recent = entries.slice(-10);
   const average = recent.reduce((sum, entry) => sum + entry.supportLevel, 0) / recent.length;
-  const counts = { total: 0, parcial: 0, recusou: 0 } as Record<string, number>;
-  for (const entry of recent) counts[entry.participation] = (counts[entry.participation] ?? 0) + 1;
+  const participation = Object.entries(PARTICIPATION).map(([key, term]) => `${term.label.toLowerCase()} ${recent.filter((entry) => entry.participation === key).length}x`).join(", ");
   const worked = strategiesThatWorked(entries);
   const recommendations = [...new Set(recent.flatMap((entry) => splitItems(entry.recommendation)))].slice(-4);
   return [
-    `Últimos ${recent.length} registros: participou de toda a atividade ${counts.total}x, de parte ${counts.parcial}x, recusou ${counts.recusou}x. Apoio médio: ${supportText(Math.round(average))}.`,
+    `Últimos ${recent.length} registros: ${participation}. Apoio médio: ${supportText(Math.round(average))}.`,
     worked.length ? `O que funcionou: ${worked.join(", ")}.` : "",
     recommendations.length ? `Recomendações recentes da equipe: ${recommendations.join(", ")}.` : "",
   ].filter(Boolean).join("\n");
@@ -88,7 +81,7 @@ export async function loadPlanContext(studentId: string) {
     reportGuidance.length ? `\n## Orientações para a escola vindas de laudos (aceitas pela equipe)\n${reportGuidance.map((text) => `- ${text}`).join("\n")}` : "",
     `\n## Registros de aula\n${diaryText(student.diaryEntries)}`,
     previousObjectives.length
-      ? `\n## Objetivos de planos anteriores\n${previousObjectives.map((objective) => `- ${DIMENSIONS[objective.dimension] ?? objective.dimension}: ${objective.action} (${objective.status === "alcancado" ? "alcançado" : objective.status === "em_revisao" ? "em revisão" : "em andamento"})`).join("\n")}`
+      ? `\n## Objetivos de planos anteriores\n${previousObjectives.map((objective) => `- ${DIMENSIONS[objective.dimension] ?? objective.dimension}: ${objective.action} (${labelOf(OBJECTIVE_STATUS, objective.status).toLowerCase()})`).join("\n")}`
       : "",
   ];
   return {

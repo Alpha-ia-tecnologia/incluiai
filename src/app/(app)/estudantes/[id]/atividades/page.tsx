@@ -5,8 +5,9 @@ import type { Activity } from "@prisma/client";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { generateActivitiesAction, acceptActivity, rejectActivity } from "@/actions/activities";
-import { parseJson, formatDate } from "@/lib/format";
-import { CONTEXTS, ACTIVITY_STATUS } from "@/lib/scale";
+import { parseJson, readList } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
+import { ACTIVITY_STATUS, ADAPTED_TASK_STATUS, CONTEXTS, labelOf, toneOf } from "@/lib/scale";
 import { PageHeader, Card, SectionTitle, Badge, AIDisclaimer, EmptyState } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { PendingButton } from "@/components/pending-button";
@@ -15,7 +16,7 @@ import { studentAI } from "@/lib/agents/capabilities";
 import { generateActivityImage, removeActivityImage } from "@/actions/activity-images";
 import { ActivityImageForm } from "@/components/activity-image-form";
 import { imageWidthOf } from "@/lib/images/activity-image";
-import { DataBoard, DataCard, withSegmentColors } from "@/components/data-viz";
+import { DataBoard, DataCard, segmentsOf } from "@/components/data-viz";
 import { BarList, StackedBar } from "@/components/charts";
 
 type ActivityWithImage = Activity & { image: { altText: string; kind: string; createdAt: Date } | null };
@@ -26,19 +27,12 @@ import { Assurances, Steps } from "@/components/explain";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
 
 
-const STATUS_PLURAL = { sugerida: "Sugeridas", aceita: "Aceitas", aplicada: "Aplicadas", rejeitada: "Rejeitadas" } as const;
-
-const CONTEXT_TONES: Record<string, "brand" | "amber" | "green"> = {
-  sala_comum: "brand",
-  aee: "amber",
-  casa: "green",
-};
 
 function ActivityCardView({ activity, studentId, imagesOn }: { activity: ActivityWithImage; studentId: string; imagesOn: boolean }) {
-  const steps = parseJson<string[]>(activity.steps, []);
-  const materials = parseJson<string[]>(activity.materials, []);
+  const steps = readList(activity.steps);
+  const materials = readList(activity.materials);
   const adaptations = parseJson<{ text: string; rule: string }[]>(activity.adaptations, []);
-  const reviewNotes = parseJson<string[]>(activity.reviewNotes, []);
+  const reviewNotes = readList(activity.reviewNotes);
   const generateImage = generateActivityImage.bind(null, studentId, activity.id);
   const removeImage = removeActivityImage.bind(null, studentId, activity.id);
   const accept = acceptActivity.bind(null, studentId, activity.id);
@@ -49,9 +43,9 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap gap-1.5">
-            <Badge tone={CONTEXT_TONES[activity.context] ?? "neutral"}>{CONTEXTS[activity.context]}</Badge>
-            <Badge>{ACTIVITY_STATUS[activity.status]}</Badge>
-            {activity.source === "ia" ? <Badge tone="amber">Sugestão dos agentes de IA</Badge> : null}
+            <Badge tone={toneOf(CONTEXTS, activity.context)}>{labelOf(CONTEXTS, activity.context)}</Badge>
+            <Badge tone={toneOf(ACTIVITY_STATUS, activity.status)}>{labelOf(ACTIVITY_STATUS, activity.status)}</Badge>
+            {activity.source === "ia" ? <Badge tone="info">Sugestão dos agentes de IA</Badge> : null}
           </div>
           <h3 className="break-words font-medium text-ink">{activity.title}</h3>
         </div>
@@ -191,10 +185,8 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
   const consentMissing = ai.waitingConsent.text;
   const suggested = activities.filter((a) => a.status === "sugerida");
   const others = activities.filter((a) => a.status !== "sugerida");
-  const statusSplit = withSegmentColors((["sugerida", "aceita", "aplicada", "rejeitada"] as const).map((key) => ({
-    key, label: STATUS_PLURAL[key], value: activities.filter((a) => a.status === key).length,
-  })));
-  const contextRows = Object.entries(CONTEXTS).map(([key, label]) => ({ key, label, value: activities.filter((a) => a.context === key).length }));
+  const statusSplit = segmentsOf(ACTIVITY_STATUS, (key) => activities.filter((a) => a.status === key).length);
+  const contextRows = Object.entries(CONTEXTS).map(([key, term]) => ({ key, label: term.label, value: activities.filter((a) => a.context === key).length }));
 
   return (
     <>
@@ -236,7 +228,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
               <li key={task.id}>
                 <Link href={`/estudantes/${id}/atividades/adaptadas/${task.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-2.5 text-sm hover:bg-brand-soft">
                   <span className="min-w-0 font-medium text-ink">{task.kind === "prova" ? "Prova" : "Atividade"}: {task.title}</span>
-                  <span className="text-xs text-ink-soft">{task.status === "aprovada" ? "Aprovada" : "Rascunho"} · {formatDate(task.createdAt)}</span>
+                  <span className="text-xs text-ink-soft">{labelOf(ADAPTED_TASK_STATUS, task.status)} · {formatDate(task.createdAt)}</span>
                 </Link>
               </li>
             ))}

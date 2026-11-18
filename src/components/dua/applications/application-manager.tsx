@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Save } from "lucide-react";
 import { updateDuaApplication } from "@/actions/dua";
-import { EXECUTION_STATES, EXECUTION_STATE_LABEL, type ExecutionState } from "@/lib/dua/domain";
+import { EXECUTION_STATE, EXECUTION_STATES, type ExecutionState } from "@/lib/dua/domain";
 import { Field, FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, hintCls, labelCls, inputCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
@@ -42,7 +42,7 @@ export function ApplicationManager({ planningId, applicationId, revision, state,
       <Field id={`${prefix}-situacao`} label="Situação de execução" hint="Concluir não registra presença, não cria atendimento do AEE e não é conclusão sobre a aprendizagem. Com a aplicação cancelada, não há evidência a registrar.">
         {(control) => (
           <select {...control} value={nextState} onChange={(event) => setNextState(event.target.value as ExecutionState)} className={inputCls}>
-            {EXECUTION_STATES.map((item) => <option key={item} value={item}>{EXECUTION_STATE_LABEL[item]}</option>)}
+            {EXECUTION_STATES.map((item) => <option key={item} value={item}>{EXECUTION_STATE[item].label}</option>)}
           </select>
         )}
       </Field>

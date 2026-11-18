@@ -1,4 +1,4 @@
-import { weekStart } from "@/lib/family-contact";
+import { weekStart } from "@/lib/dates";
 import { answerCheckIn } from "@/actions/notifications";
 import { CheckInForm } from "@/components/notice-forms";
 import Image from "next/image";
@@ -15,7 +15,8 @@ import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-jou
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { PendingButton } from "@/components/pending-button";
 import { ActionForm } from "@/components/action-form";
-import { parseJson, formatDate } from "@/lib/format";
+import { readList } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import { roleLabel } from "@/lib/roles";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
@@ -96,7 +97,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       {isFamily && prefs?.weeklyCheckIn ? (
         <Card className="mb-6 max-w-3xl border-brand/30" id="pergunta-da-semana">
           <SectionTitle>Pergunta da semana</SectionTitle>
-          <CheckInForm action={answerCheckIn.bind(null, id)} firstName={firstName} previous={checkIn ? { answers: parseJson<string[]>(checkIn.answers, []), note: checkIn.note ?? "" } : null} />
+          <CheckInForm action={answerCheckIn.bind(null, id)} firstName={firstName} previous={checkIn ? { answers: readList(checkIn.answers), note: checkIn.note ?? "" } : null} />
         </Card>
       ) : null}
 
@@ -144,7 +145,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             ) : (
               <ul className="space-y-3">
                 {homeActivities.map(({ activity: a, doneAt }) => {
-                  const steps = parseJson<string[]>(a.steps, []);
+                  const steps = readList(a.steps);
                   return (
                     <li key={a.id} className="rounded-lg border border-line bg-paper px-3.5 py-2.5">
                       <p className="text-sm font-medium text-ink">{a.title}</p>

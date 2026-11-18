@@ -10,16 +10,17 @@ import { familyActivityWhere } from "../policy";
 import { loadPlanContext, profileText } from "../agents/context";
 import { proposePlan } from "../plan-proposal";
 import { generateActivities } from "../activities";
-import { objectiveTrend, studentAlerts } from "../insights";
-import { getStudentNextStep } from "../student-journey";
+import { ALERTS, objectiveTrend, studentAlerts } from "../insights";
+import { JOURNEY_SELECT, nextStepOf } from "../student-journey";
 import { MATERIAL_KINDS } from "../material-content";
 import { MATERIAL_KIND_KEYS } from "../material-content";
 import { ACTIVITY_CONTEXTS } from "../pedagogy-rules";
 import { createStudentMaterial } from "../material-generate";
-import { ALERT_LABELS, TREND_LABELS, loadDashboard } from "../dashboard";
-import { CALENDAR_THEMES, dateRangeLabel, relativeLabel, todayInBrazil, upcomingEvents } from "../commemorative-dates";
-import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, OBJECTIVE_STATUS, SHIFTS, STAGES, supportInfo } from "../scale";
-import { ageFrom, formatDate, parseJson } from "../format";
+import { loadDashboard } from "../dashboard";
+import { CALENDAR_THEMES, dateRangeLabel, relativeLabel, upcomingEvents } from "../commemorative-dates";
+import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, OBJECTIVE_STATUS, SHIFTS, STAGES, TREND, labelOf, supportInfo } from "../scale";
+import { plural, readList } from "../format";
+import { ageFrom, brYmd, formatDate } from "../dates";
 import { isHomeActivityNote } from "../user-journey";
 import { studentFollowUp } from "../dua/applications";
 import { hasStudentLabel, type Pseudonymizer } from "../agents/redactor";
@@ -41,7 +42,6 @@ export type ToolContext = {
 };
 
 const support = (level: number) => `${level} (${supportInfo(level).code}, ${supportInfo(level).description.toLowerCase()})`;
-const plural = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 const studentRef = z.string().describe("Marcador do estudante, como [ESTUDANTE 1], ou o id dele");
@@ -102,23 +102,6 @@ async function propose<K extends ProposalKind>(ctx: ToolContext, kind: K, summar
   return `Cartão de confirmação preparado (ação ${kind}). Nada foi gravado ainda: a pessoa precisa confirmar no cartão que apareceu na tela. Diga isso em uma frase e não chame esta ferramenta de novo para o mesmo pedido.`;
 }
 
-const journeyInput = (student: {
-  id: string;
-  caseStudy: { status: string } | null;
-  profile: unknown | null;
-  plans: { objectives: { id: string }[] }[];
-  activities: { id: string }[];
-  diaryEntries: { id: string }[];
-}) => getStudentNextStep({
-  id: student.id,
-  caseStudy: (student.caseStudy?.status as "rascunho" | "concluido" | undefined) ?? null,
-  hasProfile: !!student.profile,
-  hasPlan: student.plans.length > 0,
-  hasObjective: student.plans.some((plan) => plan.objectives.length > 0),
-  hasPreparedActivity: student.activities.length > 0,
-  hasDiary: student.diaryEntries.length > 0,
-});
-
 const NETWORK_PANEL = "Números do painel para a rede inteira ou para uma escola (pelo id): jornada, avisos, planos, aulas, atividades, uso da IA e estudantes com avisos.";
 
 const TOOLS: Record<ToolName, ToolBuilder> = {
@@ -134,10 +117,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         where: { id: { in: ctx.studentIds }, ...(args.turma ? { className: textContains(args.turma) } : {}) },
         orderBy: { name: "asc" },
         include: {
-          caseStudy: { select: { status: true } },
-          profile: { select: { id: true } },
-          plans: { where: { status: "ativo" }, select: { objectives: { where: { status: "ativo" }, select: { id: true }, take: 1 } } },
-          activities: { where: { status: { in: ["aceita", "aplicada"] } }, select: { id: true }, take: 1 },
+          ...JOURNEY_SELECT,
           diaryEntries: { orderBy: { date: "desc" }, select: { id: true, date: true }, take: 1 },
         },
       });
@@ -147,7 +127,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         : students.filter((student) => student.id === busca || normalize(student.name).includes(normalize(busca)));
       if (!list.length) return "Nenhum estudante encontrado com esse filtro.";
       const lines = list.slice(0, 60).map((student) => {
-        const next = journeyInput(student);
+        const next = nextStepOf(student);
         return `- ${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.gradeYear}, ${student.className}, ${SHIFTS[student.shift] ?? student.shift}, ${ctx.privacy.schoolLabel(student.schoolId)}; próximo passo: ${next.label} (${next.href}); último registro de aula: ${student.diaryEntries[0] ? formatDate(student.diaryEntries[0].date) : "nenhum"}.`;
       });
       return `${plural(list.length, "estudante", "estudantes")}${list.length > 60 ? " (mostrando 60)" : ""}:\n${lines.join("\n")}`;
@@ -177,7 +157,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
       const { text } = await loadPlanContext(id);
       const label = ctx.privacy.studentLabel(id);
       const activePlan = s.plans.find((plan) => plan.status === "ativo");
-      const next = journeyInput({ ...s, plans: activePlan ? [{ objectives: activePlan.objectives.filter((o) => o.status === "ativo") }] : [], activities: s.activities.filter((a) => a.status === "aceita" || a.status === "aplicada") });
+      const next = nextStepOf(s);
       const alerts = studentAlerts({ plans: s.plans, entries: s.diaryEntries });
       const counts = Object.fromEntries(Object.keys(ACTIVITY_STATUS).map((status) => [status, s.activities.filter((a) => a.status === status).length]));
       const health = s.intersectorReports[0];
@@ -190,12 +170,12 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         activePlan
           ? `\n## Plano ativo (revisão em ${formatDate(activePlan.reviewDate)})\n${activePlan.objectives.map((objective) => {
             const insight = objectiveTrend(objective, s.diaryEntries);
-            return `- Objetivo (id ${objective.id}, ${DIMENSIONS[objective.dimension] ?? objective.dimension}, ${OBJECTIVE_STATUS[objective.status] ?? objective.status}): ${objective.description} Apoio atual ${support(objective.currentSupport)} → esperado ${support(objective.targetSupport)}. Tendência: ${TREND_LABELS[insight.trend]}. ${insight.message}${insight.lastSupportLevels.length ? ` Últimos níveis de apoio: ${insight.lastSupportLevels.join(" → ")}.` : ""}`;
+            return `- Objetivo (id ${objective.id}, ${DIMENSIONS[objective.dimension] ?? objective.dimension}, ${labelOf(OBJECTIVE_STATUS, objective.status).toLowerCase()}): ${objective.description} Apoio atual ${support(objective.currentSupport)} → esperado ${support(objective.targetSupport)}. Tendência: ${TREND[insight.trend].label}. ${insight.message}${insight.lastSupportLevels.length ? ` Últimos níveis de apoio: ${insight.lastSupportLevels.join(" → ")}.` : ""}`;
           }).join("\n") || "Sem objetivos."}`
           : "\n## Plano\nSem plano ativo.",
         s.planDraft ? `Há uma proposta de plano aguardando revisão (${s.planDraft.source === "ia" ? "agentes de IA" : "motor de regras"}, ${formatDate(s.planDraft.createdAt)}) em /estudantes/${id}/ppi#proposta.` : "",
         `\n${text}`,
-        `\n## Atividades (${Object.entries(counts).map(([status, total]) => `${total} ${ACTIVITY_STATUS[status].toLowerCase()}`).join(", ")})\n${s.activities.slice(0, 8).map((a) => `- (id ${a.id}) ${a.title}: ${CONTEXTS[a.context] ?? a.context}, ${ACTIVITY_STATUS[a.status] ?? a.status}, ${a.durationMinutes} min${a.objectiveId ? `, objetivo ${a.objectiveId}` : ""}`).join("\n") || "Nenhuma atividade ainda."}`,
+        `\n## Atividades (${Object.entries(counts).map(([status, total]) => `${total} ${ACTIVITY_STATUS[status].label.toLowerCase()}`).join(", ")})\n${s.activities.slice(0, 8).map((a) => `- (id ${a.id}) ${a.title}: ${labelOf(CONTEXTS, a.context)}, ${labelOf(ACTIVITY_STATUS, a.status)}, ${a.durationMinutes} min${a.objectiveId ? `, objetivo ${a.objectiveId}` : ""}`).join("\n") || "Nenhuma atividade ainda."}`,
         s.materials.length ? `Materiais acessíveis: ${s.materials.map((m) => m.title).join("; ")}.` : "Materiais acessíveis: nenhum.",
         `\n## A família observou\n${s.familyNotes.map((note) => `- "${note.note}" (${formatDate(note.date)})`).join("\n") || "Nenhuma observação da família ainda."}`,
         health ? `\n## Orientações da saúde (${formatDate(health.createdAt)})\nComunicação eficaz: ${health.communication}. Recursos: ${health.accessResources}. Estratégias a testar: ${health.strategiesToTry}. Orientações à escola: ${health.schoolGuidance}. Objetivos compartilhados: ${health.sharedGoals}.` : "",
@@ -221,10 +201,10 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
       });
       if (!activities.length) return `Nenhuma atividade ${args.situacao && args.situacao !== "todas" ? `com situação "${args.situacao}" ` : ""}para ${ctx.privacy.studentLabel(id)}. Página: /estudantes/${id}/atividades`;
       return activities.map((a) => [
-        `### ${a.title} (id ${a.id}) · ${CONTEXTS[a.context] ?? a.context} · ${ACTIVITY_STATUS[a.status] ?? a.status} · ${a.durationMinutes} min · origem: ${a.source}`,
+        `### ${a.title} (id ${a.id}) · ${labelOf(CONTEXTS, a.context)} · ${labelOf(ACTIVITY_STATUS, a.status)} · ${a.durationMinutes} min · origem: ${a.source}`,
         a.objective ? `Objetivo (id ${a.objective.id}): ${a.objective.action}` : "",
-        `Materiais: ${parseJson<string[]>(a.materials, []).join(", ") || "nenhum"}`,
-        `Passos: ${parseJson<string[]>(a.steps, []).map((step, index) => `${index + 1}. ${step}`).join(" ")}`,
+        `Materiais: ${readList(a.materials).join(", ") || "nenhum"}`,
+        `Passos: ${readList(a.steps).map((step, index) => `${index + 1}. ${step}`).join(" ")}`,
         `Resposta aceita: ${a.responseForm}. Critério de sucesso: ${a.successCriterion}.`,
         `Escada de apoio: mais apoio: ${a.supportBelow} | alvo: ${a.supportTarget} | menos apoio: ${a.supportAbove}.`,
         `Plano B: ${a.planB}.`,
@@ -287,7 +267,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
       return [
         `3 sugestões criadas (origem: ${cards[0]?.source === "ia" ? "agentes de IA" : "motor de regras"}) e aguardando a decisão da pessoa em /estudantes/${id}/atividades.${images === null ? "" : ` Imagens de apoio geradas: ${images} de ${created.length}.`}`,
         ...cards.map((card, index) => [
-          `### ${card.title} (id ${created[index]?.id}) · ${CONTEXTS[card.context]} · ${card.durationMinutes} min`,
+          `### ${card.title} (id ${created[index]?.id}) · ${labelOf(CONTEXTS, card.context)} · ${card.durationMinutes} min`,
           `Materiais: ${card.materials.join(", ")}`,
           `Passos: ${card.steps.map((step, i) => `${i + 1}. ${step}`).join(" ")}`,
           `Critério de sucesso: ${card.successCriterion}. Plano B: ${card.planB}`,
@@ -383,7 +363,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
       await assertStudentTeam(ctx.user, id);
       const objective = await prisma.objective.findFirst({ where: { id: args.objetivoId, plan: { studentId: id } }, select: { id: true, description: true } });
       if (!objective) throw new UserError("Objetivo não encontrado para este estudante.", "not_found");
-      return propose(ctx, "marcar_objetivo", `Marcar como ${OBJECTIVE_STATUS[args.situacao]} o objetivo: ${objective.description}`, { studentId: id, objectiveId: objective.id, status: args.situacao });
+      return propose(ctx, "marcar_objetivo", `Marcar como ${OBJECTIVE_STATUS[args.situacao].label.toLowerCase()} o objetivo: ${objective.description}`, { studentId: id, objectiveId: objective.id, status: args.situacao });
     },
   }),
   buscar_recursos: tool({
@@ -406,7 +386,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         include: { activities: { select: { title: true, context: true, durationMinutes: true }, orderBy: { position: "asc" } } },
       });
       if (!resources.length) return "Nenhum recurso encontrado. Página do banco: /recursos";
-      return resources.map((resource) => `- ${resource.title} (id ${resource.id}, /recursos/${resource.id}): ${resource.description} Etapa: ${resource.stage}; área: ${resource.skillArea}; tipo: ${resource.resourceType}; complexidade: ${resource.complexity}; ${plural(resource.timesUsed, "uso", "usos")}${resource.timesUsed ? `, ${Math.round((resource.positiveOutcomes / resource.timesUsed) * 100)}% com bom resultado` : ""}. Atividades: ${resource.activities.map((activity) => `${activity.title} (${CONTEXTS[activity.context] ?? activity.context}, ${activity.durationMinutes} min)`).join("; ") || "nenhuma"}.`).join("\n");
+      return resources.map((resource) => `- ${resource.title} (id ${resource.id}, /recursos/${resource.id}): ${resource.description} Etapa: ${resource.stage}; área: ${resource.skillArea}; tipo: ${resource.resourceType}; complexidade: ${resource.complexity}; ${plural(resource.timesUsed, "uso", "usos")}${resource.timesUsed ? `, ${Math.round((resource.positiveOutcomes / resource.timesUsed) * 100)}% com bom resultado` : ""}. Atividades: ${resource.activities.map((activity) => `${activity.title} (${labelOf(CONTEXTS, activity.context)}, ${activity.durationMinutes} min)`).join("; ") || "nenhuma"}.`).join("\n");
     },
   }),
   indicadores: tool({
@@ -425,7 +405,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         `- Estudantes: ${d.overview.students} (${d.overview.withAEE} no AEE); escolas: ${d.overview.schools}; turmas: ${d.overview.classes}.`,
         `- Com plano ativo: ${d.overview.withActivePlan} (${d.overview.planCoverage ?? 0}%). Objetivos em acompanhamento: ${d.overview.activeObjectives}; alcançados: ${d.overview.achievedObjectives}; com redução de apoio: ${d.overview.reducedSupport} de ${d.overview.measurableObjectives}.`,
         `- Registros de aula: ${d.overview.records} (${d.overview.studentsWithRecord} estudantes com registro). Participação plena: ${d.overview.fullParticipationPct ?? 0}%.`,
-        `- Avisos: ${d.attention.byKind.map((kind) => `${kind.value} ${ALERT_LABELS[kind.key].toLowerCase()}`).join("; ")}. Revisões de plano nos próximos ${d.attention.reviewHorizonDays} dias: ${d.attention.reviewsSoon}.`,
+        `- Avisos: ${d.attention.byKind.map((kind) => `${kind.value} ${kind.label.toLowerCase()}`).join("; ")}. Revisões de plano nos próximos ${d.attention.reviewHorizonDays} dias: ${d.attention.reviewsSoon}.`,
         `- Jornada: ${d.journey.steps.map((step) => `${step.label}: ${step.done} de ${d.overview.students}`).join("; ")}. Conclusão média: ${d.journey.completion ?? 0}%.`,
         `- Atividades no ano: ${d.activities.created} criadas; sugestões aguardando avaliação: ${d.overview.pendingSuggestions}; adesão: ${d.activities.sources.map((source) => `${source.label} ${source.adhesion === null ? "—" : `${source.adhesion}%`}`).join(", ")}.`,
         `- Tendência dos objetivos: ${d.learning.trends.map((trend) => `${trend.label}: ${trend.value}`).join("; ")}.`,
@@ -433,7 +413,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         `- IA: Claude ${d.ai.providers.claude ? "ativo" : "não configurado"}, DeepSeek ${d.ai.providers.deepseek ? "ativo" : "não configurado"}, OpenAI ${d.ai.providers.openai ? "ativo" : "não configurado"}; planos propostos pela IA: ${d.ai.planProposals.ia}; atividades da IA: ${d.ai.activities.total}; imagens: ${d.ai.images}.`,
         network ? `- Escolas da rede: ${d.scope.schools.map((school) => `${ctx.privacy.schoolLabel(school.id)} (id ${school.id})`).join(", ")}.` : "",
         d.profile.caa.withoutResources ? `- Leitura para a gestão: ${d.profile.caa.withoutResources} de ${d.profile.caa.total} estudantes com comunicação alternativa ainda sem recursos de acessibilidade registrados.` : "",
-        d.attention.students.length && can(ctx.user.role, "seeNames") ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERT_LABELS[kind].toLowerCase()).join(", ")}`).join("; ")}.` : "",
+        d.attention.students.length && can(ctx.user.role, "seeNames") ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERTS[kind].label.toLowerCase()).join(", ")}`).join("; ")}.` : "",
       ].filter(Boolean).join("\n");
     },
   }),
@@ -462,7 +442,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         return [
           `# ${label} (página: /familia/${studentId})`,
           `## O que a escola está trabalhando\n${objectives.map((objective) => `- ${objective.description}`).join("\n") || "A escola ainda está montando o plano."}`,
-          `## Atividades para fazer em casa\n${s.activities.map((a) => `- ${a.title} (${a.durationMinutes} min). Materiais: ${parseJson<string[]>(a.materials, []).join(", ")}. Passos: ${parseJson<string[]>(a.steps, []).map((step, index) => `${index + 1}. ${step}`).join(" ")} Se não der certo: ${a.planB}`).join("\n") || "A escola ainda não enviou atividades para casa."}`,
+          `## Atividades para fazer em casa\n${s.activities.map((a) => `- ${a.title} (${a.durationMinutes} min). Materiais: ${readList(a.materials).join(", ")}. Passos: ${readList(a.steps).map((step, index) => `${index + 1}. ${step}`).join(" ")} Se não der certo: ${a.planB}`).join("\n") || "A escola ainda não enviou atividades para casa."}`,
           `## Conquistas registradas pela escola\n${s.timeline.map((event) => `- ${event.title}${event.description ? `: ${event.description}` : ""} (${formatDate(event.date)})`).join("\n") || "Nenhuma ainda."}`,
           `## O que a família já contou\n${s.familyNotes.map((note) => `- "${note.note}" (${note.author}, ${formatDate(note.date)})${isHomeActivityNote(note.note) ? " [atividade feita em casa]" : ""}`).join("\n") || "Nenhuma observação ainda."}`,
         ].join("\n\n");
@@ -516,7 +496,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
     description: "Próximas datas comemorativas do público do AEE (autismo, Libras, braille, síndrome de Down, pessoa com deficiência...), com a ideia de atividade para a turma toda.",
     input: z.object({ dias: z.number().int().min(7).max(366).optional().describe("Horizonte em dias; padrão 60") }),
     run: async (ctx, args) => {
-      const today = todayInBrazil();
+      const today = brYmd();
       const events = upcomingEvents(today, args.dias ?? 60);
       if (!events.length) return "Nenhuma data comemorativa no período. Calendário: /calendario";
       return `Hoje é ${String(today.day).padStart(2, "0")}/${String(today.month).padStart(2, "0")}/${today.year}. Próximas datas (calendário em /calendario):\n` + events.slice(0, 12).map((event) => `- ${event.entry.title}, ${dateRangeLabel(event)} (${relativeLabel(event, today).toLowerCase()}), tema ${CALENDAR_THEMES[event.entry.theme].label}. ${event.entry.about} Ideia para a turma: ${event.entry.idea} Origem: ${event.entry.origin}`).join("\n");
@@ -544,7 +524,7 @@ const PERFORMERS: { [K in ProposalKind]: Performer<K> } = {
   },
   marcar_objetivo: async (user, args) => {
     await setObjectiveStatus(user, args.studentId, args.objectiveId, args.status);
-    return `Objetivo marcado como ${OBJECTIVE_STATUS[args.status]}. Veja em [Plano de ensino](/estudantes/${args.studentId}/ppi).`;
+    return `Objetivo marcado como ${OBJECTIVE_STATUS[args.status].label.toLowerCase()}. Veja em [Plano de ensino](/estudantes/${args.studentId}/ppi).`;
   },
   contar_conquista: async (user, args) => {
     await saveFamilyNote(user, args.studentId, args.note, args.author);

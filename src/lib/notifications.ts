@@ -4,10 +4,11 @@ import { publicAddress } from "./network";
 import type { SessionUser } from "./auth";
 import { isFamilyOf } from "./policy";
 import { emailConfigured, sendEmail } from "./email";
-import { cleanCheckIn, noticeEmail, noticeTitle, weekStart, type NoticeKind } from "./family-contact";
+import { cleanCheckIn, noticeEmail, noticeTitle, type NoticeKind } from "./family-contact";
+import { DAY_MS, weekStart } from "./dates";
 import { familyRecipients, schoolRecipients, writeNotices, type Recipient } from "./notices";
 import { UserError } from "./user-error";
-import { firstName } from "./format";
+import { firstName, writeList } from "./format";
 import { invalidateStudent } from "./invalidate";
 
 const firstNameOf = async (studentId: string) => {
@@ -65,7 +66,7 @@ export async function saveCheckIn(user: SessionUser, studentId: string, answers:
   if ("error" in clean) throw new UserError(clean.error);
   const week = weekStart();
   const key = { studentId_weekStart: { studentId, weekStart: week } };
-  const fields = { userId: user.id, authorName: user.name, answers: JSON.stringify(clean.answers), note: clean.note };
+  const fields = { userId: user.id, authorName: user.name, answers: writeList(clean.answers), note: clean.note };
   if (await prisma.familyCheckIn.findUnique({ where: key, select: { id: true } })) {
     await prisma.familyCheckIn.update({ where: key, data: fields });
     invalidateStudent(studentId);
@@ -79,5 +80,5 @@ export async function saveCheckIn(user: SessionUser, studentId: string, answers:
 
 export const recentCheckIn = async (studentId: string) => {
   const prisma = await db();
-  return prisma.familyCheckIn.findFirst({ where: { studentId, weekStart: { gte: weekStart(new Date(Date.now() - 7 * 86_400_000)) } }, orderBy: { createdAt: "desc" } });
+  return prisma.familyCheckIn.findFirst({ where: { studentId, weekStart: { gte: weekStart(new Date(Date.now() - 7 * DAY_MS)) } }, orderBy: { createdAt: "desc" } });
 };

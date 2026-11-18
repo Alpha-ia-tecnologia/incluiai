@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { ACTIVITY_CONTEXTS, OBJECTIVES_PER_PLAN } from "../pedagogy-rules.ts";
 import { SUPPORT_LEVELS } from "../scale.ts";
+import { PROPOSAL_FIELDS, type PlanField } from "../plan-documents.ts";
 
 export const DIMENSION_KEYS = ["comunicacao", "leitura", "escrita", "matematica", "interacao", "autonomia", "regulacao"] as const;
 const objectiveCount = `De ${OBJECTIVES_PER_PLAN.min} a ${OBJECTIVES_PER_PLAN.max}`;
@@ -30,24 +31,15 @@ export const ProposedObjectiveSchema = z.object({
   rationale: z.string().describe("Por que este objetivo, em uma frase, ligado ao que o caso mostrou."),
 });
 
-// O plano reúne o PAEE e o PEI (Portaria MEC nº 421/2026, arts. 10 e 11) e os
-// objetivos.
-export const PaeeProposalSchema = z.object({
-  accessibilityResources: z.array(z.string()).describe("Art. 10, I: materiais e recursos de acessibilidade para o estudante participar."),
-  assistiveTech: z.array(z.string()).describe("Art. 10, II: tecnologia assistiva e comunicação alternativa. Lista vazia se o caso não permite avaliar."),
-  supportStaff: z.array(z.string()).describe("Art. 10, III: profissional de apoio escolar, intérprete de Libras, guia-intérprete. Lista vazia se o caso não permite avaliar."),
-  networkDemands: z.array(z.string()).describe("Art. 10, IV: formação da equipe e articulação com a rede de proteção social."),
-});
+type ProposalField = Extract<PlanField, { ai: string }>;
+const partSchema = <P extends ProposalField["part"]>(part: P) => z.object(Object.fromEntries(
+  PROPOSAL_FIELDS.filter((field) => field.part === part).map((field) => [field.key, z.array(z.string()).describe(field.ai)]),
+) as Record<Extract<ProposalField, { part: P }>["key"], z.ZodArray<z.ZodString>>);
+
+export const PaeeProposalSchema = partSchema("paee");
 export type PaeeProposal = z.infer<typeof PaeeProposalSchema>;
 
-export const PeiProposalSchema = z.object({
-  aeeServices: z.array(z.string()).describe("Art. 11, I: tipos de atendimento do AEE, com os nomes do Censo Escolar, exatamente como na lista recebida."),
-  aeeStrategies: z.array(z.string()).describe("Art. 11, I: atividades no AEE."),
-  commonRoomStrategies: z.array(z.string()).describe("Art. 11, I e II: o que muda na classe comum para o estudante aprender com a turma."),
-  assessmentAccessibility: z.array(z.string()).describe("Art. 11, II: recursos de acessibilidade na avaliação."),
-  monitoring: z.array(z.string()).describe("Art. 11, III: como a equipe acompanha o plano."),
-  familyFeedback: z.array(z.string()).describe("Art. 11, IV: como e quando a família recebe a devolutiva."),
-});
+export const PeiProposalSchema = partSchema("pei");
 export type PeiProposal = z.infer<typeof PeiProposalSchema>;
 
 export const ObjectivesProposalSchema = z.object({
@@ -57,19 +49,10 @@ export const ObjectivesProposalSchema = z.object({
 });
 export type ObjectivesProposal = z.infer<typeof ObjectivesProposalSchema>;
 
-const laterList = () => z.array(z.string()).default([]);
+// Propostas guardadas antes de algum item do PAEE ou do PEI existir não o trazem.
 export const PlanProposalSchema = z.object({
   initialSituation: z.array(z.string()),
-  commonRoomStrategies: z.array(z.string()),
-  aeeStrategies: z.array(z.string()),
-  accessibilityResources: z.array(z.string()),
-  assistiveTech: laterList(),
-  supportStaff: laterList(),
-  networkDemands: laterList(),
-  aeeServices: laterList(),
-  assessmentAccessibility: laterList(),
-  monitoring: laterList(),
-  familyFeedback: laterList(),
+  ...Object.fromEntries(PROPOSAL_FIELDS.map((field) => [field.key, z.array(z.string()).default([])])) as Record<ProposalField["key"], z.ZodDefault<z.ZodArray<z.ZodString>>>,
   reviewWeeks: z.number().int(),
   objectives: z.array(ProposedObjectiveSchema),
 });

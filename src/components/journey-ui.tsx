@@ -9,7 +9,7 @@ import { percentOf } from "@/lib/series";
 import { RingStat } from "@/components/data-viz";
 
 // O texto *-ink sobre o *-soft correspondente passa de 4.5:1 (ver a paleta em globals.css).
-export const TONE_CLASSES: Record<ChapterTone, { soft: string; ink: string; solid: string }> = {
+export const CHAPTER_CLASSES: Record<ChapterTone, { soft: string; ink: string; solid: string }> = {
   rose: { soft: "bg-rose-soft", ink: "text-rose-ink", solid: "bg-rose-ink" },
   sky: { soft: "bg-sky-soft", ink: "text-sky-ink", solid: "bg-sky-ink" },
   peach: { soft: "bg-peach-soft", ink: "text-peach-ink", solid: "bg-peach-ink" },
@@ -22,7 +22,7 @@ export function JourneyBar({ journey }: { journey: Journey }) {
   return (
     <div className="flex gap-1" aria-hidden>
       {journey.chapters.map((chapter) => (
-        <span key={chapter.key} className={`h-2 flex-1 rounded-full ${chapter.done ? TONE_CLASSES[chapter.tone].solid : chapter.status === "agora" ? `${TONE_CLASSES[chapter.tone].soft} ring-1 ring-inset ring-current ${TONE_CLASSES[chapter.tone].ink}` : "bg-line/70"}`} />
+        <span key={chapter.key} className={`h-2 flex-1 rounded-full ${chapter.done ? CHAPTER_CLASSES[chapter.tone].solid : chapter.status === "agora" ? `${CHAPTER_CLASSES[chapter.tone].soft} ring-1 ring-inset ring-current ${CHAPTER_CLASSES[chapter.tone].ink}` : "bg-line/70"}`} />
       ))}
     </div>
   );
@@ -40,8 +40,8 @@ export function JourneyWelcome({ journey, character = true }: { journey: Journey
           {journey.chapters.length ? (
             <ol className="mt-5 grid gap-2 sm:grid-cols-3">
               {journey.chapters.slice(0, 3).map((chapter, index) => (
-                <li key={chapter.key} className={`flex items-start gap-2.5 rounded-2xl p-3 ${TONE_CLASSES[chapter.tone].soft}`}>
-                  <span className={`flex size-7 shrink-0 items-center justify-center rounded-full bg-paper-raised text-xs font-semibold ${TONE_CLASSES[chapter.tone].ink}`}>{chapter.done ? <Check size={14} strokeWidth={3} aria-label="concluído" /> : index + 1}</span>
+                <li key={chapter.key} className={`flex items-start gap-2.5 rounded-2xl p-3 ${CHAPTER_CLASSES[chapter.tone].soft}`}>
+                  <span className={`flex size-7 shrink-0 items-center justify-center rounded-full bg-paper-raised text-xs font-semibold ${CHAPTER_CLASSES[chapter.tone].ink}`}>{chapter.done ? <Check size={14} strokeWidth={3} aria-label="concluído" /> : index + 1}</span>
                   <span className="text-sm font-medium leading-snug text-ink">{chapter.title}</span>
                 </li>
               ))}

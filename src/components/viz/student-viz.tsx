@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
+import { AlertTriangle, Minus, TrendingDown, type LucideIcon } from "lucide-react";
+import type { Trend } from "@/lib/scale";
 import { HatchedDonut, Legend, SIGNAL, StackedBar, SupportScale } from "@/components/charts";
-import { supportColor, withSegmentColors, type Tone } from "@/components/data-viz";
-import { criterionSplit, participationSplit, percentOf, type Trend } from "@/lib/series";
+import { supportColor, withSegmentColors } from "@/components/data-viz";
+import { criterionSplit, participationSplit, percentOf } from "@/lib/series";
 import { supportInfo } from "@/lib/scale";
 
 type LessonEntry = { date: Date | string; participation?: string; criterionMet?: string };
 
-export const TREND_TONE: Record<Trend, Tone> = { avancando: "good", estavel: "info", atencao: "alert", sem_dados: "neutral" };
+export const TREND_ICON: Record<Trend, LucideIcon> = { avancando: TrendingDown, estavel: Minus, atencao: AlertTriangle, sem_dados: Minus };
 
 // Moldura para o SupportChart: a tabela sr-only dele não encolhe (tabela
 // ignora width: 1px e overflow) e alargava a página a 320 px. A moldura vira
@@ -17,8 +19,8 @@ export function ChartFrame({ children }: { children: ReactNode }) {
 }
 
 export function SupportMeter({ level, showName = true }: { level: number; showName?: boolean }) {
-  const value = Math.round(Math.min(5, Math.max(0, level)));
-  const info = supportInfo(value);
+  const info = supportInfo(level);
+  const value = info.level;
   return (
     <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1">
       <span aria-hidden className="flex w-14 shrink-0 gap-0.5">

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Sprout } from "lucide-react";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 import type { CardView } from "@/lib/student-card";
 
 function Front({ view }: { view: CardView }) {

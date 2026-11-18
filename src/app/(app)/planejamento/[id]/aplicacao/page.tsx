@@ -4,18 +4,16 @@ import { planningContext } from "@/lib/page-context";
 import { teachingContext } from "@/lib/roles";
 import { studentsInReach } from "@/lib/dua/shared";
 import { listApplications } from "@/lib/dua/applications";
-import { CRITERION_STATUSES, CRITERION_STATUS_LABEL, isObserved } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { CRITERION_STATUS, CRITERION_STATUSES, isObserved } from "@/lib/dua/domain";
+import { brDay, formatDate } from "@/lib/dates";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
 import { NewApplicationForm } from "@/components/dua/applications/new-application-form";
-import { ApplicationCard, inputDate } from "@/components/dua/applications/application-card";
+import { ApplicationCard } from "@/components/dua/applications/application-card";
 import { DataBoard, DataCard, StatTile, withSegmentColors } from "@/components/data-viz";
 import { StackedBar } from "@/components/charts";
 import { ShareRing } from "@/components/viz/share-ring";
 import { Assurances, HowToRead, Steps } from "@/components/explain";
-
-const today = () => inputDate(new Date());
 
 export default async function ApplicationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,7 +31,7 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
   });
 
   const statuses = applications.flatMap((application) => application.evidences.flatMap((evidence) => evidence.criteria.map((item) => item.status)));
-  const criterionRows = CRITERION_STATUSES.map((status) => ({ key: status, label: CRITERION_STATUS_LABEL[status], value: statuses.filter((item) => item === status).length }));
+  const criterionRows = CRITERION_STATUSES.map((status) => ({ key: status, ...CRITERION_STATUS[status], value: statuses.filter((item) => item === status).length }));
   const observedSegments = withSegmentColors(criterionRows.filter((row) => isObserved(row.key)));
   const outsideRows = criterionRows.filter((row) => !isObserved(row.key));
   const active = applications.filter((application) => application.state !== "cancelada");
@@ -74,7 +72,7 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
             versions={validatedOptions}
             defaultClassName={planning.className ?? ""}
             defaultContext={teachingContext(user.role) ?? "sala_comum"}
-            today={today()}
+            today={brDay()}
             students={students}
           />
         ) : (

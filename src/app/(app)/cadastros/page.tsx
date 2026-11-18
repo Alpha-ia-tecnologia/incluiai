@@ -92,7 +92,7 @@ export default async function RegistriesPage() {
                     <h3 className="font-medium text-ink">{s.name}</h3>
                     <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-soft"><MapPin size={14} className="shrink-0" aria-hidden /> {s.region}</p>
                   </div>
-                  <Badge tone="brand"><span className="tabular-nums">{s._count.students}</span> {s._count.students === 1 ? "estudante" : "estudantes"}</Badge>
+                  <Badge tone="info"><span className="tabular-nums">{s._count.students}</span> {s._count.students === 1 ? "estudante" : "estudantes"}</Badge>
                 </div>
                 {s.classes.length === 0 ? (
                   <p className="mt-4 border-t border-line pt-4 text-sm text-ink-soft">Nenhuma turma cadastrada nesta escola.</p>

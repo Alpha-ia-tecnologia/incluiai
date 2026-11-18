@@ -3,7 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { CalendarCheck } from "lucide-react";
 import { createDuaApplication } from "@/actions/dua";
-import { APPLICATION_CONTEXTS, APPLICATION_CONTEXT_LABEL, type ApplicationContext } from "@/lib/dua/domain";
+import { APPLICATION_CONTEXTS, type ApplicationContext } from "@/lib/dua/domain";
+import { CONTEXTS } from "@/lib/scale";
 import { Field, FormResult } from "@/components/form-kit";
 import { BUTTON_CLS, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 import { useActionResult } from "@/components/use-action-result";
@@ -68,7 +69,7 @@ export function NewApplicationForm({ planningId, versions, defaultClassName, def
             {APPLICATION_CONTEXTS.map((context) => (
               <label key={context} className="flex min-h-11 min-w-0 items-center gap-2 text-sm text-ink">
                 <input type="radio" name="context" value={context} defaultChecked={context === defaultContext} className="size-4 shrink-0 accent-[var(--brand)]" />
-                {APPLICATION_CONTEXT_LABEL[context]}
+                {CONTEXTS[context].long ?? CONTEXTS[context].label}
               </label>
             ))}
           </div>

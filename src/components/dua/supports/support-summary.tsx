@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui";
 import { BARRIER_STATUS_LABEL, type DuaSupportData } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/dates";
 
 function Item({ term, children }: { term: string; children: ReactNode }) {
   return (

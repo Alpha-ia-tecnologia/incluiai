@@ -1,28 +1,20 @@
 import { ChevronDown } from "lucide-react";
 import type { ApplicationView, EvidenceView } from "@/lib/dua/applications";
-import { APPLICATION_CONTEXT_LABEL, EXECUTION_STATE_LABEL, OBSERVATION_LABEL, type ExecutionState } from "@/lib/dua/domain";
-import { formatDate } from "@/lib/format";
+import { EXECUTION_STATE, OBSERVATION } from "@/lib/dua/domain";
+import { CONTEXTS } from "@/lib/scale";
+import { brDay, formatDate } from "@/lib/dates";
 import { Badge, Card } from "@/components/ui";
 import { ApplicationManager } from "./application-manager";
 import { EvidenceForm, type EvidenceDefaults } from "./evidence-form";
-import { EvidenceSummary, observationTone } from "./evidence-summary";
+import { EvidenceSummary } from "./evidence-summary";
 import type { StudentOption } from "./participant-picker";
 import { ShareRing } from "@/components/viz/share-ring";
 
-const STATE_TONE: Record<ExecutionState, "neutral" | "brand" | "green" | "amber"> = {
-  planejada: "neutral",
-  em_andamento: "brand",
-  concluida: "green",
-  cancelada: "amber",
-};
-
 const summaryCls = "flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden";
-
-export const inputDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 function defaultsFor(application: ApplicationView, evidence: EvidenceView | undefined): EvidenceDefaults {
   return {
-    date: inputDate(evidence?.date ?? application.date),
+    date: brDay(evidence?.date ?? application.date),
     statuses: Object.fromEntries((evidence?.criteria ?? []).map((item) => [item.criterionId, item.status])),
     optionIds: evidence?.optionIds ?? [],
     participationForm: evidence?.participationForm ?? "",
@@ -47,7 +39,7 @@ export function ApplicationCard({ planningId, application, students }: { plannin
     return observation !== undefined && observation !== "nao_registrado";
   }).length;
   const details = [
-    { label: "Onde", value: APPLICATION_CONTEXT_LABEL[application.context] },
+    { label: "Onde", value: CONTEXTS[application.context].long ?? CONTEXTS[application.context].label },
     { label: "Turma ou grupo", value: application.className ?? "" },
     { label: "Responsáveis", value: application.responsibles.map((person) => person.name).join(", ") },
     { label: "Recursos disponíveis", value: application.resources ?? "" },
@@ -60,11 +52,11 @@ export function ApplicationCard({ planningId, application, students }: { plannin
       <section aria-labelledby={headingId} className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
           <h3 id={headingId} className="min-w-0 break-words text-base font-medium text-ink">
-            {application.context === "aee" ? "AEE" : "Sala comum"} · {formatDate(application.date)}
+            {CONTEXTS[application.context].label} · {formatDate(application.date)}
           </h3>
           <div className="flex flex-wrap gap-1.5">
             <Badge tone="neutral">Versão {application.versionNumber}</Badge>
-            <Badge tone={STATE_TONE[application.state]}>{EXECUTION_STATE_LABEL[application.state]}</Badge>
+            <Badge tone={EXECUTION_STATE[application.state].tone}>{EXECUTION_STATE[application.state].label}</Badge>
           </div>
         </div>
         <dl className="mt-2 grid min-w-0 gap-1 text-sm">
@@ -125,7 +117,7 @@ export function ApplicationCard({ planningId, application, students }: { plannin
                     <summary className={summaryCls}>
                       <ChevronDown size={16} aria-hidden className="shrink-0 text-brand-strong transition-transform group-open:rotate-180" />
                       <span className="min-w-0 flex-1 break-words font-medium text-ink">{person.name}</span>
-                      <Badge tone={evidence ? observationTone(evidence.observation) : "neutral"}>{evidence ? OBSERVATION_LABEL[evidence.observation] : "Ainda sem registro"}</Badge>
+                      <Badge tone={evidence ? OBSERVATION[evidence.observation].tone : "neutral"}>{evidence ? OBSERVATION[evidence.observation].label : OBSERVATION.nao_registrado.label}</Badge>
                     </summary>
                     <div className="grid min-w-0 gap-4 border-t border-line p-3">
                       {evidence ? <EvidenceSummary evidence={evidence} /> : null}
