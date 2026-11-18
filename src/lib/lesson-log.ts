@@ -2,6 +2,7 @@ import { CRITERION_MET, DIMENSIONS, PARTICIPATION, supportInfo } from "./scale.t
 import { isLinkedRole, isRole, roleGroup } from "./roles.ts";
 import { brDay, daysBetween } from "./dates.ts";
 import type { Problem } from "./user-error.ts";
+import { reachedGoal, type SupportStepsData } from "./support-steps.ts";
 
 export const lessonLogHref = (studentId: string, objectiveId?: string | null) =>
   `/estudantes/${studentId}/diario${objectiveId ? `?objetivo=${encodeURIComponent(objectiveId)}` : ""}`;
@@ -90,4 +91,22 @@ export function lastRecordLabel(date: Date | null | undefined, now: Date = new D
   if (!date) return "Ainda sem registro";
   const days = daysBetween(brDay(date), brDay(now));
   return days <= 0 ? "Último registro hoje" : days === 1 ? "Último registro ontem" : `Último registro há ${days} dias`;
+}
+
+export type SavedLesson = { objectiveId: string | null; steps: SupportStepsData | null };
+
+export type LessonOutcome = { reached: boolean; level: string; goal: string | null; note: string; streak: number };
+
+export function lessonOutcome(steps: Pick<SupportStepsData, "lessons" | "total" | "target">): LessonOutcome | null {
+  const levels = steps.lessons.map((lesson) => lesson.level);
+  const latest = levels.at(-1);
+  if (latest === undefined) return null;
+  let streak = 0;
+  while (streak < levels.length && levels[levels.length - 1 - streak] === latest) streak += 1;
+  const previous = levels.length > streak ? levels[levels.length - 1 - streak] : null;
+  const note = steps.total === 1 ? "primeira aula registrada"
+    : streak > 1 ? `${streak}ª aula seguida`
+      : previous !== null && latest < previous ? "menos apoio que na aula anterior"
+        : previous !== null && latest > previous ? "mais apoio que na aula anterior" : "";
+  return { reached: reachedGoal(latest, steps.target), level: supportInfo(latest).label, goal: steps.target === null ? null : supportInfo(steps.target).label, note, streak };
 }

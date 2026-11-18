@@ -399,6 +399,11 @@ if (!ONLY_WAIT) {
     const left = await page.evaluate(() => ({ text: document.querySelector('form [role="alert"]')?.textContent ?? "", inline: document.querySelectorAll('form p[id$="-erro"]').length }));
     check("registro: ao responder, o problema sai do resumo", left.text.includes("faltam 2 respostas") && left.inline === 2, JSON.stringify(left));
 
+    await page.goto(`${BASE}${danteHref}`, { waitUntil: "networkidle2" });
+    const overviewLinks = await page.$$eval('article[aria-label^="Objetivo:"] a[href*="/diario?objetivo="]', (links) => links.length);
+    const overviewCards = await page.$$eval('article[aria-label^="Objetivo:"]', (cards) => cards.length);
+    check("resumo: cada objetivo oferece registrar a aula dele", overviewCards > 0 && overviewLinks === overviewCards, `${overviewLinks} de ${overviewCards}`);
+
     await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
     const objectiveLinks = await page.$$eval('a[href*="/diario?objetivo="]', (links) => links.map((link) => link.getAttribute("href")));
     const target = objectiveLinks.find((href) => !href.endsWith(`=${form.value}`)) ?? objectiveLinks[0];
@@ -418,6 +423,28 @@ if (!ONLY_WAIT) {
       const card = await page.evaluate((text) => [...document.querySelectorAll("#historico-registros .ui-card")].find((item) => item.textContent.includes(text))?.textContent ?? "", note);
       const action = chosen.label.split(" · ")[1]?.replace(/…$/, "") ?? "";
       check("registro: só participação, apoio e resultado bastam para salvar, com o objetivo e o papel certos", Boolean(action) && card.includes(action) && card.includes("Professor(a) do AEE"), card.slice(0, 200));
+      const result = await page.evaluate(() => {
+        const box = document.querySelector("[data-resultado-registro]");
+        const heading = box?.querySelector("h3");
+        return {
+          heading: heading?.textContent ?? "",
+          focused: Boolean(heading) && document.activeElement === heading,
+          steps: box?.querySelector('[data-support-steps="regular"] [role="img"]')?.getAttribute("aria-label") ?? "",
+          highlighted: box?.querySelectorAll(".outline-brand").length ?? 0,
+          sentence: box?.querySelector("[data-resultado-frase]")?.textContent ?? "",
+          links: [...(box?.querySelectorAll("a") ?? [])].map((link) => [link.textContent.trim(), link.getAttribute("href")]),
+          buttons: [...(box?.querySelectorAll("button") ?? [])].map((button) => button.textContent.trim()),
+          form: Boolean(document.querySelector("#objectiveId")),
+        };
+      });
+      check("registro salvo: o cartão troca o formulário pelos degraus do objetivo, com a aula nova em destaque e uma frase",
+        result.heading === "Registro salvo" && result.focused && /aula/.test(result.steps) && result.highlighted === 1 && /Instrução verbal.*meta Supervisão|Meta alcançada/.test(result.sentence) && !result.form, JSON.stringify(result));
+      check("registro salvo: os próximos passos (outro estudante, outra aula, evolução)",
+        result.links.some(([text, href]) => text === "Registrar outro estudante" && href === "/estudantes?acao=registrar") && result.buttons.includes(`Outra aula de ${DANTE_FIRST}`) && result.links.some(([text, href]) => text === "Ver evolução" && href === `${danteHref}/linha-do-tempo`), JSON.stringify(result));
+      await clickByText(page, `Outra aula de ${DANTE_FIRST}`);
+      await until(page, () => document.activeElement?.id === "objectiveId", { timeout: 5000 });
+      const again = await page.evaluate(() => ({ value: document.querySelector("#objectiveId")?.value, focus: document.activeElement?.id, participation: document.querySelector('input[name="participation"]:checked')?.value ?? null, card: Boolean(document.querySelector("[data-resultado-registro]")) }));
+      check("registro salvo: 'Outra aula' volta ao formulário vazio, com um objetivo escolhido", Boolean(again.value) && again.focus === "objectiveId" && again.participation === null && !again.card, JSON.stringify(again));
     }
     check("registro de aula sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { accountAuthorRole, defaultObjectiveId, lastRecordLabel, lessonLogHref, lessonProblems, missingAnswers, objectiveLabels, supportFromInput } from "./lesson-log.ts";
+import { accountAuthorRole, defaultObjectiveId, lastRecordLabel, lessonLogHref, lessonOutcome, lessonProblems, missingAnswers, objectiveLabels, supportFromInput } from "./lesson-log.ts";
 
 const objective = (id, fields = {}) => ({ id, action: "identificará seu nome entre 5 opções", condition: "com pista visual", criterion: "4 de 5 tentativas", dimension: "leitura", targetSupport: 1, ...fields });
 const at = (iso) => new Date(`${iso}T12:00:00-03:00`);
@@ -101,4 +101,23 @@ test("último registro em palavras, pelo dia de Brasília", () => {
 test("link para registrar a aula de um objetivo", () => {
   assert.equal(lessonLogHref("e1"), "/estudantes/e1/diario");
   assert.equal(lessonLogHref("e1", "o 2"), "/estudantes/e1/diario?objetivo=o%202");
+});
+
+const steps = (levels, target = 1, total = levels.length) => ({ lessons: levels.map((level, index) => ({ key: String(index), date: "", dateLong: "", level, participation: "total" })), total, target });
+
+test("depois de salvar: o nível de hoje rumo à meta, com a sequência em palavras", () => {
+  assert.deepEqual(lessonOutcome(steps([3, 2, 2, 2])), { reached: false, level: "Instrução verbal", goal: "Supervisão", note: "3ª aula seguida", streak: 3 });
+  assert.equal(lessonOutcome(steps([3, 2])).note, "menos apoio que na aula anterior");
+  assert.equal(lessonOutcome(steps([2, 3])).note, "mais apoio que na aula anterior");
+  assert.equal(lessonOutcome(steps([4])).note, "primeira aula registrada");
+  assert.equal(lessonOutcome(steps([2], 1, 30)).note, "", "a mais antiga visível não é a primeira do objetivo");
+});
+
+test("depois de salvar: meta alcançada quando o apoio de hoje chega à meta", () => {
+  assert.deepEqual(lessonOutcome(steps([2, 1])), { reached: true, level: "Supervisão", goal: "Supervisão", note: "menos apoio que na aula anterior", streak: 1 });
+  assert.equal(lessonOutcome(steps([2, 0, 0])).reached, true);
+  assert.equal(lessonOutcome(steps([2, 0, 0])).note, "2ª aula seguida");
+  assert.equal(lessonOutcome(steps([1], null)).reached, false);
+  assert.equal(lessonOutcome(steps([1], null)).goal, null);
+  assert.equal(lessonOutcome(steps([])), null);
 });

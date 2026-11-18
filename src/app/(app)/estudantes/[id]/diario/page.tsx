@@ -2,7 +2,7 @@ import { recentCheckIn } from "@/lib/notifications";
 import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { createDiaryEntry } from "@/actions/diary";
-import { readList } from "@/lib/format";
+import { firstName, readList } from "@/lib/format";
 import { formatDate } from "@/lib/dates";
 import { PARTICIPATION, CRITERION_MET, shortOf, toneOf } from "@/lib/scale";
 import { roleLabel } from "@/lib/roles";
@@ -66,7 +66,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
 
       <Card className="mb-8 max-w-3xl">
         <SectionTitle>Novo registro</SectionTitle>
-        <DiaryForm saveAction={create} studentId={id} objectives={objectiveOptions} activities={acceptedActivities} initialActivityId={selectedActivity?.id ?? ""} initialObjectiveId={initialObjectiveId} accountRole={accountAuthorRole(user.role)} />
+        <DiaryForm saveAction={create} studentId={id} studentName={firstName(student.name)} objectives={objectiveOptions} activities={acceptedActivities} initialActivityId={selectedActivity?.id ?? ""} initialObjectiveId={initialObjectiveId} accountRole={accountAuthorRole(user.role)} />
       </Card>
 
       <section id="historico-registros" className="max-w-3xl scroll-mt-6" aria-labelledby="history-title">

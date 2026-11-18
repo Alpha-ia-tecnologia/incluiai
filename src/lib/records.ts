@@ -12,7 +12,8 @@ import { invalidateStudent } from "./invalidate";
 import { studentConsent } from "./consent";
 import { UserError } from "./user-error";
 import { OBJECTIVE_STATUS } from "./scale";
-import { lessonProblems, missingAnswers } from "./lesson-log";
+import { lessonProblems, missingAnswers, type SavedLesson } from "./lesson-log";
+import { stepsFor } from "./support-steps";
 import { validBnccCode } from "./bncc";
 import { buildObjectiveDescription } from "./objective";
 import { homeActivityNote } from "./user-journey";
@@ -77,6 +78,17 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
   await recordChange(user, studentId, AUDIT_ACTION.recorded, "Registro de aula");
   invalidateStudent(studentId);
   return entry;
+}
+
+export async function savedLesson(user: SessionUser, studentId: string, objectiveId: string | null): Promise<SavedLesson> {
+  if (!objectiveId) return { objectiveId: null, steps: null };
+  const prisma = await db();
+  await assertStudentTeam(user, studentId);
+  const [objective, entries] = await Promise.all([
+    prisma.objective.findFirst({ where: { id: objectiveId, plan: { studentId } }, select: { id: true, targetSupport: true } }),
+    prisma.diaryEntry.findMany({ where: { studentId, objectiveId }, select: { id: true, date: true, supportLevel: true, participation: true, objectiveId: true } }),
+  ]);
+  return { objectiveId, steps: objective ? stepsFor(objective, entries) : null };
 }
 
 export async function saveProfile(user: SessionUser, studentId: string, profile: ProfileData) {

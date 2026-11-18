@@ -10,6 +10,7 @@ import { CHANNELS, BARRIERS, SHIFTS, supportInfo } from "@/lib/scale";
 import { countItems } from "@/lib/series";
 import { stepsFor } from "@/lib/support-steps";
 import { trendMessage } from "@/lib/support-trend";
+import { lessonLogHref } from "@/lib/lesson-log";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
 import { guidanceForPlan, parseAccepted, reportStatus } from "@/lib/health-reports-core";
@@ -126,6 +127,11 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                     </div>
                     <SupportSteps data={data} size="regular" name={obj.action} className="mt-4" />
                     <p className="mt-3 text-xs text-ink-soft">{trendMessage(data.trend, data.total)}</p>
+                    {can.edit ? (
+                      <Link href={lessonLogHref(id, obj.id)} className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
+                        Registrar aula<span className="sr-only">: {obj.action}</span> <ArrowRight size={15} aria-hidden />
+                      </Link>
+                    ) : null}
                   </article>
                 );
               })}

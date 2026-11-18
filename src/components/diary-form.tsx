@@ -1,17 +1,20 @@
 "use client";
 
-import { useRef, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent, type Ref } from "react";
 import Link from "next/link";
-import { LoaderCircle, Sprout } from "lucide-react";
+import { ArrowRight, Check, LoaderCircle, Sprout } from "lucide-react";
 import { CRITERION_MET, PARTICIPATION, SUPPORT_LEVELS } from "@/lib/scale";
 import { roleLabel, rolesWith } from "@/lib/roles";
 import { RECOMMENDATION_OPTIONS, WHAT_WORKED_OPTIONS } from "@/lib/form-options";
-import { lessonProblems, missingAnswers, supportFromInput } from "@/lib/lesson-log";
+import { lessonOutcome, lessonProblems, missingAnswers, supportFromInput, type LessonOutcome, type SavedLesson } from "@/lib/lesson-log";
 import { VoiceNote } from "@/components/voice-note";
 import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
 import { Field, FieldError, FormResult, errorIdOf } from "@/components/form-kit";
-import { inputCls, labelCls, choiceCls } from "@/components/form-styles";
+import { BUTTON_CLS, inputCls, labelCls, choiceCls } from "@/components/form-styles";
+import { SupportSteps } from "@/components/viz/support-steps";
 import type { ActionResult } from "@/lib/action-result";
+
+type Failure = Extract<ActionResult, { ok: false }>;
 
 const participationChoices = Object.entries(PARTICIPATION).map(([value, term]) => [value, term.answer]);
 const criterionChoices = Object.entries(CRITERION_MET).map(([value, term]) => [value, term.answer]);
@@ -27,44 +30,62 @@ const invalidCls = "aria-invalid:border-coral";
 const fieldName = (target: EventTarget) => (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement ? target.name : "");
 
 export function DiaryForm({
-  saveAction, studentId, objectives, activities, initialActivityId, initialObjectiveId, accountRole,
+  saveAction, studentId, studentName, objectives, activities, initialActivityId, initialObjectiveId, accountRole,
 }: {
-  saveAction: (formData: FormData) => Promise<ActionResult>;
+  saveAction: (formData: FormData) => Promise<ActionResult<SavedLesson>>;
   studentId: string;
+  studentName: string;
   objectives: { id: string; label: string; criterion: string }[];
   activities: { id: string; title: string }[];
   initialActivityId: string;
   initialObjectiveId: string;
   accountRole: string;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const statusRef = useRef<HTMLParagraphElement>(null);
+  const savedRef = useRef<HTMLHeadingElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const submitting = useRef(false);
   const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<ActionResult | null>(null);
-  const saved = result?.ok === true;
-  const failure = result && !result.ok ? result : null;
+  const [failure, setFailure] = useState<Failure | null>(null);
+  const [saved, setSaved] = useState<SavedLesson | null>(null);
   const problemOf = (field: string) => failure?.problems?.find((problem) => problem.field === field)?.message;
-  const [savedCount, setSavedCount] = useState(0);
   const [objectiveId, setObjectiveId] = useState(initialObjectiveId);
   const [activityId, setActivityId] = useState(initialActivityId);
   const [authorRole, setAuthorRole] = useState(accountRole);
   const [choosingRole, setChoosingRole] = useState(!accountRole);
   const selectedObjective = objectives.find((objective) => objective.id === objectiveId);
 
-  function showSummary() {
+  // O cartão entra numa transição: o foco vai para o título quando ele já está na página.
+  useEffect(() => {
+    if (!saved) return;
+    savedRef.current?.focus({ preventScroll: true });
+    savedRef.current?.closest("section")?.scrollIntoView({ block: "start" });
+  }, [saved]);
+
+  // O resumo de erros recebe o foco quando aparece (e não quando um erro é corrigido).
+  const focusSummary = useRef(false);
+  useEffect(() => {
+    if (!failure || !focusSummary.current) return;
+    focusSummary.current = false;
     summaryRef.current?.focus({ preventScroll: true });
     summaryRef.current?.scrollIntoView({ block: "start" });
-  }
+  }, [failure]);
 
   function answered(field: string) {
-    setResult((current) => {
-      if (!current) return current;
-      if (current.ok || !current.problems?.length) return null;
+    setFailure((current) => {
+      if (!current?.problems?.length) return null;
       const problems = current.problems.filter((problem) => problem.field !== field);
       if (problems.length === current.problems.length) return current;
       return problems.length ? { ...current, message: missingAnswers(problems.length), problems } : null;
+    });
+  }
+
+  function anotherLesson() {
+    setSaved(null);
+    setObjectiveId(initialObjectiveId);
+    requestAnimationFrame(() => {
+      const first = document.getElementById(objectives.length ? "objectiveId" : FIELD_IDS.participation);
+      first?.focus({ preventScroll: true });
+      first?.closest("section")?.scrollIntoView({ block: "start" });
     });
   }
 
@@ -79,32 +100,37 @@ export function DiaryForm({
       authorRole: String(formData.get("authorRole") ?? ""),
     });
     if (problems.length) {
-      setResult({ ok: false, message: missingAnswers(problems.length), problems });
-      requestAnimationFrame(showSummary);
+      focusSummary.current = true;
+      setFailure({ ok: false, message: missingAnswers(problems.length), problems });
       return;
     }
     submitting.current = true;
-    setResult(null);
+    setFailure(null);
     startTransition(async () => {
-      let outcome: ActionResult;
+      let outcome: ActionResult<SavedLesson>;
       try {
         outcome = await saveAction(formData);
       } catch {
         outcome = { ok: false, message: NO_ANSWER };
       }
-      if (outcome.ok) {
-        formRef.current?.reset();
-        setActivityId("");
-        setSavedCount((count) => count + 1);
-      }
-      setResult(outcome);
       submitting.current = false;
-      requestAnimationFrame(outcome.ok ? () => statusRef.current?.focus() : showSummary);
+      if (outcome.ok) {
+        setActivityId("");
+        setSaved(outcome.value);
+      } else {
+        focusSummary.current = true;
+        setFailure(outcome);
+      }
     });
   }
 
+  if (saved) {
+    const objective = objectives.find((item) => item.id === saved.objectiveId);
+    return <SavedLessonCard headingRef={savedRef} saved={saved} objectiveLabel={objective?.label ?? null} studentId={studentId} studentName={studentName} onAnother={anotherLesson} />;
+  }
+
   return (
-    <form ref={formRef} noValidate onSubmit={submit} onChange={(event) => answered(fieldName(event.target))} aria-busy={pending} className="space-y-6">
+    <form noValidate onSubmit={submit} onChange={(event) => answered(fieldName(event.target))} aria-busy={pending} className="space-y-6">
       {failure ? <FormResult ref={summaryRef} result={failure} fields={FIELD_IDS} /> : null}
       <fieldset disabled={pending} className="space-y-6 disabled:opacity-65">
         <section aria-labelledby="diary-step-1" className="space-y-4 rounded-2xl bg-surface-muted/60 p-4 sm:p-5">
@@ -115,7 +141,7 @@ export function DiaryForm({
           {objectives.length ? (
             <Field id="objectiveId" label="Objetivo do plano" note="opcional">
               {(control) => (
-                <select key={`objetivo-${savedCount}`} {...control} name="objectiveId" value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)} className={inputCls}>
+                <select {...control} name="objectiveId" value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)} className={inputCls}>
                   {objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.label}</option>)}
                   <option value="">Sem objetivo do plano neste registro</option>
                 </select>
@@ -129,7 +155,7 @@ export function DiaryForm({
           {activities.length > 0 ? (
             <Field id="activityId" label="Atividade usada" note="opcional" hint="Se escolher uma atividade, ela será marcada como realizada ao salvar.">
               {(control) => (
-                <select key={`atividade-${savedCount}`} {...control} name="activityId" value={activityId} onChange={(event) => setActivityId(event.target.value)} className={inputCls}>
+                <select {...control} name="activityId" value={activityId} onChange={(event) => setActivityId(event.target.value)} className={inputCls}>
                   <option value="">Outra atividade ou sem atividade selecionada</option>
                   {activities.map((activity) => <option key={activity.id} value={activity.id}>{activity.title}</option>)}
                 </select>
@@ -165,20 +191,19 @@ export function DiaryForm({
             </p>
           ) : null}
           <ChoiceGroup name="criterionMet" legend="Conseguiu realizar o que era esperado?" note="obrigatório" choices={criterionChoices} error={problemOf("criterionMet")} />
-          <VoiceNote key={savedCount} name="note" label="Conte o que você observou (opcional)" placeholder="Ex.: reconheceu o próprio nome entre três opções com ajuda de imagens." />
+          <VoiceNote name="note" label="Conte o que você observou (opcional)" placeholder="Ex.: reconheceu o próprio nome entre três opções com ajuda de imagens." />
         </section>
 
         <details className="rounded-2xl border border-line p-4 sm:p-5">
           <summary className="cursor-pointer py-1 text-sm font-semibold text-brand-strong">Adicionar mais detalhes (opcional)</summary>
           <div className="mt-4 space-y-6">
-            <MultiChoiceField key={`worked-${savedCount}`} name="whatWorked" label="O que ajudou o estudante?" options={WHAT_WORKED_OPTIONS} />
-            <MultiChoiceField key={`next-${savedCount}`} name="recommendation" label="O que tentar no próximo encontro?" options={RECOMMENDATION_OPTIONS} />
+            <MultiChoiceField name="whatWorked" label="O que ajudou o estudante?" options={WHAT_WORKED_OPTIONS} />
+            <MultiChoiceField name="recommendation" label="O que tentar no próximo encontro?" options={RECOMMENDATION_OPTIONS} />
           </div>
         </details>
 
         {choosingRole ? (
           <ChoiceField
-            key={`role-${savedCount}`}
             id={FIELD_IDS.authorRole}
             name="authorRole"
             label="Seu papel neste registro (obrigatório)"
@@ -214,18 +239,64 @@ export function DiaryForm({
       </fieldset>
 
       <div className="save-bar flex flex-col items-start gap-3 border-t border-line pt-5">
-        <p ref={statusRef} tabIndex={-1} role="status" aria-live="polite" className="text-sm leading-relaxed text-brand-strong">
-          {pending ? "Salvando seu registro…" : saved ? (
-            <span className="flex items-start gap-2"><Sprout size={16} aria-hidden className="sprout-mark mt-1 shrink-0 text-green" />Registro salvo. Ele já aparece no histórico abaixo.</span>
-          ) : null}
-        </p>
+        <p role="status" aria-live="polite" className="text-sm leading-relaxed text-brand-strong">{pending ? "Salvando seu registro…" : null}</p>
         <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-strong disabled:cursor-wait disabled:opacity-60 sm:w-auto">
           {pending ? <LoaderCircle size={18} className="animate-spin" aria-hidden /> : null}
           {pending ? "Salvando…" : "Salvar registro"}
         </button>
-        {saved ? <a href="#historico-registros" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline underline-offset-4">Ver registro no histórico</a> : null}
       </div>
     </form>
+  );
+}
+
+function SavedLessonCard({ headingRef, saved, objectiveLabel, studentId, studentName, onAnother }: {
+  headingRef: Ref<HTMLHeadingElement>;
+  saved: SavedLesson;
+  objectiveLabel: string | null;
+  studentId: string;
+  studentName: string;
+  onAnother: () => void;
+}) {
+  const outcome = saved.steps ? lessonOutcome(saved.steps) : null;
+  return (
+    <section aria-labelledby="registro-salvo" data-resultado-registro className="space-y-5">
+      <div className="flex items-start gap-3">
+        <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-green-soft text-green"><Sprout size={20} className="sprout-mark" /></span>
+        <div className="min-w-0">
+          <h3 ref={headingRef} id="registro-salvo" tabIndex={-1} className="text-base font-semibold text-ink">Registro salvo</h3>
+          <p className="mt-0.5 text-sm leading-relaxed text-ink-soft [overflow-wrap:anywhere]">{objectiveLabel ?? "Sem objetivo do plano"}</p>
+        </div>
+      </div>
+      {saved.steps ? (
+        <div className="min-w-0 rounded-2xl border border-line p-4 sm:p-5">
+          <SupportSteps data={saved.steps} size="regular" highlightLast name={objectiveLabel ?? undefined} />
+          {outcome ? <OutcomeLine outcome={outcome} /> : null}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Link href="/estudantes?acao=registrar" className={BUTTON_CLS.primary}>Registrar outro estudante</Link>
+        <button type="button" onClick={onAnother} className={BUTTON_CLS.secondary}>Outra aula de {studentName}</button>
+        <Link href={`/estudantes/${studentId}/linha-do-tempo`} className={BUTTON_CLS.quiet}>Ver evolução</Link>
+      </div>
+    </section>
+  );
+}
+
+function OutcomeLine({ outcome }: { outcome: LessonOutcome }) {
+  if (outcome.reached) {
+    return (
+      <p data-resultado-frase className="mt-4 flex items-start gap-2 text-base font-medium text-green">
+        <Check size={18} aria-hidden className="mt-0.5 shrink-0" />
+        <span>Meta alcançada!{outcome.streak > 1 ? <span className="font-normal text-ink"> {outcome.level}, {outcome.note}.</span> : null}</span>
+      </p>
+    );
+  }
+  return (
+    <p data-resultado-frase className="mt-4 text-base text-ink">
+      <span className="font-medium">{outcome.level}</span>
+      {outcome.goal ? <> <ArrowRight size={16} aria-hidden className="inline-block align-[-3px] text-ink-soft" /><span className="sr-only">rumo à</span> meta {outcome.goal}</> : null}
+      {outcome.note ? `: ${outcome.note}` : ""}.
+    </p>
   );
 }
 
