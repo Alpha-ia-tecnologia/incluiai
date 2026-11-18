@@ -3,7 +3,7 @@ import { OBJECTIVE_STATUSES } from "../scale.ts";
 
 const studentId = z.string();
 
-export const PROPOSALS = {
+const PROPOSALS = {
   registrar_aula: {
     label: "Registro de aula",
     args: z.object({

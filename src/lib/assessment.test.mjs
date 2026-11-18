@@ -1,12 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { AREAS, ITEMS, areaSummary, cleanAnswers, compareAreas, objectiveSuggestions, reassessmentDue, referenceLabel, referenceYear, smallNumber } from "./assessment.ts";
+import { AREAS, ITEMS, cleanAnswers, compareAreas, objectiveSuggestions, reassessmentDue, referenceLabel, referenceYear, smallNumber } from "./assessment.ts";
 
 const BNCC = new Map(JSON.parse(readFileSync(new URL("../../prisma/data/bncc.json", import.meta.url), "utf8")).map((skill) => [skill.code, skill]));
 
-test("instrumento: 51 itens, ids únicos, toda área com itens e códigos da BNCC que existem no ano certo", () => {
-  assert.equal(ITEMS.length, 51);
+test("instrumento: ids únicos, toda área com itens e códigos da BNCC que existem no ano certo", () => {
   assert.equal(new Set(ITEMS.map((item) => item.id)).size, ITEMS.length);
   for (const area of AREAS) assert.ok(ITEMS.some((item) => item.area === area.key), area.key);
   for (const item of ITEMS.filter((entry) => entry.bncc)) {
@@ -25,9 +24,10 @@ test("respostas: só itens do instrumento e níveis de 0 a 5", () => {
   assert.equal("nao-existe" in answers, false);
 });
 
-test("resumo por área e ano de referência", () => {
+test("média de apoio por área e ano de referência", () => {
   const answers = cleanAnswers({ "le-01": 0, "le-02": 1, "le-03": 2, "le-07": 2, "le-08": 2, "le-10": 4, "ma-01": 3 });
-  assert.deepEqual(areaSummary(answers, "leitura_escrita"), { observed: 6, average: 1.8, independent: 2 });
+  const reading = compareAreas(answers, answers).find((row) => row.area === "leitura_escrita");
+  assert.deepEqual([reading.start, reading.end, reading.change], [1.8, 1.8, 0]);
   assert.equal(referenceYear(answers, "leitura_escrita"), 1);
   assert.equal(referenceLabel(referenceYear(answers, "leitura_escrita")), "habilidades do 1º ano");
   assert.equal(referenceYear(answers, "matematica"), 0);

@@ -1,20 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectEdition, parseEducacensoFile, parseInterval, schedulesOverlap, specialEdPersons, titleCase, toIsoDate } from "./educacenso.ts";
-import { sampleFile } from "./educacenso.fixture.mjs";
+import { parseEducacensoFile, specialEdPersons, titleCase } from "./educacenso.ts";
+import { censusFile, sampleFile } from "./educacenso.fixture.mjs";
 
 test("datas, nomes e horários", () => {
-  assert.equal(toIsoDate("12/03/2019"), "2019-03-12");
-  assert.equal(toIsoDate("30/02/2018"), "");
-  assert.equal(toIsoDate("2019-03-12"), "");
+  const aee = (code, days) => ({ code, name: code, kind: "aee", days });
+  const file = censusFile({
+    school: { code: "12345678", name: "EMEF TESTE" },
+    classes: [{ code: "REG", name: "2 ANO", kind: "curricular", stage: "302", days: { 1: "07:00-11:00" } }, aee("A1", { 1: "10:00-12:00" }), aee("A2", { 1: "11:00-12:00" }), aee("A3", { 2: "08:00-09:00" }), aee("A4", { 1: "11:00-07:00" })],
+    people: [
+      { code: "P1", name: "MARIA DA SILVA E SOUZA", birth: "12/03/2019" },
+      { code: "P2", name: "PESSOA DOIS", birth: "30/02/2018" },
+      { code: "P3", name: "PESSOA TRES", birth: "2019-03-12" },
+      { code: "P4", name: "PESSOA QUATRO", birth: "01/01/2018" },
+    ],
+    enrollments: ["P1", "P2", "P3", "P4"].flatMap((person, index) => [{ person, klass: "REG" }, { person, klass: `A${index + 1}`, services: [0] }]),
+  }).join("\r\n");
+  const persons = parseEducacensoFile(file).persons;
+  assert.deepEqual(persons.map((person) => person.birthDate), ["2019-03-12", "", "", "2018-01-01"]);
+  assert.deepEqual(persons.map((person) => person.scheduleOverlap), [true, false, false, false]);
   assert.equal(titleCase("MARIA DA SILVA E SOUZA"), "Maria da Silva e Souza");
-  assert.deepEqual(parseInterval("07:30-11:00"), [450, 660]);
-  assert.deepEqual(parseInterval("11:00-07:00"), [0, 0]);
-  assert.deepEqual(parseInterval(""), [0, 0]);
-  const week = (day, interval) => Array.from({ length: 7 }, (_, index) => (index === day ? parseInterval(interval) : [0, 0]));
-  assert.equal(schedulesOverlap(week(1, "07:00-11:00"), week(1, "10:00-12:00")), true);
-  assert.equal(schedulesOverlap(week(1, "07:00-11:00"), week(1, "11:00-12:00")), false);
-  assert.equal(schedulesOverlap(week(1, "07:00-11:00"), week(2, "08:00-09:00")), false);
 });
 
 test("a edição sai do número de campos (com ou sem | no fim) ou do tipo de turma", () => {
@@ -22,10 +27,10 @@ test("a edição sai do número de campos (com ou sem | no fim) ou do tipo de tu
   assert.equal(parseEducacensoFile(sampleFile(2026)).edition, 2026);
   const withTrailingPipe = sampleFile(2026).split("\r\n").map((row) => `${row}|`).join("\n");
   assert.equal(parseEducacensoFile(withTrailingPipe).edition, 2026);
-  assert.equal(detectEdition([["20", "1", "T", "", "X", "", "", "", "", "", "", "", "", "5"]]), 2026);
+  assert.equal(parseEducacensoFile("20|1|T||X|||||||||5").edition, 2026);
   const latin = new TextDecoder("windows-1252").decode(Buffer.from(sampleFile(2025), "latin1"));
   assert.equal(parseEducacensoFile(latin).school?.code, "12345678");
-  assert.equal(detectEdition([["20", "1", "T", "", "X", "", "", "", "", "", "", "", "", "1"]]), 2025);
+  assert.equal(parseEducacensoFile("20|1|T||X|||||||||1").edition, 2025);
 });
 
 for (const edition of [2025, 2026]) {

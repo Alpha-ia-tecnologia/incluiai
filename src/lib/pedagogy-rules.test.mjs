@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  ACTIVITY_CONTEXTS, PERMANENT_RULE_ID, SAFEGUARDS, SUPPORT_SCALE, activityMinutesLimit, checkActivity, hasClinicalTerm, isActivityContext, studentAdaptations, usesAac,
+  PERMANENT_RULE_ID, SAFEGUARDS, SUPPORT_SCALE, activityMinutesLimit, checkActivity, hasClinicalTerm, isActivityContext, studentAdaptations, usesAac,
 } from "./pedagogy-rules.ts";
+import { SUPPORT_LEVELS } from "./scale.ts";
 
 test("linguagem clínica: um só vocabulário para plano, material, DUA e orientações de laudo", () => {
   const clinical = [
@@ -39,7 +40,6 @@ test("verificação de uma atividade: tempo, passos, critério, turma junto e na
 });
 
 test("contextos, regra permanente e comunicação alternativa", () => {
-  assert.deepEqual([...ACTIVITY_CONTEXTS], ["sala_comum", "aee", "casa"]);
   assert.ok(isActivityContext("casa") && !isActivityContext("rua"));
   const rules = [{ id: "R01-CAA" }, { id: PERMANENT_RULE_ID }, { id: "R02-LIBRAS" }];
   assert.deepEqual(studentAdaptations(rules).map((rule) => rule.id), ["R01-CAA", "R02-LIBRAS"]);
@@ -48,8 +48,8 @@ test("contextos, regra permanente e comunicação alternativa", () => {
 });
 
 test("textos para os agentes: escala de apoio completa e salvaguardas", () => {
-  assert.match(SUPPORT_SCALE, /^0 IND \(realiza de forma independente\); 1 SUP/);
-  assert.match(SUPPORT_SCALE, /2 VERB \(precisa de instrução verbal ou pista visual\)/);
-  assert.match(SUPPORT_SCALE, /5 FIS-T \(precisa de apoio físico total ou não realiza\)$/);
+  const positions = SUPPORT_LEVELS.map(({ level, code }) => SUPPORT_SCALE.indexOf(`${level} ${code}`));
+  assert.ok(positions.every((position, index) => position >= 0 && (index === 0 || position > positions[index - 1])), SUPPORT_SCALE);
+  assert.deepEqual(SUPPORT_LEVELS.map(({ level }) => level), [0, 1, 2, 3, 4, 5]);
   for (const rule of [/a pessoa decide/, /Não infira diagnóstico/, /nunca reduza o currículo/, /sem segregação/, /não invente dados/]) assert.match(SAFEGUARDS, rule);
 });

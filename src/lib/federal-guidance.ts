@@ -37,7 +37,7 @@ export const REGULAR_TEACHER = "Professor(a) da sala comum";
 export type CensusReferenceRecord = "Estudo de caso" | "PAEE" | "PEI";
 
 export type SpecialEducationAnswer = "sim" | "em_avaliacao" | "nao" | null;
-export function specialEducationAnswer(value: string | null | undefined): SpecialEducationAnswer {
+function specialEducationAnswer(value: string | null | undefined): SpecialEducationAnswer {
   const text = (value ?? "").trim();
   return text.startsWith("Sim") ? "sim" : text.startsWith("Em avaliação") ? "em_avaliacao" : text.startsWith("Não") ? "nao" : null;
 }

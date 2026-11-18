@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  RESERVED_SLUGS, databaseNameFor, defaultNetworkName, existingDatabaseProblem, isPlatformPath, municipalityAddress,
+  databaseNameFor, defaultNetworkName, existingDatabaseProblem, isPlatformPath, municipalityAddress,
   municipalityDatabaseUrl, normalizeDomain, parseHost, requestHost, routeRequest, slugProblem, sqliteFile, suggestSlug, templateProblem,
   NEW_DATABASE_PATTERN,
 } from "./tenancy-core.ts";
@@ -64,7 +64,6 @@ test("subdomínio: letras minúsculas, números e hífen, de 3 a 40, sem nomes r
   assert.match(slugProblem("-saojose"), /hífen/);
   assert.match(slugProblem("saojose-"), /hífen/);
   for (const reserved of ["admin", "www", "api", "app", "plataforma"]) assert.match(slugProblem(reserved), /reservado/);
-  assert.deepEqual([...RESERVED_SLUGS].sort(), ["admin", "api", "app", "plataforma", "www"]);
 });
 
 test("subdomínio sugerido a partir do nome", () => {

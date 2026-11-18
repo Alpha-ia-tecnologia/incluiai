@@ -2,8 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PILLS, pillBySlug, readingMinutes } from "./learning-pills.ts";
 
-test("seis pílulas, endereços únicos e leitura de até 2 minutos", () => {
-  assert.equal(PILLS.length, 6);
+test("pílulas com endereços únicos e leitura de até 2 minutos", () => {
   assert.equal(new Set(PILLS.map((pill) => pill.slug)).size, PILLS.length);
   for (const pill of PILLS) {
     assert.match(pill.slug, /^[a-z0-9-]+$/, pill.slug);
@@ -15,6 +14,6 @@ test("seis pílulas, endereços únicos e leitura de até 2 minutos", () => {
 });
 
 test("busca pelo endereço", () => {
-  assert.equal(pillBySlug("sondagem").title, "Sondagem: linha de base e reavaliação");
+  assert.equal(pillBySlug("sondagem").slug, "sondagem");
   assert.equal(pillBySlug("nao-existe"), undefined);
 });

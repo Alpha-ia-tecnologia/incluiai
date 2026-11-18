@@ -53,7 +53,7 @@ function presentation(
   return { image: `/images/activities/${imageKey}.webp`, imageAlt: IMAGE_ALTS[imageKey] ?? imageAlt, preparation, extension, model, supportLevels: SUPPORT_OPTIONS };
 }
 
-export const RESOURCE_PRESENTATIONS: Record<string, ResourcePresentation> = {
+const RESOURCE_PRESENTATIONS: Record<string, ResourcePresentation> = {
   "Rotina visual de chegada": presentation("routine", "Materiais escolares organizados com cartões de uma rotina visual.",
     ["Fotografe os materiais e lugares reais, sem expor pessoas sem autorização.", "Confirme a ordem da chegada e deixe ajuda e pausa disponíveis.", "Separe uma base e um envelope para marcar as etapas realizadas."],
     "Depois de usar a chegada, escolha com a turma outra rotina e construa sua sequência com os mesmos apoios.",

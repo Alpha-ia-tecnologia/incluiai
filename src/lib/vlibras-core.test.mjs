@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { requestKind, tidyForLibras, translationBody, translationText, VLIBRAS_ROOT } from "./vlibras-core.ts";
+import { requestKind, tidyForLibras, translationBody, translationText } from "./vlibras-core.ts";
 import { createRedactor } from "./agents/redactor.ts";
 
 test("cada pedido: tradução, bloqueado, estatística ou outro (fechado por padrão)", () => {
@@ -16,7 +16,6 @@ test("cada pedido: tradução, bloqueado, estatística ou outro (fechado por pad
   assert.equal(requestKind("/api/libras/anonimizar", "POST", here), "outro");
   assert.equal(requestKind(`${here}/api/assistente`, "POST", here), "outro");
   assert.equal(requestKind("http://[::1", "POST", here), "outro");
-  assert.equal(VLIBRAS_ROOT, "https://vlibras.gov.br/app");
 });
 
 test("corpo do pedido: só o formato conferido passa", () => {

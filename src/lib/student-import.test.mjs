@@ -1,37 +1,44 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { IMPORT_TEMPLATE, mapHeader, parseCsv, readStudentSheet } from "./student-import.ts";
-import { dateOf, readStudentRecord, shiftOf, stageOf } from "./student-record.ts";
+import { IMPORT_TEMPLATE, readStudentSheet } from "./student-import.ts";
+import { readStudentRecord } from "./student-record.ts";
 
 const today = new Date("2026-10-19T12:00:00Z");
 
+const rowsOf = (text) => readStudentSheet(text, today).rows;
+
 test("CSV do Excel (ponto e vírgula, BOM, aspas) e da vírgula", () => {
-  assert.deepEqual(parseCsv('﻿nome;turma\r\n"Ana; da Silva";"Turma ""A"""\r\n\r\n'), [["nome", "turma"], ["Ana; da Silva", 'Turma "A"']]);
-  assert.deepEqual(parseCsv("nome,turma\nBia,B"), [["nome", "turma"], ["Bia", "B"]]);
-  assert.deepEqual(parseCsv('nome;obs\nCaio;"linha 1\nlinha 2"'), [["nome", "obs"], ["Caio", "linha 1\nlinha 2"]]);
+  const excel = rowsOf('\uFEFFnome;nascimento;ano;turma;turno;responsavel\r\n"Ana; da Silva";05/03/2017;2º ano;"Turma ""A""";manhã;Mãe\r\n\r\n');
+  assert.deepEqual(excel.map((row) => [row.values.name, row.values.className]), [["Ana; da Silva", 'Turma "A"']]);
+  assert.equal(rowsOf("nome,nascimento,ano,turma,turno,responsavel\nBia,05/03/2017,2º ano,B,tarde,Pai")[0].values.className, "B");
+  const multiline = rowsOf('nome;nascimento;ano;turma;turno;responsavel\nCaio;05/03/2017;2º ano;C;tarde;"Mãe\nou Pai"');
+  assert.deepEqual(multiline.map((row) => row.values.guardianName), ["Mãe ou Pai"]);
 });
 
-test("colunas pelo nome, com acento e maiúscula", () => {
-  const { index, missing } = mapHeader(["Nome do Estudante", "Data de Nascimento", "Ano/Série", "Turma", "Turno", "Responsável"]);
-  assert.deepEqual(missing, []);
-  assert.equal(index.gradeYear, 2);
-  assert.deepEqual(mapHeader(["nome", "turma"]).missing, ["nascimento", "ano", "turno", "responsavel"]);
+test("colunas pelo nome, com acento e maiúscula; a que falta é dita pelo nome do modelo", () => {
+  const [row] = rowsOf("Nome do Estudante;Data de Nascimento;Ano/Série;Turma;Turno;Responsável\nAna Lima;05/03/2017;3º ano;A;manhã;Mãe");
+  assert.deepEqual([row.values.gradeYear, row.values.guardianName], ["3º ano", "Mãe"]);
+  assert.match(readStudentSheet("nome;turma\nAna;A", today).problem, /Faltam colunas na primeira linha: nascimento, ano, turno, responsavel\./);
 });
 
 test("etapa, data e turno", () => {
-  assert.equal(stageOf("Anos Iniciais", ""), "anos_iniciais");
-  assert.equal(stageOf("", "3º ano"), "anos_iniciais");
-  assert.equal(stageOf("", "7o ano"), "anos_finais");
-  assert.equal(stageOf("", "Pré II"), "educacao_infantil");
-  assert.equal(stageOf("", "1ª série"), null);
-  assert.equal(stageOf("Fundamental II", "1ª série"), "anos_finais");
-  assert.equal(dateOf("05/03/2017"), "2017-03-05");
-  assert.equal(dateOf("2017-03-05"), "2017-03-05");
-  assert.equal(dateOf("31/02/2017"), null);
-  assert.equal(dateOf("03/2017"), null);
-  assert.equal(shiftOf("Manhã"), "manha");
-  assert.equal(shiftOf("vespertino"), "tarde");
-  assert.equal(shiftOf("Noturno"), "noite");
+  const fields = { name: "Ana Lima", birthDate: "05/03/2017", stage: "", gradeYear: "3º ano", className: "A", shift: "manhã", guardianName: "Mãe", supportProfessional: false };
+  const read = (overrides) => readStudentRecord({ ...fields, ...overrides }, today);
+  const value = (key, overrides) => read(overrides).record?.[key] ?? null;
+  const invalid = (overrides) => read(overrides).problems.map((item) => item.field);
+  assert.equal(value("stage", { stage: "Anos Iniciais" }), "anos_iniciais");
+  assert.equal(value("stage", { gradeYear: "3º ano" }), "anos_iniciais");
+  assert.equal(value("stage", { gradeYear: "7o ano" }), "anos_finais");
+  assert.equal(value("stage", { gradeYear: "Pré II" }), "educacao_infantil");
+  assert.deepEqual(invalid({ gradeYear: "1ª série" }), ["stage"]);
+  assert.equal(value("stage", { stage: "Fundamental II", gradeYear: "1ª série" }), "anos_finais");
+  assert.equal(value("birthDate", { birthDate: "05/03/2017" }), "2017-03-05");
+  assert.equal(value("birthDate", { birthDate: "2017-03-05" }), "2017-03-05");
+  assert.deepEqual(invalid({ birthDate: "31/02/2017" }), ["birthDate"]);
+  assert.deepEqual(invalid({ birthDate: "03/2017" }), ["birthDate"]);
+  assert.equal(value("shift", { shift: "Manhã" }), "manha");
+  assert.equal(value("shift", { shift: "vespertino" }), "tarde");
+  assert.equal(value("shift", { shift: "Noturno" }), "noite");
 });
 
 test("o modelo para baixar: formato certo, mas os exemplos não viram estudantes", () => {

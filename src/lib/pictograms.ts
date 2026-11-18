@@ -1,12 +1,9 @@
-export const PICTOGRAM_KEYS = [
-  "calendario", "professora", "fone", "prancha", "lanche", "agua", "banheiro", "maos",
-  "pausa", "brincar", "ler", "escrever", "desenhar", "casa", "escola", "amigos",
-  "musica", "tela", "feliz", "sentimentos", "esperar", "mochila", "sentar", "lixo", "estrela",
-] as const;
+export type PictogramKey =
+  | "calendario" | "professora" | "fone" | "prancha" | "lanche" | "agua" | "banheiro" | "maos"
+  | "pausa" | "brincar" | "ler" | "escrever" | "desenhar" | "casa" | "escola" | "amigos"
+  | "musica" | "tela" | "feliz" | "sentimentos" | "esperar" | "mochila" | "sentar" | "lixo" | "estrela";
 
-export type PictogramKey = (typeof PICTOGRAM_KEYS)[number];
-
-export const PICTOGRAM_RULES: readonly (readonly [Exclude<PictogramKey, "estrela">, readonly string[]])[] = [
+const PICTOGRAM_RULES: readonly (readonly [Exclude<PictogramKey, "estrela">, readonly string[]])[] = [
   ["banheiro", ["banheiro", "banheiros", "vaso", "descarga", "xixi"]],
   ["maos", ["lavar", "lavo", "lava", "lavando", "mao", "maos", "sabonete", "torneira", "enxaguar"]],
   ["agua", ["agua", "beber", "bebo", "bebe", "garrafa"]],
@@ -33,12 +30,12 @@ export const PICTOGRAM_RULES: readonly (readonly [Exclude<PictogramKey, "estrela
   ["sentimentos", ["sentir", "sinto", "sente", "sentimento", "sentimentos", "desconfortavel", "incomodado", "incomodada", "triste", "bravo", "brava", "raiva", "medo", "nervoso", "nervosa"]],
 ];
 
-export function pictogramWords(text: string): string {
+function pictogramWords(text: string): string {
   const words = text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   return ` ${words} `;
 }
 
-export function pictogramFor(text: string): PictogramKey {
+function pictogramFor(text: string): PictogramKey {
   const words = pictogramWords(text);
   for (const [key, terms] of PICTOGRAM_RULES) {
     if (terms.some((term) => words.includes(` ${term} `))) return key;

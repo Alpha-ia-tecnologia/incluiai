@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PROFILE_SUPPORT_FIELDS, profileFromForm } from "./functional-profile.ts";
+import { profileFromForm } from "./functional-profile.ts";
 import { UserError } from "./user-error.ts";
 
 const formOf = (entries) => {
@@ -24,7 +24,6 @@ test("Como aprende: listas, sensorial típico por padrão e os níveis de apoio"
   assert.equal(profile.usesWheelchairOrOrthosis, true);
   assert.equal(profile.strengths, null);
   assert.equal(profile.expressiveChannel, "fala");
-  assert.equal(PROFILE_SUPPORT_FIELDS.length, 12);
 });
 
 test("Como aprende: sem interesse âncora ou com apoio fora da escala, a pessoa é avisada", () => {

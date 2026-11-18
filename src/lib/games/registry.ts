@@ -21,9 +21,8 @@ type GameBase = {
   preview: (themePics: readonly Pic[]) => Preview;
 };
 
-export const PHOTO_GAME_IDS = ["pares", "encontre", "contar", "padrao", "cores", "rotina", "letras", "palavras", "somar", "usos", "classificar", "comparar", "silabas", "subtrair", "numeros"] as const;
-export type PhotoGameId = (typeof PHOTO_GAME_IDS)[number];
-export const FULL_SCREEN_IDS = ["memoria", "sequencia", "associacao", "emocoes"] as const;
+export type PhotoGameId = "pares" | "encontre" | "contar" | "padrao" | "cores" | "rotina" | "letras" | "palavras" | "somar" | "usos" | "classificar" | "comparar" | "silabas" | "subtrair" | "numeros";
+const FULL_SCREEN_IDS = ["memoria", "sequencia", "associacao", "emocoes"] as const;
 export type FullScreenId = (typeof FULL_SCREEN_IDS)[number];
 export const isFullScreenId = (value: unknown): value is FullScreenId => FULL_SCREEN_IDS.includes(value as FullScreenId);
 

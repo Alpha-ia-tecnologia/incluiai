@@ -42,7 +42,7 @@ const STAGES: Record<string, string> = {
   eja: "eja", educacao_de_jovens_e_adultos: "eja",
 };
 
-export function stageOf(stage: string, gradeYear: string): string | null {
+function stageOf(stage: string, gradeYear: string): string | null {
   if (stage.trim()) return STAGES[normalize(stage)] ?? null;
   const grade = normalize(gradeYear);
   if (/infantil|pre|creche|maternal|bercario/.test(grade)) return "educacao_infantil";
@@ -75,7 +75,7 @@ export function dateOf(text: string): string | null {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-export function shiftOf(text: string): string {
+function shiftOf(text: string): string {
   const value = normalize(text);
   if (["manha", "matutino"].includes(value)) return "manha";
   if (["tarde", "vespertino"].includes(value)) return "tarde";

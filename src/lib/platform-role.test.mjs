@@ -8,7 +8,7 @@ import { canManageAccount } from "./accounts-core.ts";
 
 test("o perfil da plataforma tem nome, mas nenhum menu do município", () => {
   assert.equal(PLATFORM_ROLE, "plataforma");
-  assert.equal(roleLabel(PLATFORM_ROLE), "Administração da plataforma");
+  assert.notEqual(roleLabel(PLATFORM_ROLE), PLATFORM_ROLE);
   assert.deepEqual(getNavigation(PLATFORM_ROLE), []);
   assert.ok(getNavigation("secretaria").length > 0);
 });

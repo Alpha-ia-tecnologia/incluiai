@@ -15,7 +15,7 @@ import {
 type Part = "material" | ActivityContext;
 const PARTS: Part[] = ["material", ...ACTIVITY_CONTEXTS];
 
-export const MaterialDesignSchema = z.object({
+const MaterialDesignSchema = z.object({
   title: z.string().describe("Título curto do material, sem nome de pessoa. Ex.: Rotina da hora do lanche"),
   purpose: z.string().describe("Para que serve o material, em uma frase ligada ao perfil, à situação e, se houver, ao objetivo do plano."),
   intro: z.string().describe("Como apresentar o material ao estudante, em 1 ou 2 frases."),
@@ -36,7 +36,7 @@ export const MaterialDesignSchema = z.object({
 });
 export type MaterialDesign = z.infer<typeof MaterialDesignSchema>;
 
-export const MaterialActivitySchema = z.object({
+const MaterialActivitySchema = z.object({
   title: z.string(),
   durationMinutes: z.number().int(),
   goal: z.string().describe("O que se quer desenvolver, ligado ao objetivo do plano quando houver."),
@@ -53,7 +53,7 @@ export const MaterialActivitySchema = z.object({
 });
 export type MaterialActivityProposal = z.infer<typeof MaterialActivitySchema>;
 
-export const MaterialReviewSchema = z.object({
+const MaterialReviewSchema = z.object({
   avaliacoes: z.array(z.object({
     parte: z.enum(["material", ...ACTIVITY_CONTEXTS]),
     aprovado: z.boolean(),

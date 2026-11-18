@@ -6,7 +6,7 @@ const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 export const TOTP_STEP_SECONDS = 30;
 export const TOTP_DIGITS = 6;
 
-export function base32Encode(buffer: Buffer): string {
+function base32Encode(buffer: Buffer): string {
   let bits = 0;
   let value = 0;
   let output = "";
@@ -22,7 +22,7 @@ export function base32Encode(buffer: Buffer): string {
   return output;
 }
 
-export function base32Decode(text: string): Buffer {
+function base32Decode(text: string): Buffer {
   const clean = text.toUpperCase().replace(/[^A-Z2-7]/g, "");
   let bits = 0;
   let value = 0;

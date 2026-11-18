@@ -12,7 +12,7 @@ export type Tutorial = {
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const FILE = /^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:mp4|jpg)$/;
 
-export function isTutorial(value: unknown): value is Tutorial {
+function isTutorial(value: unknown): value is Tutorial {
   if (!value || typeof value !== "object") return false;
   const item = value as Record<string, unknown>;
   return (

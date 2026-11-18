@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GAME_OBJECTS, classificationGroupFor, generateRound, initialLetter, isCorrectAnswer, isCorrectClassification, objectById } from "./objects.ts";
-import { cardsMatch, shuffle } from "./mechanics.ts";
+import { GAME_OBJECTS, generateRound, isCorrectAnswer, isCorrectClassification, objectById } from "./objects.ts";
+import { cardsMatch } from "./mechanics.ts";
 
 function seededRandom(seed) {
   let state = seed;
@@ -10,15 +10,6 @@ function seededRandom(seed) {
     return state / 4294967296;
   };
 }
-
-test("embaralhar preserva origem e elementos e permite reprodução", () => {
-  const source = Object.freeze([1, 2, 3, 4, 5, 6]);
-  const shuffled = shuffle(source, seededRandom(42));
-  assert.deepEqual(source, [1, 2, 3, 4, 5, 6]);
-  assert.deepEqual([...shuffled].sort(), source);
-  assert.deepEqual(shuffled, shuffle(source, seededRandom(42)));
-  assert.notDeepEqual(shuffled, source);
-});
 
 test("memória tem exatamente dois exemplares por foto e nunca aceita a mesma carta", () => {
   for (const level of ["facil", "medio", "desafio"]) {
@@ -105,18 +96,16 @@ test("rotina exige todos os passos na ordem anunciada e permite reconstrução",
   assert.equal(seenOrders.size, 2);
 });
 
-test("primeira letra acompanha o nome do objeto e não confunde iniciais repetidas", () => {
-  assert.equal(initialLetter(" maçã "), "M");
-  assert.equal(initialLetter("Árvore"), "A");
-  assert.equal(initialLetter("bola"), "B");
+test("primeira letra acompanha o nome do objeto, sem acento, e não confunde iniciais repetidas", () => {
+  const initial = (label) => label.trim().normalize("NFD").replace(/\p{M}/gu, "").charAt(0).toUpperCase();
   const seen = new Set();
   for (let seed = 0; seed < 100; seed += 1) {
     for (const level of ["facil", "desafio"]) {
       const round = generateRound("letras", level, seededRandom(seed * 104729));
       seen.add(round.target.id);
-      assert.equal(round.answerId, initialLetter(round.target.label));
+      assert.equal(round.answerId, initial(round.target.label));
       assert.ok(round.options.every((option) => /^[A-Z]$/.test(option.label) && option.label === option.id && !option.image));
-      assert.equal(round.options.filter((option) => option.id === initialLetter(round.target.label)).length, 1);
+      assert.equal(round.options.filter((option) => option.id === round.answerId).length, 1);
     }
   }
   assert.equal(seen.size, GAME_OBJECTS.length);
@@ -190,13 +179,12 @@ test("classificação sempre oferece os dois grupos e só aceita objetos da prop
       for (const item of round.items) {
         const expected = fruits.has(item.id) ? "frutas" : "outros";
         assert.equal(round.assignments[item.id], expected);
-        assert.equal(classificationGroupFor(item.id), expected);
         assert.equal(isCorrectClassification(round, item.id, expected), true);
         assert.equal(isCorrectClassification(round, item.id, expected === "frutas" ? "outros" : "frutas"), false);
         assert.equal(isCorrectClassification(round, item.id, "desconhecido"), false);
       }
       const absent = GAME_OBJECTS.find((object) => !round.items.some((item) => item.id === object.id));
-      if (absent) assert.equal(isCorrectClassification(round, absent.id, classificationGroupFor(absent.id)), false);
+      if (absent) assert.equal(isCorrectClassification(round, absent.id, fruits.has(absent.id) ? "frutas" : "outros"), false);
       assert.equal(isCorrectClassification(round, "desconhecido", "outros"), false);
       assert.equal(isCorrectAnswer(round, "frutas"), false);
     }

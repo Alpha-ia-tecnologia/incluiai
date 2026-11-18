@@ -7,7 +7,7 @@ import { joinItems, splitItems } from "./format.ts";
 import { FAMILY_PARTICIPANT, STUDENT_PARTICIPANT } from "./case-study.ts";
 
 // "Avaliado e não precisa" também é registro: a Portaria pede a avaliação da necessidade.
-export const NO_NEED = "Avaliado: não há necessidade";
+const NO_NEED = "Avaliado: não há necessidade";
 
 const PLAN_PARTICIPANT_OPTIONS = [FAMILY_PARTICIPANT, STUDENT_PARTICIPANT, "Coordenação pedagógica", "Gestão escolar", "Profissional de apoio"];
 const ASSISTIVE_TECH_OPTIONS = [NO_NEED, "Prancha de comunicação", "Tablet com aplicativo de CAA", "Acionador", "Engrossador de lápis", "Lupa ou ampliação de tela", "Leitor de tela", "Material em braille", "Mobiliário adaptado"];
@@ -16,8 +16,8 @@ const NO_DEMAND = "Nenhuma demanda";
 const NETWORK_DEMAND_OPTIONS = [NO_DEMAND, "Formação da equipe em Educação Especial Inclusiva", "Formação em comunicação alternativa", "Formação em Libras", "Rede de saúde", "Assistência social (CRAS ou CREAS)", "Conselho Tutelar"];
 // Os tipos de AEE do Educacenso: o Censo recusa vínculo de AEE sem nenhum.
 export const AEE_SERVICE_OPTIONS = AEE_SERVICE_LABELS;
-export const NO_RESOURCE = "Nenhum recurso";
-export const ASSESSMENT_ACCESSIBILITY_OPTIONS = [...ASSESSMENT_RESOURCE_LABELS, "Formas variadas de resposta", "Resposta com comunicação alternativa", "Ambiente mais silencioso", NO_RESOURCE];
+const NO_RESOURCE = "Nenhum recurso";
+const ASSESSMENT_ACCESSIBILITY_OPTIONS = [...ASSESSMENT_RESOURCE_LABELS, "Formas variadas de resposta", "Resposta com comunicação alternativa", "Ambiente mais silencioso", NO_RESOURCE];
 const MONITORING_OPTIONS = ["Registro de aula no diário", "Sondagem a cada revisão", "Reunião entre AEE e classe comum", "Revisão do plano com a equipe", "Portfólio de atividades"];
 const FAMILY_FEEDBACK_OPTIONS = ["Relatório do período a cada semestre", "Reunião com a família a cada bimestre", "Avisos no portal da família", "Agenda ou caderno de recados"];
 
@@ -66,7 +66,7 @@ const isItem = (field: PlanField): field is PlanItem => "norm" in field;
 export const PAEE_ITEMS = PLAN_FIELDS.filter((field): field is PartItem<"paee"> => isItem(field) && field.part === "paee");
 export const PEI_ITEMS = PLAN_FIELDS.filter((field): field is PartItem<"pei"> => isItem(field) && field.part === "pei");
 export const PROPOSAL_FIELDS = PLAN_FIELDS.filter((field): field is Extract<PlanField, { ai: string }> => "ai" in field);
-export const PROPOSAL_LIST_KEYS: readonly ProposalListKey[] = PROPOSAL_FIELDS.map((field) => field.key);
+const PROPOSAL_LIST_KEYS: readonly ProposalListKey[] = PROPOSAL_FIELDS.map((field) => field.key);
 export const emptyProposalLists = () => Object.fromEntries(PROPOSAL_LIST_KEYS.map((key) => [key, [] as string[]])) as Record<ProposalListKey, string[]>;
 
 const MAX_LENGTH = 600;

@@ -102,7 +102,7 @@ export type ProfileFacts = {
 const SUPPORT_LADDER = ["Independente", "Supervisão ou lembrete", "Instrução verbal ou pista visual", "Modelo ou demonstração", "Apoio físico parcial", "Apoio físico total"];
 const clampLevel = (level: number) => Math.min(5, Math.max(0, Math.round(level)));
 
-export function responseFormsFor(facts: Pick<ProfileFacts, "expressiveChannel" | "fineMotorSupport">): string[] {
+function responseFormsFor(facts: Pick<ProfileFacts, "expressiveChannel" | "fineMotorSupport">): string[] {
   const channel = facts.expressiveChannel;
   if (channel === "olhar_acionador") return ["Olhar dirigido para o cartão", "Acionador com varredura entre opções"];
   if (channel.startsWith("caa")) return ["Apontar o cartão", "Entregar o cartão", "Indicar na prancha de comunicação"];

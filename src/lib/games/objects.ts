@@ -81,7 +81,7 @@ function choicesFor(target: GameObject, level: Level, rng: RandomSource, exclude
   return withDistractors(target, otherObjects, optionCount(level), rng).map(objectChoice);
 }
 
-export function initialLetter(word: string): string {
+function initialLetter(word: string): string {
   return word.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 1).toLocaleUpperCase("pt-BR");
 }
 
@@ -95,7 +95,7 @@ const OBJECT_SYLLABLES: Record<GameObjectId, readonly string[]> = {
   ball: ["BO", "LA"], backpack: ["MO", "CHI", "LA"], book: ["LI", "VRO"],
 };
 
-export function classificationGroupFor(objectId: GameObjectId): ClassificationGroupId {
+function classificationGroupFor(objectId: GameObjectId): ClassificationGroupId {
   return CLASSIFICATION_ASSIGNMENTS[objectId];
 }
 

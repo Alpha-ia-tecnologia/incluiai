@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MaterialActivitySchema, MaterialDesignSchema, MaterialReviewSchema, runMaterialAgent } from "./agents/material-agent.ts";
+import { runMaterialAgent } from "./agents/material-agent.ts";
 import { MATERIAL_PIPELINE } from "./agents/descriptors.ts";
 import { checkMaterial } from "./material-content.ts";
 
@@ -47,20 +47,18 @@ const approveAll = { avaliacoes: ["material", "sala_comum", "aee", "casa"].map((
 
 function fakeModel({ reviews = [approveAll], activityFor = (agent) => activity(TITLES[agent]) } = {}) {
   const calls = [];
+  const count = (agent) => calls.filter((call) => call.agent === agent).length;
   const model = async (request) => {
     calls.push(request);
-    if (request.agent === MATERIAL_AGENT) {
-      assert.equal(request.schema, MaterialDesignSchema);
-      return design(calls.filter((call) => call.agent === MATERIAL_AGENT).length > 1 ? "Rotina do lanche (revisada)" : undefined);
-    }
-    if (request.agent === MATERIAL_REVIEWER) {
-      assert.equal(request.schema, MaterialReviewSchema);
-      return reviews[Math.min(reviews.length - 1, calls.filter((call) => call.agent === MATERIAL_REVIEWER).length - 1)];
-    }
-    assert.equal(request.schema, MaterialActivitySchema);
-    return activityFor(request.agent, calls.filter((call) => call.agent === request.agent).length);
+    const answer = request.agent === MATERIAL_AGENT
+      ? design(count(MATERIAL_AGENT) > 1 ? "Rotina do lanche (revisada)" : undefined)
+      : request.agent === MATERIAL_REVIEWER
+        ? reviews[Math.min(reviews.length - 1, count(MATERIAL_REVIEWER) - 1)]
+        : activityFor(request.agent, count(request.agent));
+    request.schema.parse(answer);
+    return answer;
   };
-  return { model, calls, count: (agent) => calls.filter((call) => call.agent === agent).length };
+  return { model, calls, count };
 }
 
 test("aprovado de primeira: criador, três atividades e revisor, uma chamada cada", async () => {
@@ -80,23 +78,20 @@ test("aprovado de primeira: criador, três atividades e revisor, uma chamada cad
   assert.equal(trace.at(-1).agent, "Finalização");
 });
 
-test("todos os agentes recebem o pedido, o objetivo e as regras; as atividades recebem os cartões", async () => {
+test("todos os agentes recebem o pedido, o objetivo e as regras; as atividades recebem os cartões na ordem; o revisor recebe tudo", async () => {
   const fake = fakeModel();
   await runMaterialAgent(input(), fake.model);
   for (const call of fake.calls) {
-    assert.match(call.prompt, /Tipo: Rotina visual \(4 a 8 cartões\)/);
-    assert.match(call.prompt, /Situação ou conteúdo: Hora do lanche/);
-    assert.match(call.prompt, /\[R01-CAA\]/);
-    assert.match(call.prompt, /EF15LP09/);
+    for (const part of ["Rotina visual", "Hora do lanche", "R01-CAA", rules[1].then, "EF15LP09"]) assert.ok(call.prompt.includes(part), `${call.agent}: ${part}`);
   }
+  const labels = design().cards.map((card) => card.label);
   for (const agent of Object.values(MATERIAL_ACTIVITY_AGENTS)) {
-    const call = fake.calls.find((item) => item.agent === agent);
-    assert.match(call.prompt, /Cartões, em ordem:\n1\. Lavar as mãos/);
-    assert.match(call.system, /material de apoio que já foi criado/);
+    const prompt = fake.calls.find((item) => item.agent === agent).prompt;
+    const positions = labels.map((label) => prompt.indexOf(label));
+    assert.ok(positions.every((position, index) => position >= 0 && (index === 0 || position > positions[index - 1])), agent);
   }
-  const review = fake.calls.at(-1);
-  assert.match(review.prompt, /## Material a revisar/);
-  assert.match(review.prompt, /Lanche com a turma/);
+  const review = fake.calls.at(-1).prompt;
+  for (const title of [design().title, ...Object.values(TITLES)]) assert.ok(review.includes(title), title);
 });
 
 test("adaptações: as do material e as regras obrigatórias, cada uma com a base", async () => {
@@ -121,7 +116,7 @@ test("atividade devolvida: só ela é refeita, com os problemas do revisor", asy
   assert.equal(fake.count(MATERIAL_REVIEWER), 2);
   const redo = fake.calls.filter((call) => call.agent === MATERIAL_ACTIVITY_AGENTS.casa)[1];
   assert.match(redo.prompt, /massinha comprada/);
-  assert.match(redo.prompt, /Versão anterior:/);
+  assert.ok(redo.prompt.includes(TITLES[MATERIAL_ACTIVITY_AGENTS.casa]));
   assert.deepEqual(content.reviewNotes, []);
   assert.ok(trace.some((step) => step.agent === MATERIAL_REVIEWER && /Devolveu para correção: Agente da família/.test(step.summary)));
 });
@@ -139,7 +134,7 @@ test("material devolvido: o criador refaz e as três atividades acompanham os ca
   assert.equal(fake.count(MATERIAL_REVIEWER), 2);
   assert.equal(title, "Rotina do lanche (revisada)");
   assert.match(fake.calls.filter((call) => call.agent === MATERIAL_AGENT)[1].prompt, /não chegam ao fim do lanche/);
-  assert.match(fake.calls.filter((call) => call.agent === MATERIAL_ACTIVITY_AGENTS.aee)[1].prompt, /O material foi refeito depois da revisão/);
+  for (const agent of Object.values(MATERIAL_ACTIVITY_AGENTS)) assert.ok(fake.calls.filter((call) => call.agent === agent)[1].prompt.includes("Rotina do lanche (revisada)"), agent);
 });
 
 test("verificações da plataforma valem mesmo com o revisor aprovando; o que sobra vira ponto para conferir", async () => {

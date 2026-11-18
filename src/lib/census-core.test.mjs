@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseEducacensoFile, specialEdPersons } from "./educacenso.ts";
-import { SAMPLE } from "./educacenso.fixture.mjs";
-import { buildSyncPlan, censusCounts, issuesOf, networkAeeEstimate, personWarnings, regularOnlyIds, schoolFundebNote, cleanMonitorConfig, fundebComparison, monitorState, nextRun, sumCounts, toSnapshot, verifyCoverage } from "./census-core.ts";
+import { sampleFile } from "./educacenso.fixture.mjs";
+import { buildSyncPlan, censusCounts, networkAeeEstimate, regularOnlyIds, schoolFundebNote, cleanMonitorConfig, fundebComparison, monitorState, nextRun, sumCounts, toSnapshot, verifyCoverage } from "./census-core.ts";
 import { stageFromAge } from "./student-record.ts";
 
 const now = new Date("2026-10-22T15:00:00Z");
+const SAMPLE = sampleFile();
 const persons = specialEdPersons(parseEducacensoFile(SAMPLE));
 const students = [
   { id: "s1", name: "Dante Ribeiro", birthDate: "2019-03-12", inepId: null, cpf: null },
@@ -85,19 +86,22 @@ test("contagens do arquivo, por etapa, e comparação com o FNDE", () => {
 });
 
 test("alertas do vínculo: sem tipo de AEE, horário coincidente, vínculos demais, AEE repetido e classe comum a distância", () => {
-  const byName = Object.fromEntries(persons.map((person) => [person.name, person]));
-  assert.match(personWarnings(byName["SO NO AEE"]).join(" "), /sem tipo de atendimento.*recusa o arquivo/);
-  assert.match(personWarnings(byName["MENINO DA PRE"]).join(" "), /Horário do AEE coincide com o da classe comum/);
-  assert.match(personWarnings(byName["MENINO DA PRE"]).join(" "), /o Fundeb conta um só/);
-  assert.match(personWarnings(byName["ALUNO A DISTANCIA"]).join(" "), /semipresencial ou a distância/);
-  assert.match(personWarnings(byName["ALUNO DE MUITOS VINCULOS"]).join(" "), /Mais de 4 vínculos/);
-  const snapshot = Object.fromEntries(toSnapshot(persons).map((person) => [person.name, person]));
-  assert.deepEqual(issuesOf(snapshot["SO NO AEE"]), ["sem_tipo_aee"]);
-  assert.deepEqual(issuesOf(snapshot["MENINO DA PRE"]), ["horario_coincidente", "aee_duplicado"]);
-  assert.deepEqual(issuesOf(snapshot["ALUNO A DISTANCIA"]), ["comum_nao_presencial"]);
-  assert.deepEqual(issuesOf(snapshot["ALUNO DE MUITOS VINCULOS"]), ["vinculos_demais", "aee_duplicado"]);
-  assert.deepEqual(issuesOf(snapshot["DANTE RIBEIRO"]), []);
-  assert.deepEqual(issuesOf({ key: "x", name: "X", inepId: "", cpf: "", birthDate: "", special: true, aee: true, regular: true, stage: "302" }), []);
+  const warnings = Object.fromEntries(buildSyncPlan(persons, [], { now }).items.map((item) => [item.censusName, item.warnings.join(" ")]));
+  assert.match(warnings["SO NO AEE"], /sem tipo de atendimento.*recusa o arquivo/);
+  assert.match(warnings["MENINO DA PRE"], /Horário do AEE coincide com o da classe comum/);
+  assert.match(warnings["MENINO DA PRE"], /o Fundeb conta um só/);
+  assert.match(warnings["ALUNO A DISTANCIA"], /semipresencial ou a distância/);
+  assert.match(warnings["ALUNO DE MUITOS VINCULOS"], /Mais de 4 vínculos/);
+  const snapshot = toSnapshot(persons);
+  const asStudent = (person) => ({ id: person.name, name: person.name, birthDate: person.birthDate, inepId: person.inepId || null, cpf: person.cpf || null });
+  const issues = Object.fromEntries(verifyCoverage(snapshot.map(asStudent), snapshot).rows.map((row) => [row.id, row.issues]));
+  assert.deepEqual(issues["SO NO AEE"], ["sem_tipo_aee"]);
+  assert.deepEqual(issues["MENINO DA PRE"], ["horario_coincidente", "aee_duplicado"]);
+  assert.deepEqual(issues["ALUNO A DISTANCIA"], ["comum_nao_presencial"]);
+  assert.deepEqual(issues["ALUNO DE MUITOS VINCULOS"], ["vinculos_demais", "aee_duplicado"]);
+  assert.deepEqual(issues["DANTE RIBEIRO"], []);
+  const plain = { key: "x", name: "X", inepId: "1", cpf: "", birthDate: "", special: true, aee: true, regular: true, stage: "302" };
+  assert.deepEqual(verifyCoverage([asStudent(plain)], [plain]).rows[0].issues, []);
 });
 
 test("verificação: classe comum em outra escola da rede e vínculo bloqueado não confirmam por engano", () => {

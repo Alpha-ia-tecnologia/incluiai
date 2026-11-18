@@ -195,7 +195,7 @@ const BACK_TO_WORDS: [RegExp, string][] = [
   [new RegExp(escape(AMBIGUOUS), "g"), "uma pessoa"],
 ];
 
-export function inWords<T>(value: T): T {
+function inWords<T>(value: T): T {
   if (typeof value === "string") return BACK_TO_WORDS.reduce((text, [regex, words]) => text.replace(regex, words), value as string) as T;
   if (Array.isArray(value)) return value.map((item) => inWords(item)) as T;
   if (value && typeof value === "object") {

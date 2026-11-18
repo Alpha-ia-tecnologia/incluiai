@@ -23,7 +23,7 @@ export const writeCollaborators = (list: readonly Collaborator[]) => JSON.string
 export const collaboratorIds = (stored: string | null | undefined) => readCollaborators(stored).map((item) => item.id);
 // O banco guarda a lista como texto JSON e o SQLite não consulta dentro dele: procura-se o id
 // entre aspas, exatamente como JSON.stringify o grava em writeCollaborators.
-export const collaboratorWhere = (userId: string) => ({ collaborators: { contains: JSON.stringify(userId) } });
+const collaboratorWhere = (userId: string) => ({ collaborators: { contains: JSON.stringify(userId) } });
 
 export function planningAccess(user: DuaUser, planning: PlanningRef): PlanningAccess {
   const none = { read: false, edit: false, validate: false, share: false, owner: false };

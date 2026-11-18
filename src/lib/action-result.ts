@@ -8,7 +8,7 @@ export type ActionResult<T = void> =
 type ActionFailure = Extract<ActionResult<never>, { ok: false }>;
 
 export const SESSION_ENDED = "Sua sessão terminou. Entre de novo para continuar.";
-export const UNEXPECTED_INPUT = "Alguns campos vieram em formato inesperado. Atualize a página e tente de novo.";
+const UNEXPECTED_INPUT = "Alguns campos vieram em formato inesperado. Atualize a página e tente de novo.";
 export const FALLBACK = "Não foi possível concluir agora. Tente de novo em instantes.";
 
 export function failureOf(error: unknown): ActionFailure | null {

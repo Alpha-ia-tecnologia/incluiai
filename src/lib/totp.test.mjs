@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { base32Decode, base32Encode, groupSecret, hashRecoveryCode, matchTotpStep, newRecoveryCodes, newTotpSecret, otpauthUri, totpAt, totpStep } from "./totp.ts";
+import { groupSecret, hashRecoveryCode, matchTotpStep, newRecoveryCodes, newTotpSecret, otpauthUri, totpAt, totpStep } from "./totp.ts";
 
 // Vetores da RFC 6238 (SHA-1, segredo "12345678901234567890"), com 8 dígitos.
-const RFC_SECRET = base32Encode(Buffer.from("12345678901234567890"));
+const RFC_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
 
 test("vetores da RFC 6238", () => {
   assert.equal(totpAt(RFC_SECRET, 59_000, 8), "94287082");
@@ -12,10 +12,11 @@ test("vetores da RFC 6238", () => {
   assert.equal(totpAt(RFC_SECRET, 20_000_000_000_000, 8), "65353130");
 });
 
-test("base32 vai e volta", () => {
-  const bytes = Buffer.from("IncluiEdu, cada pessoa uma possibilidade");
-  assert.deepEqual(base32Decode(base32Encode(bytes)), bytes);
-  assert.equal(base32Decode("gezd gnbv").toString(), "12345");
+test("segredo digitado em grupos ou em minúsculas gera o mesmo código", () => {
+  const secret = newTotpSecret();
+  const now = 1_760_000_000_000;
+  assert.equal(totpAt(groupSecret(secret).toLowerCase(), now), totpAt(secret, now));
+  assert.equal(totpAt("gezd gnbv gy3t qojq gezd gnbv gy3t qojq", 59_000, 8), "94287082");
 });
 
 test("verificação aceita a janela vizinha e recusa o resto", () => {

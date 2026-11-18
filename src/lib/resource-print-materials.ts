@@ -2,7 +2,7 @@ import { PRINT_CATALOG_A } from "./resource-print-catalog-a.ts";
 import { PRINT_CATALOG_B } from "./resource-print-catalog-b.ts";
 import type { PrintableSheet } from "./resource-print-types";
 
-export const RESOURCE_PRINT_CATALOG = [...PRINT_CATALOG_A, ...PRINT_CATALOG_B];
+const RESOURCE_PRINT_CATALOG = [...PRINT_CATALOG_A, ...PRINT_CATALOG_B];
 
 export function activityPrintMaterials(resourceTitle: string, activityTitle: string): PrintableSheet[] {
   const pack = RESOURCE_PRINT_CATALOG.find((entry) => entry.resourceTitle === resourceTitle && entry.activityTitle === activityTitle);

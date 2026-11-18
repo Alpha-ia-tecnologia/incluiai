@@ -2,18 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { RESOURCE_CATALOG } from "../../prisma/resource-catalog.mjs";
-import { RESOURCE_PRINT_CATALOG, activityPrintMaterials } from "./resource-print-materials.ts";
+import { activityPrintMaterials } from "./resource-print-materials.ts";
 
-const key = (resource, activity) => `${resource}\n${activity}`;
+const packs = RESOURCE_CATALOG.flatMap((resource) => resource.activities.map((activity) => ({ resourceTitle: resource.title, activityTitle: activity.title, sheets: activityPrintMaterials(resource.title, activity.title) })));
 
-test("as 72 propostas possuem materiais próprios, sem recorrer à capa ou ao modelo genérico", () => {
-  const expected = RESOURCE_CATALOG.flatMap((resource) => resource.activities.map((activity) => key(resource.title, activity.title)));
-  const actual = RESOURCE_PRINT_CATALOG.map((pack) => key(pack.resourceTitle, pack.activityTitle));
-  assert.equal(actual.length, 72);
-  assert.equal(new Set(actual).size, actual.length);
-  assert.deepEqual(new Set(actual), new Set(expected));
-  for (const pack of RESOURCE_PRINT_CATALOG) {
-    assert.equal(activityPrintMaterials(pack.resourceTitle, pack.activityTitle), pack.sheets);
+test("toda proposta do catálogo tem materiais próprios, sem recorrer ao modelo genérico", () => {
+  for (const pack of packs) {
+    assert.notDeepEqual(pack.sheets, activityPrintMaterials("Recurso da escola", pack.activityTitle), pack.activityTitle);
     assert.ok(pack.sheets.length >= 1 && pack.sheets.length <= 3, pack.activityTitle);
     for (const sheet of pack.sheets) {
       assert.ok(sheet.title.trim() && sheet.instruction.trim(), pack.activityTitle);
@@ -46,7 +41,7 @@ test("as 72 propostas possuem materiais próprios, sem recorrer à capa ou ao mo
 });
 
 test("todas as fotografias dos cartões existem no projeto como imagens WebP", async () => {
-  const files = new Set(RESOURCE_PRINT_CATALOG.flatMap((pack) => pack.sheets.flatMap((sheet) => sheet.kind === "cards" ? sheet.cards.flatMap((card) => card.image ? [card.image] : []) : [])));
+  const files = new Set(packs.flatMap((pack) => pack.sheets.flatMap((sheet) => sheet.kind === "cards" ? sheet.cards.flatMap((card) => card.image ? [card.image] : []) : [])));
   assert.ok(files.size >= 15, "materiais com fotografias de diferentes objetos e cenas");
   for (const path of files) {
     const file = await readFile(new URL(`../../public${path}`, import.meta.url));

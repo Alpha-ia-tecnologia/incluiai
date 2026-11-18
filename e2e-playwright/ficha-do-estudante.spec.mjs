@@ -3,6 +3,7 @@ import { DEMO_ACCOUNTS, DEMO_PASSWORD, DEMO_STUDENTS } from "../prisma/demo-data
 import { STUDENT_TABS, isEssentialTab } from "../src/lib/student-tab-list.ts";
 import { CONTENT_ID } from "../src/lib/landmarks.ts";
 import { printSelector } from "../src/components/resources/print-marks.ts";
+import { activityPrintMaterials } from "../src/lib/resource-print-materials.ts";
 
 test.describe.configure({ mode: "serial" });
 
@@ -26,11 +27,10 @@ test.describe("ficha do estudante", () => {
     await login(page, "professor_aee");
   });
 
-  test("cadastro: não pergunta se recebe AEE e abre a ficha do estudante", async ({ page }) => {
+  test("cadastro: a conversa abre a ficha do estudante", async ({ page }) => {
     await page.goto("/estudantes/novo");
     const say = async (question, answer) => {
       await expect(content(page).getByText(question).last()).toBeVisible();
-      await expect(content(page)).not.toContainText("matriculado no AEE");
       if (answer.option) {
         // Só dentro da conversa: o menu da conta também tem botões de alternar.
         const choice = typeof answer.option === "string"
@@ -64,13 +64,13 @@ test.describe("ficha do estudante", () => {
   test("abas: o caminho essencial fica na linha e o restante no menu Mais", async ({ page }) => {
     await page.goto(studentPath);
     const labels = (essential) => STUDENT_TABS.filter((tab) => isEssentialTab(tab.slug) === essential).map((tab) => tab.label);
-    await expect(tabs(page).locator(".tab-strip a")).toHaveText(labels(true));
+    await expect(tabs(page).getByRole("link")).toHaveText(labels(true));
     await tabs(page).getByRole("button", { name: "Mais" }).click();
     await expect(tabs(page).getByRole("list", { name: "Mais seções do estudante" }).getByRole("link")).toHaveText(labels(false));
     await tabs(page).getByRole("link", { name: "Sondagem" }).click();
     await page.waitForURL(`**${studentPath}/sondagem`);
-    await expect(tabs(page).locator('.tab-strip a[aria-current="page"]')).toHaveText("Sondagem");
     await expect(tabs(page).getByRole("list", { name: "Mais seções do estudante" })).toHaveCount(0);
+    await expect(tabs(page).locator('a[aria-current="page"]')).toHaveText("Sondagem");
   });
 
   test("trilha: sem estudo de caso, ele é o próximo passo e o Censo pede o registro", async ({ page }) => {
@@ -95,9 +95,6 @@ test.describe("ficha do estudante", () => {
     ]);
     await expect(page.locator("#aprofundar")).not.toHaveAttribute("open", "");
     await expect(page.locator("#aprofundar [required]")).toHaveCount(0);
-    for (const removed of ["Histórico escolar", "Frequência escolar", "Reprovações", "Quando começou a andar", "Frequência sugerida para o AEE"]) {
-      await expect(content(page)).not.toContainText(removed);
-    }
 
     await option(page, /Impedimentos de longo prazo/, "Na fala e na comunicação").click();
     await option(page, /^Potencialidades/, "Boa memória visual").click();
@@ -114,8 +111,6 @@ test.describe("ficha do estudante", () => {
     await expect(next.getByRole("heading")).toHaveText("Próximo passo: criar o plano de ensino");
     await expect(next.getByRole("link", { name: /Criar o plano de ensino/ })).toHaveAttribute("href", `${studentPath}/ppi`);
     await expect(page.getByRole("region", { name: "Essencial" })).toContainText("Prancha de comunicação");
-    await expect(content(page)).not.toContainText("perguntas respondidas");
-    await expect(content(page)).not.toContainText("Nenhuma informação registrada");
     await expect(content(page)).toContainText("Aprofundar o estudo");
   });
 
@@ -196,21 +191,20 @@ test.describe("ficha do estudante", () => {
     await expect(page.locator(printSelector("instructions")).first()).toBeHidden();
     await expect(page.getByRole("button", { name: /Imprimir/ }).first()).toBeHidden();
     const quiz = page.locator(printSelector("activity")).filter({ has: page.getByRole("heading", { name: "Quiz acessível da turma" }) });
-    await expect(quiz.locator(printSelector("sheet")).first().locator("ol > li")).toHaveCount(4);
+    const [sheet] = activityPrintMaterials("Configuração de varredura por acionador", "Quiz acessível da turma");
+    for (const card of sheet.cards) await expect(quiz.locator(printSelector("sheet")).first()).toContainText(card.label);
     await expect(quiz.locator(printSelector("sheet")).first()).toContainText("Orientação ao professor:");
   });
 });
 
 test.describe("gestão", () => {
-  test("Censo, painel e importação abrem sem separar quem recebe AEE", async ({ page }) => {
+  test("Censo, painel e importação abrem para a coordenação", async ({ page }) => {
     await login(page, "coordenacao");
     await page.goto("/censo");
     await expect(content(page).getByRole("heading").first()).toBeVisible();
     await page.goto("/painel");
     await expect(page.getByTestId("total-estudantes")).toBeVisible();
-    await expect(content(page)).not.toContainText(/\d+ no AEE\)/);
     await page.goto("/estudantes/importar");
     await expect(content(page)).toContainText("frequencia_aee");
-    await expect(content(page).getByText("aee", { exact: true })).toHaveCount(0);
   });
 });

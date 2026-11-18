@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  DOCUMENT_PATTERNS, MARKER_LIST, createPseudonymizer, hasStudentLabel, createRedactor, inWords, remainingIdentifiers, replacePatterns, restorableLength, withRedaction,
+  DOCUMENT_PATTERNS, MARKER_LIST, createPseudonymizer, hasStudentLabel, createRedactor, remainingIdentifiers, replacePatterns, restorableLength, withRedaction,
 } from "./redactor.ts";
 
 const SCHOOL = "EMEF Maria Firmina dos Reis";
@@ -94,13 +94,14 @@ test("conversa com o assistente: o marcador que o modelo cita leva ao estudante"
   assert.equal(conversation.studentIdOf("Ana Clara"), undefined);
 });
 
-test("laudo: linhas de identificação, profissionais, registros, documentos e endereços saem; a resposta volta sem marcadores", () => {
+test("laudo: linhas de identificação, profissionais, registros, documentos e endereços saem; a resposta volta sem marcadores", async () => {
   const counts = {};
   const text = "Paciente: Dante Moreira\nDra. Helena Prado, CRM-MA 12345\nCNS 123 4567 8901 2345, RG 12.345.678-9\nRua das Flores, 120";
   const cleaned = replacePatterns(text, DOCUMENT_PATTERNS, counts);
   assert.equal(cleaned, "Paciente: [OMITIDO]\n[PROFISSIONAL], [REGISTRO PROFISSIONAL]\nCNS [DOCUMENTO], RG [DOCUMENTO]\n[ENDEREÇO]");
   assert.deepEqual(counts, { "linhas de identificação": 1, "nomes de profissionais": 1, "registros profissionais": 1, documentos: 2, endereços: 1 });
-  assert.deepEqual(inWords({ resumo: cleaned, lista: ["[ESTUDANTE] e [COLEGA]"] }), {
+  const model = withRedaction(async () => ({ resumo: cleaned, lista: ["[ESTUDANTE] e [COLEGA]"] }), createRedactor({}));
+  assert.deepEqual(await model({ agent: "teste", system: "", prompt: cleaned, schema: null }), {
     resumo: "Paciente: (informação omitida)\num profissional, (informação omitida)\nCNS (informação omitida), RG (informação omitida)\n(informação omitida)",
     lista: ["o estudante e um colega"],
   });
@@ -115,10 +116,10 @@ test("o modelo recebe o pedido trocado e a resposta volta em palavras", async ()
 });
 
 test("a lista de marcadores para as instruções dos agentes inclui todos os que a troca usa", () => {
-  for (const marker of ["[ESTUDANTE]", "[COLEGA]", "[FAMILIAR]", "[PROFISSIONAL]", "[ESCOLA]", "[E-MAIL]", "[LINK]", "[DOCUMENTO]", "[CEP]", "[DATA]", "[TELEFONE]"]) {
-    assert.ok(MARKER_LIST.includes(marker), marker);
-  }
-  assert.match(MARKER_LIST, /, \[DATA\] e \[TELEFONE\]$/);
+  const sent = studentScope().redact(`Dante, Ravi, Carla e Beatriz Nunes na ${SCHOOL}. E-mail carla@escola.org, site https://escola.org, CPF 111.222.333-44, CEP 65000-100, em 12/03/2019, telefone (98) 99876-5432.`);
+  const markers = new Set(sent.match(/\[[^\]\d]+\]/g));
+  assert.ok(markers.size > 0, sent);
+  for (const marker of markers) assert.ok(MARKER_LIST.includes(marker), marker);
 });
 
 test("resposta em partes: o texto só vai para a tela até antes de um marcador incompleto", () => {

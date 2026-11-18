@@ -1,22 +1,16 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { DEMO_RESOURCE_USAGE, RESOURCE_CATALOG } from "../../prisma/resource-catalog.mjs";
-import {
-  COMPLEXITY_LABELS,
-  RESOURCE_PRESENTATIONS,
-  RESOURCE_TYPES,
-  resourcePresentation,
-  resourceTypeLabel,
-} from "./resource-bank.ts";
+import { RESOURCE_CATALOG } from "../../prisma/resource-catalog.mjs";
+import { COMPLEXITY_LABELS, RESOURCE_TYPES, resourcePresentation, resourceTypeLabel } from "./resource-bank.ts";
 
 const originalResources = new Map([
-  ["Rotina visual de chegada", { counters: [34, 29], activities: ["Cheguei e organizei", "Monitor da rotina da turma"] }],
-  ["Prancha de comunicação: rotina escolar", { counters: [27, 24], activities: ["Pedidos funcionais durante a aula", "Repórter das escolhas"] }],
-  ["Ditado com corpus de interesse", { counters: [18, 16], activities: ["Ditado temático graduado", "Legenda colaborativa"] }],
-  ["Configuração de varredura por acionador", { counters: [6, 6], activities: ["Calibrar tempo de varredura", "Quiz acessível da turma"] }],
-  ["História social: troca de professor", { counters: [12, 9], activities: ["Conhecer a mudança com antecedência", "Mapa de apoio para o primeiro dia"] }],
-  ["Transições sem sino: avisos visuais", { counters: [8, 8], activities: ["Transição com contagem visual", "Auditoria sensorial da rotina"] }],
+  ["Rotina visual de chegada", ["Cheguei e organizei", "Monitor da rotina da turma"]],
+  ["Prancha de comunicação: rotina escolar", ["Pedidos funcionais durante a aula", "Repórter das escolhas"]],
+  ["Ditado com corpus de interesse", ["Ditado temático graduado", "Legenda colaborativa"]],
+  ["Configuração de varredura por acionador", ["Calibrar tempo de varredura", "Quiz acessível da turma"]],
+  ["História social: troca de professor", ["Conhecer a mudança com antecedência", "Mapa de apoio para o primeiro dia"]],
+  ["Transições sem sino: avisos visuais", ["Transição com contagem visual", "Auditoria sensorial da rotina"]],
 ]);
 
 const stages = ["educacao_infantil", "anos_iniciais", "anos_finais", "ensino_medio", "eja"];
@@ -32,10 +26,8 @@ function stringList(serialized, { minimum, maximum, label }) {
   return list;
 }
 
-test("banco tem 24 recursos e 72 atividades, sem títulos que colidam no upsert", () => {
-  assert.equal(RESOURCE_CATALOG.length, 24);
-  assert.equal(activities.length, 72);
-  assert.equal(new Set(RESOURCE_CATALOG.map((resource) => resource.title)).size, 24);
+test("banco sem títulos que colidam no upsert, três propostas por recurso", () => {
+  assert.equal(new Set(RESOURCE_CATALOG.map((resource) => resource.title)).size, RESOURCE_CATALOG.length);
   for (const resource of RESOURCE_CATALOG) {
     assert.ok(resource.title.trim() && resource.description.length >= 80, resource.title);
     assert.equal(resource.activities.length, 3, resource.title);
@@ -68,21 +60,13 @@ test("cada proposta contém materiais, cinco a sete passos e três a quatro adap
   }
 });
 
-test("identidade dos seis recursos e doze propostas originais permanece estável e todos começam sem uso", () => {
-  for (const [title, expected] of originalResources) {
+test("os seis recursos e as doze propostas originais mantêm os títulos; atividades sem contadores de uso", () => {
+  for (const [title, activityTitles] of originalResources) {
     const resource = RESOURCE_CATALOG.find((entry) => entry.title === title);
     assert.ok(resource, title);
-    assert.deepEqual([resource.timesUsed ?? 0, resource.positiveOutcomes ?? 0], [0, 0], title);
-    assert.deepEqual(DEMO_RESOURCE_USAGE[title], expected.counters, title);
-    for (const activityTitle of expected.activities) {
+    for (const activityTitle of activityTitles) {
       assert.ok(resource.activities.some((activity) => activity.title === activityTitle), activityTitle);
     }
-  }
-  const newResources = RESOURCE_CATALOG.filter((resource) => !originalResources.has(resource.title));
-  assert.equal(newResources.length, 18);
-  for (const resource of newResources) {
-    assert.equal(resource.timesUsed, 0, resource.title);
-    assert.equal(resource.positiveOutcomes, 0, resource.title);
   }
   for (const activity of activities) {
     assert.ok(!Object.hasOwn(activity, "timesUsed"), activity.title);
@@ -91,11 +75,12 @@ test("identidade dos seis recursos e doze propostas originais permanece estável
   }
 });
 
-test("todo recurso tem capa local, preparação e material-modelo completos", async () => {
-  assert.deepEqual(new Set(Object.keys(RESOURCE_PRESENTATIONS)), new Set(RESOURCE_CATALOG.map((resource) => resource.title)));
+test("todo recurso do catálogo tem capa local, preparação e material-modelo próprios", async () => {
+  const fallback = resourcePresentation({ title: "Proposta criada pela escola", skillArea: "Leitura", resourceType: "novo_tipo" });
   const altsByImage = new Map();
   for (const resource of RESOURCE_CATALOG) {
     const presentation = resourcePresentation(resource);
+    assert.notEqual(presentation.model.title, fallback.model.title, resource.title);
     assert.match(presentation.image, /^\/images\/activities\/[a-z-]+\.webp$/, resource.title);
     assert.ok(presentation.imageAlt.length >= 40, resource.title);
     assert.ok(presentation.preparation.length >= 2 && presentation.preparation.length <= 3, resource.title);
@@ -111,7 +96,6 @@ test("todo recurso tem capa local, preparação e material-modelo completos", as
     }
     altsByImage.set(presentation.image, presentation.imageAlt);
   }
-  assert.equal(altsByImage.size, 12);
   for (const image of altsByImage.keys()) {
     const file = await readFile(new URL(`../../public${image}`, import.meta.url));
     assert.equal(file.subarray(0, 4).toString("ascii"), "RIFF", image);

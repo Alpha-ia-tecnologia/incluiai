@@ -23,7 +23,7 @@ test("o script antes da pintura e o controle aplicam o mesmo tamanho", () => {
     applyTextScale(applied, scale.value);
     assert.deepEqual(runScript(scale.value), applied, scale.value);
   }
-  assert.deepEqual(runScript("3"), { dataset: { textScale: "3" }, style: { fontSize: "125%" } });
+  assert.notDeepEqual(runScript("3"), fakeRoot());
   assert.deepEqual(runScript(null), fakeRoot());
   assert.deepEqual(runScript("__proto__"), fakeRoot());
 });

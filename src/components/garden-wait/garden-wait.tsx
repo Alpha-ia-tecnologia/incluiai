@@ -213,16 +213,7 @@ export const ChatWait = memo(function ChatWait({ active, steps, writing, outcome
       className={`${styles.root} ${styles.faixa}`}
       data-testid="espera-jardim"
       data-variant={garden.long && !ending ? "faixa" : mem.writing ? "compacta" : "faixa"}
-      data-state={ending ? ending.outcome : mem.active ? garden.phase : "inativo"}
       data-aberta={mem.active || ending?.stage === "final" ? "true" : "false"}
-      data-scene={garden.scene}
-      data-tool={garden.tool}
-      data-stage={garden.long?.stage ?? "nenhum"}
-      data-elapsed={garden.long ? longBucket : turnBucket}
-      data-grown={art.grown}
-      data-ties={art.ties}
-      data-stones={art.stones}
-      data-finale={ending?.finale ? "true" : "false"}
       data-paused={paused ? "true" : "false"}
       data-respira={mem.active && (!mem.writing || garden.long !== null) ? "true" : "false"}
       data-entrada={entering ? "" : undefined}
@@ -262,9 +253,6 @@ export const InlineWait = memo(function InlineWait({ scene, withImages, announce
       className={`${styles.root} ${styles.inline}`}
       data-testid="espera-jardim"
       data-variant="inline"
-      data-state="aguardando"
-      data-scene={INLINE_SCENES[scene].family}
-      data-elapsed={bucket}
       data-paused={paused ? "true" : "false"}
       data-respira="true"
       data-entrada={entering ? "" : undefined}

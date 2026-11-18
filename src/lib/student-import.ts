@@ -32,7 +32,7 @@ export const COLUMN_LABELS: Record<SheetField, string> = {
   guardianName: "responsavel", guardianPhone: "telefone", aeeFrequency: "frequencia_aee", supportProfessional: "profissional_de_apoio",
 };
 
-export function parseCsv(text: string): string[][] {
+function parseCsv(text: string): string[][] {
   const clean = text.replace(/^﻿/, "");
   const firstLine = clean.split(/\r?\n/, 1)[0] ?? "";
   const separator = [";", ",", "\t"].map((item) => ({ item, count: firstLine.split(item).length })).sort((a, b) => b.count - a.count)[0].item;
@@ -60,7 +60,7 @@ export function parseCsv(text: string): string[][] {
 const YES = new Set(["sim", "s", "x", "1", "true", "yes"]);
 const NO = new Set(["", "nao", "n", "0", "false", "no"]);
 
-export function mapHeader(header: string[]): { index: Partial<Record<SheetField, number>>; missing: string[] } {
+function mapHeader(header: string[]): { index: Partial<Record<SheetField, number>>; missing: string[] } {
   const names = header.map(normalize);
   const index: Partial<Record<SheetField, number>> = {};
   for (const [field, aliases] of Object.entries(COLUMNS) as [SheetField, string[]][]) {

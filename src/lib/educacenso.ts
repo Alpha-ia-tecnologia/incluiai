@@ -118,7 +118,7 @@ const field = (fields: string[], position: number) => (fields[position - 1] ?? "
 const flag = (fields: string[], position: number) => field(fields, position) === "1";
 
 
-export function toIsoDate(brazilian: string): string {
+function toIsoDate(brazilian: string): string {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(brazilian.trim());
   if (!match) return "";
   const [, day, month, year] = match;
@@ -131,14 +131,14 @@ export function titleCase(name: string): string {
   return name.toLowerCase().replace(/\s+/g, " ").trim().split(" ").map((word, index) => (index > 0 && PARTICLES.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1))).join(" ");
 }
 
-export function parseInterval(value: string): Interval {
+function parseInterval(value: string): Interval {
   const match = /^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/.exec(value.trim());
   if (!match) return [0, 0];
   const [start, end] = [Number(match[1]) * 60 + Number(match[2]), Number(match[3]) * 60 + Number(match[4])];
   return start < end && end <= 24 * 60 ? [start, end] : [0, 0];
 }
 
-export const schedulesOverlap = (a: Interval[], b: Interval[]) => a.some(([start, end], day) => end > start && (b[day]?.[1] ?? 0) > start && (b[day]?.[0] ?? 0) < end && b[day][1] > b[day][0]);
+const schedulesOverlap = (a: Interval[], b: Interval[]) => a.some(([start, end], day) => end > start && (b[day]?.[1] ?? 0) > start && (b[day]?.[0] ?? 0) < end && b[day][1] > b[day][0]);
 
 function parseClass(fields: string[], edition: Edition): CensusClass | null {
   const layout = FIELD.schoolClass;
@@ -289,7 +289,7 @@ function readLine(state: State, raw: string, index: number) {
   // Registros 10 (infraestrutura), 40 (gestor), 50 (profissional) e 99 não interessam aqui.
 }
 
-export function detectEdition(lines: string[][]): Edition {
+function detectEdition(lines: string[][]): Edition {
   const votes = { 2025: 0, 2026: 0 };
   for (const fields of lines) {
     const type = field(fields, 1) as "00" | "20" | "60";

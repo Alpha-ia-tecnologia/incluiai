@@ -3,7 +3,7 @@ export type BnccScope = { stage: "EI" | "EF" | "EM" | null; year: number | null;
 
 export const normalizeCode = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-export function efYears(label: string): number[] {
+function efYears(label: string): number[] {
   const numbers = [...label.matchAll(/(\d)º/g)].map((match) => Number(match[1]));
   if (numbers.length === 2 && /\bao\b/.test(label)) return Array.from({ length: numbers[1] - numbers[0] + 1 }, (_, index) => numbers[0] + index);
   return numbers;
@@ -24,7 +24,7 @@ export function scopeFor(student: { stage: string; gradeYear: string; birthDate:
   return { stage: null, year: null, eiGroup: null };
 }
 
-export function inScope(skill: BnccSkill, scope: BnccScope | null): boolean {
+function inScope(skill: BnccSkill, scope: BnccScope | null): boolean {
   if (!scope?.stage) return true;
   if (skill.stage !== scope.stage) return false;
   if (skill.stage === "EI") return !scope.eiGroup || skill.code.slice(2, 4) === scope.eiGroup;
@@ -48,7 +48,7 @@ const STOP = new Set(("a ao aos as com como da das de do dos e em entre na nas n
   "ate apos cada mais menos muito pouco bem quando onde ja nao sim tambem sobre partir meio forma modo outros outras outro outra diferentes " +
   "estudante aluno aluna crianca criancas atividade atividades apoio apoios tentativa tentativas semana semanas vez vezes aula aulas dia dias rotina escolar escola " +
   "professor professora sala comum independente independentemente supervisao instrucao verbal visual pista fisico parcial modelo").split(" "));
-export function stems(text: string): string[] {
+function stems(text: string): string[] {
   return [...new Set(plain(text).split(/[^a-z0-9]+/).filter((word) => word.length >= 4 && !STOP.has(word)).map((word) => word.slice(0, 5)))];
 }
 

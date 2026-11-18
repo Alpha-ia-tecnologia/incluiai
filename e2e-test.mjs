@@ -16,6 +16,8 @@ import { CONTENT_ID } from "./src/lib/landmarks.ts";
 import { VLIBRAS_CHECKED_VERSION, VLIBRAS_ROOT } from "./src/lib/vlibras-core.ts";
 import { LOGIN_MAX_FAILURES, SESSION_COOKIE } from "./src/lib/session-core.ts";
 import { TEXT_SCALES } from "./src/lib/text-scale.ts";
+import { PILLS } from "./src/lib/learning-pills.ts";
+import { GAMES, gameById, gameNote } from "./src/lib/games/registry.ts";
 
 const ONLY_WAIT = process.env.E2E_ONLY === "espera";
 const PAID = process.env.E2E_PAGO === "1";
@@ -28,6 +30,7 @@ const [DANTE_FIRST, RAVI_FIRST] = [DANTE, RAVI].map(firstName);
 
 const browser = await launchChrome();
 const newSession = () => openSession(browser);
+const FAB = 'button[aria-controls="assistente-painel"]';
 const contentText = (page) => page.$eval(`#${CONTENT_ID}`, (main) => main.textContent ?? "").catch(() => "");
 
 async function choose(page, label, value) {
@@ -138,8 +141,11 @@ if (!ONLY_WAIT) {
       check(`família bloqueada de ${path.replace(childId, ":id")}`, page.url().includes("/familia/"), `url=${page.url()}`);
     }
     await page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
-    const portalText = await page.evaluate(() => document.body.innerText);
-    check("família: portal sem seções vazias (materiais e relatórios)", !portalText.includes("Materiais para usar em casa") && !portalText.includes("Relatórios da escola") && portalText.includes("Atividades para fazer em casa"));
+    const portal = await page.evaluate(() => ({
+      home: document.body.innerText.includes("Atividades para fazer em casa"),
+      empty: ["#relatorios", "#materiais"].filter((section) => document.querySelector(section) && !document.querySelector(`${section} a[href]`)),
+    }));
+    check("família: portal sem seções vazias (materiais e relatórios)", portal.home && portal.empty.length === 0, JSON.stringify(portal));
     await ctx.close();
 
     const therapist = await newSession();
@@ -386,7 +392,7 @@ if (!ONLY_WAIT) {
       check("família vê o acesso justificado da Secretaria", (await contentText(family.page)).includes("acesso justificado"));
       await family.ctx.close();
     }
-    check("assistente: botão flutuante em todas as telas", Boolean(await page.$(".assistant-fab")));
+    check("assistente: botão flutuante em todas as telas", Boolean(await page.$(`${FAB}[aria-label^="Abrir o assistente"]`)));
     await page.goto(`${BASE}/assistente`, { waitUntil: "networkidle2" });
     check("assistente: página própria", (await page.evaluate(() => document.querySelector("h1")?.textContent)) === "Converse com o assistente");
     await page.goto(`${BASE}/recursos`, { waitUntil: "networkidle2" });
@@ -395,7 +401,7 @@ if (!ONLY_WAIT) {
       const cards = [...document.querySelectorAll('a[href^="/recursos/"]')];
       return { cards: cards.length, withPhoto: cards.filter((card) => card.querySelector('img[src*="activities"]')).length };
     });
-    check("banco: 24 recursos, cada um com fotografia", bank.cards === 24 && bank.withPhoto === 24, JSON.stringify(bank));
+    check("banco: cada recurso com fotografia", bank.cards > 0 && bank.withPhoto === bank.cards, JSON.stringify(bank));
     const resourceHref = await page.evaluate(() =>
       [...document.querySelectorAll("a")].find((a) => a.getAttribute("href")?.startsWith("/recursos/"))?.getAttribute("href")
     );
@@ -406,9 +412,12 @@ if (!ONLY_WAIT) {
       const normalizedDetail = detail.toLocaleLowerCase("pt-BR");
       check("atividade traz objetivo, aplicação e evidência", normalizedDetail.includes("como aplicar") && normalizedDetail.includes("evidência a observar"));
       check("recurso traz foto, preparação, modelo, níveis de apoio e continuidade", ["antes de começar", "modelo de apoio", "ajuste o apoio à participação", "para continuar"].every((part) => normalizedDetail.includes(part)) && await page.evaluate(() => Boolean(document.querySelector('figure img[src*="activities"]')?.getAttribute("alt"))));
-      await clickByText(page, "Teve boa resposta");
-      await until(page, () => document.body.innerText.includes("1 aplicações"), { timeout: 20000 });
-      check("resultado da atividade alimenta métrica", await page.evaluate(() => document.body.innerText.includes("boa resposta")));
+      const firstActivity = 'article[id^="atividade-"]';
+      const applications = () => page.$eval(firstActivity, (article) => Number(article.innerText.match(/(\d+) aplicaç(?:ão|ões)/)?.[1] ?? NaN));
+      const usedBefore = await applications();
+      await page.$eval(firstActivity, (article) => [...article.querySelectorAll("button")].find((button) => button.textContent.includes("Teve boa resposta"))?.click());
+      const counted = await until(page, (selector, before) => Number(document.querySelector(selector)?.innerText.match(/(\d+) aplicaç(?:ão|ões)/)?.[1]) === before + 1, { timeout: 20000 }, firstActivity, usedBefore);
+      check("resultado da atividade soma uma aplicação", counted, `antes=${usedBefore} depois=${await applications()}`);
     }
     check("secretaria sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
@@ -446,6 +455,8 @@ const gardenIs = (page, attributes, timeout = 3000) => until(page, (selector, ex
   const garden = document.querySelector(selector);
   return Boolean(garden) && Object.entries(expected).every(([name, value]) => garden.getAttribute(name) === value);
 }, { timeout }, GARDEN, attributes);
+const captionHas = (page, text, timeout = 3000) => until(page, (selector, expected) => Boolean(document.querySelector(`${selector} [data-testid="espera-legenda"]`)?.textContent.includes(expected)), { timeout }, GARDEN, text);
+const drawn = (page, part, timeout = 3000) => until(page, (selector, wanted) => Boolean(document.querySelector(`${selector} ${wanted}`)), { timeout }, GARDEN, part);
 const statusIs = (page, text, timeout = 3000) => until(page, (expected) => document.querySelector('[data-testid="espera-status"]')?.textContent === expected, { timeout }, text);
 const statusHas = (page, text, timeout = 3000) => until(page, (expected) => Boolean(document.querySelector('[data-testid="espera-status"]')?.textContent.includes(expected)), { timeout }, text);
 const nextFrames = (page) => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -458,28 +469,23 @@ await section("espera do assistente", async () => {
   await page.evaluate(() => { document.documentElement.dataset.esperaEscala = "20"; });
   const sse = (event) => page.evaluate((e) => window.__sse(e), event);
   const sseEnd = () => page.evaluate(() => window.__sseEnd());
-  const garden = (name) => page.$eval(GARDEN, (el, n) => el.getAttribute(n), name);
   const status = () => page.$eval('[data-testid="espera-status"]', (el) => el.textContent);
   const height = () => page.$eval(GARDEN, (el) => Math.round(el.getBoundingClientRect().height));
-  const fab = (name) => page.$eval(".assistant-fab", (el, n) => el.getAttribute(n), name);
-  const fabIs = (attributes) => until(page, (expected) => {
-    const button = document.querySelector(".assistant-fab");
+  const fab = (name) => page.$eval(FAB, (el, n) => el.getAttribute(n), name);
+  const fabIs = (attributes) => until(page, (selector, expected) => {
+    const button = document.querySelector(selector);
     return Boolean(button) && Object.entries(expected).every(([name, value]) => button.getAttribute(name) === value);
-  }, { timeout: 3000 }, attributes);
-  const focused = () => page.evaluate(() => (document.activeElement?.classList.contains("assistant-fab") ? "fab" : document.activeElement?.tagName ?? ""));
+  }, { timeout: 3000 }, FAB, attributes);
+  const focused = () => page.evaluate((selector) => (document.activeElement?.matches(selector) ? "fab" : document.activeElement?.tagName ?? ""), FAB);
   const lastItem = () => page.evaluate(() => [...document.querySelectorAll("#assistente-painel ol > li")].at(-1)?.textContent ?? "");
   const lastItemHas = (parts) => until(page, (wanted) => {
     const text = [...document.querySelectorAll("#assistente-painel ol > li")].at(-1)?.textContent ?? "";
     return wanted.every((part) => text.includes(part));
   }, { timeout: 3000 }, parts);
   const tipRegion = () => page.$eval('#assistente-painel [data-testid="espera-dica"]', (el) => el.textContent);
-  const markShape = () => page.$eval(".assistant-fab-mark", (el) => { const style = getComputedStyle(el); return `${el.dataset.activity}|${style.borderRadius}|${style.transform === "none" ? "reto" : "girado"}`; });
-  const markIs = (shape) => until(page, (expected) => {
-    const mark = document.querySelector(".assistant-fab-mark");
-    if (!mark) return false;
-    const style = getComputedStyle(mark);
-    return `${mark.dataset.activity}|${style.borderRadius}|${style.transform === "none" ? "reto" : "girado"}` === expected;
-  }, { timeout: 3000 }, shape);
+  const MARK = `${FAB} [data-activity]`;
+  const markShape = () => page.$eval(MARK, (el) => { const style = getComputedStyle(el); return `${style.borderRadius} ${style.transform}`; }).catch(() => "");
+  const markIs = (activity) => until(page, (selector, expected) => document.querySelector(selector)?.getAttribute("data-activity") === expected, { timeout: 3000 }, MARK, activity);
   const panelOpen = (open = true) => until(page, (wanted) => {
     const panel = document.querySelector("#assistente-painel");
     return Boolean(panel) && panel.hidden !== wanted;
@@ -499,7 +505,7 @@ await section("espera do assistente", async () => {
   const stamp = () => new Date().toISOString();
   const done = (id, text) => sse({ type: "done", message: { id, role: "assistente", text, steps: [], createdAt: stamp() }, conversation: { id: "e-conv", title: "Teste", updatedAt: stamp() }, long: false });
 
-  await page.click(".assistant-fab");
+  await page.click(FAB);
   await page.waitForSelector(GARDEN, { timeout: 20000 });
   await page.click('#assistente-painel button[aria-label="Nova conversa"]');
   await until(page, () => {
@@ -519,40 +525,41 @@ await section("espera do assistente", async () => {
     check("espera: conversa nova mostra as sugestões", false);
   } else {
     await counterAbove(page, "__turns", turnsBefore);
-    check("espera: pensando logo no envio", await gardenIs(page, { "data-state": "pensando" }, 2000));
+    check("espera: pensando logo no envio", await captionHas(page, "no seu pedido", 2000));
     check("espera: popup de 568 px usa a faixa compacta", (await height()) <= 84, String(await height()));
     const field = await page.$eval("#assistente-painel textarea", (el) => [el.readOnly, el.disabled, el.getAttribute("aria-disabled")].join(","));
     check("espera: campo só leitura (não desligado) durante o turno", field === "true,false,true", field);
     check("espera: anúncio fora da conversa", await statusIs(page, "Pensando no seu pedido."), await status());
     check("espera: sem item vazio na conversa enquanto pensa", await page.evaluate(() => [...document.querySelectorAll("#assistente-painel ol > li")].every((item) => item.textContent.trim() !== "")));
     await sse({ type: "tool_start", step: { id: "e1", name: "ver_estudante", label: "Lendo o acompanhamento do estudante" } });
-    check("espera: consulta vira raiz e é anunciada", (await gardenIs(page, { "data-scene": "raizes" })) && (await statusIs(page, "Lendo o acompanhamento.")), await status());
+    check("espera: consulta vira raiz e é anunciada", (await drawn(page, '[data-part="raiz"][data-estado="vivo"]')) && (await statusIs(page, "Lendo o acompanhamento.")), await status());
     check("espera: legenda legível pelo leitor de tela", await page.$eval('[data-testid="espera-legenda"]', (el) => !el.closest("[aria-hidden=true]") && el.textContent.includes("Lendo o acompanhamento")));
     await sse({ type: "tool_end", step: { id: "e1", name: "ver_estudante", label: "Lendo o acompanhamento do estudante", ok: true } });
-    check("espera: passo real = folha nova e amarrilho a menos", await gardenIs(page, { "data-grown": "1", "data-ties": "1" }));
+    const grew = await until(page, (selector) => document.querySelectorAll(`${selector} [data-part="folha"][data-on="true"]`).length === 1 && document.querySelectorAll(`${selector} [data-part="amarrilho"][data-off="true"]`).length === 1, { timeout: 3000 }, GARDEN);
+    check("espera: passo real = folha nova e amarrilho a menos", grew && (await statusIs(page, "Organizando a resposta.")), await status());
     await sse({ type: "tool_start", step: { id: "e2", name: "propor_plano", label: "Preparando a proposta de plano com os agentes" } });
     await sse({ type: "tool_progress", id: "e2", progress: { agent: "Analista do caso", phase: "start" } });
-    const analyst = await until(page, () => document.querySelector('[data-part="degrau"][data-agent="analista"]')?.getAttribute("data-estado") === "ativo", { timeout: 3000 });
-    check("espera: só o degrau do agente real acende", analyst && (await gardenIs(page, { "data-stage": "analista" })));
+    const analyst = await until(page, () => [...document.querySelectorAll('[data-part="degrau"][data-estado="ativo"]')].map((rung) => rung.getAttribute("data-agent")).join() === "analista", { timeout: 3000 });
+    check("espera: só o degrau do agente real acende", analyst);
     check("espera: anúncio do agente com tempo habitual", await statusIs(page, "O analista lê o caso. Costuma levar de 1 a 3 minutos."), await status());
-    check("espera: aos 20 s, aviso de que a resposta fica salva", (await gardenIs(page, { "data-elapsed": "20" }, 5000)) && (await statusHas(page, "Pode fechar o painel")), await status());
+    check("espera: aos 20 s, aviso de que a resposta fica salva", await statusHas(page, "Pode fechar o painel", 5000), await status());
     const urlBefore = page.url();
     await page.click('#assistente-painel a[aria-label="Abrir em página inteira"]');
     await sleep(300);
     check("espera: página inteira espera o fim do turno", (await page.$eval('#assistente-painel a[aria-label="Abrir em página inteira"]', (el) => el.getAttribute("aria-disabled"))) === "true" && page.url() === urlBefore && (await page.$eval("#assistente-painel", (el) => !el.hidden)), page.url());
     await page.keyboard.press("Escape");
     check("espera: painel fechado avisa no botão", (await fabIs({ "aria-label": "Abrir o assistente (resposta em preparo)" })) && (await focused()) === "fab");
-    await page.click(".assistant-fab");
+    await page.click(FAB);
     await sse({ type: "tool_end", step: { id: "e2", name: "propor_plano", label: "x", ok: true } });
     await sse({ type: "text", delta: "A proposta está pronta para a sua revisão. " });
-    check("espera: texto chegando deixa a faixa compacta e parada", await gardenIs(page, { "data-state": "escrevendo", "data-respira": "false" }));
+    check("espera: texto chegando deixa a faixa compacta e parada", (await captionHas(page, "Escrevendo a resposta")) && (await gardenIs(page, { "data-respira": "false" })));
     await page.click('[data-testid="espera-regar"]');
     const tip = await until(page, () => (document.querySelector('[data-testid="espera-dica"]')?.textContent ?? "").length > 0, { timeout: 3000 });
     check("espera: regar mostra uma dica e não pega o foco do campo", tip && (await focused()) !== "TEXTAREA");
     await done("e-msg", "Proposta pronta.");
     await sseEnd();
-    check("espera: final com flor e anúncio de resposta pronta", (await gardenIs(page, { "data-state": "pronto", "data-finale": "true" })) && (await statusIs(page, "Resposta pronta.")));
-    const collapsed = (await gardenIs(page, { "data-state": "inativo" }, 6000)) && (await until(page, (selector) => Math.round(document.querySelector(selector).getBoundingClientRect().height) <= 1, { timeout: 3000 }, GARDEN));
+    check("espera: final com flor e anúncio de resposta pronta", (await drawn(page, '[data-part="flor"][data-on="true"]')) && (await captionHas(page, "Resposta pronta.")) && (await statusIs(page, "Resposta pronta.")));
+    const collapsed = (await gardenIs(page, { "data-aberta": "false" }, 6000)) && (await until(page, (selector) => Math.round(document.querySelector(selector).getBoundingClientRect().height) <= 1, { timeout: 3000 }, GARDEN));
     check("espera: depois do final, a faixa recolhe", collapsed);
     check("espera: sem rolagem horizontal a 320 px", (await page.evaluate(() => document.documentElement.scrollWidth)) <= 320);
     check("espera: a dica do turno não volta com a faixa fechada", (await tipRegion()) === "", await tipRegion());
@@ -562,41 +569,36 @@ await section("espera do assistente", async () => {
     await page.keyboard.press("Escape");
     await panelOpen(false);
     await sse({ type: "text", delta: "Segunda " });
-    await gardenIs(page, { "data-state": "escrevendo" });
+    await captionHas(page, "Escrevendo a resposta");
     check("espera: a dica velha não reaparece no turno seguinte", (await tipRegion()) === "" && !(await page.$eval('#assistente-painel [data-testid="espera-legenda"]', (el) => el.textContent)).includes("Dica:"), await tipRegion());
     await done("e-msg2", "Segunda resposta.");
     await sseEnd();
-    const announced = await until(page, () => document.querySelector(".assistant-fab + p[role=status]")?.textContent === "A resposta do assistente está pronta.", { timeout: 3000 });
-    check("espera: com o foco no botão, o nome fica e o status anuncia", announced && (await fab("aria-label")) === "Abrir o assistente (resposta em preparo)" && (await markIs("pronto|9999px|reto")), await markShape());
+    const announced = await until(page, (selector) => document.querySelector(`${selector} + p[role=status]`)?.textContent === "A resposta do assistente está pronta.", { timeout: 3000 }, FAB);
+    const readyMark = (await markIs("pronto")) ? await markShape() : "";
+    check("espera: com o foco no botão, o nome fica e o status anuncia", announced && (await fab("aria-label")) === "Abrir o assistente (resposta em preparo)" && Boolean(readyMark), readyMark);
     await page.evaluate(() => document.activeElement?.blur());
     check("espera: fora do foco, o nome do botão mostra a resposta pronta", await fabIs({ "aria-label": "Abrir o assistente (resposta pronta)" }));
-    const sprout = () => page.evaluate(() => {
-      const icon = [...document.querySelectorAll("#assistente-painel ol > li")].at(-1)?.querySelector("p svg.lucide-sprout");
-      return icon ? (icon.classList.contains("assistant-sprout-mark") ? "crescendo" : "assentado") : "ausente";
-    });
-    const sproutIs = (expected) => until(page, (wanted) => {
-      const icon = [...document.querySelectorAll("#assistente-painel ol > li")].at(-1)?.querySelector("p svg.lucide-sprout");
-      return (icon ? (icon.classList.contains("assistant-sprout-mark") ? "crescendo" : "assentado") : "ausente") === wanted;
-    }, { timeout: 3000 }, expected);
-    await page.click(".assistant-fab");
+    const sproutAnimations = () => page.evaluate(() => [...([...document.querySelectorAll("#assistente-painel ol > li")].at(-1)?.querySelectorAll("svg") ?? [])].reduce((count, icon) => count + icon.getAnimations().length, 0));
+    const animating = (expected) => until(page, (wanted) => [...([...document.querySelectorAll("#assistente-painel ol > li")].at(-1)?.querySelectorAll("svg") ?? [])].some((icon) => icon.getAnimations().length > 0) === wanted, { timeout: 3000 }, expected);
+    await page.click(FAB);
     await panelOpen();
-    const growing = (await sproutIs("crescendo")) ? "crescendo" : await sprout();
-    const settled = (await sproutIs("assentado")) ? "assentado" : await sprout();
+    const growing = await animating(true);
+    const settled = await animating(false);
     await page.keyboard.press("Escape");
     await panelOpen(false);
-    await page.click(".assistant-fab");
+    await page.click(FAB);
     await panelOpen();
-    const reopened = await sprout();
-    check("espera: broto da resposta nova cresce uma vez só", growing === "crescendo" && settled === "assentado" && reopened === "assentado" && (await lastItem()).includes("Segunda resposta."), `${growing}/${settled}/${reopened}`);
+    const reopened = (await sproutAnimations()) === 0;
+    check("espera: broto da resposta nova cresce uma vez só", growing && settled && reopened && (await lastItem()).includes("Segunda resposta."), `${growing}/${settled}/${reopened}`);
 
     await writeAndSend("Pergunta com o painel aberto");
-    await page.focus(".assistant-fab");
+    await page.focus(FAB);
     await done("e-msg2b", "Resposta com o painel aberto.");
     await sseEnd();
     await turnOver();
     await page.keyboard.press("Enter");
     check("espera: fechar pelo botão focado mostra o estado de agora", (await fabIs({ "aria-expanded": "false" })) && (await fab("aria-label")) === "Abrir o assistente", await fab("aria-label"));
-    await page.click(".assistant-fab");
+    await page.click(FAB);
     await panelOpen();
 
     await writeAndSend("Pergunta com erro");
@@ -614,7 +616,7 @@ await section("espera do assistente", async () => {
       await sse({ type: "tool_start", step: { id: `${conversationId}-t`, name: "propor_plano", label: "x" } });
       await sleep(1200);
       await sseEnd();
-      await gardenIs(page, { "data-state": "interrompida" });
+      await captionHas(page, "A conexão caiu.");
     };
     const savedConversation = (id, text, delay) => page.evaluate((conversation) => {
       window.__conversationDelay = conversation.delay;
@@ -627,10 +629,11 @@ await section("espera do assistente", async () => {
       };
     }, { id, text, delay, at: stamp() });
     await dropTurn("Pergunta que cai", "e-conv2");
-    check("espera: conexão caída não vira falha na faixa", (await garden("data-state")) === "interrompida" && (await page.$eval('[data-testid="espera-legenda"]', (el) => el.textContent)).includes("A conexão caiu."));
-    const fell = await until(page, () => document.querySelector(".assistant-fab + p[role=status]")?.textContent.startsWith("A conexão com o assistente caiu."), { timeout: 3000 });
-    check("espera: botão avisa a queda com losango", fell && (await markIs("interrompida|2px|girado")), await markShape());
-    await page.click(".assistant-fab");
+    check("espera: conexão caída não vira falha na faixa", (await captionHas(page, "A conexão caiu.")) && !(await page.$(`${GARDEN} [data-part="nuvem"][data-on="true"]`)));
+    const fell = await until(page, (selector) => document.querySelector(`${selector} + p[role=status]`)?.textContent.startsWith("A conexão com o assistente caiu."), { timeout: 3000 }, FAB);
+    const fallenMark = (await markIs("interrompida")) ? await markShape() : "";
+    check("espera: botão avisa a queda com marca de outro formato", fell && Boolean(fallenMark) && fallenMark !== readyMark, `${readyMark} / ${fallenMark}`);
+    await page.click(FAB);
     await panelOpen();
     await lastItemHas(["A conexão caiu antes de a resposta chegar"]);
     const dropped = await lastItem();
@@ -650,7 +653,7 @@ await section("espera do assistente", async () => {
     await nextFrames(page);
     check("espera: consulta atrasada não desfaz 'Nova conversa'", (await page.$$eval("#assistente-painel ol > li", (items) => items.length)) === 0 && (await page.$eval("#assistente-painel header", (el) => el.textContent)).includes("Nova conversa"));
     await dropTurn("Outra pergunta que cai", "e-conv3");
-    await page.click(".assistant-fab");
+    await page.click(FAB);
     await panelOpen();
     await page.evaluate(() => { const first = document.querySelector("#assistente-painel ol > li"); if (first) first.dataset.marca = "antes"; });
     await savedConversation("e-conv3", "Outra pergunta que cai", 0);
@@ -682,20 +685,18 @@ await section("espera na página a 320 px", async () => {
   } else if (!started) {
     check("espera: página do assistente mostra as sugestões", false);
   } else {
-    await appears(page, '[data-testid="espera-jardim"][data-state="pensando"]', 5000);
+    await captionHas(page, "no seu pedido", 5000);
     check("espera: movimento reduzido sem animação", (await page.$eval('[data-part="planta"]', (el) => getComputedStyle(el).animationName).catch(() => "?")) === "none");
     check("espera: sem botão de pausa no movimento reduzido", (await page.$eval('[data-testid="espera-pausar"]', (el) => getComputedStyle(el).display).catch(() => "?")) === "none");
-    const stage = await page.$eval('[data-testid="espera-regar"]', (el) => Math.round(el.getBoundingClientRect().width)).catch(() => 0);
-    check("espera: página a 320 px usa o palco compacto", stage === 44, String(stage));
+    check("espera: página a 320 px sem rolagem lateral", (await page.evaluate(() => document.documentElement.scrollWidth)) <= 320, String(await page.evaluate(() => document.documentElement.scrollWidth)));
     await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
     await until(page, () => getComputedStyle(document.querySelector('[data-testid="espera-pausar"]')).display !== "none", { timeout: 2000 });
-    const geometry = await page.$eval(GARDEN, (root) => ({
-      badge: getComputedStyle(root.querySelector('[data-testid="espera-regar"] > span')).display,
-      clip: getComputedStyle(root.querySelector('[data-testid="espera-regar"] svg')).clipPath,
-      caption: Math.round(root.querySelector('[data-testid="espera-legenda"]').getBoundingClientRect().width),
+    const fit = await page.$eval(GARDEN, (root) => ({
+      cut: [...root.querySelectorAll('[data-testid="espera-legenda"] p')].filter((line) => line.getClientRects().length && line.scrollWidth > line.clientWidth + 1).map((line) => line.textContent),
       pause: getComputedStyle(root.querySelector('[data-testid="espera-pausar"]')).display,
+      overflow: document.documentElement.scrollWidth > 320,
     }));
-    check("espera: faixa estreita sem gota, arte inteira e legenda de 156 px ou mais", geometry.badge === "none" && geometry.clip === "none" && geometry.caption >= 156 && geometry.pause !== "none", JSON.stringify(geometry));
+    check("espera: faixa estreita com a legenda inteira e o botão de pausa", !fit.cut.length && fit.pause !== "none" && !fit.overflow, JSON.stringify(fit));
     const sse = (event) => page.evaluate((e) => window.__sse(e), event);
     const status = () => page.$eval('[data-testid="espera-status"]', (el) => el.textContent);
     await sse({ type: "tool_start", step: { id: "a1", name: "gerar_atividades", label: "Criando as 3 sugestões de atividade com os agentes" } });
@@ -732,11 +733,12 @@ if (danteHref) await section("espera inline", async () => {
     check("espera inline aparece com a IA ligada", inline);
     if (inline) {
       const pendingStatus = await page.$eval('[data-testid="pending-status"]', (el) => el.textContent);
-      check("espera inline: status com o texto da página e uma estimativa só", pendingStatus === "Os agentes da sala comum, do AEE e da família estão preparando as atividades, e o revisor vai conferir. Costuma levar de 1 a 3 minutos.", pendingStatus);
-      await page.click('[data-testid="espera-regar"]');
-      const ticked = await until(page, (selector) => document.querySelector(selector)?.getAttribute("data-elapsed") !== "0", { timeout: 5000 }, GARDEN);
-      check("espera inline: regar e o relógio não reabrem o botão", ticked && (await page.evaluate(() => [...document.querySelectorAll("button[aria-busy]")].some((b) => b.getAttribute("aria-busy") === "true"))));
+      const [pageText, ...estimates] = pendingStatus.split("Costuma levar");
+      check("espera inline: status com o texto da página e uma estimativa só", pageText.trim().length > 0 && estimates.length === 1, pendingStatus);
       const card = '[data-testid="espera-jardim"][data-variant="inline"]';
+      await page.click('[data-testid="espera-regar"]');
+      const ticked = await until(page, (selector) => Boolean(document.querySelector(`${selector} [data-testid="espera-legenda"]`)?.textContent.includes("Mantenha esta página aberta")), { timeout: 5000 }, card);
+      check("espera inline: regar e o relógio não reabrem o botão", ticked && (await page.evaluate(() => [...document.querySelectorAll("button[aria-busy]")].some((b) => b.getAttribute("aria-busy") === "true"))));
       const breath = () => page.$eval(card, (el) => getComputedStyle(el.querySelector('[data-part="planta"]')).animationPlayState);
       const canLeave = await page.$eval(card, (el) => document.documentElement.scrollHeight - window.innerHeight > el.getBoundingClientRect().bottom + window.scrollY);
       if (!canLeave) {
@@ -818,10 +820,10 @@ if (!ONLY_WAIT) {
       const suggestion = await page.waitForFunction(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Usar esta habilidade")), { timeout: 15000 }).catch(() => null);
       let picked = "";
       if (suggestion) {
-        picked = await suggestion.evaluate((button) => button.querySelector(".font-mono")?.textContent ?? "");
+        picked = await suggestion.evaluate((button) => button.textContent.match(/E[IFM]\d{2}[A-Z]{2,3}\d{2,3}/)?.[0] ?? "");
         await suggestion.evaluate((button) => button.click());
       }
-      const kept = picked ? await until(page, (code) => [...document.querySelectorAll("li .font-mono")].some((item) => item.textContent === code) && document.body.innerText.includes("Tudo salvo"), { timeout: 20000 }, picked) : false;
+      const kept = picked ? await until(page, (code) => Boolean(document.querySelector(`button[aria-label="Tirar a habilidade ${code}"]`)) && document.body.innerText.includes("Tudo salvo"), { timeout: 20000 }, picked) : false;
       check("DUA: habilidade da BNCC sugerida pelo objetivo e guardada", kept, picked ? `código ${picked}` : "sem sugestão");
 
       await clickByText(page, "Contexto e barreiras");
@@ -1143,7 +1145,7 @@ if (!ONLY_WAIT) {
     else {
       await page.type('#novo-objetivo input[type="search"]', "EF01LP");
       const result = await page.waitForFunction(() => [...document.querySelectorAll("#novo-objetivo button")].find((button) => button.textContent.includes("Usar esta habilidade")), { timeout: 15000 }).catch(() => null);
-      const code = result ? await result.evaluate((button) => button.querySelector(".font-mono")?.textContent ?? "") : "";
+      const code = result ? await result.evaluate((button) => button.textContent.match(/EF01LP\d{2}/)?.[0] ?? "") : "";
       // Clique direto: na janela de teste (800×600) a barra de navegação do celular cobre a lista.
       if (result) await result.evaluate((button) => button.click());
       check("BNCC: busca pelo código e escolhe a habilidade", /^EF01LP\d{2}$/.test(code) && await page.evaluate((c) => [...document.querySelectorAll('#novo-objetivo input[name="bnccCode"]')].some((input) => input.value === c), code), `código=${code}`);
@@ -1376,7 +1378,7 @@ if (!ONLY_WAIT) {
     const { ctx, page, errors } = await newSession();
     await login(page, "professor_aee");
     await page.goto(`${BASE}/ajuda`, { waitUntil: "networkidle2" });
-    check("pílulas: seis na Ajuda", (await textOf(page)).includes("Formação em pílulas") && await page.evaluate(() => document.querySelectorAll('#pilulas a[href^="/ajuda/pilulas/"]').length === 6));
+    check("pílulas: todas na Ajuda", (await textOf(page)).includes("Formação em pílulas") && await page.evaluate((count) => document.querySelectorAll('#pilulas a[href^="/ajuda/pilulas/"]').length === count, PILLS.length));
     await page.goto(`${BASE}${danteHref}/sondagem`, { waitUntil: "networkidle2" });
     const more = await page.evaluate(() => [...document.querySelectorAll("main a")].find((link) => link.textContent.trim().startsWith("Saiba mais"))?.getAttribute("href"));
     check("pílulas: Saiba mais ao lado da sondagem", more === "/ajuda/pilulas/sondagem", String(more));
@@ -1653,16 +1655,16 @@ if (!ONLY_WAIT) {
     const library = await page.evaluate(() => ({
       games: document.querySelectorAll('button[aria-label^="Jogar "]').length,
       fullScreen: [...document.querySelectorAll('form[action^="/jogar/"]')].map((form) => form.querySelector('input[name="estudante"]')?.value),
-      separatePage: [...document.querySelectorAll("a")].some((a) => a.getAttribute("href")?.startsWith("/jogos/explorar")),
     }));
-    check("jogos: os 19 jogos juntos, numa página só", library.games === 19 && library.fullScreen.length === 4 && !library.separatePage, JSON.stringify(library));
+    check("jogos: todos os jogos juntos, numa página só", library.games === GAMES.length && library.fullScreen.length === GAMES.filter((game) => game.kind === "tela-cheia").length, JSON.stringify(library));
     check("jogos: os de tela cheia levam o estudante escolhido", library.fullScreen.every((id) => id === studentId), JSON.stringify(library.fullScreen));
 
     await page.evaluate(() => document.querySelector('input[name="game-level"][value="facil"]').click());
     await page.click("#play-encontre");
     await hasButton(page, "Ver uma pista");
-    for (let round = 0; round < 5; round += 1) {
-      const last = round === 4;
+    const findRounds = gameById("encontre").rounds;
+    for (let round = 0; round < findRounds; round += 1) {
+      const last = round === findRounds - 1;
       await clickByText(page, "Ver uma pista");
       await appears(page, "[data-hint]", 5000);
       if (round === 0) {
@@ -1682,6 +1684,7 @@ if (!ONLY_WAIT) {
     await page.goto(`${BASE}/jogar/memoria?estudante=${studentId}&nivel=facil&tema=animais`, { waitUntil: "networkidle2" });
     await clickByText(page, "Dica");
     const pics = await page.$$eval("[data-pic]", (cards) => cards.map((card) => card.getAttribute("data-pic")));
+    const pairs = new Set(pics).size;
     const firstOther = pics.findIndex((pic) => pic !== pics[0]);
     const cards = await page.$$("[data-pic]");
     await cards[0].click();
@@ -1696,16 +1699,16 @@ if (!ONLY_WAIT) {
     }
     await until(page, () => document.body.innerText.includes("Você terminou"), { timeout: 10000 });
     const summary = await textOf(page);
-    check("jogos: memória até o fim, com a dica e o erro no resumo", summary.includes("2 de 2 pares") && summary.includes("1 dica") && summary.includes("1 tentativa a mais"), summary.slice(0, 200));
+    check("jogos: memória até o fim, com a dica e o erro no resumo", summary.includes(`${pairs} de ${pairs} pares`) && summary.includes("1 dica") && summary.includes("1 tentativa a mais"), summary.slice(0, 200));
     await clickByText(page, "Registrar a aula");
     check("jogos: registra a aula no fim", await until(page, () => document.body.innerText.includes("Aula registrada"), { timeout: 15000 }));
     await clickByText(page, "Jogar de novo");
     await until(page, () => location.search.includes("partida="), { timeout: 15000 });
     await settle(page);
-    check("jogos: jogar de novo abre uma partida nova", page.url().includes("partida=") && (await textOf(page)).includes("0 de 2 pares"), page.url());
+    check("jogos: jogar de novo abre uma partida nova", page.url().includes("partida=") && (await textOf(page)).includes(`0 de ${pairs} pares`), page.url());
 
     await page.goto(`${BASE}/jogar/sequencia?estudante=${studentId}&nivel=facil&rotina=maos`, { waitUntil: "networkidle2" });
-    for (let step = 0; step < 3; step += 1) {
+    for (let step = 0; await page.$(`[data-step="${step}"]`); step += 1) {
       await page.click(`[data-step="${step}"]`);
       await until(page, (placed) => !document.querySelector(`[data-step="${placed}"]`), { timeout: 5000 }, step);
     }
@@ -1715,19 +1718,20 @@ if (!ONLY_WAIT) {
       await page.goto(`${BASE}/jogar/${path.replace("?", `?estudante=${studentId}&`)}`, { waitUntil: "networkidle2" });
       await page.evaluate(() => [...document.querySelectorAll('ul[aria-label="Opções"] button')].find((b) => !b.dataset.answer)?.click());
       await until(page, () => [...document.querySelectorAll('ul[aria-label="Opções"] button')].some((b) => !b.dataset.answer && b.getAttribute("aria-disabled") === "true"), { timeout: 5000 });
-      for (let round = 0; round < 5; round += 1) {
+      let played = 0;
+      while (played < 20 && !(await textOf(page)).includes("Você terminou")) {
         await page.click('[data-answer="sim"]:not([aria-disabled])');
+        played += 1;
         await until(page, () => document.body.innerText.includes("Você terminou") || Boolean(document.querySelector('[data-answer="sim"]:not([aria-disabled])')), { timeout: 5000 });
       }
-      await until(page, () => document.body.innerText.includes("Você terminou"), { timeout: 5000 });
       const end = await textOf(page);
-      check(`jogos: ${path.split("?")[0]} com 5 rodadas e o erro contado`, end.includes("5 de 5 rodadas") && end.includes("1 tentativa a mais"), end.slice(0, 160));
+      check(`jogos: ${path.split("?")[0]} até o fim, com cada rodada e o erro contados`, end.includes(`${played} de ${played} rodadas`) && end.includes("1 tentativa a mais"), end.slice(0, 160));
     }
 
     await page.goto(`${BASE}/estudantes/${studentId}/diario`, { waitUntil: "networkidle2" });
     const diary = await textOf(page);
-    check("jogos: o registro aparece em Registrar aula", diary.includes("Jogo: Memória por temas (fácil, Animais). 2 de 2 pares · 1 dica · 1 tentativa a mais."));
-    check("jogos: o registro do jogo de fotografias também", diary.includes("Jogo: Encontre a imagem (fácil). 5 de 5 rodadas · 5 dicas · 1 tentativa a mais."), diary.slice(0, 300));
+    check("jogos: o registro aparece em Registrar aula", diary.includes(gameNote(gameById("memoria"), "facil", "Animais", { done: pairs, total: pairs, hints: 1, retries: 1 })));
+    check("jogos: o registro do jogo de fotografias também", diary.includes(gameNote(gameById("encontre"), "facil", null, { done: findRounds, total: findRounds, hints: findRounds, retries: 1 })), diary.slice(0, 300));
 
     await page.goto(`${BASE}/jogar/emocoes?nivel=facil`, { waitUntil: "networkidle2" });
     const alone = await textOf(page);

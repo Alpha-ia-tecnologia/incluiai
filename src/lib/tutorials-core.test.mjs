@@ -1,28 +1,29 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatDuration, isTutorial, parseTutorials, tutorialsForRole } from "./tutorials-core.ts";
+import { formatDuration, parseTutorials, tutorialsForRole } from "./tutorials-core.ts";
 
+const accepted = (item) => parseTutorials([item]).length === 1;
 const valid = { id: "10-registrar-aula", title: "Registrar uma aula", audience: "Professores", roles: ["professor_aee", "professor_sala"], summary: "Três partes.", seconds: 95, video: "10-registrar-aula.mp4", poster: "10-registrar-aula.jpg" };
 
 test("vídeo válido passa; sem capa também", () => {
-  assert.equal(isTutorial(valid), true);
-  assert.equal(isTutorial({ ...valid, poster: null }), true);
+  assert.equal(accepted(valid), true);
+  assert.equal(accepted({ ...valid, poster: null }), true);
 });
 
 test("nomes de arquivo e endereço só com letras, números e hífen", () => {
-  assert.equal(isTutorial({ ...valid, id: "../ajuda" }), false);
-  assert.equal(isTutorial({ ...valid, video: "../../.env" }), false);
-  assert.equal(isTutorial({ ...valid, video: "aula.webm" }), false);
-  assert.equal(isTutorial({ ...valid, poster: "capa.png" }), false);
-  assert.equal(isTutorial({ ...valid, video: "https://exemplo.com/a.mp4" }), false);
+  assert.equal(accepted({ ...valid, id: "../ajuda" }), false);
+  assert.equal(accepted({ ...valid, video: "../../.env" }), false);
+  assert.equal(accepted({ ...valid, video: "aula.webm" }), false);
+  assert.equal(accepted({ ...valid, poster: "capa.png" }), false);
+  assert.equal(accepted({ ...valid, video: "https://exemplo.com/a.mp4" }), false);
 });
 
 test("campos faltando ou de outro tipo ficam de fora", () => {
-  assert.equal(isTutorial(null), false);
-  assert.equal(isTutorial({ ...valid, title: " " }), false);
-  assert.equal(isTutorial({ ...valid, roles: "professor_aee" }), false);
-  assert.equal(isTutorial({ ...valid, seconds: 0 }), false);
-  assert.equal(isTutorial({ ...valid, seconds: "95" }), false);
+  assert.equal(accepted(null), false);
+  assert.equal(accepted({ ...valid, title: " " }), false);
+  assert.equal(accepted({ ...valid, roles: "professor_aee" }), false);
+  assert.equal(accepted({ ...valid, seconds: 0 }), false);
+  assert.equal(accepted({ ...valid, seconds: "95" }), false);
 });
 
 test("lista: ignora o que não serve e mantém a ordem", () => {

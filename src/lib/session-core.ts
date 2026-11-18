@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 export const SESSION_COOKIE = "incluiedu_session";
 export const SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
-export const SESSION_IDLE_MS = 2 * 60 * 60 * 1000;
+const SESSION_IDLE_MS = 2 * 60 * 60 * 1000;
 export const MFA_PENDING_MS = 10 * 60 * 1000;
 export const SESSION_TOUCH_MS = 5 * 60 * 1000;
 

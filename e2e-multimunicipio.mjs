@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { clickByText, fill, launchChrome, login, newSession as openSession, report, studentHref, textOf, until } from "./e2e-support.mjs";
 import { DEMO_STUDENTS, PLATFORM_DEMO_ACCOUNT } from "./prisma/demo-data.mjs";
 import { SESSION_COOKIE } from "./src/lib/session-core.ts";
+import { TEMPORARY_PASSWORD_PATTERN } from "./src/lib/accounts-core.ts";
 
 const DOMAIN = process.env.E2E_DOMAIN ?? "localhost";
 const PORT = process.env.E2E_PORT ?? "3214";
@@ -118,7 +119,7 @@ let cityTemp = "";
   await until(page, () => Boolean(document.querySelector("#senha-temporaria")), { timeout: 180000 });
   const temp = (await page.$eval("#senha-temporaria", (item) => item.textContent).catch(() => "")).trim();
   const address = await page.$eval("#endereco-municipio", (link) => link.getAttribute("href")).catch(() => "");
-  check("novo município: ambiente pronto com senha temporária", /^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/.test(temp), `senha=${temp} ${(await textOf(page)).slice(0, 300)}`);
+  check("novo município: ambiente pronto com senha temporária", TEMPORARY_PASSWORD_PATTERN.test(temp), `senha=${temp} ${(await textOf(page)).slice(0, 300)}`);
   check("novo município: mostra o endereço", address === CITY, address);
   await page.goto(`${ADMIN}/plataforma`, { waitUntil: "networkidle2" });
   const card = await page.evaluate((name) => [...document.querySelectorAll("li")].find((item) => item.textContent.includes(name))?.innerText ?? "", CITY_NAME);

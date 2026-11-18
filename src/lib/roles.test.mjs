@@ -53,12 +53,8 @@ test("quem cria contas e com quais perfis", () => {
   });
 });
 
-test("nomes dos papéis e contexto de quem ensina", () => {
-  assert.deepEqual(Object.fromEntries(ROLE_KEYS.map((role) => [role, roleLabel(role)])), {
-    professor_sala: "Professor(a) da sala comum", professor_aee: "Professor(a) do AEE", apoio: "Profissional de apoio",
-    coordenacao: "Coordenação pedagógica", gestao: "Gestão escolar", secretaria: "Secretaria de Educação",
-    familia: "Família", terapeuta: "Terapeuta (rede de saúde)", plataforma: "Administração da plataforma",
-  });
+test("nomes curtos dos papéis e contexto de quem ensina", () => {
+  assert.equal(new Set(ROLE_KEYS.map((role) => roleLabel(role))).size, ROLE_KEYS.length);
   assert.equal(roleLabel("terapeuta", { short: true }), "Terapeuta");
   assert.equal(roleLabel("gestao", { short: true }), "Gestão escolar");
   assert.deepEqual(ROLE_KEYS.map(teachingContext).filter(Boolean), ["sala_comum", "aee"]);

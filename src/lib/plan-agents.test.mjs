@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkObjectives, checkPaee, checkPei, normalizePlanProposal, runPlanAgents } from "./agents/plan-graph.ts";
+import { normalizePlanProposal, runPlanAgents } from "./agents/plan-graph.ts";
 import { PLAN_PIPELINE } from "./agents/descriptors.ts";
-import { CaseAnalysisSchema, ObjectivesProposalSchema, PaeeProposalSchema, PeiProposalSchema, PlanProposalSchema, PlanReviewSchema } from "./agents/schemas.ts";
-import { NO_NEED, NO_RESOURCE, canonicalItems, mergeProposalDefaults, missingPlanItems } from "./plan-documents.ts";
+import { PlanProposalSchema } from "./agents/schemas.ts";
+import { PAEE_ITEMS, PEI_ITEMS, canonicalItems, mergeProposalDefaults, missingPlanItems } from "./plan-documents.ts";
 
 const PLAN_AGENT_NAMES = { analista: PLAN_PIPELINE.preparer, ...PLAN_PIPELINE.writers, revisor: PLAN_PIPELINE.reviewer };
+const NO_NEED = "Avaliado: não há necessidade";
+const NO_RESOURCE = "Nenhum recurso";
 const CONTEXT = "Estudante de 7 anos, 2º ano. Frequenta o AEE.\n\n## Estudo de caso\nNecessidades educacionais identificadas: Comunicação alternativa e aumentativa";
 const analysis = { sintese: "Participa com apoio visual.", potencialidades: ["Memória visual"], barreiras: ["Instruções só orais"], prioridades: [{ dimension: "comunicacao", justificativa: "Pede por gestos." }], cuidados: ["Avisar as trocas"] };
 const paee = (extra = {}) => ({ accessibilityResources: ["Rotina visual"], assistiveTech: ["prancha de comunicação"], supportStaff: [NO_NEED], networkDemands: ["Formação em comunicação alternativa"], ...extra });
@@ -26,12 +28,16 @@ function fakeModel({ reviews = [approveAll], answers = {} } = {}) {
     calls.push(request);
     const nth = count(request.agent);
     const pick = (key, fallback) => (answers[key] ? answers[key](nth) : fallback);
-    if (request.agent === PLAN_AGENT_NAMES.analista) { assert.equal(request.schema, CaseAnalysisSchema); return analysis; }
-    if (request.agent === PLAN_AGENT_NAMES.paee) { assert.equal(request.schema, PaeeProposalSchema); return pick("paee", paee()); }
-    if (request.agent === PLAN_AGENT_NAMES.pei) { assert.equal(request.schema, PeiProposalSchema); return pick("pei", pei()); }
-    if (request.agent === PLAN_AGENT_NAMES.objetivos) { assert.equal(request.schema, ObjectivesProposalSchema); return pick("objetivos", objectives()); }
-    assert.equal(request.schema, PlanReviewSchema);
-    return reviews[Math.min(reviews.length - 1, nth - 1)];
+    const byAgent = {
+      [PLAN_AGENT_NAMES.analista]: () => analysis,
+      [PLAN_AGENT_NAMES.paee]: () => pick("paee", paee()),
+      [PLAN_AGENT_NAMES.pei]: () => pick("pei", pei()),
+      [PLAN_AGENT_NAMES.objetivos]: () => pick("objetivos", objectives()),
+      [PLAN_AGENT_NAMES.revisor]: () => reviews[Math.min(reviews.length - 1, nth - 1)],
+    };
+    const answer = byAgent[request.agent]();
+    request.schema.parse(answer);
+    return answer;
   };
   return { model, calls, count };
 }
@@ -51,24 +57,30 @@ test("aprovado de primeira: analista, PAEE, PEI e objetivos em paralelo, revisor
   const missing = missingPlanItems(mergeProposalDefaults({}, proposal));
   assert.deepEqual([missing.paee, missing.pei], [[], []]);
   assert.doesNotThrow(() => PlanProposalSchema.parse(JSON.parse(JSON.stringify(proposal))));
+  assert.doesNotMatch(trace.at(-1).summary, /para o professor conferir/);
 });
 
-test("cada agente recebe o caso e a análise; PAEE e PEI recebem só as opções dos seus campos", async () => {
+const optionsOf = (items) => new Set(items.flatMap((item) => item.options ?? []));
+const only = (mine, theirs) => [...mine].filter((option) => !theirs.has(option) && !CONTEXT.includes(option));
+
+test("cada agente recebe o caso e a análise; PAEE e PEI recebem só as opções dos seus campos; o revisor recebe a proposta", async () => {
   const fake = fakeModel();
   await runPlanAgents(CONTEXT, fake.model);
-  const call = (agent) => fake.calls.find((item) => item.agent === agent);
+  const prompt = (agent) => fake.calls.find((item) => item.agent === agent).prompt;
   for (const agent of [PLAN_AGENT_NAMES.paee, PLAN_AGENT_NAMES.pei, PLAN_AGENT_NAMES.objetivos, PLAN_AGENT_NAMES.revisor]) {
-    assert.match(call(agent).prompt, /Frequenta o AEE/);
-    assert.match(call(agent).prompt, /Análise do caso:\n\{"sintese"/);
+    assert.match(prompt(agent), /Frequenta o AEE/, agent);
+    assert.ok(prompt(agent).includes(analysis.sintese) && prompt(agent).includes(analysis.prioridades[0].justificativa), agent);
   }
-  assert.match(call(PLAN_AGENT_NAMES.paee).prompt, /- supportStaff: Avaliado: não há necessidade; Profissional de apoio escolar/);
-  assert.doesNotMatch(call(PLAN_AGENT_NAMES.paee).prompt, /aeeServices/);
-  assert.match(call(PLAN_AGENT_NAMES.pei).prompt, /- aeeServices: Desenvolvimento de funções cognitivas;/);
-  assert.match(call(PLAN_AGENT_NAMES.pei).prompt, /- assessmentAccessibility: Auxílio ledor;/);
-  assert.match(call(PLAN_AGENT_NAMES.pei).system, /art\. 11/);
-  assert.match(call(PLAN_AGENT_NAMES.paee).system, /art\. 10/);
-  assert.doesNotMatch(call(PLAN_AGENT_NAMES.objetivos).prompt, /Opções de cada campo/);
-  assert.match(call(PLAN_AGENT_NAMES.revisor).prompt, /Proposta a revisar:\n\{"paee"/);
+  const [paeeOptions, peiOptions] = [optionsOf(PAEE_ITEMS), optionsOf(PEI_ITEMS)];
+  for (const option of only(paeeOptions, peiOptions)) {
+    assert.ok(prompt(PLAN_AGENT_NAMES.paee).includes(option), option);
+    assert.ok(!prompt(PLAN_AGENT_NAMES.pei).includes(option) && !prompt(PLAN_AGENT_NAMES.objetivos).includes(option), option);
+  }
+  for (const option of only(peiOptions, paeeOptions)) {
+    assert.ok(prompt(PLAN_AGENT_NAMES.pei).includes(option), option);
+    assert.ok(!prompt(PLAN_AGENT_NAMES.paee).includes(option) && !prompt(PLAN_AGENT_NAMES.objetivos).includes(option), option);
+  }
+  for (const proposed of [paee().networkDemands[0], pei().aeeStrategies[0], objective().action]) assert.ok(prompt(PLAN_AGENT_NAMES.revisor).includes(proposed), proposed);
 });
 
 test("parte devolvida: só o agente dela refaz, com os problemas e a versão anterior", async () => {
@@ -80,7 +92,7 @@ test("parte devolvida: só o agente dela refaz, com os problemas e a versão ant
   assert.equal(fake.count(PLAN_AGENT_NAMES.revisor), 2);
   const redo = fake.calls.filter((call) => call.agent === PLAN_AGENT_NAMES.pei)[1];
   assert.match(redo.prompt, /não usam a prancha prevista no PAEE/);
-  assert.match(redo.prompt, /Versão anterior:\n\{"aeeServices"/);
+  assert.ok(redo.prompt.includes(pei().aeeStrategies[0]));
   assert.ok(trace.some((step) => step.agent === PLAN_AGENT_NAMES.revisor && step.summary === "Devolveu para correção: PEI."));
   assert.equal(trace.at(-2).summary, "Aprovou o PAEE, o PEI e os objetivos.");
 });
@@ -98,17 +110,19 @@ test("checagens da plataforma valem mesmo com o revisor aprovando; o que sobra v
   assert.equal(trace.at(-2).summary, "Ainda há pontos a conferir em: PEI.");
 });
 
-test("checagens por parte: profissional fora da lista, classe comum vazia, objetivo sem verbo no futuro, linguagem clínica", () => {
-  assert.deepEqual(checkPaee(paee()), []);
-  assert.match(checkPaee(paee({ supportStaff: ["Cuidador"] }))[0].problema, /"Cuidador" não está na lista/);
-  assert.equal(checkPaee(paee({ accessibilityResources: ["Material indicado no laudo"] }))[0].problema, "Há linguagem clínica.");
-  assert.deepEqual(checkPei(pei()), []);
-  assert.deepEqual(checkPei(pei({ commonRoomStrategies: [], monitoring: [" "] })).map((item) => item.alvo), ["PEI: classe comum", "PEI: acompanhamento"]);
-  assert.deepEqual(checkObjectives(objectives()), []);
-  const bad = checkObjectives(objectives({ objectives: [objective({ action: "identifica o nome", criterion: "quase sempre", targetSupport: 3 }), objective()] }));
-  assert.equal(bad.length, 3);
-  assert.ok(bad.every((item) => item.alvo === "objetivo 1"));
-  assert.deepEqual(checkObjectives(objectives({ objectives: [objective()] })).map((item) => item.correcao), ["Proponha de 2 a 3 objetivos."]);
+test("checagens por parte: profissional fora da lista, classe comum vazia, objetivo sem verbo no futuro, linguagem clínica", async () => {
+  const answers = {
+    paee: () => paee({ supportStaff: ["Cuidador"], accessibilityResources: ["Material indicado no laudo"] }),
+    pei: () => pei({ commonRoomStrategies: [], monitoring: [" "] }),
+    objetivos: () => objectives({ objectives: [objective({ action: "identifica o nome", criterion: "quase sempre", targetSupport: 3 })] }),
+  };
+  const { trace } = await runPlanAgents(CONTEXT, fakeModel({ answers }).model);
+  const pending = trace.at(-1).summary;
+  for (const problem of [
+    '"Cuidador" não está na lista de profissionais.', "Há linguagem clínica.", "Não há estratégias para a classe comum.", "Não diz como o plano será acompanhado.",
+    "A proposta tem 1 objetivos.", 'A ação "identifica o nome" não começa com verbo no futuro.', 'O critério "quase sempre" não é mensurável.', "O apoio esperado não é menor que o atual.",
+  ]) assert.ok(pending.includes(problem), problem);
+  assert.doesNotMatch(pending, /devolutiva/);
 });
 
 test("nomes das listas: grafia do formulário, 'não precisa' só sozinho, tipos de AEE e profissionais só da lista", () => {

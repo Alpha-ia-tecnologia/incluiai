@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { collaboratorIds, collaboratorWhere, planningAccess, readCollaborators, readablePlanningsWhere, writeCollaborators } from "./access.ts";
+import { collaboratorIds, planningAccess, readCollaborators, readablePlanningsWhere, writeCollaborators } from "./access.ts";
+import { matchesWhere } from "../prisma-where.fixture.mjs";
 import { can } from "../roles.ts";
 
 const user = (id, role, schoolId = "escola-1") => ({ id, role, schoolId });
@@ -73,20 +74,31 @@ test("colaboradores: JSON inválido ou sem id não dá acesso", () => {
 });
 
 test("filtro de listas equivale à leitura", () => {
-  assert.deepEqual(readablePlanningsWhere(user("x", "familia")), { id: "__nenhum__" });
-  const schoolScope = { OR: [{ schoolId: "escola-1" }, { schoolId: null }] };
-  assert.deepEqual(readablePlanningsWhere(user("marcos", "professor_sala")), {
-    OR: [{ ownerId: "marcos" }, { collaborators: { contains: '"marcos"' } }, { sharing: "compartilhado", ...schoolScope }],
-  });
-  assert.deepEqual(readablePlanningsWhere(user("ana", "coordenacao")).OR.at(-1), schoolScope);
-  assert.deepEqual(readablePlanningsWhere(user("rede", "gestao", null)).OR.at(-1), {});
+  const users = [
+    user("marcos", "professor_sala"), user("beatriz", "professor_aee"), user("lia", "apoio"), user("ana", "coordenacao"), user("rede", "gestao", null),
+    user("outra", "coordenacao", "escola-2"), user("colega", "professor_sala", "escola-2"), user("c2", "professor_sala"), user("x", "familia"), user("s", "secretaria", null),
+  ];
+  const plannings = [
+    planning({ id: "p1" }),
+    planning({ id: "p2", sharing: "compartilhado" }),
+    planning({ id: "p3", schoolId: "escola-2", sharing: "compartilhado" }),
+    planning({ id: "p4", schoolId: null, sharing: "compartilhado" }),
+    planning({ id: "p5", ownerId: "colega", schoolId: "escola-2", collaborators: writeCollaborators([{ id: "beatriz", name: "Beatriz" }, { id: "c2y", name: "Outro" }]) }),
+    planning({ id: "p6", ownerId: "lia", collaborators: "[{" }),
+  ];
+  for (const viewer of users) {
+    for (const row of plannings) {
+      assert.equal(matchesWhere(readablePlanningsWhere(viewer), row), planningAccess(viewer, row).read, `${viewer.id} ${row.id}`);
+    }
+  }
 });
 
 test("colaboradores: o que se grava é o que a busca por id encontra, e leitura tolera lixo", () => {
   const stored = writeCollaborators([{ id: "c1x", name: "Ana \"Nina\"" }, { id: "c2y", name: "Bruno" }]);
   assert.deepEqual(readCollaborators(stored), [{ id: "c1x", name: "Ana \"Nina\"" }, { id: "c2y", name: "Bruno" }]);
-  assert.ok(stored.includes(collaboratorWhere("c2y").collaborators.contains));
-  assert.ok(!stored.includes(collaboratorWhere("c2").collaborators.contains));
+  const shared = planning({ collaborators: stored });
+  assert.equal(matchesWhere(readablePlanningsWhere(user("c2y", "professor_sala", "escola-2")), shared), true);
+  assert.equal(matchesWhere(readablePlanningsWhere(user("c2", "professor_sala", "escola-2")), shared), false);
   assert.deepEqual(collaboratorIds("não é json"), []);
   assert.deepEqual(collaboratorIds('[{"name":"sem id"},{"id":"c3"}]'), ["c3"]);
 });

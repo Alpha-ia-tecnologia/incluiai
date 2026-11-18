@@ -5,7 +5,7 @@ export type Swatch = { hex: string; share: number };
 export type BrandSuggestion = { colors: BrandColors; swatches: Swatch[]; source: "ia" | "regras"; note: string };
 export type Choice = { colors: BrandColors; note: string };
 
-export const MAX_SWATCHES = 6;
+const MAX_SWATCHES = 6;
 const CLUSTERS = 8;
 const OPAQUE = 128;
 const NEAR_WHITE = { l: 0.93, c: 0.035 };
@@ -195,7 +195,7 @@ export const isSaturated = (hex: string) => toOklch(hex).c >= SATURATED;
 
 const DEFAULT_MENU = toOklch(DEFAULT_BRAND.menu);
 
-export function darkShadeOf(hex: string): string {
+function darkShadeOf(hex: string): string {
   const color = toOklch(hex);
   return fromOklch({ l: DEFAULT_MENU.l, c: Math.min(color.c, DEFAULT_MENU.c * 1.5), h: color.h });
 }

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
-import { DERIVE_MENU, MAX_SWATCHES, acceptAiAnswer, chooseByRules, darkShadeOf, pixelsToSwatches } from "./colors-core.ts";
+import { DERIVE_MENU, acceptAiAnswer, chooseByRules, pixelsToSwatches } from "./colors-core.ts";
 import { DEFAULT_BRAND, fitsMenu } from "./palette.ts";
 
 const parse = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
@@ -17,6 +17,13 @@ function image(width, height, paint) {
   }
   return pixels;
 }
+
+const luminance = (hex) => parse(hex).map((v) => v / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+const hue = (hex) => {
+  const [r, g, b] = parse(hex);
+  return Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b);
+};
+const derivedMenu = (primary) => chooseByRules([{ hex: primary, share: 0.8 }, { hex: "#f5be0b", share: 0.2 }]).colors.menu;
 
 const share = (swatches, hex) => swatches.find((swatch) => swatch.hex === hex)?.share ?? 0;
 
@@ -47,7 +54,7 @@ test("no máximo seis cores, as maiores primeiro, e o mesmo resultado sempre", (
   const colors = ["#e63946", "#2a9d8f", "#264653", "#f4a261", "#8338ec", "#ffbe0b", "#3a86ff", "#06d6a0"];
   const pixels = image(80, 10, (x) => colors[Math.min(colors.length - 1, Math.floor((x * x) / 800))]);
   const first = pixelsToSwatches(pixels, 80, 10);
-  assert.equal(first.length, MAX_SWATCHES);
+  assert.equal(first.length, 6);
   for (let i = 1; i < first.length; i++) assert.ok(first[i - 1].share >= first[i].share);
   assert.deepEqual(pixelsToSwatches(pixels, 80, 10), first);
 });
@@ -65,8 +72,9 @@ test("regra: principal é a cor marcante mais presente; menu, a mais escura que 
 test("regra: sem outra cor escura, o menu é um tom escuro da principal", () => {
   const { colors, note } = chooseByRules([{ hex: "#1f6f43", share: 0.8 }, { hex: "#f5be0b", share: 0.2 }]);
   assert.equal(colors.primary, "#1f6f43");
-  assert.equal(colors.menu, darkShadeOf("#1f6f43"));
   assert.ok(fitsMenu(colors.menu));
+  assert.ok(luminance(colors.menu) < luminance(colors.primary));
+  assert.ok(Math.abs(hue(colors.menu) - hue(colors.primary)) < 0.15, colors.menu);
   assert.match(note, /tom escuro da cor principal/);
 });
 
@@ -82,7 +90,7 @@ test("resposta da IA: só vale cor da lista ou derivar", () => {
   assert.deepEqual(acceptAiAnswer(swatches, { primary: "#1F6F43", menu: "#0b3550", note: "  Verde da bandeira;\n azul do brasão.  " }), {
     colors: { primary: "#1f6f43", menu: "#0b3550" }, note: "Verde da bandeira; azul do brasão.",
   });
-  assert.deepEqual(acceptAiAnswer(swatches, { primary: "#1f6f43", menu: DERIVE_MENU, note: "" }).colors, { primary: "#1f6f43", menu: darkShadeOf("#1f6f43") });
+  assert.deepEqual(acceptAiAnswer(swatches, { primary: "#1f6f43", menu: DERIVE_MENU, note: "" }).colors, { primary: "#1f6f43", menu: derivedMenu("#1f6f43") });
   assert.match(acceptAiAnswer(swatches, { primary: "#1f6f43", menu: DERIVE_MENU, note: "" }).note, /IA/);
   assert.equal(acceptAiAnswer(swatches, { primary: "#ff0000", menu: "#0b3550", note: "x" }), null);
   assert.equal(acceptAiAnswer(swatches, { primary: "#1f6f43", menu: "#000000", note: "x" }), null);

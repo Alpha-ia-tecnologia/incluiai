@@ -22,7 +22,7 @@ const PAEE_OPTIONS = optionLines("paee");
 const PEI_OPTIONS = optionLines("pei");
 
 
-export function checkPaee(paee: PaeeProposal): PlanProblem[] {
+function checkPaee(paee: PaeeProposal): PlanProblem[] {
   const problems: PlanProblem[] = [];
   const unknown = outsideOptions(paee.supportStaff, SUPPORT_STAFF_OPTIONS);
   if (unknown.length) problems.push({ alvo: "PAEE: profissional de apoio", problema: `"${unknown.join('", "')}" não está na lista de profissionais.`, correcao: `Use só: ${SUPPORT_STAFF_OPTIONS.join("; ")}.` });
@@ -30,7 +30,7 @@ export function checkPaee(paee: PaeeProposal): PlanProblem[] {
   return problems;
 }
 
-export function checkPei(pei: PeiProposal): PlanProblem[] {
+function checkPei(pei: PeiProposal): PlanProblem[] {
   const problems: PlanProblem[] = [];
   const unknown = outsideOptions(pei.aeeServices, AEE_SERVICE_OPTIONS);
   if (unknown.length) problems.push({ alvo: "PEI: atendimentos do AEE", problema: `"${unknown.join('", "')}" não é um tipo de atendimento do Censo Escolar.`, correcao: `Use só os nomes da lista: ${AEE_SERVICE_OPTIONS.join("; ")}.` });
@@ -41,7 +41,7 @@ export function checkPei(pei: PeiProposal): PlanProblem[] {
   return problems;
 }
 
-export function checkObjectives(proposal: ObjectivesProposal): PlanProblem[] {
+function checkObjectives(proposal: ObjectivesProposal): PlanProblem[] {
   const problems: PlanProblem[] = [];
   if (proposal.objectives.length < OBJECTIVES_PER_PLAN.min || proposal.objectives.length > OBJECTIVES_PER_PLAN.max) {
     problems.push({ alvo: "objetivos", problema: `A proposta tem ${proposal.objectives.length} objetivos.`, correcao: `Proponha de ${OBJECTIVES_PER_PLAN.min} a ${OBJECTIVES_PER_PLAN.max} objetivos.` });

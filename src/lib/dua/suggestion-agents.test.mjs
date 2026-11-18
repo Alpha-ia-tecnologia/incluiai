@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DuaAnalysisSchema, DuaBlocksSchema, DuaReviewSchema, distributeFoci, runDuaSuggestionAgents } from "./suggestion-agents.ts";
+import { runDuaSuggestionAgents } from "./suggestion-agents.ts";
 import { DUA_PIPELINE } from "../agents/descriptors.ts";
 import { checkBlocks } from "./checks.ts";
 import { DUA_PRINCIPLES } from "./domain.ts";
@@ -38,20 +38,25 @@ const block = (principle, extra = {}) => ({
 const approveAll = { avaliacoes: DUA_PRINCIPLES.map((principle) => ({ principle, aprovado: true, problemas: [] })) };
 const principleOf = (agent) => DUA_PRINCIPLES.find((principle) => DUA_SPECIALISTS[principle] === agent);
 
-function fakeModel({ analysisResult = analysis(), reviews = [approveAll], blocksFor } = {}) {
+function fakeModel({ analysisResult = analysis(), reviews = [approveAll], blocksPer = {}, blocksFor } = {}) {
   const calls = [];
   const count = (agent) => calls.filter((call) => call.agent === agent).length;
   const model = async (request) => {
     calls.push(request);
-    if (request.agent === DUA_ANALYST) { assert.equal(request.schema, DuaAnalysisSchema); return analysisResult; }
-    if (request.agent === DUA_REVIEWER) { assert.equal(request.schema, DuaReviewSchema); return reviews[Math.min(reviews.length - 1, count(DUA_REVIEWER) - 1)]; }
-    assert.equal(request.schema, DuaBlocksSchema);
-    const principle = principleOf(request.agent);
-    const expected = (request.prompt.match(/^\d+\. (Barreira|Hipótese|Sem barreira)/gm) ?? []).length;
-    return blocksFor ? blocksFor(principle, count(request.agent), expected) : { blocks: Array.from({ length: expected }, () => block(principle)) };
+    let answer;
+    if (request.agent === DUA_ANALYST) answer = analysisResult;
+    else if (request.agent === DUA_REVIEWER) answer = reviews[Math.min(reviews.length - 1, count(DUA_REVIEWER) - 1)];
+    else {
+      const principle = principleOf(request.agent);
+      const blocks = blocksPer[principle] ?? 1;
+      answer = blocksFor ? blocksFor(principle, count(request.agent), blocks) : { blocks: Array.from({ length: blocks }, () => block(principle)) };
+    }
+    request.schema.parse(answer);
+    return answer;
   };
   return { model, calls, count };
 }
+const promptOf = (fake, agent, nth = 0) => fake.calls.filter((call) => call.agent === agent)[nth].prompt;
 
 test("aprovado de primeira: analista, três especialistas e revisor; um bloco por princípio", async () => {
   const fake = fakeModel();
@@ -68,35 +73,37 @@ test("aprovado de primeira: analista, três especialistas e revisor; um bloco po
   assert.ok(checks.every((item) => item.passed));
 });
 
-test("cada agente recebe o contexto preparado; os especialistas recebem os focos do seu princípio", async () => {
+test("cada agente recebe o contexto preparado; cada especialista, só os focos do seu princípio; o revisor, os blocos", async () => {
   const fake = fakeModel();
   await runDuaSuggestionAgents(input(), fake.model);
   for (const call of fake.calls) assert.match(call.prompt, /Contexto pedagógico sem dados pessoais/);
-  const action = fake.calls.find((call) => call.agent === DUA_SPECIALISTS.acao_expressao);
-  assert.match(action.prompt, /Focos de ação e expressão:\n1\. Barreira b2 — Lacuna de acao_expressao para b2/);
-  assert.match(action.prompt, /O que preservar: Identificar personagens e ordenar acontecimentos\./);
-  assert.match(action.system, /principles inclui "acao_expressao"/);
-  assert.doesNotMatch(action.prompt, /Lacuna de engajamento/);
-  assert.match(fake.calls.at(-1).prompt, /Focos e blocos a revisar:/);
+  for (const principle of DUA_PRINCIPLES) {
+    const prompt = promptOf(fake, DUA_SPECIALISTS[principle]);
+    assert.ok(prompt.includes(`Lacuna de ${principle}`) && prompt.includes("Identificar personagens e ordenar acontecimentos."), principle);
+    for (const other of DUA_PRINCIPLES.filter((item) => item !== principle)) assert.ok(!prompt.includes(`Lacuna de ${other}`), `${principle} recebeu ${other}`);
+    assert.ok(fake.calls.at(-1).prompt.includes(block(principle).strategy), principle);
+  }
 });
 
-test("focos: barreira inexistente vira hipótese, princípio sem foco recebe um, e o total cabe em 5", () => {
-  const foci = distributeFoci(analysis([
-    focus("engajamento", "nao-existe", { hypothesis: "Pouca escolha na atividade" }),
-    focus("engajamento"), focus("engajamento", "b2"),
-    focus("representacao"), focus("representacao", "b2"),
-  ]), context());
-  assert.equal(foci.engajamento.length, 2);
-  assert.deepEqual([foci.engajamento[0].barrierId, foci.engajamento[0].hypothesis], [null, "Pouca escolha na atividade"]);
-  assert.equal(foci.acao_expressao.length, 1);
-  assert.equal(foci.acao_expressao[0].barrierId, "b1");
-  assert.equal(foci.representacao.length, 2);
-  const full = distributeFoci(analysis(DUA_PRINCIPLES.flatMap((principle) => [focus(principle), focus(principle, "b2")])), context());
-  assert.deepEqual(DUA_PRINCIPLES.map((principle) => full[principle].length), [2, 2, 1]);
+test("focos: barreira inexistente vira hipótese, princípio sem foco recebe um, e o total cabe em 5", async () => {
+  const uneven = fakeModel({
+    analysisResult: analysis([focus("engajamento", "nao-existe", { hypothesis: "Pouca escolha na atividade" }), focus("engajamento"), focus("engajamento", "b2"), focus("representacao"), focus("representacao", "b2")]),
+    blocksPer: { engajamento: 2, representacao: 2 },
+  });
+  const { raw } = await runDuaSuggestionAgents(input(), uneven.model);
+  assert.ok(DUA_PRINCIPLES.every((principle) => uneven.count(DUA_SPECIALISTS[principle]) === 1), "cada especialista recebeu o número de focos que respondeu");
+  const engagement = promptOf(uneven, DUA_SPECIALISTS.engajamento);
+  assert.ok(engagement.includes("Pouca escolha na atividade") && engagement.includes("Lacuna de engajamento para b1") && !engagement.includes("Lacuna de engajamento para b2"));
+  assert.equal(raw.blocks.length, 5);
+  const full = fakeModel({ analysisResult: analysis(DUA_PRINCIPLES.flatMap((principle) => [focus(principle), focus(principle, "b2")])), blocksPer: { engajamento: 2, representacao: 2, acao_expressao: 1 } });
+  const { raw: capped } = await runDuaSuggestionAgents(input(), full.model);
+  assert.ok(DUA_PRINCIPLES.every((principle) => full.count(DUA_SPECIALISTS[principle]) === 1));
+  assert.ok(!promptOf(full, DUA_SPECIALISTS.acao_expressao).includes("Lacuna de acao_expressao para b2"));
+  assert.equal(capped.blocks.length, 5);
 });
 
 test("dois focos num princípio: dois blocos, intercalados para começar com um de cada princípio", async () => {
-  const fake = fakeModel({ analysisResult: analysis([focus("engajamento"), focus("engajamento", "b2"), focus("representacao"), focus("acao_expressao", "b2")]) });
+  const fake = fakeModel({ analysisResult: analysis([focus("engajamento"), focus("engajamento", "b2"), focus("representacao"), focus("acao_expressao", "b2")]), blocksPer: { engajamento: 2 } });
   const { raw } = await runDuaSuggestionAgents(input(), fake.model);
   assert.deepEqual(raw.blocks.map((item) => item.principles[0]), ["engajamento", "representacao", "acao_expressao", "engajamento"]);
 });
@@ -115,7 +122,7 @@ test("princípio devolvido: só o especialista dele refaz, com os problemas do r
   assert.equal(fake.count(DUA_REVIEWER), 2);
   const redo = fake.calls.filter((call) => call.agent === DUA_SPECIALISTS.representacao)[1];
   assert.match(redo.prompt, /em que momento os cartões entram/);
-  assert.match(redo.prompt, /Versão anterior:/);
+  assert.ok(redo.prompt.includes(block("representacao").strategy));
   assert.deepEqual(review, { pending: [], rounds: 2 });
   assert.ok(raw.blocks.every((item) => item.reviewerNotes.length === 0));
   assert.ok(trace.some((step) => step.agent === DUA_REVIEWER && /Devolveu para correção: representação/.test(step.summary)));
@@ -132,31 +139,31 @@ test("ponto que o revisor mantém depois da correção acompanha o bloco, sem ba
 });
 
 test("verificações da plataforma devolvem o bloco mesmo com o revisor aprovando", async () => {
+  const clinical = block("representacao", { strategy: "Simplificar a leitura por causa do laudo do estudante, com texto reduzido." });
   const fake = fakeModel({
-    blocksFor: (principle, call, expected) => ({
-      blocks: Array.from({ length: expected }, () => block(principle, principle === "representacao" && call === 1 ? { strategy: "Simplificar a leitura por causa do laudo do estudante, com texto reduzido." } : {})),
-    }),
+    blocksFor: (principle, call, count) => ({ blocks: Array.from({ length: count }, () => (principle === "representacao" && call === 1 ? clinical : block(principle))) }),
   });
   const { raw, review } = await runDuaSuggestionAgents(input(), fake.model);
   assert.equal(fake.count(DUA_SPECIALISTS.representacao), 2);
-  assert.match(fake.calls.filter((call) => call.agent === DUA_SPECIALISTS.representacao)[1].prompt, /diagnóstico, condição clínica ou redução de complexidade/);
+  const [problem] = checkBlocks({ blocks: [clinical] }, context(), PEOPLE, SCHOOLS).blocks[0].flags.problems;
+  assert.ok(promptOf(fake, DUA_SPECIALISTS.representacao, 1).includes(problem), problem);
   assert.deepEqual(review.pending, []);
   assert.ok(checkBlocks(raw, context(), PEOPLE, SCHOOLS).blocks.every((item) => !item.flags.blocked));
 });
 
 test("especialista que esquece o próprio princípio ou traz blocos a mais é ajustado no fim", async () => {
-  const fake = fakeModel({ blocksFor: (principle, _call, expected) => ({ blocks: Array.from({ length: expected + 1 }, () => block(principle, { principles: [] })) }) });
+  const fake = fakeModel({ blocksFor: (principle, _call, count) => ({ blocks: Array.from({ length: count + 1 }, () => block(principle, { principles: [] })) }) });
   const { raw } = await runDuaSuggestionAgents(input(), fake.model);
+  assert.ok(DUA_PRINCIPLES.every((principle) => fake.count(DUA_SPECIALISTS[principle]) === 2), "a plataforma pediu para refazer");
   assert.equal(raw.blocks.length, 3);
   assert.deepEqual(raw.blocks.map((item) => item.principles), [["engajamento"], ["representacao"], ["acao_expressao"]]);
-  assert.match(fake.calls.filter((call) => call.agent === DUA_SPECIALISTS.engajamento)[1].prompt, /Traga um bloco para cada foco recebido \(1\); vieram 2\./);
 });
 
-test("apoio individual: princípio sem foco recebe a barreira do apoio", () => {
+test("apoio individual: princípio sem foco recebe a barreira do apoio", async () => {
   const ctx = context({ purpose: "apoio_individual", barriers: [], individual: { barrier: "Resposta só escrita", support: "Prancha", purpose: "Responder", profile: [] } });
-  const foci = distributeFoci(analysis([focus("engajamento", null, { hypothesis: null })]), ctx);
-  assert.match(foci.representacao[0].direction, /barreira do apoio individual/);
-  assert.equal(foci.representacao[0].barrierId, null);
+  const fake = fakeModel({ analysisResult: analysis([focus("engajamento", null, { hypothesis: null })]) });
+  await runDuaSuggestionAgents(input(ctx), fake.model);
+  assert.match(promptOf(fake, DUA_SPECIALISTS.representacao), /barreira do apoio individual/);
 });
 
 test("falha de um agente interrompe a geração (a sugestão fica como 'falhou' para quem pediu)", async () => {

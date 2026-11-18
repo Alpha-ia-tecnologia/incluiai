@@ -44,7 +44,7 @@ export type SyncPlan = {
   totals: { persons: number; create: number; update: number; unchanged: number; review: number; ignored: number; missing: number; doublePending: number };
 };
 
-export function personWarnings(person: CensusPerson): string[] {
+function personWarnings(person: CensusPerson): string[] {
   const snapshot = snapshotOf(person);
   const warnings: string[] = [];
   if (snapshot.aee && !snapshot.regular && !snapshot.regularRemote) warnings.push("Dupla matrícula não confirmada: há matrícula no AEE, mas nenhuma em classe comum presencial no arquivo. Se o aluno estuda em outra escola ou rede, confira lá.");
@@ -149,7 +149,7 @@ export const ISSUE_LABEL: Record<CoverageIssue, string> = {
 };
 export const BLOCKING_ISSUES: ReadonlySet<CoverageIssue> = new Set(["aee_sem_marcacao", "sem_tipo_aee", "vinculos_demais"]);
 
-export function issuesOf(person: SnapshotPerson): CoverageIssue[] {
+function issuesOf(person: SnapshotPerson): CoverageIssue[] {
   const issues: CoverageIssue[] = [];
   if (person.aee && !person.special) issues.push("aee_sem_marcacao");
   if (person.aee && (person.aeeNoService ?? 0) > 0) issues.push("sem_tipo_aee");

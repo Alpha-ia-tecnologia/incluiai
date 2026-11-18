@@ -66,5 +66,3 @@ export function sampleFile(edition = 2025, { dependency = "3", code = "12345678"
   lines.splice(1 + CLASSES.length + PEOPLE.length, 0, `30|${code}`);
   return "﻿" + lines.join("\r\n");
 }
-
-export const SAMPLE = sampleFile(2025);

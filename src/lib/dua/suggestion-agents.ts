@@ -9,9 +9,9 @@ import { ANONYMIZED_DATA } from "../agents/prompts.ts";
 
 const MAX_PER_PRINCIPLE = 2;
 
-export const DuaBlocksSchema = z.object({ blocks: z.array(BlockSchema).describe("Um bloco para cada foco recebido, na mesma ordem.") });
+const DuaBlocksSchema = z.object({ blocks: z.array(BlockSchema).describe("Um bloco para cada foco recebido, na mesma ordem.") });
 
-export const DuaAnalysisSchema = z.object({
+const DuaAnalysisSchema = z.object({
   preservar: z.string().describe("O que a atividade precisa continuar permitindo observar (a habilidade do objetivo), em uma frase."),
   focos: z.array(z.object({
     principle: principleEnum,
@@ -23,7 +23,7 @@ export const DuaAnalysisSchema = z.object({
 export type DuaAnalysis = z.infer<typeof DuaAnalysisSchema>;
 type Focus = DuaAnalysis["focos"][number];
 
-export const DuaReviewSchema = z.object({
+const DuaReviewSchema = z.object({
   avaliacoes: z.array(z.object({
     principle: principleEnum,
     aprovado: z.boolean(),
@@ -85,7 +85,7 @@ Seu papel: Revisor das sugestões. Você recebe o planejamento, a análise e os 
 - no apoio individual, usam apenas os itens do perfil recebidos.
 Sua avaliação apoia a revisão do professor e não a substitui. Para cada problema, diga o bloco e a correção esperada. Não aponte preferências de estilo: se os blocos atendem ao planejamento, aprove.`;
 
-export function distributeFoci(analysis: DuaAnalysis, context: DuaAiContext): Record<DuaPrinciple, Focus[]> {
+function distributeFoci(analysis: DuaAnalysis, context: DuaAiContext): Record<DuaPrinciple, Focus[]> {
   const known = new Set(context.barriers.map((item) => item.id));
   const clean = analysis.focos.filter((item) => DUA_PRINCIPLES.includes(item.principle) && item.direction?.trim()).map((item) => {
     const valid = Boolean(item.barrierId && known.has(item.barrierId));

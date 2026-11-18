@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MATERIAL_KINDS, checkMaterial, finalizeMaterial, normalizeMaterialContent, profileAdaptations, responseFormsFor, rulesMaterial,
+  MATERIAL_KINDS, checkMaterial, finalizeMaterial, normalizeMaterialContent, profileAdaptations, rulesMaterial,
 } from "./material-content.ts";
 
 const facts = (overrides = {}) => ({
@@ -108,10 +108,12 @@ test("ajustes finais: cortam excessos, limitam a duração e só a sala comum te
 });
 
 test("formas de resposta seguem a comunicação do estudante", () => {
-  assert.match(responseFormsFor({ expressiveChannel: "caa_pecs", fineMotorSupport: 0 }).join(" "), /prancha/);
-  assert.match(responseFormsFor({ expressiveChannel: "olhar_acionador", fineMotorSupport: 5 }).join(" "), /Olhar/);
-  assert.match(responseFormsFor({ expressiveChannel: "libras", fineMotorSupport: 0 }).join(" "), /Libras/);
-  assert.doesNotMatch(responseFormsFor({ expressiveChannel: "fala", fineMotorSupport: 4 }).join(" "), /Escrever/);
+  const forms = (overrides) => profileAdaptations(facts(overrides), "rotina_visual").find((item) => item.text.startsWith("Formas de resposta aceitas")).text;
+  assert.match(forms({ expressiveChannel: "caa_pecs", fineMotorSupport: 0 }), /prancha/);
+  assert.match(forms({ expressiveChannel: "olhar_acionador", fineMotorSupport: 5 }), /olhar/);
+  assert.match(forms({ expressiveChannel: "libras", fineMotorSupport: 0 }), /libras/);
+  assert.match(forms({ expressiveChannel: "fala", fineMotorSupport: 0 }), /escrever/);
+  assert.doesNotMatch(forms({ expressiveChannel: "fala", fineMotorSupport: 4 }), /escrever/);
 });
 
 test("por que assim: cada adaptação diz a base no perfil", () => {

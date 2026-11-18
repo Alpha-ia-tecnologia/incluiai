@@ -47,17 +47,17 @@ const COMMANDS: [RegExp, AnswerFormat][] = [
 ];
 const COMMAND_WORDS = /\b(leia|ler|observe|observar|escreva|escrever|responda|responder|copie|copiar|resolva|resolver|calcule|calcular|numere|numerar|recorte|recortar|cole|colar|marque|marcar|assinale|circule|sublinhe|ligue|relacione|associe|complete|preencha|desenhe|pinte|ilustre|conte|fale|diga|explique|ordene|separe|encontre)\b/gi;
 
-export function answerFormatOf(prompt: string): AnswerFormat {
+function answerFormatOf(prompt: string): AnswerFormat {
   const text = plain(prompt);
   return COMMANDS.find(([pattern]) => pattern.test(text))?.[1] ?? "escrever";
 }
 
-export const oneOrderPerLine = (prompt: string) => prompt.split(/(?<=[.!?;])\s+/).map((part) => part.trim()).filter(Boolean).join("\n");
+const oneOrderPerLine = (prompt: string) => prompt.split(/(?<=[.!?;])\s+/).map((part) => part.trim()).filter(Boolean).join("\n");
 
 const ITEM_START = /^\s*(?:quest[aã]o\s*)?(\d{1,2})\s*[).:\-–]\s*/i;
 const OPTION_START = /^\s*(?:\(\s*\)\s*)?([a-h])\s*[).]\s+/i;
 
-export function splitTask(text: string): { prompt: string; options: string[] }[] {
+function splitTask(text: string): { prompt: string; options: string[] }[] {
   const lines = text.replace(/\r/g, "").split("\n").map((line) => line.trim());
   const numbered = lines.some((line) => ITEM_START.test(line));
   const items: { prompt: string; options: string[] }[] = [];

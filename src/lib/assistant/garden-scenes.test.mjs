@@ -4,15 +4,26 @@ import {
   TIP_POOLS,
   artFor, chatCaption, deriveGarden, endingCaption, inlineCaption, longBudget, sunAngle,
 } from "./garden-scenes.ts";
-import { TOOL_CATALOG } from "./catalog.ts";
+import { sceneOf, toolNames } from "./catalog.ts";
+import { ACTIVITY_PIPELINE, ILLUSTRATION, PLAN_PIPELINE, RULES_ENGINE } from "../agents/descriptors.ts";
+
+const ANALYST = PLAN_PIPELINE.preparer;
+const PLANNER = PLAN_PIPELINE.writers.objetivos;
+const PAEE = PLAN_PIPELINE.writers.paee;
+const PEI = PLAN_PIPELINE.writers.pei;
+const PLAN_REVIEWER = PLAN_PIPELINE.reviewer;
+const { sala_comum: ROOM, aee: AEE, casa: HOME } = ACTIVITY_PIPELINE.writers;
+const ACTIVITY_REVIEWER = ACTIVITY_PIPELINE.reviewer;
 
 const step = (name, ok, extra = {}) => ({ id: `${name}-${Math.random()}`, name, label: name, ...(ok === undefined ? {} : { ok }), ...extra });
 const progress = (...items) => items.map(([agent, phase]) => ({ agent, phase }));
 
-const scenes = Object.values(TOOL_CATALOG).map((tool) => tool.scene);
+const TOOLS = [...new Set(["professor", "escola", "rede", "familia", "terapeuta", "plataforma"].flatMap(toolNames))];
+const scenes = TOOLS.map(sceneOf);
 
 test("toda ferramenta do assistente que não é longa tem dica", () => {
-  for (const [name, { scene }] of Object.entries(TOOL_CATALOG)) {
+  for (const name of TOOLS) {
+    const scene = sceneOf(name);
     if (!scene.long) assert.ok(scene.hint, `dica de ${name}`);
   }
 });
@@ -72,7 +83,7 @@ test("cartões: vasinho sem marca de concluído e frase certa", () => {
 });
 
 test("plano: só o degrau do agente real acende; ajustes e regras", () => {
-  const first = deriveGarden([step("propor_plano", undefined, { progress: progress(["Analista do caso", "start"]) })], false);
+  const first = deriveGarden([step("propor_plano", undefined, { progress: progress([ANALYST, "start"]) })], false);
   assert.equal(first.long?.stage, "analista");
   assert.deepEqual(first.rungs, ["ativo", "espera", "espera"]);
   assert.equal(chatCaption(first, 0, 0, "popup", true).status, "O analista lê o caso. Costuma levar de 1 a 3 minutos.");
@@ -80,43 +91,43 @@ test("plano: só o degrau do agente real acende; ajustes e regras", () => {
   assert.deepEqual(noEvents.rungs, ["espera", "espera", "espera"]);
   assert.equal(noEvents.label, "Preparando a proposta de plano…");
   const again = deriveGarden([step("propor_plano", undefined, { progress: progress(
-    ["Analista do caso", "start"], ["Analista do caso", "end"], ["Planejador do PPI", "start"], ["Planejador do PPI", "end"],
-    ["Revisor pedagógico", "start"], ["Revisor pedagógico", "end"], ["Planejador do PPI", "start"]) })], false);
+    [ANALYST, "start"], [ANALYST, "end"], [PLANNER, "start"], [PLANNER, "end"],
+    [PLAN_REVIEWER, "start"], [PLAN_REVIEWER, "end"], [PLANNER, "start"]) })], false);
   assert.equal(again.long?.stage, "ajustes");
   assert.equal(again.label, "Os agentes ajustam a proposta…");
   const writing = deriveGarden([step("propor_plano", undefined, { progress: progress(
-    ["Analista do caso", "start"], ["Analista do caso", "end"], ["Agente do PAEE", "start"], ["Agente do PEI", "start"], ["Planejador do PPI", "start"], ["Agente do PAEE", "end"]) })], false);
+    [ANALYST, "start"], [ANALYST, "end"], [PAEE, "start"], [PEI, "start"], [PLANNER, "start"], [PAEE, "end"]) })], false);
   assert.equal(writing.long?.stage, "planejador");
   assert.equal(writing.label, "Escrevendo o PAEE, o PEI e os objetivos…");
   assert.deepEqual(writing.rungs, ["feito", "ativo", "espera"]);
   const written = deriveGarden([step("propor_plano", undefined, { progress: progress(
-    ["Analista do caso", "end"], ["Agente do PAEE", "end"], ["Agente do PEI", "end"], ["Planejador do PPI", "end"], ["Revisor pedagógico", "start"]) })], false);
+    [ANALYST, "end"], [PAEE, "end"], [PEI, "end"], [PLANNER, "end"], [PLAN_REVIEWER, "start"]) })], false);
   assert.deepEqual(written.rungs, ["feito", "feito", "ativo"]);
   const fixing = deriveGarden([step("propor_plano", undefined, { progress: progress(
-    ["Analista do caso", "end"], ["Agente do PAEE", "end"], ["Agente do PEI", "end"], ["Planejador do PPI", "end"],
-    ["Revisor pedagógico", "start"], ["Revisor pedagógico", "end"], ["Agente do PEI", "start"]) })], false);
+    [ANALYST, "end"], [PAEE, "end"], [PEI, "end"], [PLANNER, "end"],
+    [PLAN_REVIEWER, "start"], [PLAN_REVIEWER, "end"], [PEI, "start"]) })], false);
   assert.equal(fixing.long?.stage, "ajustes");
   assert.equal(chatCaption(again, 0, 30, "popup", true).hint, "O revisor pediu ajustes. Isso é normal.");
-  const rules = deriveGarden([step("propor_plano", undefined, { progress: progress(["Analista do caso", "start"], ["Analista do caso", "fail"], ["Motor de regras", "start"]) })], false);
+  const rules = deriveGarden([step("propor_plano", undefined, { progress: progress([ANALYST, "start"], [ANALYST, "fail"], [RULES_ENGINE, "start"]) })], false);
   assert.equal(rules.long?.stage, "regras");
   assert.deepEqual(rules.rungs, ["espera", "espera", "espera"]);
 });
 
 test("atividades: botões abrem com o fim real de cada agente", () => {
   const one = deriveGarden([step("gerar_atividades", undefined, { progress: progress(
-    ["Agente da sala comum", "start"], ["Agente do AEE", "start"], ["Agente da família", "start"], ["Agente do AEE", "end"]) })], false);
+    [ROOM, "start"], [AEE, "start"], [HOME, "start"], [AEE, "end"]) })], false);
   assert.equal(one.label, "1 de 3 atividades escritas…");
   assert.deepEqual(one.buds?.states, ["fechado", "aberto", "fechado"]);
   const review = deriveGarden([step("gerar_atividades", undefined, { progress: progress(
-    ["Agente da sala comum", "end"], ["Agente do AEE", "end"], ["Agente da família", "end"], ["Revisor das atividades", "start"]) })], false);
+    [ROOM, "end"], [AEE, "end"], [HOME, "end"], [ACTIVITY_REVIEWER, "start"]) })], false);
   assert.equal(review.long?.stage, "revisor");
   assert.equal(review.buds?.review, true);
   const redo = deriveGarden([step("gerar_atividades", undefined, { progress: progress(
-    ["Agente da sala comum", "end"], ["Agente do AEE", "end"], ["Agente da família", "end"], ["Revisor das atividades", "start"],
-    ["Revisor das atividades", "end"], ["Agente da família", "start"]) })], false);
+    [ROOM, "end"], [AEE, "end"], [HOME, "end"], [ACTIVITY_REVIEWER, "start"],
+    [ACTIVITY_REVIEWER, "end"], [HOME, "start"]) })], false);
   assert.equal(redo.label, "Ajustando 1 atividade…");
   assert.deepEqual(redo.buds?.states, ["aberto", "aberto", "fechado"]);
-  const images = deriveGarden([step("gerar_atividades", undefined, { progress: progress(["Ilustração", "start"]) })], false);
+  const images = deriveGarden([step("gerar_atividades", undefined, { progress: progress([ILLUSTRATION, "start"]) })], false);
   assert.equal(images.long?.stage, "imagens");
 });
 
@@ -141,7 +152,7 @@ test("tempo das esperas longas: frases honestas e anúncio sem contador de minut
 });
 
 test("atividades com imagens: 4 minutos de tempo habitual, sabidos desde o início", () => {
-  const queued = deriveGarden([step("gerar_atividades", undefined, { progress: progress(["Ilustração", "queued"]) })], false);
+  const queued = deriveGarden([step("gerar_atividades", undefined, { progress: progress([ILLUSTRATION, "queued"]) })], false);
   assert.equal(queued.long?.images, true);
   assert.equal(queued.long?.stage, "inicio");
   assert.equal(queued.label, "Criando 3 sugestões de atividade…");
@@ -155,11 +166,11 @@ test("atividades com imagens: 4 minutos de tempo habitual, sabidos desde o iníc
   assert.equal(late.hint, "Mais lento que o normal; a resposta fica salva.");
   assert.ok(late.status.endsWith("Está levando mais que o normal; a resposta fica salva."), late.status);
   const drawing = deriveGarden([step("gerar_atividades", undefined, { progress: progress(
-    ["Ilustração", "queued"], ["Agente da sala comum", "end"], ["Agente do AEE", "end"], ["Agente da família", "end"], ["Ilustração", "start"]) })], false);
+    [ILLUSTRATION, "queued"], [ROOM, "end"], [AEE, "end"], [HOME, "end"], [ILLUSTRATION, "start"]) })], false);
   assert.equal(drawing.long?.stage, "imagens");
   assert.equal(chatCaption(drawing, 0, 180, "popup", true).hint, "Estilo pictograma, sem dados pessoais.");
   assert.equal(sunAngle(180, longBudget(drawing)), 30);
-  const plain = deriveGarden([step("gerar_atividades", undefined, { progress: progress(["Agente do AEE", "start"]) })], false);
+  const plain = deriveGarden([step("gerar_atividades", undefined, { progress: progress([AEE, "start"]) })], false);
   assert.equal(plain.long?.images, false);
   assert.equal(longBudget(plain), 180);
   assert.equal(chatCaption(plain, 0, 0, "popup", true).status, "Três agentes escrevem ao mesmo tempo. Costuma levar de 1 a 3 minutos.");
@@ -199,7 +210,7 @@ test("textos cabem na faixa de 320 px (linha 1 até 44 caracteres; linha 2 até 
   const endings = ["pronto", "erro", "interrompida"].map((outcome) => endingCaption(outcome, 9));
   const lines1 = [...scenes.map((scene) => scene.wait), "Ainda pensando no seu pedido…", "As regras da plataforma montam as sugestões…", ...endings.map((item) => item.label)];
   for (const text of lines1) assert.ok(text.length <= 44, text);
-  const images = deriveGarden([step("gerar_atividades", undefined, { progress: progress(["Ilustração", "queued"]) })], false);
+  const images = deriveGarden([step("gerar_atividades", undefined, { progress: progress([ILLUSTRATION, "queued"]) })], false);
   const plan = deriveGarden([step("propor_plano")], false);
   const timeLines = [0, 20, 60, 120, 180, 240].flatMap((bucket) => [chatCaption(images, 0, bucket, "popup", true).hint, chatCaption(plan, 0, bucket, "page", true).hint]);
   const lines2 = [...scenes.flatMap((scene) => scene.hint ?? []), ...Object.values(TIP_POOLS).flat(), ...endings.map((item) => item.hint), ...timeLines];

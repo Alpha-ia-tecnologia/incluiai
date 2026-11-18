@@ -37,9 +37,9 @@ export function suggestedLevel(profile: { readingSupport: number; mathSupport: n
   return average >= 3.5 ? "facil" : average >= 2 ? "medio" : "desafio";
 }
 
-export const MEMORY_PAIRS: Record<Level, number> = { facil: 2, medio: 4, desafio: 6 };
+const MEMORY_PAIRS: Record<Level, number> = { facil: 2, medio: 4, desafio: 6 };
 
-export function memoryDeck(theme: ThemeKey, level: Level, random: RandomSource = Math.random): MemoryCard<Pic>[] {
+function memoryDeck(theme: ThemeKey, level: Level, random: RandomSource = Math.random): MemoryCard<Pic>[] {
   return pairDeck(shuffle(themePics(theme), random).slice(0, MEMORY_PAIRS[level]), (pic) => pic.key, random);
 }
 
@@ -82,14 +82,14 @@ export type RoutineKey = keyof typeof ROUTINES;
 export const ROUTINE_KEYS = Object.keys(ROUTINES);
 export const isRoutineKey = (value: unknown): value is RoutineKey => typeof value === "string" && value in ROUTINES;
 
-export function routineSteps(routine: RoutineKey, level: Level): Pic[] {
+function routineSteps(routine: RoutineKey, level: Level): Pic[] {
   const { steps, facil, medio } = ROUTINES[routine];
   return level === "facil" ? facil.map((index) => steps[index]) : level === "medio" ? medio.map((index) => steps[index]) : [...steps];
 }
 
-export const ROUNDS = 5;
-export const OPTION_COUNT: Record<Level, number> = { facil: 2, medio: 3, desafio: 4 };
-export const QUANTITY_MAX: Record<Level, number> = { facil: 3, medio: 5, desafio: 9 };
+const ROUNDS = 5;
+const OPTION_COUNT: Record<Level, number> = { facil: 2, medio: 3, desafio: 4 };
+const QUANTITY_MAX: Record<Level, number> = { facil: 3, medio: 5, desafio: 9 };
 
 export type AssociationMode = "palavra" | "quantidade";
 export const isAssociationMode = (value: unknown): value is AssociationMode => value === "palavra" || value === "quantidade";
@@ -101,14 +101,14 @@ function targets<T>(items: readonly T[], random: RandomSource): T[] {
   return out.slice(0, ROUNDS);
 }
 
-export function wordRounds(theme: ThemeKey, level: Level, random: RandomSource = Math.random): PictureRound[] {
+function wordRounds(theme: ThemeKey, level: Level, random: RandomSource = Math.random): PictureRound[] {
   const pics = themePics(theme);
   return targets(pics, random).map((pic, index) => (
     { id: `r${index}`, pic, count: 1, answer: pic.label, options: withDistractors(pic, pics.filter((item) => item.key !== pic.key), OPTION_COUNT[level], random).map((item) => item.label) }
   ));
 }
 
-export function quantityRounds(theme: ThemeKey, level: Level, random: RandomSource = Math.random): PictureRound[] {
+function quantityRounds(theme: ThemeKey, level: Level, random: RandomSource = Math.random): PictureRound[] {
   const max = QUANTITY_MAX[level];
   const numbers = Array.from({ length: max }, (_, index) => index + 1);
   const counts = targets(numbers, random);
@@ -122,9 +122,9 @@ export function quantityRounds(theme: ThemeKey, level: Level, random: RandomSour
 export const EMOTIONS = ["feliz", "triste", "bravo", "medo"] as const;
 export type Emotion = (typeof EMOTIONS)[number];
 export const EMOTION_LABEL: Record<Emotion, string> = { feliz: "Feliz", triste: "Triste", bravo: "Bravo", medo: "Com medo" };
-export const EMOTION_OPTIONS: Record<Level, Emotion[]> = { facil: ["feliz", "triste"], medio: ["feliz", "triste", "bravo"], desafio: ["feliz", "triste", "bravo", "medo"] };
+const EMOTION_OPTIONS: Record<Level, Emotion[]> = { facil: ["feliz", "triste"], medio: ["feliz", "triste", "bravo"], desafio: ["feliz", "triste", "bravo", "medo"] };
 
-export const SITUATIONS: { text: string; icon: string; emotion: Emotion }[] = [
+const SITUATIONS: { text: string; icon: string; emotion: Emotion }[] = [
   { text: "Você ganhou um presente.", icon: "presente", emotion: "feliz" },
   { text: "Você brincou com os amigos no recreio.", icon: "amigos", emotion: "feliz" },
   { text: "Você comeu o lanche de que mais gosta.", icon: "lanchefavorito", emotion: "feliz" },
@@ -139,7 +139,7 @@ export const SITUATIONS: { text: string; icon: string; emotion: Emotion }[] = [
 
 export type EmotionRound = { id: string; text: string; icon: string; answer: Emotion; options: Emotion[] };
 
-export function emotionRounds(level: Level, random: RandomSource = Math.random): EmotionRound[] {
+function emotionRounds(level: Level, random: RandomSource = Math.random): EmotionRound[] {
   const options = EMOTION_OPTIONS[level];
   const pool = SITUATIONS.filter((item) => options.includes(item.emotion));
   return targets(pool, random).map((item, index) => ({ id: `r${index}`, text: item.text, icon: item.icon, answer: item.emotion, options }));

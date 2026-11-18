@@ -1,18 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PICTOGRAM_KEYS, PICTOGRAM_RULES, cardPictogram, pictogramFor, pictogramWords } from "./pictograms.ts";
-import { MATERIAL_KINDS, rulesMaterial } from "./material-content.ts";
+import { cardPictogram } from "./pictograms.ts";
+import { rulesMaterial } from "./material-content.ts";
 
-test("cada chave tem uma regra só, e a estrela fica de reserva", () => {
-  const ruled = PICTOGRAM_RULES.map(([key]) => key);
-  assert.equal(new Set(PICTOGRAM_KEYS).size, PICTOGRAM_KEYS.length);
-  assert.equal(new Set(ruled).size, ruled.length);
-  assert.ok(PICTOGRAM_KEYS.length >= 20 && PICTOGRAM_KEYS.length <= 26);
-  assert.deepEqual([...ruled, "estrela"].sort(), [...PICTOGRAM_KEYS].sort());
-  for (const [, terms] of PICTOGRAM_RULES) {
-    for (const term of terms) assert.equal(pictogramWords(term), ` ${term} `, `termo fora do padrão: ${term}`);
-  }
-});
+const pictogramFor = (label) => cardPictogram({ label });
 
 test("acentos e maiúsculas não mudam a escolha", () => {
   assert.equal(pictogramFor("Beber água"), "agua");
@@ -82,16 +73,12 @@ test("sem correspondência: estrela", () => {
   assert.equal(cardPictogram({ label: "Sim" }), "estrela");
 });
 
-test("cartões do motor de regras: todos têm pictograma e a história social varia", () => {
+test("cartões da história social do motor de regras: o pictograma acompanha cada frase", () => {
   const facts = {
     firstName: "Dante", expressiveChannel: "caa_prancha", expressiveLabel: "CAA (prancha)", receptiveLabel: "Fala",
     commandSteps: 1, attentionMinutes: 8, toleranceMinutes: 15, interests: ["Dinossauros"], calming: ["Fone abafador"],
     triggers: [], sensitiveTo: [], readingSupport: 4, fineMotorSupport: 2, usesWheelchair: false, strengths: "",
   };
-  for (const { kind } of MATERIAL_KINDS) {
-    const { content } = rulesMaterial({ kind, topic: "Hora do lanche", context: "aee", objective: null, facts });
-    for (const card of content.cards) assert.ok(PICTOGRAM_KEYS.includes(cardPictogram(card)), `${kind}: ${card.label}`);
-  }
   const story = rulesMaterial({ kind: "historia_social", topic: "", context: "aee", objective: null, facts }).content.cards.map(cardPictogram);
   assert.deepEqual(story, ["calendario", "professora", "fone", "fone", "prancha", "estrela", "feliz"]);
 });

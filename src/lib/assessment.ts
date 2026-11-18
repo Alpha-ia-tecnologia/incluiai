@@ -92,11 +92,9 @@ export function cleanAnswers(raw: Record<string, unknown>): Answers {
 
 export const observed = (answers: Answers, area?: AreaKey) => ITEMS.filter((item) => (!area || item.area === area) && answers[item.id] !== null && answers[item.id] !== undefined);
 
-export function areaSummary(answers: Answers, area: AreaKey): { observed: number; average: number | null; independent: number } {
-  const items = observed(answers, area);
-  if (!items.length) return { observed: 0, average: null, independent: 0 };
-  const levels = items.map((item) => answers[item.id] as number);
-  return { observed: items.length, average: Math.round((levels.reduce((sum, level) => sum + level, 0) / levels.length) * 10) / 10, independent: levels.filter((level) => level <= 1).length };
+function areaAverage(answers: Answers, area: AreaKey): number | null {
+  const levels = observed(answers, area).map((item) => answers[item.id] as number);
+  return levels.length ? Math.round((levels.reduce((sum, level) => sum + level, 0) / levels.length) * 10) / 10 : null;
 }
 
 export function referenceYear(answers: Answers, area: AreaKey): number | null {
@@ -115,8 +113,8 @@ export const referenceLabel = (year: number | null) => (year === null ? null : y
 
 export function compareAreas(baseline: Answers, latest: Answers): { area: AreaKey; label: string; start: number | null; end: number | null; change: number | null }[] {
   return AREAS.map(({ key, label }) => {
-    const start = areaSummary(baseline, key).average;
-    const end = areaSummary(latest, key).average;
+    const start = areaAverage(baseline, key);
+    const end = areaAverage(latest, key);
     return { area: key, label, start, end, change: start !== null && end !== null ? Math.round((start - end) * 10) / 10 : null };
   });
 }

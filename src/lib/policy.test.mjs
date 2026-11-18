@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { matchesWhere } from "./prisma-where.fixture.mjs";
 import { canAccessSchool, canAccessStudent, canWorkWithStudent, familyActivityWhere, isFamilyActivity, isFamilyMaterial, isFamilyOf, isTherapistOf, landingFor, linkedStudentIds, studentPathFor, studentScopeWhere } from "./policy.ts";
 
 const user = (role, schoolId = null, studentIds = []) => ({ role, schoolId, studentIds });
@@ -17,10 +18,9 @@ test("quem vê qual estudante", () => {
 });
 
 test("o filtro de estudantes devolve exatamente quem a pessoa vê", () => {
-  const matches = (where, student) => (!where.schoolId || where.schoolId === student.schoolId) && (!where.id || where.id.in.includes(student.id));
   for (const viewer of VIEWERS) {
     const where = studentScopeWhere(viewer);
-    for (const student of STUDENTS) assert.equal(matches(where, student), canAccessStudent(viewer, student), `${viewer.role} ${student.id}`);
+    for (const student of STUDENTS) assert.equal(matchesWhere(where, student), canAccessStudent(viewer, student), `${viewer.role} ${student.id}`);
   }
 });
 
@@ -70,7 +70,11 @@ test("a família vê só a atividade de casa já aceita e o material aprovado", 
   assert.equal(isFamilyActivity({ context: "casa", status: "aplicada" }), true);
   assert.equal(isFamilyActivity({ context: "casa", status: "sugerida" }), false);
   assert.equal(isFamilyActivity({ context: "aee", status: "aceita" }), false);
-  assert.deepEqual(familyActivityWhere, { context: "casa", status: { in: ["aceita", "aplicada"] } });
+  for (const context of ["sala_comum", "aee", "casa"]) {
+    for (const status of ["sugerida", "aceita", "aplicada", "rejeitada"]) {
+      assert.equal(matchesWhere(familyActivityWhere, { context, status }), isFamilyActivity({ context, status }), `${context} ${status}`);
+    }
+  }
   assert.equal(isFamilyMaterial({ status: "aprovado" }), true);
   assert.equal(isFamilyMaterial({ status: "rascunho" }), false);
 });

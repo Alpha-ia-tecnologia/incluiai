@@ -27,7 +27,7 @@ const CONFIRM_ON_CARD = "preparam uma ação que só acontece depois que a pesso
 const DATES_FOR_CLASS = "próximas datas comemorativas com ideias para a turma.";
 const DATES = "próximas datas comemorativas.";
 
-export const TOOL_CATALOG = {
+const TOOL_CATALOG = {
   buscar_estudantes: {
     groups: TEAM,
     prompt: "lista os estudantes que a pessoa pode ver, com o marcador, o id e o próximo passo. Use quando não souber a qual estudante a pessoa se refere ou para ter uma visão geral.",

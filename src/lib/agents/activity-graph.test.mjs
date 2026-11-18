@@ -2,7 +2,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { runActivityAgents } from "./activity-graph.ts";
 import { ACTIVITY_PIPELINE } from "./descriptors.ts";
-import { ActivityReviewSchema, AgentCardSchema } from "./schemas.ts";
 
 const CONTEXTS = ["sala_comum", "aee", "casa"];
 const rules = [
@@ -25,12 +24,11 @@ function fakeModel({ reviews = [approveAll], cardFor = (context) => card(context
   const count = (agent) => calls.filter((call) => call.agent === agent).length;
   const model = async (request) => {
     calls.push(request);
-    if (request.agent === ACTIVITY_PIPELINE.reviewer) {
-      assert.equal(request.schema, ActivityReviewSchema);
-      return reviews[Math.min(reviews.length - 1, count(request.agent) - 1)];
-    }
-    assert.equal(request.schema, AgentCardSchema);
-    return cardFor(contextOf(request.agent), count(request.agent));
+    const answer = request.agent === ACTIVITY_PIPELINE.reviewer
+      ? reviews[Math.min(reviews.length - 1, count(request.agent) - 1)]
+      : cardFor(contextOf(request.agent), count(request.agent));
+    request.schema.parse(answer);
+    return answer;
   };
   return { model, calls, count };
 }
@@ -43,7 +41,7 @@ test("aprovadas de primeira: três agentes e o revisor; os cartões saem na orde
   assert.ok(cards.every((item) => item.source === "ia" && item.reviewNotes.length === 0));
   assert.deepEqual(trace.slice(-2).map((step) => step.agent), [ACTIVITY_PIPELINE.reviewer, "Finalização"]);
   assert.equal(trace.at(-2).summary, "Aprovou as três atividades.");
-  assert.match(fake.calls[0].prompt, /- \[R01-CAA\] Prever forma de resposta não vocal/);
+  for (const call of fake.calls.slice(0, 3)) assert.ok(call.prompt.includes("R01-CAA") && call.prompt.includes(rules[0].then), call.agent);
 });
 
 test("regras de adaptação: a permanente não vira adaptação, e a de casa leva só duas", async () => {
@@ -59,8 +57,8 @@ test("atividade devolvida: só o agente dela refaz, com os problemas e a versão
   const { cards, trace } = await runActivityAgents(input, fake.model);
   assert.deepEqual(CONTEXTS.map((context) => fake.count(ACTIVITY_PIPELINE.writers[context])), [1, 2, 1]);
   const redo = fake.calls.filter((call) => call.agent === ACTIVITY_PIPELINE.writers.aee)[1];
-  assert.match(redo.prompt, /devolvida pelo revisor\. Corrija:\n- O critério não tem número\./);
-  assert.match(redo.prompt, /Versão anterior:\n\{"title":"Atividade aee"/);
+  assert.ok(redo.prompt.includes("O critério não tem número."));
+  assert.ok(redo.prompt.includes("Atividade aee"));
   assert.ok(trace.some((step) => step.summary === "Devolveu para correção: Agente do AEE."));
   assert.ok(cards.every((item) => item.reviewNotes.length === 0));
 });
