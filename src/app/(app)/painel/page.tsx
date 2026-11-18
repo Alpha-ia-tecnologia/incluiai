@@ -11,7 +11,7 @@ import {
   type DashboardGauge, type DashboardPeriod,
 } from "@/lib/dashboard";
 import { supportInfo, shortOf } from "@/lib/scale";
-import { ALERTS } from "@/lib/insights";
+import { ALERTS, PLAN_MISSING } from "@/lib/insights";
 import { can, roleLabel } from "@/lib/roles";
 import { decimal, firstName, plural } from "@/lib/format";
 import { CALENDAR_THEMES, relativeLabel, upcomingEvents } from "@/lib/commemorative-dates";
@@ -399,7 +399,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                           <th scope="col" className="px-1 py-2.5 font-normal">Escola</th>
                           <th scope="col" className="px-1 py-2.5 text-right font-normal">Estudantes</th>
                           <th scope="col" className="px-1 py-2.5 text-right font-normal">Com aviso</th>
-                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">{shortOf(ALERTS, "sem_plano")}</th>
+                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">{PLAN_MISSING.short}</th>
                           <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">{shortOf(ALERTS, "plano_vencido")}</th>
                         </tr>
                       </thead>
@@ -439,7 +439,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                             <td className="hidden px-1 py-3 sm:table-cell">
                               {student.plan === "ativo" ? <><p>Ativo</p><p className="mt-0.5 text-xs text-ink-soft">revisão {student.reviewDate ? formatDateShort(student.reviewDate) : ""}</p></>
                                 : student.plan === "vencido" ? <><p className="text-signal-orange-ink">{shortOf(ALERTS, "plano_vencido")}</p><p className="mt-0.5 text-xs text-ink-soft">desde {student.reviewDate ? formatDateShort(student.reviewDate) : ""}</p></>
-                                  : <p className="text-signal-orange-ink">{shortOf(ALERTS, "sem_plano")}</p>}
+                                  : <p className="text-signal-orange-ink">{PLAN_MISSING.short}</p>}
                             </td>
                             <td className="hidden whitespace-nowrap px-1 py-3 text-ink-soft md:table-cell">{student.lastRecord ? formatDateNumeric(student.lastRecord) : "Nenhum"}</td>
                             <td className="px-1 py-3">

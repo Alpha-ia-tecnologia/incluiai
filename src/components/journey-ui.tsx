@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, Route } from "lucide-react";
+import { ArrowRight, Route } from "lucide-react";
 import { Character } from "@/components/character";
 import { PendingButton } from "@/components/pending-button";
 import { ActionForm } from "@/components/action-form";
@@ -29,27 +29,29 @@ export function JourneyBar({ journey }: { journey: Journey }) {
 }
 
 export function JourneyWelcome({ journey, hero = false }: { journey: Journey; hero?: boolean }) {
-  const start = journey.current ?? journey.chapters[0];
+  const next = journey.current;
+  const total = journey.chapters.length;
   return (
     <section aria-labelledby="boas-vindas-titulo" className={`mb-7 overflow-hidden rounded-3xl p-5 sm:p-7 print:hidden ${hero ? "surface-navy" : "border border-line bg-paper-raised"}`}>
       <div className="flex items-start gap-5">
         <div className="min-w-0 flex-1">
           <h2 id="boas-vindas-titulo" className="font-display text-2xl font-medium leading-tight tracking-tight sm:text-3xl text-surface-ink">{journey.welcome.headline}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-surface-ink-soft sm:text-base">{journey.welcome.text}</p>
-          {journey.chapters.length ? (
-            <ol className="mt-5 grid gap-2 sm:grid-cols-3">
-              {journey.chapters.slice(0, 3).map((chapter, index) => (
-                <li key={chapter.key} className={`flex items-start gap-2.5 rounded-2xl p-3 ${CHAPTER_CLASSES[chapter.tone].soft}`}>
-                  <span className={`flex size-7 shrink-0 items-center justify-center rounded-full bg-paper-raised text-xs font-semibold ${CHAPTER_CLASSES[chapter.tone].ink}`}>{chapter.done ? <Check size={14} strokeWidth={3} aria-label="concluído" /> : index + 1}</span>
-                  <span className="text-sm font-medium leading-snug text-ink">{chapter.title}</span>
-                </li>
-              ))}
-            </ol>
+          {total ? (
+            <div className="mt-5 max-w-md">
+              <div className="flex gap-1" aria-hidden>
+                {journey.chapters.map((chapter) => (
+                  <span key={chapter.key} className={`h-1.5 flex-1 rounded-full ${chapter.done ? "bg-action" : chapter === next ? "bg-action/45" : "bg-surface-line"}`} />
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-surface-ink-soft">{journey.completed} de {total} capítulos concluídos</p>
+              {next ? <p className="mt-3 text-base font-medium leading-snug text-surface-ink">Próximo: {next.title}</p> : null}
+            </div>
           ) : null}
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            {start ? (
-              <ActionForm action={startJourney.bind(null, start.action.href)}>
-                <PendingButton className="task-action" pendingText="Abrindo o capítulo...">Começar: {start.action.label} <ArrowRight size={16} aria-hidden /></PendingButton>
+            {total ? (
+              <ActionForm action={startJourney.bind(null, next?.action.href ?? "/jornada")}>
+                <PendingButton className="task-action" pendingText="Abrindo o capítulo...">{next ? next.action.label : "Ver minha jornada"} <ArrowRight size={16} aria-hidden /></PendingButton>
               </ActionForm>
             ) : null}
             <ActionForm action={dismissWelcome}>
@@ -98,7 +100,7 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
         <>
           <p className="mt-4 text-xs text-ink-soft">Próximo capítulo</p>
           <p className="mt-0.5 text-sm font-medium leading-snug text-ink">{current.title}</p>
-          <Link href={current.action.href} className="task-action mt-3 !min-h-11 !py-2">{current.action.label} <ArrowRight size={16} aria-hidden /></Link>
+          <Link href={current.action.href} className="task-action task-action-secondary mt-3 !min-h-11 !py-2">{current.action.label} <ArrowRight size={16} aria-hidden /></Link>
         </>
       ) : <p className="mt-4 text-sm leading-relaxed text-ink-soft">{journey.completed < total ? "Você está em dia. O restante aguarda a outra parte." : "Todos os capítulos concluídos. A história continua a cada aula registrada."}</p>}
       <Link href="/jornada" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong">Ver a história completa <ArrowRight size={16} aria-hidden /></Link>

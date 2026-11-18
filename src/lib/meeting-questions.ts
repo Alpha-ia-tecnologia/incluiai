@@ -1,9 +1,9 @@
 import type { StudentAlert } from "./insights";
 
 const ALERT_QUESTION: Record<StudentAlert["kind"], string> = {
-  sem_plano: "O plano precisa ser revisado ou os prazos ajustados?",
   plano_vencido: "O plano precisa ser revisado ou os prazos ajustados?",
   sem_registro: "O que explica a ausência de registros recentes? Como retomar o acompanhamento?",
+  tendencia: "O que mudou na rotina ou no contexto nas últimas aulas?",
   queda_participacao: "A queda de participação é situacional? Vale revisar o nível de apoio ou o interesse âncora?",
 };
 

@@ -414,6 +414,39 @@ if (!ONLY_WAIT) {
     await ctx.close();
   });
 
+  await section("início: fila de trabalho", async () => {
+    const queueOf = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("[data-queue]")].map((group) => [
+      group.dataset.queue,
+      [...group.querySelectorAll("a[data-queue-kind]")].map((link) => ({ kind: link.dataset.queueKind, crossed: link.hasAttribute("data-crossed"), text: link.textContent.replace(/\s+/g, " "), href: link.getAttribute("href") })),
+    ])));
+    const open = async (role) => {
+      const session = await newSession();
+      await login(session.page, role);
+      await session.page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+      return { ...session, queue: await queueOf(session.page), text: await contentText(session.page) };
+    };
+
+    const coord = await open("coordenacao");
+    const recent = coord.queue["desde-ontem"] ?? [];
+    const due = coord.queue["vence-em-breve"] ?? [];
+    check("início: 'Desde ontem' traz a aula que a professora do AEE registrou, com link para o histórico", recent.some((item) => item.kind === "aula" && item.text.includes(DANTE) && item.href === `${danteHref}/diario#historico-registros`), JSON.stringify(recent));
+    check("início: 'Desde ontem' traz a orientação do terapeuta", recent.some((item) => item.kind === "orientacao" && item.text.includes(DANTE)), JSON.stringify(recent));
+    check("início: o estudante que avança não aparece como alerta", ![...recent, ...due].some((item) => item.crossed && item.text.includes(DANTE)), JSON.stringify([...recent, ...due].filter((item) => item.crossed)));
+    check("início: sem contador de avisos nem 'Pede atenção'", !/com aviso|Pede atenção/.test(coord.text));
+    check("início: sem erros de cliente (coordenação)", coord.errors.length === 0, coord.errors.join("; "));
+    await coord.ctx.close();
+
+    const teacher = await open("professor_aee");
+    check("início: a própria aula não volta como novidade", !(teacher.queue["desde-ontem"] ?? []).some((item) => item.kind === "aula" && item.text.includes(DANTE)), JSON.stringify(teacher.queue["desde-ontem"]));
+    await teacher.ctx.close();
+
+    const network = await open("secretaria");
+    const networkItems = Object.values(network.queue).flat();
+    check("início (Secretaria): a revisão vencida passa do limite e aparece em número", (network.queue["vence-em-breve"] ?? []).some((item) => item.kind === "revisao" && item.crossed), JSON.stringify(network.queue));
+    check("início (Secretaria): fila sem nomes, ligada ao Painel", networkItems.length > 0 && networkItems.every((item) => item.href.startsWith("/painel")) && ![DANTE, RAVI, DEMO_STUDENTS.livia.name].some((name) => network.text.includes(name)), JSON.stringify(networkItems));
+    await network.ctx.close();
+  });
+
   await section("família", async () => {
     const { ctx, page, errors } = await newSession();
     await login(page, "familia");

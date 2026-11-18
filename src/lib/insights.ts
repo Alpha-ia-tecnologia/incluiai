@@ -1,7 +1,7 @@
 import type { DiaryEntry, Objective, Plan } from "@prisma/client";
-import { DAY_MS, isPastDay } from "./dates";
 import { splitItems } from "./format";
-import type { Term, Trend } from "./scale";
+import type { Trend } from "./scale";
+import { alertsFor, type StudentAlert } from "./student-alerts";
 
 export interface ObjectiveInsight {
   objectiveId: string;
@@ -56,54 +56,12 @@ export function objectiveTrend(objective: Objective, entries: DiaryEntry[]): Obj
   };
 }
 
-export interface StudentAlert {
-  kind: "sem_registro" | "plano_vencido" | "sem_plano" | "queda_participacao";
-  message: string;
-}
+export { ALERTS, PLAN_MISSING, type StudentAlert } from "./student-alerts";
 
-const MAX_DAYS_WITHOUT_ENTRY = 7;
-
-export const ALERTS: Record<StudentAlert["kind"], Term> = {
-  sem_plano: { label: "Sem plano individual ativo", short: "Sem plano", tone: "alert" },
-  plano_vencido: { label: "Plano com revisão vencida", short: "Revisão vencida", tone: "alert" },
-  sem_registro: { label: `Sem registro de aula há mais de ${MAX_DAYS_WITHOUT_ENTRY} dias`, short: `Sem registro há ${MAX_DAYS_WITHOUT_ENTRY}+ dias`, tone: "alert" },
-  queda_participacao: { label: "Queda de participação", tone: "alert" },
-};
-
-export function studentAlerts(input: {
-  plans: Plan[];
-  entries: DiaryEntry[];
-  now?: Date;
-}): StudentAlert[] {
-  const now = input.now ?? new Date();
-  const alerts: StudentAlert[] = [];
-  const activePlan = input.plans.find((p) => p.status === "ativo");
-
-  if (!activePlan) {
-    alerts.push({ kind: "sem_plano", message: "Estudante sem plano individual ativo." });
-  } else if (isPastDay(activePlan.reviewDate, now)) {
-    alerts.push({ kind: "plano_vencido", message: "O plano individual passou da data de revisão." });
-  }
-
-  const entries = [...input.entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const lastEntry = entries.at(-1);
-  if (!lastEntry || now.getTime() - new Date(lastEntry.date).getTime() > MAX_DAYS_WITHOUT_ENTRY * DAY_MS) {
-    alerts.push({
-      kind: "sem_registro",
-      message: `Sem registro de acompanhamento há mais de ${MAX_DAYS_WITHOUT_ENTRY} dias.`,
-    });
-  }
-
-  const recent = entries.slice(-6);
-  const refusals = recent.filter((e) => e.participation === "recusou").length;
-  if (recent.length >= 4 && refusals >= Math.ceil(recent.length / 2)) {
-    alerts.push({
-      kind: "queda_participacao",
-      message: "Queda de participação nos últimos registros. Vale discutir em equipe.",
-    });
-  }
-
-  return alerts;
+export function studentAlerts(input: { plans: (Plan & { objectives: Objective[] })[]; entries: DiaryEntry[]; now?: Date }): StudentAlert[] {
+  const plan = input.plans.find((item) => item.status === "ativo");
+  const trends = (plan?.objectives ?? []).filter((objective) => objective.status === "ativo").map((objective) => ({ objectiveId: objective.id, trend: objectiveTrend(objective, input.entries).trend }));
+  return alertsFor({ ...input, trends });
 }
 
 export function strategiesThatWorked(entries: DiaryEntry[]): string[] {
