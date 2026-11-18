@@ -14,10 +14,10 @@ import { BUTTON_CLS, inputCls, linkCls } from "@/components/form-styles";
 import { SupportCard } from "@/components/dua/supports/support-card";
 import { SupportForm, type ObjectiveOption, type ProfileOption } from "@/components/dua/supports/support-form";
 import { Assurances, HowToRead } from "@/components/explain";
+import { param, type SearchParams } from "@/lib/search-params";
 
 type StudentOptions = { profileOptions: ProfileOption[]; objectives: ObjectiveOption[] };
 
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
 async function optionsFor(user: SessionUser, studentId: string): Promise<StudentOptions> {
   const [refs, objectives] = await Promise.all([profileReferences(user, studentId), planObjectives(user, studentId)]);
@@ -27,10 +27,10 @@ async function optionsFor(user: SessionUser, studentId: string): Promise<Student
   };
 }
 
-export default async function SupportsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ estudante?: string | string[]; todos?: string | string[] }> }) {
+export default async function SupportsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const { user, planning } = await planningContext(id);
-  const wanted = first(query.estudante);
+  const wanted = param(query.estudante);
   const [supports, suggestions, everyone] = await Promise.all([listSupports(user, id), listSuggestions(user, id), studentsInReach(user)]);
   const selected = everyone.find((student) => student.id === wanted) ?? null;
   const studentIds = [...new Set([...supports.filter((support) => support.canEdit).map((support) => support.student.id), ...(selected ? [selected.id] : [])])];
@@ -38,7 +38,7 @@ export default async function SupportsPage({ params, searchParams }: { params: P
 
   const className = planning.className;
   const classmates = className ? everyone.filter((student) => student.className === className) : everyone;
-  const showAll = !className || first(query.todos) === "1" || Boolean(selected && selected.className !== className);
+  const showAll = !className || param(query.todos) === "1" || Boolean(selected && selected.className !== className);
   const choices = showAll ? everyone : classmates;
   const base = `/planejamento/${id}/apoios`;
   const selectedOptions = selected ? options.get(selected.id) ?? null : null;

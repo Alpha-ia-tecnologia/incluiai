@@ -8,19 +8,19 @@ import { formatDate } from "@/lib/dates";
 import { PageHeader, Badge, ButtonLink, EmptyState } from "@/components/ui";
 import { DataBoard, StatTile } from "@/components/data-viz";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
+import { param, type SearchParams } from "@/lib/search-params";
+import { firstName } from "@/lib/format";
 
-type Query = { q?: string | string[]; perfil?: string | string[]; situacao?: string | string[] };
-const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
-export default async function AccountsPage({ searchParams }: { searchParams: Promise<Query> }) {
+export default async function AccountsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const [user, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!user) redirect("/login");
   if (!isAccountManager(user.role)) redirect("/");
   const accounts = await manageableAccounts(user);
   const roles = assignableRoles(user.role);
-  const q = one(query.q).trim().toLowerCase();
-  const role = roles.find((value) => value === one(query.perfil)) ?? "";
-  const status = ["ativas", "desativadas", "primeiro-acesso"].includes(one(query.situacao)) ? one(query.situacao) : "";
+  const q = param(query.q).trim().toLowerCase();
+  const role = roles.find((value) => value === param(query.perfil)) ?? "";
+  const status = ["ativas", "desativadas", "primeiro-acesso"].includes(param(query.situacao)) ? param(query.situacao) : "";
   const shown = accounts.filter((account) =>
     (!q || account.name.toLowerCase().includes(q) || account.email.includes(q))
     && (!role || account.role === role)
@@ -49,7 +49,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
       <form method="get" role="search" aria-label="Buscar contas" className="mb-6 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,14rem)_minmax(0,12rem)_auto] sm:items-end">
         <div className="min-w-0">
           <label htmlFor="busca-conta" className={labelCls}>Nome ou e-mail</label>
-          <input id="busca-conta" name="q" type="search" defaultValue={one(query.q)} className={inputCls} />
+          <input id="busca-conta" name="q" type="search" defaultValue={param(query.q)} className={inputCls} />
         </div>
         <div className="min-w-0">
           <label htmlFor="filtro-perfil" className={labelCls}>Perfil</label>
@@ -85,7 +85,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                   <p className="break-all text-xs text-ink-soft">{account.email}</p>
                   <p className="mt-1 text-xs text-ink-soft">
                     {roleLabel(account.role)}
-                    {account.links.length ? ` · ${account.links.map((link) => link.name.split(" ")[0]).join(", ")}` : account.schoolName ? ` · ${account.schoolName}` : accountSchool(account.role) === "opcional" ? " · Rede" : ""}
+                    {account.links.length ? ` · ${account.links.map((link) => firstName(link.name)).join(", ")}` : account.schoolName ? ` · ${account.schoolName}` : accountSchool(account.role) === "opcional" ? " · Rede" : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

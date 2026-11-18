@@ -5,7 +5,7 @@ export default {
   roles: ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"],
   summary: "Buscar pelo nome, abrir o acompanhamento e ler o próximo passo.",
   async setup(t) {
-    await t.quietLogin("professor@escola.edu.br");
+    await t.quietLogin("professor_sala");
     await t.dismissWelcome();
     await t.goto("/");
   },

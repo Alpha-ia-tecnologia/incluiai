@@ -1,18 +1,19 @@
 // Demonstração de vários municípios (desenvolvimento e testes): no banco da
-// plataforma (DATABASE_URL), a conta plataforma@incluiedu.test (senha demo123)
-// e o município "demo",
+// plataforma (DATABASE_URL), a conta de demonstração da plataforma e o município "demo",
 // apontado para o banco de demonstração que já existe (DEMO_BANCO, padrão "dev",
 // ou seja, prisma/dev.db com MUNICIPIO_DATABASE_URL="file:./{banco}.db").
 // Uso: npm run db:plataforma
 import { PrismaClient } from "@prisma/client";
-import { randomBytes, scryptSync } from "node:crypto";
+import { hashPassword } from "../src/lib/passwords.ts";
+import { isPostgresUrl } from "./database-url.mjs";
+import { DEMO_PASSWORD, PLATFORM_DEMO_ACCOUNT } from "./demo-data.mjs";
 
 const fail = (message) => {
   console.error(`\n✗ ${message}\n`);
   process.exit(1);
 };
 
-if (/^postgres(ql)?:\/\//.test(process.env.DATABASE_URL ?? "") && process.env.SEED_DEMO_OK !== "1") {
+if (isPostgresUrl(process.env.DATABASE_URL) && process.env.SEED_DEMO_OK !== "1") {
   fail("Esta demonstração refaz a conta e o município de exemplo. Num banco PostgreSQL, rode só num banco de testes, com SEED_DEMO_OK=1.");
 }
 if (!(process.env.PLATFORM_DOMAIN ?? "").trim() || !(process.env.MUNICIPIO_DATABASE_URL ?? "").includes("{banco}")) {
@@ -20,18 +21,14 @@ if (!(process.env.PLATFORM_DOMAIN ?? "").trim() || !(process.env.MUNICIPIO_DATAB
 }
 
 const prisma = new PrismaClient();
-const hashPassword = (password) => {
-  const salt = randomBytes(16).toString("hex");
-  return `${salt}:${scryptSync(password, salt, 32).toString("hex")}`;
-};
 const DEMO_BANCO = (process.env.DEMO_BANCO ?? "dev").trim();
 
 async function main() {
-  const email = "plataforma@incluiedu.test";
-  const fresh = { passwordHash: hashPassword("demo123"), mustChangePassword: false, deactivatedAt: null, totpSecret: null, totpPendingSecret: null, totpEnabledAt: null, totpLastStep: null, recoveryCodes: null };
+  const { name, email } = PLATFORM_DEMO_ACCOUNT;
+  const fresh = { passwordHash: hashPassword(DEMO_PASSWORD), mustChangePassword: false, deactivatedAt: null, totpSecret: null, totpPendingSecret: null, totpEnabledAt: null, totpLastStep: null, recoveryCodes: null };
   await prisma.user.upsert({
     where: { email },
-    create: { name: "Administração (demonstração)", email, role: "plataforma", demo: true, ...fresh },
+    create: { name, email, role: "plataforma", demo: true, ...fresh },
     update: { role: "plataforma", demo: true, ...fresh },
   });
   await prisma.session.deleteMany({ where: { user: { email } } });
@@ -50,7 +47,7 @@ async function main() {
   }
   const domain = process.env.PLATFORM_DOMAIN.trim();
   console.log("Plataforma de demonstração pronta:");
-  console.log(`- admin.${domain}: ${email} (senha demo123)`);
+  console.log(`- admin.${domain}: ${email} (senha ${DEMO_PASSWORD})`);
   console.log(`- demo.${domain}: o banco "${DEMO_BANCO}", com as contas de demonstração de sempre`);
 }
 

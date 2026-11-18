@@ -3,6 +3,7 @@ import { platformDb } from "@/lib/prisma";
 import { PLATFORM_ROLE } from "@/lib/tenancy-core";
 import { LoginForm } from "@/components/login-form";
 import { Character } from "@/components/character";
+import { DEMO_PASSWORD } from "../../../prisma/demo-data.mjs";
 
 const POINTS = [
   { icon: Database, text: "Um banco de dados só do município" },
@@ -46,7 +47,7 @@ export async function PlatformLogin() {
           </ul>
           <p className="mt-5 text-xs leading-relaxed text-on-navy-soft">
             {demo
-              ? <>Conta de demonstração: <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">{demo.email}</strong>, senha <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">demo123</strong>. No primeiro acesso, ela liga a verificação em duas etapas.</>
+              ? <>Conta de demonstração: <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">{demo.email}</strong>, senha <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">{DEMO_PASSWORD}</strong>. No primeiro acesso, ela liga a verificação em duas etapas.</>
               : "Os dados dos estudantes ficam só no banco de cada município: a administração da plataforma não os vê."}
           </p>
         </aside>

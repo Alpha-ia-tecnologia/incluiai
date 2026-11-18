@@ -15,7 +15,7 @@ import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-jou
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { PendingButton } from "@/components/pending-button";
 import { ActionForm } from "@/components/action-form";
-import { readList } from "@/lib/format";
+import { readList, firstName as firstNameOf } from "@/lib/format";
 import { formatDate } from "@/lib/dates";
 import { roleLabel } from "@/lib/roles";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
@@ -36,7 +36,8 @@ import { RingTile } from "@/components/viz/ring-tile";
 import { SupportTrack } from "@/components/viz/support-track";
 import { Timeline } from "@/components/viz/timeline";
 import { BUTTON_CLS } from "@/components/form-styles";
-import { imageWidthOf } from "@/lib/images/activity-image";
+import { activityImageUrl, imageWidthOf } from "@/lib/images/activity-image";
+import { CONTENT_ID } from "@/lib/landmarks";
 
 
 export default async function FamilyStudentPage({ params }: { params: Promise<{ id: string }> }) {
@@ -78,7 +79,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
   const journey = isFamily ? await loadJourney(user) : null;
   const objectives = student.plans.flatMap((p) => p.objectives);
   const addNote = createFamilyNote.bind(null, id);
-  const firstName = student.name.split(" ")[0];
+  const firstName = firstNameOf(student.name);
   const cardView = consent.card && canViewCard(user, student) ? await loadCardView(student.id) : null;
   const decidesCard = isFamily;
   const homeActivities = student.activities.map((activity) => ({ activity, doneAt: student.familyNotes.find((n) => n.note === homeActivityNote(activity.title))?.date }));
@@ -90,7 +91,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
       <PageHero
         character="care"
         title={`Acompanhamento de ${firstName}`}
-        actions={<><ReadAloud targetId="conteudo" label="Ouvir esta página" /><TextSizeControl onNavy /></>}
+        actions={<><ReadAloud targetId={CONTENT_ID} label="Ouvir esta página" /><TextSizeControl onNavy /></>}
       />
       {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} character={false} />) : null}
 
@@ -154,7 +155,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                       </ol>
                       {a.image ? (
                         <Image
-                          src={`/api/atividades/${a.id}/imagem?v=${a.image.createdAt.getTime()}`}
+                          src={activityImageUrl(a.id, a.image.createdAt)}
                           alt={a.image.altText}
                           width={imageWidthOf(a.image.kind)}
                           height={1024}

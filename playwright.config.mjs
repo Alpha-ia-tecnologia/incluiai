@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { BASE, chromePath } from "./e2e-support.mjs";
 
 export default defineConfig({
   testDir: "./e2e-playwright",
@@ -8,8 +9,8 @@ export default defineConfig({
   expect: { timeout: 20_000 },
   reporter: [["list"]],
   use: {
-    baseURL: process.env.BASE ?? "http://localhost:3213",
-    channel: "chrome",
+    baseURL: BASE,
+    launchOptions: { executablePath: chromePath() },
     locale: "pt-BR",
     viewport: { width: 1400, height: 1000 },
     navigationTimeout: 90_000,

@@ -2,6 +2,7 @@
 
 import { z } from "zod/v4";
 import type { ActionResult } from "@/lib/action-result";
+import { isoToBr } from "@/lib/dates";
 import { formField } from "@/lib/form-data";
 import { runFormAction } from "@/lib/server-action";
 import { readUploadedText, requiredUpload } from "@/lib/uploads";
@@ -21,11 +22,10 @@ export type SheetView = {
 
 const sheetForm = z.object({ intent: formField.text(20), schoolId: formField.text(64), csv: z.string().default("") });
 
-const birth = (iso: string) => iso.split("-").reverse().join("/");
 
 const viewOf = (sheet: SheetCheck, csv: string): SheetView => ({
   csv, schoolId: sheet.school.id, schoolName: sheet.school.name,
-  ready: sheet.ready.map(({ line, record, similar }) => ({ line, name: record.name, similar, detail: `${birth(record.birthDate)} · ${record.gradeYear} · ${record.className}` })),
+  ready: sheet.ready.map(({ line, record, similar }) => ({ line, name: record.name, similar, detail: `${isoToBr(record.birthDate)} · ${record.gradeYear} · ${record.className}` })),
   existing: sheet.existing, invalid: sheet.invalid,
 });
 

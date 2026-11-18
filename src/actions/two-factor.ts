@@ -9,6 +9,7 @@ import * as security from "@/lib/account-security";
 import { formField, readForm } from "@/lib/form-data";
 import { runAction, runFormAction, runWithoutSession } from "@/lib/server-action";
 import { homeAfterLogin } from "@/lib/tenant";
+import { RECOVERY_CODE_USED_HREF } from "@/lib/search-params";
 
 const codeForm = z.object({ code: formField.text(20) });
 
@@ -20,7 +21,7 @@ export async function verifySecondStep(_previous: unknown, formData: FormData): 
     if (!pending.user.totpEnabledAt) redirect("/login/duas-etapas");
     const kind = await security.confirmSecondStep(pending, readForm(formData, codeForm).code);
     const home = await homeAfterLogin();
-    redirect(kind === "recuperacao" && home === "/" ? "/conta/seguranca?aviso=recuperacao" : home);
+    redirect(kind === "recuperacao" && home === "/" ? RECOVERY_CODE_USED_HREF : home);
   });
 }
 

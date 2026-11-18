@@ -1,3 +1,5 @@
+import { isPostgresUrl } from "../../prisma/database-url.mjs";
+
 export const PLATFORM_ROLE = "plataforma";
 export const PLATFORM_LABEL = "admin";
 export const TENANT_HEADER = "x-municipio";
@@ -95,8 +97,6 @@ export function templateProblem(template: string | null | undefined): string | n
   if (!template.includes(BANCO_PLACEHOLDER)) return "MUNICIPIO_DATABASE_URL precisa ter {banco} no lugar do nome do banco.";
   return null;
 }
-
-export const isPostgresUrl = (url: string) => /^postgres(ql)?:\/\//.test(url);
 
 export function municipalityDatabaseUrl(template: string, dbName: string, connectionLimit?: number): string {
   const problem = templateProblem(template) ?? existingDatabaseProblem(dbName);

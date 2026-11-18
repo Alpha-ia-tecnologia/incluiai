@@ -88,7 +88,7 @@ export function AdaptForm({ action, canRead, aiOn, objectives, showOptions = tru
           <div className="grid gap-2 sm:grid-cols-2">
             {ADAPT_OPTIONS.map((option) => (
               <label key={option.key} className={choiceCls}>
-                <input type="checkbox" name="options" value={option.key} defaultChecked={option.key !== "menos_itens" && option.key !== "letra_ampliada"} className="size-5 shrink-0 accent-[var(--brand)]" />
+                <input type="checkbox" name="options" value={option.key} defaultChecked={option.checked} className="size-5 shrink-0 accent-[var(--brand)]" />
                 <span>{option.label}{option.aiOnly && !aiOn ? " (com IA)" : ""}</span>
               </label>
             ))}

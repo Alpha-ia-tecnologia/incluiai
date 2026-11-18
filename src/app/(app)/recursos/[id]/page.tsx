@@ -21,6 +21,7 @@ import { activityPrintMaterials } from "@/lib/resource-print-materials";
 import { networkName } from "@/lib/network";
 import styles from "@/components/resources/resource-print.module.css";
 import { BUTTON_CLS } from "@/components/form-styles";
+import { printMark } from "@/components/resources/print-marks";
 import {
   ArrowLeft, ThumbsUp, ThumbsDown, Repeat, Clock, Target,
   PackageOpen, ListChecks, SlidersHorizontal, ClipboardCheck, Sprout,
@@ -53,11 +54,11 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   });
 
   return (
-    <div className={styles.detail} data-resource-print-root>
-      <Link href="/recursos" data-resource-screen className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-brand-strong">
+    <div className={styles.detail} {...printMark("root")}>
+      <Link href="/recursos" {...printMark("screen")} className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-brand-strong">
         <ArrowLeft size={14} aria-hidden /> Banco de recursos
       </Link>
-      <div data-resource-introduction><PageHeader
+      <div {...printMark("introduction")}><PageHeader
         title={resource.title}
         lede={resource.description}
         actions={
@@ -68,7 +69,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         }
       /></div>
 
-      <div data-resource-screen>
+      <div {...printMark("screen")}>
       <Card className="mb-6 grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:items-center">
         <figure className="min-w-0">
           <Image src={guide.image} alt={guide.imageAlt} width={1000} height={750} sizes="(min-width: 1280px) 460px, (min-width: 768px) 40vw, 100vw" className="aspect-[4/3] w-full rounded-2xl bg-surface-muted object-cover" preload />
@@ -152,9 +153,9 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           const sheets = activityPrintMaterials(resource.title, activity.title);
 
           return (
-            <article key={activity.id} id={`atividade-${activity.id}`} aria-labelledby={`titulo-${activity.id}`} className={styles.activity} data-resource-activity={activity.id}>
+            <article key={activity.id} id={`atividade-${activity.id}`} aria-labelledby={`titulo-${activity.id}`} className={styles.activity} {...printMark("activity", activity.id)}>
             <Card className={styles.activityCard}>
-              <div data-resource-instructions>
+              <div {...printMark("instructions")}>
               <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft tabular-nums text-sm font-semibold text-brand-strong" aria-hidden>
@@ -221,7 +222,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
               />
               <ActivityPrintMaterials activityId={activity.id} activityTitle={activity.title} resourceTitle={resource.title} sheets={sheets} network={network} />
 
-              <div data-resource-screen className="mt-5 border-t border-line pt-4">
+              <div {...printMark("screen")} className="mt-5 border-t border-line pt-4">
                 <p className="mb-2 text-xs text-ink-soft">Depois de aplicar, registre a resposta:</p>
                 <div className="flex flex-wrap gap-2">
                   <ActionForm action={register}>
@@ -244,7 +245,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         })}
       </div>
 
-      <section data-resource-screen aria-labelledby="para-continuar" className="mt-6 flex gap-3 rounded-2xl bg-green-soft/60 p-5">
+      <section {...printMark("screen")} aria-labelledby="para-continuar" className="mt-6 flex gap-3 rounded-2xl bg-green-soft/60 p-5">
         <Sprout size={20} aria-hidden className="mt-0.5 shrink-0 text-green" />
         <div>
           <h2 id="para-continuar" className="text-base font-medium text-ink">Para continuar</h2>

@@ -12,6 +12,9 @@ export const MATERIAL_KINDS: { kind: MaterialKind; label: string; description: s
   { kind: "quadro_escolhas", label: "Quadro de escolhas", description: "Opções visuais para escolher como participar ou o que fazer primeiro.", cards: [2, 6] },
   { kind: "regulacao", label: "Cartões de autorregulação", description: "Como estou e o que me ajuda: termômetro e estratégias de calma.", cards: [4, 8] },
 ];
+export const MAX_MATERIAL_IMAGES = 12;
+export const materialImageUrl = (materialId: string, index: number, at: Date) => `/api/materiais/${materialId}/imagens/${index}?v=${at.getTime()}`;
+
 export const MATERIAL_KIND_LABEL = Object.fromEntries(MATERIAL_KINDS.map((item) => [item.kind, item.label])) as Record<MaterialKind, string>;
 export const isMaterialKind = (value: string): value is MaterialKind => MATERIAL_KINDS.some((item) => item.kind === value);
 

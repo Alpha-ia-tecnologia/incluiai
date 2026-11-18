@@ -1,12 +1,12 @@
+import { login } from "../../../e2e-support.mjs";
+import { rolesWith } from "../../../src/lib/roles.ts";
+
 async function sendHomeActivity(t, studentId) {
   const context = await t.page.browser().createBrowserContext();
   const page = await context.newPage();
   try {
     await page.setViewport({ width: 1280, height: 720 });
-    await page.goto(`${t.base}/login`, { waitUntil: "networkidle2" });
-    await page.type("#email", "aee@escola.edu.br");
-    await page.type("#password", "demo123");
-    await Promise.all([page.waitForNavigation({ waitUntil: "networkidle2" }).catch(() => {}), page.click("button[type=submit]")]);
+    await login(page, "professor_aee", { base: t.base });
     await page.goto(`${t.base}/estudantes/${studentId}/atividades`, { waitUntil: "networkidle2" });
     const content = await page.$("select:not(#objectiveId)");
     await content.select("Chamada e nomes da turma");
@@ -31,10 +31,10 @@ export default {
   id: "16-portal-da-familia",
   title: "Portal da família",
   audience: "Famílias",
-  roles: ["familia"],
+  roles: rolesWith("familyPortal"),
   summary: "Acompanhar a escola, responder a pergunta da semana, contar conquistas e decidir as autorizações.",
   async setup(t) {
-    await t.quietLogin("familia@email.com");
+    await t.quietLogin("familia");
     await t.page.waitForFunction(() => location.pathname.startsWith("/familia/"), { timeout: 15000 });
     const studentId = new URL(t.page.url()).pathname.split("/").pop();
     await sendHomeActivity(t, studentId);

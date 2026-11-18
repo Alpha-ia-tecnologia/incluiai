@@ -17,6 +17,7 @@ import { AssistantPopup } from "./assistant/assistant-popup";
 import { NavigationProgress } from "./navigation-progress";
 import { TextSizeControl } from "./text-size-control";
 import { NoticeBell } from "./notice-bell";
+import { CONTENT_ID } from "@/lib/landmarks";
 
 export function Shell({ user, notices = { unread: 0, latest: null }, brand = null, children }: { user: SessionUser; notices?: { unread: number; latest: string | null }; brand?: MunicipalityBrand | null; children: ReactNode }) {
   const initials = user.name.replace(/\([^)]*\)/g, " ").split(/\s+/).filter((part) => /^\p{L}/u.test(part) && !part.includes(".")).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || user.name[0];
@@ -24,7 +25,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
   const home = links[0].href;
   return (
     <div className="app-frame">
-      <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
+      <a href={`#${CONTENT_ID}`} className="skip-link">Pular para o conteúdo</a>
       <Suspense fallback={null}><NavigationProgress /></Suspense>
       <aside className="nav-rail" aria-label="Menu lateral">
         {brand ? (
@@ -79,7 +80,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
             </details>
           </div>
         </header>
-        <main id="conteudo" tabIndex={-1} className="min-w-0 outline-none">{children}</main>
+        <main id={CONTENT_ID} tabIndex={-1} className="min-w-0 outline-none">{children}</main>
       </div>
       <MobileNavigation links={links} />
       <AssistantPopup enabled={isAssistantEnabled()} suggestions={suggestionsFor(user.role)} />

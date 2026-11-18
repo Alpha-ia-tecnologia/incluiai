@@ -24,13 +24,13 @@ export const answerSpaceOf = (item: Pick<AdaptedItem, "options" | "answerFormat"
 export const LEVEL_LABEL: Record<LevelKey, string> = { mais_apoio: "Com mais apoio", padrao: "Padrão", desafio: "Com desafio" };
 
 export const ADAPT_OPTIONS = [
-  { key: "linguagem_simples", label: "Linguagem simples", aiOnly: true },
-  { key: "ordem_por_vez", label: "Enunciado curto, uma ordem por linha", aiOnly: false },
-  { key: "destacar_comando", label: "Destacar o comando (circule, marque, escreva…)", aiOnly: false },
-  { key: "apoio_visual", label: "Apoio visual: ícone da forma de responder", aiOnly: false },
-  { key: "escolha", label: "Resposta por escolha no lugar da escrita", aiOnly: true },
-  { key: "menos_itens", label: "Menos questões por página (3)", aiOnly: false },
-  { key: "letra_ampliada", label: "Letra ampliada na impressão", aiOnly: false },
+  { key: "linguagem_simples", label: "Linguagem simples", aiOnly: true, checked: true },
+  { key: "ordem_por_vez", label: "Enunciado curto, uma ordem por linha", aiOnly: false, checked: true },
+  { key: "destacar_comando", label: "Destacar o comando (circule, marque, escreva…)", aiOnly: false, checked: true },
+  { key: "apoio_visual", label: "Apoio visual: ícone da forma de responder", aiOnly: false, checked: true },
+  { key: "escolha", label: "Resposta por escolha no lugar da escrita", aiOnly: true, checked: true },
+  { key: "menos_itens", label: "Menos questões por página (3)", aiOnly: false, checked: false },
+  { key: "letra_ampliada", label: "Letra ampliada na impressão", aiOnly: false, checked: false },
 ] as const;
 export type AdaptOption = (typeof ADAPT_OPTIONS)[number]["key"];
 export const isAdaptOption = (value: string): value is AdaptOption => ADAPT_OPTIONS.some((option) => option.key === value);

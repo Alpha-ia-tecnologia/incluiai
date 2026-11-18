@@ -41,10 +41,10 @@ export default {
   summary: "A família autoriza e escolhe o verso; a escola põe a foto e imprime.",
   async setup(t) {
     t.vars.photo = illustration();
-    await t.quietLogin("aee@escola.edu.br");
+    await t.quietLogin("professor_aee");
     t.vars.card = `/estudantes/${await t.studentId("Dante Oliveira")}/carteirinha`;
     await t.page.deleteCookie(...(await t.page.cookies()));
-    await t.quietLogin("familia@email.com");
+    await t.quietLogin("familia");
     await t.dismissWelcome();
     t.vars.portal = new URL(t.page.url()).pathname;
     await t.scrollTo({ text: "Autorizações", tag: "h2" }, "start");
@@ -67,7 +67,7 @@ export default {
     await t.card({ title: "Na escola", subtitle: "A equipe do AEE completa a carteirinha", eyebrow: "Carteirinha digital" });
     await t.pause(600);
     await t.page.deleteCookie(...(await t.page.cookies()));
-    await t.quietLogin("aee@escola.edu.br");
+    await t.quietLogin("professor_aee");
     await t.dismissWelcome();
     await t.goto(t.vars.card);
     await t.pause(600);

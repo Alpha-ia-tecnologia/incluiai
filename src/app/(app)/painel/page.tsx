@@ -13,7 +13,7 @@ import {
 import { supportInfo, shortOf } from "@/lib/scale";
 import { ALERTS } from "@/lib/insights";
 import { can, roleLabel } from "@/lib/roles";
-import { firstName, plural } from "@/lib/format";
+import { decimal, firstName, plural } from "@/lib/format";
 import { CALENDAR_THEMES, relativeLabel, upcomingEvents } from "@/lib/commemorative-dates";
 import { MONTH_SHORT, brYmd, formatDate, formatDateNumeric, formatDateShort, formatDateTime, monthKey } from "@/lib/dates";
 import { duaIndicators } from "@/lib/dua/indicators";
@@ -33,7 +33,6 @@ import { PrintButton } from "@/components/print-button";
 
 const ACCESS_LABELS: Record<string, string> = { [AUDIT_ACTION.viewed]: "Consultas", [AUDIT_ACTION.created]: "Inclusões", [AUDIT_ACTION.edited]: "Alterações", [AUDIT_ACTION.sent]: "Envios à IA de reserva (DeepSeek)" };
 
-const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 const pointsDelta = (gauge: { value: number | null; previous: number | null }) => (gauge.value !== null && gauge.previous !== null ? gauge.value - gauge.previous : null);
 const pointsText = (delta: number) => `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)} ${Math.abs(delta) === 1 ? "ponto" : "pontos"}`;
@@ -127,7 +126,7 @@ function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denomina
         <div className="min-w-0">
           {value === null
             ? <p className="text-sm font-medium leading-snug text-ink-soft">{noBaseText}</p>
-            : <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink">{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</p>}
+            : <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink">{decimal(value)}%</p>}
           <p className="mt-2 text-sm text-ink">{numerator} de {denominator} {unit}</p>
         </div>
       </div>
@@ -472,7 +471,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <section aria-labelledby="apoio-titulo" className="dash-card">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <h2 id="apoio-titulo" className="text-base font-medium tracking-tight">Nível de apoio</h2>
-                    {supportDrop !== null && support.target !== null ? <TrendBadge delta={-supportDrop} better="down" text={supportDrop === 0 ? "Sem mudança desde o início" : `${supportDrop > 0 ? "−" : "+"}${decimal(Math.abs(supportDrop))} desde o início`} /> : null}
+                    {supportDrop !== null && support.target !== null ? <TrendBadge delta={-supportDrop} better="down" text={supportDrop === 0 ? "Sem mudança desde o início" : `${supportDrop > 0 ? "−" : "+"}${decimal(Math.abs(supportDrop), { fixed: true })} desde o início`} /> : null}
                   </div>
                   {support.initial !== null && support.latest !== null && support.target !== null ? (
                     <>
@@ -482,7 +481,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         {([["No início", support.initial, "rounded-full border-2 border-ink-strong bg-white"], ["Agora", support.latest, "rounded-full bg-ink-strong"], ["Meta", support.target, "rotate-45 rounded-[2px] border-2 border-ink-strong bg-white"]] as const).map(([label, value, marker]) => (
                           <div key={label} className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-1.5 rounded-full bg-surface-muted/70 py-1.5 pl-2.5 pr-3 text-xs">
                             <dt className="inline-flex items-center gap-1.5 self-center text-ink-soft"><span aria-hidden className={`inline-block size-2.5 shrink-0 ${marker}`} />{label}</dt>
-                            <dd className="font-display font-bold text-base leading-none tracking-tight text-ink tabular-nums">{decimal(value)}</dd>
+                            <dd className="font-display font-bold text-base leading-none tracking-tight text-ink tabular-nums">{decimal(value, { fixed: true })}</dd>
                             <dd className="text-ink-soft">{supportInfo(Math.round(value)).label}</dd>
                           </div>
                         ))}

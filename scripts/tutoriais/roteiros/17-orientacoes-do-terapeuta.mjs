@@ -1,3 +1,5 @@
+import { rolesWith } from "../../../src/lib/roles.ts";
+
 async function option(t, group, label) {
   const handle = await t.page.evaluateHandle((group, label) => {
     const norm = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
@@ -18,10 +20,10 @@ export default {
   id: "17-orientacoes-do-terapeuta",
   title: "Orientações do terapeuta",
   audience: "Terapeutas da rede de saúde",
-  roles: ["terapeuta"],
+  roles: rolesWith("intersectorReports"),
   summary: "Conhecer o contexto escolar e enviar orientações para a escola.",
   async setup(t) {
-    await t.quietLogin("terapeuta@clinica.com.br");
+    await t.quietLogin("terapeuta");
     await t.goto("/terapeuta");
   },
   async run(t) {

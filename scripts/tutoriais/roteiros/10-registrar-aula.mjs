@@ -7,7 +7,7 @@ export default {
   roles: ["professor_sala", "professor_aee", "apoio", "coordenacao"],
   summary: "Registrar como foi a aula e a frequência do AEE.",
   async setup(t) {
-    await t.quietLogin("aee@escola.edu.br");
+    await t.quietLogin("professor_aee");
     await t.dismissWelcome();
     t.vars.student = await t.studentId("Dante");
     await t.goto(`/estudantes/${t.vars.student}`);

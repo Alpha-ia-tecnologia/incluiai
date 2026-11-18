@@ -8,12 +8,14 @@ import { formField } from "@/lib/form-data";
 import { runAction, runFormAction } from "@/lib/server-action";
 import { decideActivity } from "@/lib/records";
 import { generateActivities, generateClassActivities } from "@/lib/activities";
+import { activitiesBatchHref } from "@/lib/search-params";
+import { GENERATE_IMAGES_FIELD } from "@/lib/form-options";
 
-const activityRequest = z.object({ objectiveId: formField.text(), lessonTopic: formField.text(), gerarImagens: formField.checkbox() });
+const activityRequest = z.object({ objectiveId: formField.text(), lessonTopic: formField.text(), [GENERATE_IMAGES_FIELD]: formField.checkbox() });
 
 export async function generateActivitiesAction(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
   return runFormAction(formData, activityRequest, async (user, data) => {
-    await generateActivities(user, studentId, { objectiveId: data.objectiveId, lessonTopic: data.lessonTopic, withImages: data.gerarImagens });
+    await generateActivities(user, studentId, { objectiveId: data.objectiveId, lessonTopic: data.lessonTopic, withImages: data[GENERATE_IMAGES_FIELD] });
   });
 }
 
@@ -38,6 +40,6 @@ export async function generateBatchForClass(_previous: unknown, formData: FormDa
     const [schoolId = "", className = ""] = data.turma.split("|");
     const students = await generateClassActivities(user, schoolId, className, data.lessonTopic);
     revalidatePath("/estudantes");
-    redirect(`/estudantes?lote=${students.length}`);
+    redirect(activitiesBatchHref(students.length));
   });
 }

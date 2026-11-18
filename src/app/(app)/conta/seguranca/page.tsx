@@ -15,8 +15,9 @@ import { CodeForm } from "@/components/two-factor-forms";
 import { TwoFactorSetup } from "@/components/two-factor-setup";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances, Steps } from "@/components/explain";
+import { readRecoveryCodeUsed, type SearchParams } from "@/lib/search-params";
 
-export default async function AccountSecurityPage({ searchParams }: { searchParams: Promise<{ aviso?: string | string[] }> }) {
+export default async function AccountSecurityPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const prisma = await db();
   const [session, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!session) redirect("/login");
@@ -29,7 +30,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
   ]);
   const required = twoFactorRequired(session.role);
   const codesLeft = recoveryCodesLeft(user.recoveryCodes);
-  const usedRecovery = query.aviso === "recuperacao";
+  const usedRecovery = readRecoveryCodeUsed(query);
 
   return (
     <>

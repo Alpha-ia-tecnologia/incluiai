@@ -5,7 +5,7 @@ export default {
   roles: ["professor_sala", "professor_aee", "coordenacao"],
   summary: "Aplicar a linha de base e ler o apoio por área.",
   async setup(t) {
-    await t.quietLogin("aee@escola.edu.br");
+    await t.quietLogin("professor_aee");
     await t.dismissWelcome();
     t.vars.student = await t.studentId("Dante");
     await t.goto(`/estudantes/${t.vars.student}`);

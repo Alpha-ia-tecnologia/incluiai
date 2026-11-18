@@ -28,7 +28,7 @@ export default {
   roles: ["secretaria"],
   summary: "Acompanhar a rede pelo painel, abrir a ficha de um estudante com motivo e conferir o Censo Escolar.",
   async setup(t) {
-    await t.quietLogin("secretaria@municipio.gov.br");
+    await t.quietLogin("secretaria");
     await t.dismissWelcome();
     await t.goto("/");
   },

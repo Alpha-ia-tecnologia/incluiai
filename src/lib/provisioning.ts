@@ -3,9 +3,10 @@ import { execFile } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { hashPassword } from "./auth";
+import { hashPassword } from "./passwords";
 import { forgetMunicipality, municipalityDb, municipalityUrl, platformDb } from "./prisma";
-import { NEW_DATABASE_PATTERN, PLATFORM_ROLE, databaseNameFor, isPostgresUrl, sqliteFile } from "./tenancy-core";
+import { isPostgresUrl } from "../../prisma/database-url.mjs";
+import { NEW_DATABASE_PATTERN, PLATFORM_ROLE, databaseNameFor, sqliteFile } from "./tenancy-core";
 import { temporaryPassword } from "./accounts-core";
 import { usesPostgres } from "./env-config";
 

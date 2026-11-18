@@ -6,12 +6,9 @@ import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { MaterialView } from "@/components/materials/material-view";
 import { CreatedNotice } from "@/components/created-notice";
+import { readMaterialCreated, type SearchParams } from "@/lib/search-params";
 
-type Query = { criado?: string | string[]; imagens?: string | string[]; falhas?: string | string[] };
-
-const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
-
-export default async function MaterialPage({ params, searchParams }: { params: Promise<{ id: string; materialId: string }>; searchParams: Promise<Query> }) {
+export default async function MaterialPage({ params, searchParams }: { params: Promise<{ id: string; materialId: string }>; searchParams: Promise<SearchParams> }) {
   const prisma = await db();
   const [{ id, materialId }, query] = await Promise.all([params, searchParams]);
   const { can } = await requireStudentPage(id, "Material de apoio");
@@ -26,14 +23,13 @@ export default async function MaterialPage({ params, searchParams }: { params: P
     ? await prisma.objective.findFirst({ where: { id: material.objectiveId, plan: { studentId: id } }, select: { description: true } })
     : null;
 
-  const created = one(query.criado);
-  const imageCount = Number.parseInt(one(query.imagens), 10);
-  const notice = created === "ia" || created === "regras"
+  const created = readMaterialCreated(query);
+  const notice = created
     ? [
-        `Material criado ${created === "ia" ? "pelos agentes de IA" : "pelas regras da plataforma"}.`,
+        `Material criado ${created.source === "ia" ? "pelos agentes de IA" : "pelas regras da plataforma"}.`,
         material.status === "aprovado" ? "" : "Revise e aprove antes de usar.",
-        Number.isFinite(imageCount) && imageCount >= 0 ? `${imageCount} ${imageCount === 1 ? "imagem pronta" : "imagens prontas"}.` : "",
-        one(query.falhas) === "1" ? (team && imagesOn ? "Algumas imagens não saíram agora: toque em Desenhar para tentar de novo." : "Algumas imagens não saíram agora.") : "",
+        created.images !== null ? `${created.images} ${created.images === 1 ? "imagem pronta" : "imagens prontas"}.` : "",
+        created.failed ? (team && imagesOn ? "Algumas imagens não saíram agora: toque em Desenhar para tentar de novo." : "Algumas imagens não saíram agora.") : "",
       ].filter(Boolean).join(" ")
     : null;
 

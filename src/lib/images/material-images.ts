@@ -2,13 +2,12 @@ import { db } from "../prisma";
 import { AUDIT_ACTION, recordChange, type AuditActor } from "../audit";
 import { redactorFor } from "../agents/names-in-scope";
 import { parseJson } from "../format";
-import { normalizeMaterialContent, type MaterialCard, type MaterialKind } from "../material-content";
+import { MAX_MATERIAL_IMAGES, normalizeMaterialContent, type MaterialCard, type MaterialKind } from "../material-content";
 import { STYLE, visualPreferences } from "./activity-image";
 import { ImageGenerationError, generateImage } from "./openai-images";
 
 // Fica fora dos arquivos "use server" para não virar uma ação pública.
 
-export const MAX_MATERIAL_IMAGES = 12;
 const CONCURRENCY = 3;
 
 const KIND_STYLE: Partial<Record<MaterialKind, string>> = {

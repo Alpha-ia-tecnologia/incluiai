@@ -23,7 +23,8 @@
     "test:e2e": "node e2e-test.mjs",
     "test:unit": "node --test \"src/lib/**/*.test.mjs\"",
     "test:e2e:playwright": "playwright test",
-    "test:e2e:municipios": "node e2e-multimunicipio.mjs"
+    "test:e2e:municipios": "node e2e-multimunicipio.mjs",
+    "test:visual": "node visual-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

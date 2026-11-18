@@ -50,7 +50,7 @@ export type CensusPerson = {
 export type ParseStats = { totalLines: number; parsed: Record<string, number>; skipped: { line: number; reason: string }[] };
 export type ParsedCensusFile = { edition: Edition; school: CensusSchool | null; classes: CensusClass[]; persons: CensusPerson[]; stats: ParseStats };
 
-const COMMON = {
+export const FIELD = {
   school: { code: 2, name: 6, dependency: 21, privateCategory: 32, municipalPartnership: 34 },
   schoolClass: { systemCode: 3, inepCode: 4, name: 5, mediation: 6, scheduleStart: 7 },
   // Recursos (36 a 48; 49 é "Nenhum"): iguais em 2025 e 2026, pois os 2 campos
@@ -141,7 +141,7 @@ export function parseInterval(value: string): Interval {
 export const schedulesOverlap = (a: Interval[], b: Interval[]) => a.some(([start, end], day) => end > start && (b[day]?.[1] ?? 0) > start && (b[day]?.[0] ?? 0) < end && b[day][1] > b[day][0]);
 
 function parseClass(fields: string[], edition: Edition): CensusClass | null {
-  const layout = COMMON.schoolClass;
+  const layout = FIELD.schoolClass;
   const systemCode = field(fields, layout.systemCode);
   const inepCode = field(fields, layout.inepCode);
   const name = field(fields, layout.name);
@@ -176,7 +176,7 @@ function parseClass(fields: string[], edition: Edition): CensusClass | null {
 }
 
 function parsePerson(fields: string[]): CensusPerson | null {
-  const layout = COMMON.person;
+  const layout = FIELD.person;
   const name = field(fields, layout.name);
   if (name.length < 3) return null;
   const types = Array.from({ length: layout.specialTypesCount }, (_, index) => flag(fields, layout.specialTypesStart + index));
@@ -220,7 +220,7 @@ const skip = (state: State, line: number, reason: string) => {
 };
 
 function attachEnrollment(state: State, fields: string[]): string | null {
-  const layout = COMMON.enrollment;
+  const layout = FIELD.enrollment;
   const person = state.persons.get(`inep:${digitsOnly(field(fields, layout.personInepId))}`) ?? state.persons.get(`sys:${field(fields, layout.personSystemCode)}`);
   if (!person) return "Matrícula (registro 60) de uma pessoa que não está no arquivo.";
   const schoolClass = state.classes.get(`inep:${field(fields, layout.classInepCode)}`) ?? state.classes.get(`sys:${field(fields, layout.classSystemCode)}`);
@@ -260,7 +260,7 @@ function readLine(state: State, raw: string, index: number) {
   const type = field(fields, 1);
   state.stats.parsed[type] = (state.stats.parsed[type] ?? 0) + 1;
   if (type === "00") {
-    const layout = COMMON.school;
+    const layout = FIELD.school;
     const code = digitsOnly(field(fields, layout.code));
     if (!code) skip(state, index + 1, "Registro 00 sem o código INEP da escola.");
     else state.school ??= {

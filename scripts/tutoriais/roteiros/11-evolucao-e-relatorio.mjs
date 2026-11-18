@@ -16,7 +16,7 @@ export default {
   roles: ["professor_aee", "coordenacao", "gestao"],
   summary: "Ver a evolução, validar o relatório do período para a família e conferir o dossiê.",
   async setup(t) {
-    await t.quietLogin("aee@escola.edu.br");
+    await t.quietLogin("professor_aee");
     await t.dismissWelcome();
     t.vars.dante = await t.studentId("Dante");
     await t.goto(`/estudantes/${t.vars.dante}`);

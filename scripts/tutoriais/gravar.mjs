@@ -1,4 +1,3 @@
-import puppeteer from "puppeteer-core";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -6,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { BASE, launchChrome, login } from "../../e2e-support.mjs";
 import { spoken } from "./fala.mjs";
 import { mux } from "./mixar.mjs";
 import { installOverlay } from "./overlay.mjs";
@@ -14,14 +14,13 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
 const env = process.env;
 const CONFIG = {
-  base: env.BASE ?? "http://localhost:3217",
+  base: BASE,
   out: env.OUT ?? join(ROOT, "public", "tutoriais"),
   work: env.WORK ?? join(tmpdir(), "incluiedu-tutoriais"),
   ffmpeg: env.FFMPEG ?? "ffmpeg",
   python: env.VOZ_PYTHON ?? "python3",
   voice: env.VOZ ?? "pf_dora",
   speech: [env.VOZ_VELOCIDADE ?? "1"],
-  chrome: env.CHROME_PATH ?? "/usr/bin/google-chrome",
   fps: 25,
   width: 1280,
   height: 720,
@@ -457,12 +456,9 @@ class Tutorial {
   async text() {
     return this.page.evaluate(() => document.body.innerText);
   }
-  async quietLogin(email) {
-    await this.page.goto(`${this.base}/login`, { waitUntil: "networkidle2" });
-    await this.page.type("#email", email);
-    await this.page.type("#password", "demo123");
-    await Promise.all([this.page.waitForNavigation({ waitUntil: "networkidle2" }).catch(() => {}), this.page.click("button[type=submit]")]);
-    await this.settle();
+  async quietLogin(who) {
+    const url = await login(this.page, who, { base: this.base });
+    if (new URL(url).pathname === "/login") throw new Error(`Não entrou como ${who}`);
   }
   async dismissWelcome() {
     const dismiss = await this.find({ text: "Agora não", exact: true }, { timeout: 1500 }).catch(() => null);
@@ -526,10 +522,8 @@ const run = async () => {
   mkdirSync(CONFIG.out, { recursive: true });
   mkdirSync(CONFIG.work, { recursive: true });
   const voice = new Voice();
-  const browser = await puppeteer.launch({
-    executablePath: CONFIG.chrome,
-    headless: true,
-    args: ["--no-sandbox", "--disable-gpu", "--hide-scrollbars", "--lang=pt-BR", "--font-render-hinting=none", "--disable-extensions"],
+  const browser = await launchChrome({
+    args: ["--hide-scrollbars", "--lang=pt-BR", "--font-render-hinting=none"],
     env: { ...env, LANG: "pt_BR.UTF-8", TZ: "America/Sao_Paulo" },
   });
   const failures = [];

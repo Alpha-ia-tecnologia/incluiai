@@ -1,26 +1,29 @@
 import { expect, test } from "@playwright/test";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD, DEMO_STUDENTS } from "../prisma/demo-data.mjs";
+import { STUDENT_TABS, isEssentialTab } from "../src/lib/student-tab-list.ts";
+import { CONTENT_ID } from "../src/lib/landmarks.ts";
+import { printSelector } from "../src/components/resources/print-marks.ts";
 
 test.describe.configure({ mode: "serial" });
 
-const PASSWORD = "demo123";
 const STUDENT = `Teste Playwright ${Date.now().toString(36)}`;
 let studentPath = "";
 
-async function login(page, email) {
+async function login(page, role) {
   await page.goto("/login");
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(PASSWORD);
+  await page.locator("#email").fill(DEMO_ACCOUNTS[role].email);
+  await page.locator("#password").fill(DEMO_PASSWORD);
   await page.getByRole("button", { name: /Entrar/ }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"));
 }
 
-const content = (page) => page.locator("#conteudo");
+const content = (page) => page.locator(`#${CONTENT_ID}`);
 const tabs = (page) => page.getByRole("navigation", { name: "Seções do estudante" });
 const option = (page, group, label) => page.getByRole("group", { name: group }).getByText(label, { exact: true });
 
 test.describe("ficha do estudante", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page, "aee@escola.edu.br");
+    await login(page, "professor_aee");
   });
 
   test("cadastro: não pergunta se recebe AEE e abre a ficha do estudante", async ({ page }) => {
@@ -53,18 +56,17 @@ test.describe("ficha do estudante", () => {
     await say("O estudante conta com profissional de apoio?", { option: "Não" });
     await page.getByRole("button", { name: "Não há informação a acrescentar" }).click();
     await page.getByRole("button", { name: "Salvar no prontuário" }).click();
-    await page.waitForURL((url) => /^\/estudantes\/(?!novo$)[a-z0-9]+$/.test(url.pathname));
+    await page.waitForURL((url) => /^\/estudantes\/(?!novo$|importar$)[^/]+$/.test(url.pathname));
     studentPath = new URL(page.url()).pathname;
     await expect(page.getByRole("heading", { level: 1 })).toContainText(STUDENT);
   });
 
   test("abas: o caminho essencial fica na linha e o restante no menu Mais", async ({ page }) => {
     await page.goto(studentPath);
-    await expect(tabs(page).locator(".tab-strip a")).toHaveText(["Resumo", "Estudo de caso", "Plano de ensino", "Registrar aula", "Dossiê"]);
+    const labels = (essential) => STUDENT_TABS.filter((tab) => isEssentialTab(tab.slug) === essential).map((tab) => tab.label);
+    await expect(tabs(page).locator(".tab-strip a")).toHaveText(labels(true));
     await tabs(page).getByRole("button", { name: "Mais" }).click();
-    await expect(tabs(page).getByRole("list", { name: "Mais seções do estudante" }).getByRole("link")).toHaveText([
-      "Sondagem", "Como aprende", "Atividades", "Atividades com DUA", "Atendimentos AEE", "Evolução", "Materiais de apoio", "Relatórios", "Carteirinha",
-    ]);
+    await expect(tabs(page).getByRole("list", { name: "Mais seções do estudante" }).getByRole("link")).toHaveText(labels(false));
     await tabs(page).getByRole("link", { name: "Sondagem" }).click();
     await page.waitForURL(`**${studentPath}/sondagem`);
     await expect(tabs(page).locator('.tab-strip a[aria-current="page"]')).toHaveText("Sondagem");
@@ -167,8 +169,8 @@ test.describe("ficha do estudante", () => {
   });
 
   test("Como aprende: salvar confirma o perfil, sem erro falso", async ({ page }) => {
-    await page.goto("/estudantes?q=Dante");
-    const card = page.locator("article").filter({ has: page.getByRole("heading", { name: /Dante/ }) }).first();
+    await page.goto(`/estudantes?q=${encodeURIComponent(DEMO_STUDENTS.dante.name)}`);
+    const card = page.locator("article").filter({ has: page.getByRole("heading", { name: DEMO_STUDENTS.dante.name }) }).first();
     const href = await card.getByRole("link", { name: "Ver acompanhamento" }).first().getAttribute("href");
     await page.goto(`${href}/perfil`);
     await page.getByRole("button", { name: "Salvar perfil educacional" }).click();
@@ -179,29 +181,29 @@ test.describe("ficha do estudante", () => {
 
   test("banco de recursos: a impressão sai como documento pedagógico", async ({ page }) => {
     await page.goto("/recursos");
-    await page.locator('a[href^="/recursos/c"]').filter({ hasText: "Configuração de varredura por acionador" }).first().click();
-    await page.waitForURL(/\/recursos\/c/);
-    const plan = page.locator("[data-resource-plan]").first();
+    await page.locator('a[href^="/recursos/"]').filter({ hasText: "Configuração de varredura por acionador" }).first().click();
+    await page.waitForURL(/\/recursos\/[^/?#]+$/);
+    const plan = page.locator(printSelector("plan")).first();
     await expect(plan).toBeHidden();
     await page.emulateMedia({ media: "print" });
     await expect(plan).toBeVisible();
-    await expect(plan.locator("[data-print-document-header]")).toContainText("Plano de atividade");
+    await expect(plan.locator(printSelector("documentHeader"))).toContainText("Plano de atividade");
     for (const field of ["Escola:", "Turma:", "Data:", "Estudante:", "Professor(a):"]) {
-      await expect(plan.locator("[data-print-document-header]")).toContainText(field);
+      await expect(plan.locator(printSelector("documentHeader"))).toContainText(field);
     }
-    await expect(page.locator("[data-resource-plan]").nth(1)).toContainText("Registro da aplicação");
-    await expect(page.locator("[data-resource-introduction]")).toBeHidden();
-    await expect(page.locator("[data-resource-instructions]").first()).toBeHidden();
+    await expect(page.locator(printSelector("plan")).nth(1)).toContainText("Registro da aplicação");
+    await expect(page.locator(printSelector("introduction"))).toBeHidden();
+    await expect(page.locator(printSelector("instructions")).first()).toBeHidden();
     await expect(page.getByRole("button", { name: /Imprimir/ }).first()).toBeHidden();
-    const quiz = page.locator("[data-resource-activity]").filter({ has: page.getByRole("heading", { name: "Quiz acessível da turma" }) });
-    await expect(quiz.locator("[data-resource-sheet]").first().locator("ol > li")).toHaveCount(4);
-    await expect(quiz.locator("[data-resource-sheet]").first()).toContainText("Orientação ao professor:");
+    const quiz = page.locator(printSelector("activity")).filter({ has: page.getByRole("heading", { name: "Quiz acessível da turma" }) });
+    await expect(quiz.locator(printSelector("sheet")).first().locator("ol > li")).toHaveCount(4);
+    await expect(quiz.locator(printSelector("sheet")).first()).toContainText("Orientação ao professor:");
   });
 });
 
 test.describe("gestão", () => {
   test("Censo, painel e importação abrem sem separar quem recebe AEE", async ({ page }) => {
-    await login(page, "coordenacao@escola.edu.br");
+    await login(page, "coordenacao");
     await page.goto("/censo");
     await expect(content(page).getByRole("heading").first()).toBeVisible();
     await page.goto("/painel");

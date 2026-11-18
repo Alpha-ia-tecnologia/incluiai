@@ -8,6 +8,7 @@ import { runAction, runFormAction } from "@/lib/server-action";
 import { UPLOAD_LIMIT_BYTES, megabytes, optionalUpload } from "@/lib/uploads";
 import { createAdaptedTask, createLevels, deleteAdaptedTask, saveAdaptedTask, transcribeTask, type TaskScope, type TaskText } from "@/lib/adapted-tasks";
 import type { AdaptedContent, AnswerFormat } from "@/lib/adapted-tasks-core";
+import { levelsHref } from "@/lib/search-params";
 
 const taskForm = z.object({
   intent: formField.text(),
@@ -33,7 +34,7 @@ export async function adaptTask(scope: TaskScope, formData: FormData): Promise<A
       redirect(`/estudantes/${scope.studentId}/atividades/adaptadas/${task.id}`);
     }
     const batchId = await createLevels(user, scope.planningId, data);
-    redirect(`/planejamento/${scope.planningId}/niveis?lote=${batchId}`);
+    redirect(levelsHref(scope.planningId, batchId));
   });
 }
 

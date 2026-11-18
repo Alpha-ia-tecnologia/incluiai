@@ -1,18 +1,15 @@
-// Importado só aqui: carregar o .ts tem um aviso do Node que não precisa aparecer nos outros vídeos.
-async function authenticatorCode(secret) {
-  const { totpAt } = await import("../../../src/lib/totp.ts");
-  const ahead = Math.floor(Date.now() / 30_000) + 1;
-  return totpAt(secret, ahead * 30_000);
-}
+import { totpCodes } from "../../../e2e-support.mjs";
+import { DEMO_PASSWORD } from "../../../prisma/demo-data.mjs";
+import { ROLE_KEYS, isPlatformRole } from "../../../src/lib/roles.ts";
 
 export default {
   id: "21-seguranca-da-conta",
   title: "Segurança da conta",
   audience: "Todos os perfis",
-  roles: ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao", "secretaria", "familia", "terapeuta"],
+  roles: ROLE_KEYS.filter((role) => !isPlatformRole(role)),
   summary: "Trocar a senha e ligar a verificação em duas etapas.",
   async setup(t) {
-    await t.quietLogin("professor@escola.edu.br");
+    await t.quietLogin("professor_sala");
     await t.dismissWelcome();
     await t.goto("/");
   },
@@ -27,7 +24,7 @@ export default {
       await t.page.evaluate(() => document.querySelector("header details")?.removeAttribute("open"));
     });
     await t.say("Para trocar a senha, abra Trocar a senha.", () => t.click({ text: "Trocar a senha", tag: "summary" }, { wait: false }));
-    await t.say("Digite a senha atual.", () => t.type({ field: "Senha atual" }, "demo123", { delay: 90 }));
+    await t.say("Digite a senha atual.", () => t.type({ field: "Senha atual" }, DEMO_PASSWORD, { delay: 90 }));
     await t.say("Depois, a senha nova: pelo menos dez caracteres. Não use o seu nome nem o e-mail. Uma frase pequena funciona bem.", async () => {
       await t.type({ field: "Senha nova" }, "pipa colorida no recreio", { delay: 45 });
       await t.type({ field: "Repita a senha nova" }, "pipa colorida no recreio", { delay: 30 });
@@ -46,7 +43,7 @@ export default {
     await t.poster();
     await t.say("Digite o código de seis números que aparece no aplicativo.", async () => {
       const secret = (await t.page.$eval("#totp-secret", (element) => element.textContent)).replace(/\s/g, "");
-      await t.type({ css: "input[name=code]" }, await authenticatorCode(secret), { delay: 120 });
+      await t.type({ css: "input[name=code]" }, await totpCodes()(secret), { delay: 120 });
     });
     await t.say("E clique em Confirmar e ligar.", async () => {
       await t.click({ text: "Confirmar e ligar", tag: "button" }, { wait: false });

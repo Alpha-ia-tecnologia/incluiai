@@ -5,7 +5,7 @@ export default {
   roles: ["professor_aee", "coordenacao"],
   summary: "As sete partes do estudo, como editar, salvar e imprimir.",
   async setup(t) {
-    await t.quietLogin("aee@escola.edu.br");
+    await t.quietLogin("professor_aee");
     await t.dismissWelcome();
     t.vars.student = await t.studentId("Dante");
     await t.goto(`/estudantes/${t.vars.student}`);

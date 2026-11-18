@@ -1,7 +1,7 @@
 import type { AreaKey } from "@/lib/assessment";
+import { decimal } from "@/lib/format";
 import { supportOffset } from "@/lib/scale";
 
-const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 const position = (value: number) => `${supportOffset(value) * 100}%`;
 
 export function AreaComparison({ rows }: { rows: { area: AreaKey; label: string; start: number | null; end: number | null; change: number | null }[] }) {

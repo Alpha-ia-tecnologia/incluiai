@@ -1,6 +1,7 @@
 import type { PrintableSheet } from "@/lib/resource-print-types";
 import { PrintDocumentHeader } from "./print-document-header";
 import styles from "./resource-print.module.css";
+import { printMark } from "./print-marks";
 
 const lines = (count: number) => Array.from({ length: count }, (_, index) => <span key={index} className={styles.answerLine} />);
 
@@ -21,7 +22,7 @@ export function ActivityPrintPlan({ network, resourceTitle, resourceType, activi
   const questions = sheets.filter((sheet) => sheet.kind === "cards" && sheet.choices);
   const roomy = questions.length === 0;
   return <>
-    <section className={`${styles.plan} ${styles.printOnly}`} data-resource-plan>
+    <section className={`${styles.plan} ${styles.printOnly}`} {...printMark("plan")}>
       <PrintDocumentHeader network={network} kind="Plano de atividade" />
       <h2 className={styles.docTitle}>{activityTitle}</h2>
       <dl className={styles.docMeta}>
@@ -39,7 +40,7 @@ export function ActivityPrintPlan({ network, resourceTitle, resourceType, activi
       <div className={styles.planBlock}><h3>Evidência a observar</h3><p>{evidenceCriterion}</p></div>
     </section>
 
-    <section className={`${styles.plan} ${styles.recordPage} ${styles.printOnly}`} data-resource-plan>
+    <section className={`${styles.plan} ${styles.recordPage} ${styles.printOnly}`} {...printMark("plan")}>
       <PrintDocumentHeader network={network} kind="Registro da aplicação" />
       <h2 className={styles.docTitle}>Registro da aplicação</h2>
       <dl className={styles.docMeta}>

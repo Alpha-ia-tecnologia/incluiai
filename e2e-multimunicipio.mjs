@@ -6,11 +6,11 @@
 //     SESSION_COOKIE_SECURE=0 npx next start -p 3214
 //   node e2e-multimunicipio.mjs
 // Variáveis: E2E_DOMAIN (localhost), E2E_PORT (3214), CHROME_PATH.
-import puppeteer from "puppeteer-core";
 import { createRequire } from "node:module";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { clickByText, fill, launchChrome, login, newSession as openSession, report, studentHref, textOf, until } from "./e2e-support.mjs";
+import { DEMO_STUDENTS, PLATFORM_DEMO_ACCOUNT } from "./prisma/demo-data.mjs";
+import { SESSION_COOKIE } from "./src/lib/session-core.ts";
 
 const DOMAIN = process.env.E2E_DOMAIN ?? "localhost";
 const PORT = process.env.E2E_PORT ?? "3214";
@@ -27,55 +27,12 @@ const MENU = "#2a1650";
 const AXE = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
-const results = [];
-const check = (name, ok, detail = "") => {
-  results.push({ name, ok });
-  console.log(`${ok ? "PASS" : "FAIL"}  ${name}${!ok && detail ? " — " + detail : ""}`);
-};
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const { check, finish } = report();
 
-const browser = await puppeteer.launch({
-  executablePath: process.env.CHROME_PATH ?? (process.platform === "win32" ? "C:/Program Files/Google/Chrome/Application/chrome.exe" : "/usr/bin/google-chrome"),
-  headless: true,
-  userDataDir: mkdtempSync(join(tmpdir(), "pptr-municipios-")),
-  args: ["--no-sandbox", "--disable-gpu", "--disable-extensions", `--host-resolver-rules=MAP *.${DOMAIN} 127.0.0.1, MAP ${DOMAIN} 127.0.0.1`],
-});
-
-async function newSession() {
-  const ctx = await browser.createBrowserContext();
-  const page = await ctx.newPage();
-  await page.setViewport({ width: 1280, height: 900 });
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message.slice(0, 200)));
-  return { ctx, page, errors };
-}
-
-const textOf = (page) => page.evaluate(() => document.body.innerText);
+const browser = await launchChrome({ args: [`--host-resolver-rules=MAP *.${DOMAIN} 127.0.0.1, MAP ${DOMAIN} 127.0.0.1`] });
+const newSession = () => openSession(browser, { width: 1280, height: 900 });
 const pathOf = (page) => new URL(page.url()).pathname;
-
-async function clickByText(page, text, selector = "button") {
-  const ok = await page.evaluate((t, sel) => {
-    const element = [...document.querySelectorAll(sel)].find((item) => item.textContent.includes(t));
-    element?.click();
-    return Boolean(element);
-  }, text, selector);
-  if (!ok) throw new Error(`não encontrado: ${text}`);
-}
-
-async function typeInto(page, selector, value) {
-  await page.waitForSelector(selector, { timeout: 15000 });
-  await page.$eval(selector, (input) => { input.value = ""; });
-  await page.type(selector, value);
-}
-
-async function login(page, base, email, password = "demo123") {
-  await page.goto(`${base}/login`, { waitUntil: "networkidle2", timeout: 45000 });
-  await typeInto(page, "#email", email);
-  await typeInto(page, "#password", password);
-  await clickByText(page, "Entrar");
-  await page.waitForFunction((path) => location.pathname !== path || document.querySelector('[role="alert"]'), { timeout: 20000 }, "/login").catch(() => {});
-  await sleep(500);
-}
+const isSession = (cookie) => cookie.name === SESSION_COOKIE;
 
 // Regras do visual-check: axe (WCAG 2.2 AA), um h1, sem rolagem horizontal a 320 px.
 async function audit(label, url, cookies = []) {
@@ -123,7 +80,7 @@ let cityTemp = "";
   check("admin: / leva ao login do painel", pathOf(page) === "/login" && (await textOf(page)).includes("Administração da plataforma"), page.url());
   await page.goto(`${ADMIN}/estudantes`, { waitUntil: "networkidle2" });
   check("admin: telas do município não abrem", !pathOf(page).startsWith("/estudantes"), page.url());
-  await login(page, ADMIN, "secretaria@municipio.gov.br");
+  await login(page, "secretaria", { base: ADMIN });
   check("admin: conta de município não entra", pathOf(page) === "/login" && (await textOf(page)).includes("E-mail ou senha inválidos"), page.url());
   await ctx.close();
 }
@@ -131,35 +88,34 @@ let cityTemp = "";
 // ---------- 3. Login da plataforma: e-mail e senha abrem o painel ----------
 {
   const { ctx, page, errors } = await newSession();
-  await login(page, ADMIN, "plataforma@incluiedu.test");
-  await page.waitForFunction(() => location.pathname === "/plataforma", { timeout: 20000 }).catch(() => {});
-  check("plataforma: a senha abre o painel, sem as duas etapas", pathOf(page) === "/plataforma" && (await textOf(page)).includes("Municípios"), page.url());
+  await login(page, PLATFORM_DEMO_ACCOUNT.email, { base: ADMIN });
+  const panel = await until(page, () => location.pathname === "/plataforma");
+  check("plataforma: a senha abre o painel, sem as duas etapas", panel && (await textOf(page)).includes("Municípios"), page.url());
   check("plataforma: o município demo aparece na lista", (await textOf(page)).includes(`demo.${DOMAIN}`));
-  adminCookies = (await page.cookies()).filter((cookie) => cookie.name === "incluiedu_session");
+  adminCookies = (await page.cookies()).filter(isSession);
 
   // ---------- 4. Novo município com logo ----------
   await page.goto(`${ADMIN}/plataforma/novo`, { waitUntil: "networkidle2" });
   await page.type('input[name="name"]', CITY_NAME);
   const suggested = await page.$eval('input[name="slug"]', (input) => input.value);
   check("novo município: endereço sugerido pelo nome", suggested === `vila-teste-${STAMP}`, suggested);
-  await typeInto(page, 'input[name="slug"]', SLUG);
+  await fill(page, 'input[name="slug"]', SLUG);
   const network = await page.$eval('input[name="networkName"]', (input) => input.value);
   check("novo município: nome da rede sugerido", network === `Secretaria Municipal de Educação de ${CITY_NAME}`, network);
   await page.select('select[name="uf"]', "MG");
   const file = await page.$('input[type="file"][name="logo"]');
   await file.uploadFile(join(process.cwd(), "e2e-fixtures", "logo-municipio.png"));
-  await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => b.textContent.includes("Sugerir cores pelo logo") && !b.disabled), { timeout: 10000 }).catch(() => {});
+  await until(page, () => [...document.querySelectorAll("button")].some((b) => b.textContent.includes("Sugerir cores pelo logo") && !b.disabled), { timeout: 10000 });
   await clickByText(page, "Sugerir cores pelo logo");
-  await page.waitForFunction(() => /Sugestão (da IA|pela regra)/.test(document.body.innerText), { timeout: 90000 }).catch(() => {});
-  check("novo município: sugere as cores pelo logo", /Sugestão (da IA|pela regra)/.test(await textOf(page)));
-  await typeInto(page, 'input[aria-label="Cor principal, código hexadecimal"]', PRIMARY);
-  await typeInto(page, 'input[aria-label="Cor do menu, código hexadecimal"]', MENU);
+  check("novo município: sugere as cores pelo logo", await until(page, () => /Sugestão (da IA|pela regra)/.test(document.body.innerText), { timeout: 90000 }));
+  await fill(page, 'input[aria-label="Cor principal, código hexadecimal"]', PRIMARY);
+  await fill(page, 'input[aria-label="Cor do menu, código hexadecimal"]', MENU);
   const chosen = await page.evaluate(() => ({ primary: document.querySelector('input[name="primaryColor"]')?.value, menu: document.querySelector('input[name="menuColor"]')?.value, source: document.querySelector('input[name="colorSource"]')?.value }));
   check("novo município: cores escolhidas à mão", chosen.primary === PRIMARY && chosen.menu === MENU && chosen.source === "manual", JSON.stringify(chosen));
   await page.type('input[name="adminName"]', "Secretaria de Teste");
   await page.type('input[name="adminEmail"]', ADMIN_EMAIL);
   await clickByText(page, "Cadastrar e preparar o ambiente");
-  await page.waitForSelector("#senha-temporaria", { timeout: 180000 }).catch(() => {});
+  await until(page, () => Boolean(document.querySelector("#senha-temporaria")), { timeout: 180000 });
   const temp = (await page.$eval("#senha-temporaria", (item) => item.textContent).catch(() => "")).trim();
   const address = await page.$eval("#endereco-municipio", (link) => link.getAttribute("href")).catch(() => "");
   check("novo município: ambiente pronto com senha temporária", /^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/.test(temp), `senha=${temp} ${(await textOf(page)).slice(0, 300)}`);
@@ -176,12 +132,11 @@ let cityTemp = "";
 let cityCookies = [];
 {
   const { ctx, page, errors } = await newSession();
-  await login(page, CITY, ADMIN_EMAIL, cityTemp);
+  await login(page, ADMIN_EMAIL, { base: CITY, password: cityTemp });
   check("município novo: senha temporária leva a criar a própria", pathOf(page) === "/login/nova-senha", page.url());
-  for (const name of ["password", "confirm"]) await typeInto(page, `input[name="${name}"]`, "girassol na varanda azul");
+  for (const name of ["password", "confirm"]) await fill(page, `input[name="${name}"]`, "girassol na varanda azul");
   await clickByText(page, "Salvar a senha e continuar");
-  await page.waitForFunction(() => !location.pathname.startsWith("/login"), { timeout: 20000 }).catch(() => {});
-  await page.waitForSelector("h1", { timeout: 20000 }).catch(() => {});
+  await until(page, () => !location.pathname.startsWith("/login") && Boolean(document.querySelector("h1")));
   check("município novo: a Secretaria entra no início", pathOf(page) === "/" && (await textOf(page)).includes("O que vamos fazer hoje?"), page.url());
   const tokens = await page.evaluate(() => {
     const style = getComputedStyle(document.documentElement);
@@ -195,8 +150,8 @@ let cityCookies = [];
   check("município novo: nome do município e IncluiEdu no menu", await page.evaluate((name) => { const rail = document.querySelector("aside")?.innerText ?? ""; return rail.includes(name) && rail.includes("IncluiEdu"); }, CITY_NAME));
   check("município novo: título com o nome do município", (await page.title()) === `IncluiEdu — ${CITY_NAME}`, await page.title());
   await page.goto(`${CITY}/estudantes?q=Dan`, { waitUntil: "networkidle2" });
-  check("isolamento: os estudantes do demo não aparecem no município novo", !(await textOf(page)).includes("Dante Oliveira"));
-  cityCookies = (await page.cookies()).filter((cookie) => cookie.name === "incluiedu_session");
+  check("isolamento: os estudantes do demo não aparecem no município novo", !(await textOf(page)).includes(DEMO_STUDENTS.dante.name));
+  cityCookies = (await page.cookies()).filter(isSession);
   check("município novo: sem erros de cliente", errors.length === 0, errors.join("; "));
   await ctx.close();
 }
@@ -204,13 +159,13 @@ let cityCookies = [];
 // ---------- 6. Isolamento entre endereços ----------
 {
   const demo = await newSession();
-  await login(demo.page, DEMO, "secretaria@municipio.gov.br");
+  await login(demo.page, "secretaria", { base: DEMO });
   check("demo: a Secretaria de demonstração entra", pathOf(demo.page) === "/", demo.page.url());
   check("demo: marca padrão, sem logo", (await demo.page.title()) === "IncluiEdu — Município Demonstração" && !(await demo.page.$('img[src^="/marca/logo"]')), await demo.page.title());
   await demo.page.goto(`${DEMO}/estudantes?q=Dan`, { waitUntil: "networkidle2" });
-  check("demo: os estudantes do demo aparecem no demo", (await textOf(demo.page)).includes("Dante Oliveira"));
-  const danteHref = await demo.page.evaluate(() => [...document.querySelectorAll("main a")].map((link) => link.getAttribute("href") ?? "").find((href) => /^\/estudantes\/c[a-z0-9]{20,}$/.test(href)) ?? "");
-  const [demoCookie] = (await demo.page.cookies()).filter((cookie) => cookie.name === "incluiedu_session");
+  check("demo: os estudantes do demo aparecem no demo", (await textOf(demo.page)).includes(DEMO_STUDENTS.dante.name));
+  const danteHref = await studentHref(demo.page, DEMO_STUDENTS.dante.name, { base: DEMO });
+  const [demoCookie] = (await demo.page.cookies()).filter(isSession);
 
   const thief = await newSession();
   if (demoCookie) await thief.page.setCookie({ name: demoCookie.name, value: demoCookie.value, domain: `${SLUG}.${DOMAIN}`, path: "/" });
@@ -261,7 +216,7 @@ await audit("login com a marca do município", `${CITY}/login`);
   await page.goto(`${ADMIN}/plataforma/municipios/${SLUG}`, { waitUntil: "networkidle2" });
   await page.type("#motivo-suspensao", "Teste automático");
   await clickByText(page, "Suspender o acesso");
-  await page.waitForFunction(() => document.body.innerText.includes("Reativar o acesso"), { timeout: 20000 }).catch(() => {});
+  await until(page, () => document.body.innerText.includes("Reativar o acesso"));
   check("suspender: o painel mostra Suspenso e o histórico", (await textOf(page)).includes("Suspenso") && (await textOf(page)).includes("suspendeu o acesso"));
 
   const visitor = await newSession();
@@ -273,7 +228,7 @@ await audit("login com a marca do município", `${CITY}/login`);
   await audit("página de suspenso", `${CITY}/login`);
 
   await clickByText(page, "Reativar o acesso");
-  await page.waitForFunction(() => document.body.innerText.includes("Suspender o acesso"), { timeout: 20000 }).catch(() => {});
+  await until(page, () => document.body.innerText.includes("Suspender o acesso"));
   // Aba nova da mesma sessão: na mesma aba, carregar o início logo depois de uma página
   // fora do grupo (app) dispara um erro de hidratação que já existia antes do recurso
   // (reproduz com /jogar/memoria → / no modo de um município).
@@ -288,6 +243,4 @@ await audit("login com a marca do município", `${CITY}/login`);
 }
 
 await browser.close();
-const failed = results.filter((result) => !result.ok);
-console.log(`\n===== ${results.length - failed.length}/${results.length} testes passaram =====`);
-process.exit(failed.length ? 1 : 0);
+process.exit(finish());

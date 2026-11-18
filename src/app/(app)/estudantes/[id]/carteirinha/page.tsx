@@ -11,12 +11,13 @@ import { ActionForm } from "@/components/action-form";
 import { StudentCardView } from "@/components/student-card-view";
 import { CardPhotoForm } from "@/components/student-card-forms";
 import { BUTTON_CLS } from "@/components/form-styles";
+import { firstName as firstNameOf } from "@/lib/format";
 
 export default async function StudentCardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { student } = await requireStudentPage(id, "Carteirinha", { tab: "carteirinha" });
   const view = await loadCardView(id);
-  const firstName = student.name.split(" ")[0];
+  const firstName = firstNameOf(student.name);
 
   if (!view) {
     return (

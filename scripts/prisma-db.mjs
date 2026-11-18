@@ -27,10 +27,10 @@
 //
 // O DATABASE_URL da linha de comando vence o do .env (os testes usam o SQLite).
 import { execFileSync } from "node:child_process";
-import { randomBytes, scryptSync } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { parseEnv } from "node:util";
+import { isPostgresUrl } from "../prisma/database-url.mjs";
 
 const SQLITE_SCHEMA = "prisma/schema.prisma";
 const POSTGRES_DIR = "prisma/postgresql";
@@ -55,7 +55,7 @@ function loadEnv() {
   for (const [key, value] of Object.entries(parseEnv(readFileSync(ENV_FILE, "utf8")))) if (process.env[key] === undefined) process.env[key] = value;
 }
 
-const isPostgres = (url = process.env.DATABASE_URL ?? "") => /^postgres(ql)?:\/\//.test(url);
+const isPostgres = (url = process.env.DATABASE_URL) => isPostgresUrl(url);
 
 function prisma(args, options = {}) {
   return execFileSync(process.execPath, [PRISMA_CLI, ...args], { stdio: options.capture ? ["pipe", "pipe", "inherit"] : "inherit", input: options.input, env: options.env ?? process.env, encoding: "utf8" });
@@ -158,15 +158,7 @@ function migration(name) {
   console.log(`✓ Migração criada em ${dir}. Aplique com: npm run db:tabelas`);
 }
 
-function temporaryPassword() {
-  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  return [...randomBytes(14)].map((byte) => alphabet[byte % alphabet.length]).join("");
-}
-
-function hashPassword(password) {
-  const salt = randomBytes(16).toString("hex");
-  return `${salt}:${scryptSync(password, salt, 32).toString("hex")}`;
-}
+const credentials = async () => ({ ...(await import("../src/lib/accounts-core.ts")), ...(await import("../src/lib/passwords.ts")) });
 
 async function admin(args, { role = "secretaria", label = "Secretaria", script = "db:admin" } = {}) {
   const name = option(args, "--nome");
@@ -174,6 +166,7 @@ async function admin(args, { role = "secretaria", label = "Secretaria", script =
   if (name.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail(`Informe nome e e-mail: npm run ${script} -- --nome "Seu nome" --email voce@municipio.gov.br`);
   generate();
   const { PrismaClient } = await import("@prisma/client");
+  const { hashPassword, temporaryPassword } = await credentials();
   const db = new PrismaClient();
   try {
     if (await db.user.findUnique({ where: { email }, select: { id: true } })) fail(`Já existe uma conta com ${email}.`);
@@ -194,7 +187,8 @@ const multiMode = () => Boolean((process.env.PLATFORM_DOMAIN ?? "").trim());
 
 async function platformAdmin(args) {
   if (!multiMode()) fail("A conta da plataforma só existe com vários municípios: defina PLATFORM_DOMAIN (e DATABASE_URL com o banco da plataforma).");
-  await admin(args, { role: "plataforma", label: "administração da plataforma", script: "db:plataforma-admin" });
+  const { PLATFORM_ROLE } = await import("../src/lib/tenancy-core.ts");
+  await admin(args, { role: PLATFORM_ROLE, label: "administração da plataforma", script: "db:plataforma-admin" });
   console.log("  No primeiro acesso, em admin.<PLATFORM_DOMAIN>, ela também liga a verificação em duas etapas.\n");
 }
 
@@ -231,7 +225,6 @@ async function municipalityTables() {
 // Domínio reservado (RFC 2606).
 const TEST_DOMAIN = "incluiedu.test";
 const TEST_SCHOOL = "Escola de Teste (apagar antes do uso real)";
-const SCHOOL_ROLES = new Set(["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"]);
 
 async function removeTestAccounts(db) {
   const users = await db.user.deleteMany({ where: { email: { endsWith: `@${TEST_DOMAIN}` } } });
@@ -244,7 +237,8 @@ async function removeTestAccounts(db) {
 async function testAccounts(args) {
   generate();
   const { PrismaClient } = await import("@prisma/client");
-  const { ROLE_KEYS, roleLabel } = await import("../src/lib/roles.ts");
+  const { ROLE_KEYS, accountSchool, isLinkedRole, isPlatformRole, roleLabel } = await import("../src/lib/roles.ts");
+  const { hashPassword, temporaryPassword } = await credentials();
   const db = new PrismaClient();
   try {
     if (args.includes("--apagar")) return await removeTestAccounts(db);
@@ -257,13 +251,13 @@ async function testAccounts(args) {
       }));
     const password = temporaryPassword();
     const created = [];
-    for (const [role, label] of ROLE_KEYS.filter((role) => role !== "plataforma").map((role) => [role, roleLabel(role)])) {
+    for (const [role, label] of ROLE_KEYS.filter((role) => !isPlatformRole(role)).map((role) => [role, roleLabel(role)])) {
       const email = `${role.replace("_", ".")}@${TEST_DOMAIN}`;
       const user = await db.user.create({
         data: {
           name: `Teste: ${label}`, email, role, passwordHash: hashPassword(password),
-          schoolId: SCHOOL_ROLES.has(role) ? school.id : null,
-          ...(role === "familia" || role === "terapeuta" ? { studentLinks: { create: { studentId: student.id } } } : {}),
+          schoolId: accountSchool(role) === "nenhuma" ? null : school.id,
+          ...(isLinkedRole(role) ? { studentLinks: { create: { studentId: student.id } } } : {}),
         },
       });
       await db.accountEvent.create({ data: { userId: user.id, actorName: "Contas de teste", actorRole: "sistema", action: "criou", detail: "Conta de teste" } });

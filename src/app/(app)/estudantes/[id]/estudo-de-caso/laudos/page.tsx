@@ -11,6 +11,8 @@ import { uploadHealthReportAction } from "@/actions/health-reports";
 import { HealthReportUpload } from "@/components/health-report-upload";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { linkCls } from "@/components/form-styles";
+import { readHealthReportNotice, type SearchParams } from "@/lib/search-params";
+import { firstName as firstNameOf } from "@/lib/format";
 
 const sizeText = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 
@@ -19,12 +21,12 @@ export default async function HealthReportsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ excluido?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const prisma = await db();
   const { id } = await params;
   const { student } = await requireStudentPage(id, "Laudos do estudo de caso", { need: "clinical", otherwise: `/estudantes/${id}/estudo-de-caso` });
-  const { excluido } = await searchParams;
+  const excluido = readHealthReportNotice(await searchParams, "excluido");
 
   const [reports, consent] = await Promise.all([
     prisma.healthReport.findMany({
@@ -34,7 +36,7 @@ export default async function HealthReportsPage({
     }),
     studentConsent(id),
   ]);
-  const firstName = student.name.split(" ")[0];
+  const firstName = firstNameOf(student.name);
   const upload = uploadHealthReportAction.bind(null, id);
   const consentMissing = canReadFiles() && !consent.aiUse;
 

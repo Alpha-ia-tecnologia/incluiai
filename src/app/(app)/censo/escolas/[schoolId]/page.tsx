@@ -12,6 +12,7 @@ import { CensusUploadForm, InepForm } from "@/components/census/census-forms";
 import { HowToRead, Steps } from "@/components/explain";
 import { FederalGuidance } from "@/components/federal-guidance";
 import { CENSUS_RULES } from "@/lib/federal-guidance";
+import { readCensusApplied, type SearchParams } from "@/lib/search-params";
 
 const PENDING: Exclude<CoverageStatus, "dupla">[] = ["ausente", "sem_aee", "sem_comum", "sem_marcacao"];
 const blocked = (row: CoverageRow) => row.issues.some((issue) => BLOCKING_ISSUES.has(issue));
@@ -26,7 +27,7 @@ function Issues({ row }: { row: CoverageRow }) {
 }
 const IMPORT_STATUS: Record<string, string> = { previa: "Prévia aberta", aplicada: "Aplicada", descartada: "Descartada" };
 
-export default async function CensusSchoolPage({ params, searchParams }: { params: Promise<{ schoolId: string }>; searchParams: Promise<{ aplicado?: string }> }) {
+export default async function CensusSchoolPage({ params, searchParams }: { params: Promise<{ schoolId: string }>; searchParams: Promise<SearchParams> }) {
   const prisma = await db();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -42,7 +43,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
   // Orientação do INEP: estudo de caso concluído ou PAEE respaldam a declaração no Censo.
   const unreferenced = references.filter((row) => !row.backed);
   const referenced = references.filter((row) => row.backed);
-  const applied = (await searchParams).aplicado?.match(/^(\d+)-(\d+)$/);
+  const applied = readCensusApplied(await searchParams);
   const open = imports.find((item) => item.status === "previa");
   const rows = result?.coverage.rows ?? [];
   const note = result ? schoolFundebNote(result.info) : null;
@@ -53,7 +54,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
       <Link href="/censo" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong hover:underline"><ArrowLeft size={16} aria-hidden /> Censo Escolar</Link>
       <PageHeader title={`Censo: ${school.name}`} />
       <div className="grid min-w-0 max-w-4xl gap-6">
-        {applied ? <p role="status" className="flex items-center gap-2 rounded-2xl bg-green-soft px-4 py-3 text-sm font-medium text-green"><Check size={18} aria-hidden /> Arquivo aplicado: {applied[1]} {applied[1] === "1" ? "estudante cadastrado" : "estudantes cadastrados"} e {applied[2]} {applied[2] === "1" ? "atualizado" : "atualizados"}. A referência da escola foi atualizada.</p> : null}
+        {applied ? <p role="status" className="flex items-center gap-2 rounded-2xl bg-green-soft px-4 py-3 text-sm font-medium text-green"><Check size={18} aria-hidden /> Arquivo aplicado: {applied.created} {applied.created === 1 ? "estudante cadastrado" : "estudantes cadastrados"} e {applied.updated} {applied.updated === 1 ? "atualizado" : "atualizados"}. A referência da escola foi atualizada.</p> : null}
 
         <div className="grid min-w-0 gap-6 lg:grid-cols-2">
           <Card>

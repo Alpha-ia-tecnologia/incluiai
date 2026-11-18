@@ -8,7 +8,7 @@ import { can } from "@/lib/roles";
 import { createIntersectorReport } from "@/actions/intersector";
 import { loadJourney, recordJourneyMark } from "@/lib/user-journey";
 import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
-import { readList } from "@/lib/format";
+import { readList, firstName as firstNameOf } from "@/lib/format";
 import { formatDate } from "@/lib/dates";
 import { CHANNELS } from "@/lib/scale";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
@@ -22,14 +22,15 @@ import { Check, FileText } from "lucide-react";
 import { DataBoard, MiniColumns, StatTile, StatusPill } from "@/components/data-viz";
 import { monthlyCounts } from "@/lib/series";
 import { Timeline } from "@/components/viz/timeline";
+import { param, type SearchParams } from "@/lib/search-params";
 
 
-export default async function TherapistPage({ searchParams }: { searchParams: Promise<{ estudante?: string | string[] }> }) {
+export default async function TherapistPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const prisma = await db();
   const [user, query] = await Promise.all([getCurrentUser(), searchParams]);
   if (!user) redirect("/login");
   if (!can(user.role, "intersectorReports") || !user.studentIds.length) redirect("/");
-  const asked = Array.isArray(query.estudante) ? query.estudante[0] : query.estudante;
+  const asked = param(query.estudante);
   const studentId = asked && user.studentIds.includes(asked) ? asked : user.studentIds[0];
   await recordJourneyMark(user.id, "terapeuta_inicio");
   const [journey, linked] = await Promise.all([
@@ -64,7 +65,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
   const p = student.profile;
   const interests = readList(p?.interests ?? null);
   const create = createIntersectorReport.bind(null, student.id);
-  const firstName = student.name.split(" ")[0];
+  const firstName = firstNameOf(student.name);
 
   return (
     <>
@@ -177,7 +178,7 @@ function StudentSwitcher({ students, current }: { students: { id: string; name: 
           aria-current={student.id === current ? "page" : undefined}
           className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm transition-colors ${student.id === current ? "bg-brand font-medium text-white" : "bg-surface-muted text-ink-soft hover:bg-line hover:text-ink"}`}
         >
-          {student.name.split(" ")[0]}
+          {firstNameOf(student.name)}
         </Link>
       ))}
     </nav>

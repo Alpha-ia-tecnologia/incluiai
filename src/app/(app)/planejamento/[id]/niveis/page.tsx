@@ -14,16 +14,18 @@ import { AdaptedEditor } from "@/components/adapted/adapted-editor";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
 import { ADAPTED_TASK_STATUS, labelOf, toneOf } from "@/lib/scale";
+import { levelsHref, readLevelsBatch, type SearchParams } from "@/lib/search-params";
 
 const ORDER: LevelKey[] = ["mais_apoio", "padrao", "desafio"];
 
-export default async function LevelsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lote?: string }> }) {
+export default async function LevelsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> }) {
   const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const { access } = await planningContext(id);
   const tasks = await prisma.adaptedTask.findMany({ where: { planningId: id }, orderBy: { createdAt: "desc" } });
   const batches = [...new Map(tasks.map((task) => [task.batchId, task])).values()];
-  const batchId = batches.some((task) => task.batchId === query.lote) ? query.lote : batches[0]?.batchId;
+  const wanted = readLevelsBatch(query);
+  const batchId = batches.some((task) => task.batchId === wanted) ? wanted : batches[0]?.batchId;
   const current = ORDER.map((level) => tasks.find((task) => task.batchId === batchId && task.level === level)).filter((task) => task !== undefined);
 
   return (
@@ -49,7 +51,7 @@ export default async function LevelsPage({ params, searchParams }: { params: Pro
       {batches.length > 1 ? (
         <nav aria-label="Atividades com níveis" className="flex min-w-0 flex-wrap gap-2">
           {batches.map((task) => (
-            <Link key={task.batchId} href={`/planejamento/${id}/niveis?lote=${task.batchId}`} aria-current={task.batchId === batchId ? "page" : undefined} className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm ${task.batchId === batchId ? "bg-brand font-medium text-white" : "bg-surface-muted text-ink-soft hover:bg-line"}`}>
+            <Link key={task.batchId} href={levelsHref(id, task.batchId)} aria-current={task.batchId === batchId ? "page" : undefined} className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm ${task.batchId === batchId ? "bg-brand font-medium text-white" : "bg-surface-muted text-ink-soft hover:bg-line"}`}>
               {task.title} · {formatDate(task.createdAt)}
             </Link>
           ))}

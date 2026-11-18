@@ -11,6 +11,8 @@ import { AIDisclaimer, ButtonLink, Card, PageHeader } from "@/components/ui";
 import { PendingButton } from "@/components/pending-button";
 import { ActionForm } from "@/components/action-form";
 import { choiceCls, BUTTON_CLS, linkCls } from "@/components/form-styles";
+import { readHealthReportNotice, type SearchParams } from "@/lib/search-params";
+import { firstName as firstNameOf } from "@/lib/format";
 
 const h3 = "text-base font-semibold text-ink";
 const quote = (value: string) => `“${value}”`;
@@ -48,12 +50,12 @@ export default async function HealthReportPage({
   searchParams,
 }: {
   params: Promise<{ id: string; laudoId: string }>;
-  searchParams: Promise<{ revisado?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const prisma = await db();
   const { id, laudoId } = await params;
   const { student } = await requireStudentPage(id, "Laudos do estudo de caso", { need: "clinical", otherwise: `/estudantes/${id}/estudo-de-caso` });
-  const { revisado } = await searchParams;
+  const revisado = readHealthReportNotice(await searchParams, "revisado");
 
   const [report, caseStudy] = await Promise.all([
     prisma.healthReport.findUnique({
@@ -67,7 +69,7 @@ export default async function HealthReportPage({
   ]);
   if (!report || report.studentId !== id) notFound();
 
-  const firstName = student.name.split(" ")[0];
+  const firstName = firstNameOf(student.name);
   const base = `/estudantes/${id}/estudo-de-caso`;
   const reading = parseReading(report.reading);
   const accepted = parseAccepted(report.accepted);

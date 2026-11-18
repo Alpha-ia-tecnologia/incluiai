@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Check, FileUp, FileX2, RefreshCw, ShieldCheck } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
 import type { MonitorConfig } from "@/lib/census-core";
+import { isoToBr } from "@/lib/dates";
 import { Field, FormResult } from "@/components/form-kit";
 import { choiceCls, hintCls, inputBoxCls, inputCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
@@ -40,7 +41,7 @@ export function CensusDecisionForm({ action, personKey, candidates, canCreate }:
         {candidates.map((candidate) => (
           <label key={candidate.id} className={choiceCls}>
             <input type="radio" name="decision" value={`link:${candidate.id}`} required className="size-5 shrink-0 accent-[var(--brand)]" />
-            <span>Vincular a {candidate.name}{candidate.birthDate ? ` (nascimento ${candidate.birthDate.split("-").reverse().join("/")})` : ""}</span>
+            <span>Vincular a {candidate.name}{candidate.birthDate ? ` (nascimento ${isoToBr(candidate.birthDate)})` : ""}</span>
           </label>
         ))}
         {canCreate ? (

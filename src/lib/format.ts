@@ -2,6 +2,8 @@ export function firstName(name: string): string {
   return name.replace(/\([^)]*\)/g, " ").split(/\s+/).find((part) => part.length > 1 && !part.includes(".")) ?? name;
 }
 
+export const decimal = (value: number, { fixed = false }: { fixed?: boolean } = {}) => value.toLocaleString("pt-BR", { minimumFractionDigits: fixed ? 1 : 0, maximumFractionDigits: 1 });
+
 export const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 export function parseJson<T>(value: string | null | undefined, fallback: T): T {

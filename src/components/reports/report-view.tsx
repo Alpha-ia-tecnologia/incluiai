@@ -1,10 +1,10 @@
 import { CircleCheck, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { formatDate, isoToBr } from "@/lib/dates";
+import { decimal, firstName } from "@/lib/format";
 import { lessSupport, type ReportData, type ReportObjective } from "@/lib/period-report";
 import { OBJECTIVE_STATUS, REPORT_STATUS, labelOf, supportInfo, toneOf } from "@/lib/scale";
 
-const decimal = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
 function Objective({ objective }: { objective: ReportObjective }) {
   const start = supportInfo(objective.supportStart);
@@ -34,7 +34,7 @@ export function ReportView({ data, opinion, status, validatedByName, validatedAt
   validatedAt: Date | null;
   showOpinion?: boolean;
 }) {
-  const name = data.student.name.split(" ")[0];
+  const name = firstName(data.student.name);
   const sessions = data.aee.done + data.aee.absences;
   return (
     <article aria-labelledby="relatorio-titulo" className="grid min-w-0 gap-6">
@@ -93,8 +93,8 @@ export function ReportView({ data, opinion, status, validatedByName, validatedAt
       ) : null}
 
       {data.familyNotes || data.therapistReports ? (
-        <section aria-labelledby="relatorio-familia" className="min-w-0">
-          <h3 id="relatorio-familia" className="mb-2 text-base font-medium text-ink">Família e rede de apoio</h3>
+        <section aria-labelledby="relatorio-rede-de-apoio" className="min-w-0">
+          <h3 id="relatorio-rede-de-apoio" className="mb-2 text-base font-medium text-ink">Família e rede de apoio</h3>
           <p className="text-sm text-ink">
             {data.familyNotes ? `A família registrou ${data.familyNotes} ${data.familyNotes === 1 ? "observação" : "observações"} de casa. ` : ""}
             {data.therapistReports ? `O terapeuta enviou ${data.therapistReports} ${data.therapistReports === 1 ? "orientação" : "orientações"} à escola.` : ""}

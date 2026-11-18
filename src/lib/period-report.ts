@@ -1,5 +1,6 @@
 // Relatório do período (devolutiva à família, Portaria MEC nº 421/2026, art. 11, IV).
 import { brDay, daysBetween, isIsoDay, isoToBr } from "./dates.ts";
+import { firstName } from "./format.ts";
 
 export type ReportObjective = {
   description: string;
@@ -59,7 +60,7 @@ export function topItems(items: string[], limit = 5): string[] {
 export const lessSupport = (objective: ReportObjective) => objective.supportEnd !== null && objective.supportEnd < objective.supportStart;
 
 export function draftOpinion(data: ReportData): string {
-  const name = data.student.name.split(" ")[0];
+  const name = firstName(data.student.name);
   const parts: string[] = [];
   const when = `Entre ${isoToBr(data.period.start)} e ${isoToBr(data.period.end)}`;
   const absences = `${data.aee.absences} ${data.aee.absences === 1 ? "falta" : "faltas"}`;

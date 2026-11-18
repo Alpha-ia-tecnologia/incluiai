@@ -1,8 +1,11 @@
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../../../prisma/demo-data.mjs";
+import { rolesWith } from "../../../src/lib/roles.ts";
+
 export default {
   id: "01-primeiros-passos",
   title: "Primeiros passos",
   audience: "Toda a equipe da escola",
-  roles: ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao", "secretaria"],
+  roles: rolesWith("pedagogical"),
   summary: "Entrar, conhecer o Início e o menu, e achar ajuda.",
   async setup(t) {
     await t.goto("/login");
@@ -10,8 +13,8 @@ export default {
   async run(t) {
     await t.intro({ title: "Primeiros passos", subtitle: "Entrar, conhecer o Início e achar ajuda", eyebrow: "Toda a equipe da escola" }, "Neste vídeo, você vai entrar no IncluiEdu e conhecer a tela inicial.");
 
-    await t.say("Na tela de entrada, digite o e-mail de acesso que a escola cadastrou para você.", () => t.type("#email", "aee@escola.edu.br"));
-    await t.say("Depois, digite a sua senha.", () => t.type("#password", "demo123", { delay: 90 }));
+    await t.say("Na tela de entrada, digite o e-mail de acesso que a escola cadastrou para você.", () => t.type("#email", DEMO_ACCOUNTS.professor_aee.email));
+    await t.say("Depois, digite a sua senha.", () => t.type("#password", DEMO_PASSWORD, { delay: 90 }));
     await t.say("E clique em Entrar na plataforma.", async () => {
       await t.click("Entrar na plataforma");
       await t.waitForText("O que vamos fazer hoje?");

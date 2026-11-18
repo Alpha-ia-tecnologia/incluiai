@@ -9,8 +9,8 @@ import { PageHeader, Card, SectionTitle, EmptyState, ButtonLink } from "@/compon
 import { linkCls } from "@/components/form-styles";
 import { MaterialForm } from "@/components/materials/material-form";
 import { MaterialGalleryCard, materialSummary, type MaterialSummary } from "@/components/materials/material-gallery";
+import { param, type SearchParams } from "@/lib/search-params";
 
-type Query = { situacao?: string | string[]; tipo?: string | string[] };
 type Status = "sugerido" | "aprovado";
 
 const STATUS_FILTERS: { value: Status; label: string }[] = [
@@ -18,9 +18,8 @@ const STATUS_FILTERS: { value: Status; label: string }[] = [
   { value: "aprovado", label: "Aprovados" },
 ];
 
-const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
-export default async function MaterialsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
+export default async function MaterialsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> }) {
   const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const { user, can } = await requireStudentPage(id, "Materiais de apoio");
@@ -43,8 +42,8 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
     status: material.status === "aprovado" ? "aprovado" : "sugerido",
   }));
 
-  const statusFilter = STATUS_FILTERS.find((item) => item.value === one(query.situacao))?.value ?? null;
-  const kindParam = one(query.tipo);
+  const statusFilter = STATUS_FILTERS.find((item) => item.value === param(query.situacao))?.value ?? null;
+  const kindParam = param(query.tipo);
   const kindFilter = isMaterialKind(kindParam) ? kindParam : null;
   const byStatus = (status: Status | null) => (item: { status: Status }) => !status || item.status === status;
   const byKind = (kind: string | null) => (item: { kind: string }) => !kind || item.kind === kind;

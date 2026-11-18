@@ -9,6 +9,7 @@ import { MATERIAL_CONTEXTS, MATERIAL_KINDS, MATERIAL_TOPICS, type MaterialKind }
 import { FormResult } from "@/components/form-kit";
 import { labelCls, inputCls, BUTTON_CLS } from "@/components/form-styles";
 import { Assurances } from "@/components/explain";
+import { GENERATE_IMAGES_FIELD } from "@/lib/form-options";
 
 const ICONS: Record<MaterialKind, LucideIcon> = {
   rotina_visual: ListOrdered,
@@ -89,7 +90,7 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
 
       {imagesOn ? (
         <label className="flex min-h-11 items-start gap-3 rounded-2xl bg-surface-muted/60 p-3 text-sm text-ink">
-          <input type="checkbox" name="gerarImagens" defaultChecked className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
+          <input type="checkbox" name={GENERATE_IMAGES_FIELD} defaultChecked className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
           <span>
             <span className="font-medium">Desenhar um pictograma para cada cartão</span>
             <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">Pela OpenAI, só com a descrição do cartão, sem dado pessoal. De 1 a 3 minutos.</span>
@@ -118,6 +119,7 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
             className={`${BUTTON_CLS.primary} shadow-e1`}
             pendingText={aiOn ? "Os agentes de IA estão criando o material e as atividades." : "Preparando o material…"}
             wait="material"
+            imagesField={GENERATE_IMAGES_FIELD}
           >
             <Sparkles size={16} aria-hidden /> Criar material
           </PendingButton>

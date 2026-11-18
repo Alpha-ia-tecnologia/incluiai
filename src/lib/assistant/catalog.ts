@@ -157,3 +157,5 @@ export function toolGuide(group: Group): string[] {
   }
   return lines.map(({ names, text }) => `- ${listed(names)}: ${text}`);
 }
+
+export const CONVERSATION_PARAM = "c";

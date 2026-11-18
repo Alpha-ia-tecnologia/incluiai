@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { rolesWith } from "../../../src/lib/roles.ts";
 
 const CSV = "﻿" + [
   "nome;nascimento;etapa;ano;turma;turno;responsavel;telefone;aee;frequencia_aee;profissional_de_apoio",
@@ -22,14 +23,14 @@ export default {
   id: "19-pessoas-e-planilha",
   title: "Contas e importação de estudantes",
   audience: "Coordenação e gestão da escola",
-  roles: ["coordenacao", "gestao", "secretaria"],
+  roles: rolesWith("management"),
   summary: "Criar a conta de alguém da equipe e cadastrar uma turma por planilha.",
   async setup(t) {
     const dir = join(process.env.WORK ?? tmpdir(), "planilha");
     mkdirSync(dir, { recursive: true });
     t.vars.csv = join(dir, "turma-2B.csv");
     writeFileSync(t.vars.csv, CSV);
-    await t.quietLogin("coordenacao@escola.edu.br");
+    await t.quietLogin("coordenacao");
     await t.dismissWelcome();
     await t.goto("/");
   },

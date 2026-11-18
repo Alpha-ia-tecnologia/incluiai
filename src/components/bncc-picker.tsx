@@ -3,8 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { Lightbulb, Search, X } from "lucide-react";
 import { hintCls, inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
-
-export type BnccOption = { code: string; component: string; years: string; description: string };
+import { bnccSearchUrl, type BnccOption, type BnccQuery } from "@/lib/bncc-query";
 
 type Props = {
   label: string;
@@ -19,9 +18,8 @@ type Props = {
   suggestFrom?: () => string;
 };
 
-async function fetchBncc(params: Record<string, string | undefined>): Promise<BnccOption[]> {
-  const search = new URLSearchParams(Object.entries(params).filter((entry): entry is [string, string] => Boolean(entry[1])));
-  const response = await fetch(`/api/bncc?${search}`);
+async function fetchBncc(query: BnccQuery): Promise<BnccOption[]> {
+  const response = await fetch(bnccSearchUrl(query));
   return response.ok ? response.json() : [];
 }
 
@@ -39,7 +37,7 @@ export function BnccPicker({ label, hint, studentId, dimension, multiple = false
   useEffect(() => {
     if (!missing) return;
     let alive = true;
-    fetchBncc({ codigos: missing }).then((items) => {
+    fetchBncc({ codes: missing.split(",") }).then((items) => {
       if (alive) setDetails((current) => ({ ...current, ...Object.fromEntries(items.map((item) => [item.code, item])) }));
     });
     return () => { alive = false; };
@@ -51,7 +49,7 @@ export function BnccPicker({ label, hint, studentId, dimension, multiple = false
     let alive = true;
     const timer = setTimeout(async () => {
       setBusy(true);
-      const items = await fetchBncc({ q: text, estudante: studentId });
+      const items = await fetchBncc({ text, studentId });
       if (!alive) return;
       setBusy(false);
       setHeading(items.length ? `Resultados para "${text}"` : `Nada encontrado para "${text}". Tente outra palavra ou o começo do código.`);
@@ -76,7 +74,7 @@ export function BnccPicker({ label, hint, studentId, dimension, multiple = false
       return;
     }
     setBusy(true);
-    const items = await fetchBncc({ sugerir: text, estudante: studentId, dimensao: dimension });
+    const items = await fetchBncc({ suggest: text, studentId, dimension });
     setBusy(false);
     setHeading(items.length ? "Sugestões pelo texto do objetivo" : "Nenhuma habilidade parecida com o texto do objetivo. Busque por palavra ou código.");
     setResults(items);

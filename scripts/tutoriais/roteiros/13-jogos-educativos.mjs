@@ -11,7 +11,7 @@ export default {
   roles: ["professor_sala", "professor_aee", "apoio", "coordenacao"],
   summary: "Jogar com o estudante e registrar a aula no fim do jogo.",
   async setup(t) {
-    await t.quietLogin("aee@escola.edu.br");
+    await t.quietLogin("professor_aee");
     await t.dismissWelcome();
     await t.goto("/jogos");
   },

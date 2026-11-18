@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "./prisma";
-import { hashPassword, type SessionUser } from "./auth";
+import type { SessionUser } from "./auth";
+import { hashPassword } from "./passwords";
 import { ACCOUNT_EVENT, endAllSessions, normalizeEmail, recordAccountEvent, resetTwoFactor } from "./account-security";
 import { EMAIL_RE, accessChanged, accountSchoolProblem, canManageAccount, mergeLinks, sameLinks, temporaryPassword, type ManagedAccount } from "./accounts-core";
 import { linkedStudentIds, studentScopeWhere } from "./policy";

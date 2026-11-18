@@ -1,18 +1,16 @@
 import { PrismaClient } from "@prisma/client";
-import { randomBytes, scryptSync } from "node:crypto";
+import { hashPassword } from "../src/lib/passwords.ts";
+import { isPostgresUrl } from "./database-url.mjs";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD, DEMO_SCHOOL, DEMO_STUDENTS } from "./demo-data.mjs";
 import { DEMO_RESOURCE_USAGE, RESOURCE_CATALOG } from "./resource-catalog.mjs";
 
-if (/^postgres(ql)?:\/\//.test(process.env.DATABASE_URL ?? "") && process.env.SEED_DEMO_OK !== "1") {
+if (isPostgresUrl(process.env.DATABASE_URL) && process.env.SEED_DEMO_OK !== "1") {
   console.error("\n✗ Este script apaga todos os dados. Num banco PostgreSQL, rode só num banco de testes, com SEED_DEMO_OK=1.\n");
   process.exit(1);
 }
 
 const prisma = new PrismaClient();
 const j = JSON.stringify;
-const hashPassword = (pw) => {
-  const salt = randomBytes(16).toString("hex");
-  return `${salt}:${scryptSync(pw, salt, 32).toString("hex")}`;
-};
 const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 const daysAhead = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
 
@@ -27,6 +25,8 @@ async function main() {
   await prisma.duaPlanning.deleteMany();
   await prisma.aeeSession.deleteMany();
   await prisma.loginAttempt.deleteMany();
+  await prisma.censusCheck.deleteMany();
+  await prisma.censusMonitor.deleteMany();
   await prisma.user.deleteMany();
   await prisma.material.deleteMany();
   await prisma.intersectorReport.deleteMany();
@@ -45,7 +45,7 @@ async function main() {
   await prisma.resource.deleteMany();
 
   const escola1 = await prisma.school.create({
-    data: { name: "EMEF Maria Firmina dos Reis", region: "Zona Norte" },
+    data: { name: DEMO_SCHOOL, region: "Zona Norte" },
   });
   const escola2 = await prisma.school.create({
     data: { name: "EMEF Paulo Freire", region: "Centro" },
@@ -61,8 +61,8 @@ async function main() {
 
   const dante = await prisma.student.create({
     data: {
-      name: "Dante Oliveira",
-      birthDate: new Date("2019-03-12"),
+      name: DEMO_STUDENTS.dante.name,
+      birthDate: new Date(DEMO_STUDENTS.dante.birthDate),
       stage: "anos_iniciais",
       gradeYear: "2º ano",
       className: "Turma B",
@@ -211,8 +211,8 @@ async function main() {
 
   const livia = await prisma.student.create({
     data: {
-      name: "Lívia Santos",
-      birthDate: new Date("2014-07-02"),
+      name: DEMO_STUDENTS.livia.name,
+      birthDate: new Date(DEMO_STUDENTS.livia.birthDate),
       stage: "anos_finais",
       gradeYear: "6º ano",
       className: "Turma A",
@@ -302,8 +302,8 @@ async function main() {
 
   const ravi = await prisma.student.create({
     data: {
-      name: "Ravi Almeida",
-      birthDate: new Date("2017-01-25"),
+      name: DEMO_STUDENTS.ravi.name,
+      birthDate: new Date(DEMO_STUDENTS.ravi.birthDate),
       stage: "anos_iniciais",
       gradeYear: "4º ano",
       className: "Turma C",
@@ -403,27 +403,21 @@ async function main() {
     ],
   });
 
-  const contas = [
-    { name: "Secretaria de Educação", email: "secretaria@municipio.gov.br", role: "secretaria" },
-    { name: "Ana Coordenadora", email: "coordenacao@escola.edu.br", role: "coordenacao", schoolId: escola1.id },
-    { name: "Prof. Marcos (sala comum)", email: "professor@escola.edu.br", role: "professor_sala", schoolId: escola1.id },
-    { name: "Prof.ª Beatriz (AEE)", email: "aee@escola.edu.br", role: "professor_aee", schoolId: escola1.id },
-    { name: "Dra. Helena (terapeuta de Dante)", email: "terapeuta@clinica.com.br", role: "terapeuta", studentId: dante.id },
-    { name: "Carla (mãe de Dante)", email: "familia@email.com", role: "familia", studentId: dante.id },
-  ];
-  for (const c of contas) {
-    await prisma.user.create({
-      data: {
-        name: c.name, email: c.email, role: c.role, passwordHash: hashPassword("demo123"), schoolId: c.schoolId ?? null, demo: true,
-        ...(c.studentId ? { studentLinks: { create: { studentId: c.studentId } } } : {}),
-      },
-    });
+  const links = {
+    coordenacao: { schoolId: escola1.id },
+    professor_sala: { schoolId: escola1.id },
+    professor_aee: { schoolId: escola1.id },
+    terapeuta: { studentLinks: { create: { studentId: dante.id } } },
+    familia: { studentLinks: { create: { studentId: dante.id } } },
+  };
+  for (const [role, account] of Object.entries(DEMO_ACCOUNTS)) {
+    await prisma.user.create({ data: { ...account, role, passwordHash: hashPassword(DEMO_PASSWORD), demo: true, ...links[role] } });
   }
 
   console.log("Seed concluído:");
   console.log("- 2 escolas, 3 estudantes (Dante, Lívia, Ravi)");
   console.log("- perfis funcionais, PPIs, objetivos, diário, linha do tempo, recursos");
-  console.log(`- ${contas.length} usuários com perfis de acesso (senha: demo123)`);
+  console.log(`- ${Object.keys(DEMO_ACCOUNTS).length} usuários com perfis de acesso (senha: ${DEMO_PASSWORD})`);
 }
 
 main()

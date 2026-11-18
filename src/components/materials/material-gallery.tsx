@@ -3,10 +3,10 @@ import { ArrowRight } from "lucide-react";
 import { Badge, ButtonLink } from "@/components/ui";
 import { parseJson, plural } from "@/lib/format";
 import { formatDate } from "@/lib/dates";
-import { MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialKind } from "@/lib/material-content";
+import { MATERIAL_KIND_LABEL, materialImageUrl, normalizeMaterialContent, type MaterialKind } from "@/lib/material-content";
 import { cardPictogram, type PictogramKey } from "@/lib/pictograms";
 import { Pictogram } from "./pictogram";
-import { MaterialStatusBadge, materialImageUrl } from "./material-view";
+import { MaterialStatusBadge } from "./material-view";
 
 export type MaterialSummary = {
   id: string;

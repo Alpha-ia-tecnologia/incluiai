@@ -1,6 +1,7 @@
-// Conferido no código do widget 7.12.2: o texto vai para o tradutor do governo
+// Conferido no código do widget desta versão: o texto vai para o tradutor do governo
 // num fetch POST com o corpo {"text": "..."}, e uma amostra das aberturas vai
 // para o PostHog (estatística de uso, nos Estados Unidos) com o endereço da página.
+export const VLIBRAS_CHECKED_VERSION = "7.12.2";
 
 // O widget vem do endereço oficial: o avatar roda numa página HTML (unity/index.html)
 // que só o servidor do governo entrega como página (o jsDelivr a entrega como texto).

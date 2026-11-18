@@ -1,3 +1,5 @@
+export const GENERATE_IMAGES_FIELD = "gerarImagens";
+
 export type ChoiceOption = string | { value: string; label: string };
 
 export const minuteOptions = (values: number[]): ChoiceOption[] =>

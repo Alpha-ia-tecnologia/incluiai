@@ -31,7 +31,7 @@ export default {
   roles: ["coordenacao", "gestao"],
   summary: "Ver os números da escola, quem precisa de atenção e o que falta na documentação.",
   async setup(t) {
-    await t.quietLogin("coordenacao@escola.edu.br");
+    await t.quietLogin("coordenacao");
     await t.dismissWelcome();
     await t.goto("/");
   },

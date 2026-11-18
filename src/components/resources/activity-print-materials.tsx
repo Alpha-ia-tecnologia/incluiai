@@ -3,9 +3,10 @@ import type { PrintableCard, PrintableSheet } from "@/lib/resource-print-types";
 import { PrintDocumentHeader } from "./print-document-header";
 import { ResourcePrintButton } from "./resource-print-button";
 import styles from "./resource-print.module.css";
+import { printMark } from "./print-marks";
 
 function CardVisual({ card }: { card: PrintableCard }) {
-  if (card.image) return <Image src={card.image} alt={card.alt ?? card.label} width={640} height={640} loading="eager" unoptimized className={styles.photo} data-resource-card-image />;
+  if (card.image) return <Image src={card.image} alt={card.alt ?? card.label} width={640} height={640} loading="eager" unoptimized className={styles.photo} {...printMark("cardImage")} />;
   if (card.quantity !== undefined) return <div className={styles.quantity} role="img" aria-label={`${card.quantity} ${card.quantity === 1 ? "ponto" : "pontos"}`}>
     {card.quantity === 0 ? <span className={styles.zero}>0</span> : Array.from({ length: card.quantity }, (_, index) => <span key={index} className={styles.dot} />)}
   </div>;
@@ -18,14 +19,14 @@ function CardVisual({ card }: { card: PrintableCard }) {
 
 function SheetContent({ sheet }: { sheet: PrintableSheet }) {
   if (sheet.kind === "cards" && sheet.choices) return <ol className={`${styles.cards} ${styles.choices}`} style={{ "--card-columns": sheet.columns ?? 2 } as React.CSSProperties}>
-    {sheet.cards.map((card, index) => <li key={`${card.label}-${index}`} className={styles.choiceCard} data-print-card>
+    {sheet.cards.map((card, index) => <li key={`${card.label}-${index}`} className={styles.choiceCard}>
       <span className={styles.choiceNumber} aria-hidden="true">{index + 1}</span>
       <CardVisual card={card} /><span className={styles.cardLabel}>{card.label}</span>
     </li>)}
   </ol>;
 
   if (sheet.kind === "cards") return <ul className={styles.cards} style={{ "--card-columns": sheet.columns ?? 3 } as React.CSSProperties}>
-    {sheet.cards.map((card, index) => <li key={`${card.label}-${index}`} className={styles.cutCard} data-print-card>
+    {sheet.cards.map((card, index) => <li key={`${card.label}-${index}`} className={styles.cutCard}>
       <CardVisual card={card} /><span className={styles.cardLabel}>{card.label}</span>
     </li>)}
   </ul>;
@@ -67,16 +68,16 @@ export function ActivityPrintMaterials({ activityId, activityTitle, resourceTitl
   network: string | null;
 }) {
   const cutting = sheets.some((sheet) => sheet.kind === "cards" && !sheet.choices);
-  return <section className={styles.materials} aria-labelledby={`material-${activityId}`} data-resource-materials>
-    <div className={styles.materialsHeading} data-resource-screen>
+  return <section className={styles.materials} aria-labelledby={`material-${activityId}`}>
+    <div className={styles.materialsHeading} {...printMark("screen")}>
       <div><h3 id={`material-${activityId}`}>Material para imprimir e usar</h3><p>Os cartões e as fichas abaixo acompanham esta atividade.{cutting ? " As bordas tracejadas orientam o recorte." : ""}</p></div>
       <ResourcePrintButton activityId={activityId} materialsOnly label="Imprimir só o material" />
     </div>
-    {sheets.map((sheet, index) => <section key={`${sheet.title}-${index}`} className={styles.sheet} aria-label={sheet.title} data-resource-sheet>
+    {sheets.map((sheet, index) => <section key={`${sheet.title}-${index}`} className={styles.sheet} aria-label={sheet.title} {...printMark("sheet")}>
       <div className={styles.printOnly}><PrintDocumentHeader network={network} kind={`Material da atividade · folha ${index + 1} de ${sheets.length}`} /></div>
       <header className={styles.sheetHeader}>
         <p className={styles.printContext}>{resourceTitle} · {activityTitle}</p>
-        <h4>{sheet.title}</h4><p data-resource-screen>{sheet.instruction}</p>
+        <h4>{sheet.title}</h4><p {...printMark("screen")}>{sheet.instruction}</p>
       </header>
       <SheetContent sheet={sheet} />
       <p className={`${styles.teacherNote} ${styles.printOnly}`}><strong>Orientação ao professor:</strong> {sheet.instruction}</p>

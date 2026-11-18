@@ -1,4 +1,5 @@
-import { isPostgresUrl, normalizeDomain } from "./tenancy-core.ts";
+import { isPostgresUrl } from "../../prisma/database-url.mjs";
+import { normalizeDomain } from "./tenancy-core.ts";
 
 const text = (value: string | undefined) => value?.trim() || null;
 // As chaves de exemplo do .env ("sk-ant-...") contam como ausentes.

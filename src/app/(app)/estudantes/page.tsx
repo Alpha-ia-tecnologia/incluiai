@@ -16,19 +16,18 @@ import { Character } from "@/components/character";
 import { StepTrack } from "@/components/viz/step-track";
 import { percentOf } from "@/lib/series";
 import { ArrowLeft, ArrowRight, FileSpreadsheet, Layers, Plus, Search, Sprout } from "lucide-react";
+import { param, readActivitiesBatch, type SearchParams } from "@/lib/search-params";
 
-type Query = { [key: string]: string | string[] | undefined };
-const first = (value: string | string[] | undefined) => typeof value === "string" ? value : "";
 const normalized = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim();
 
-export default async function StudentsPage({ searchParams }: { searchParams: Promise<Query> }) {
+export default async function StudentsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const prisma = await db();
   const params = await searchParams;
-  const query = first(params.q).trim();
-  const selectedClass = first(params.turma);
-  const requestedAction = first(params.acao);
+  const query = param(params.q).trim();
+  const selectedClass = param(params.turma);
+  const requestedAction = param(params.acao);
   const action = ["registrar", "preparar", "acompanhar"].includes(requestedAction) ? requestedAction : "";
-  const lote = first(params.lote);
+  const lote = readActivitiesBatch(params);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!can(user.role, "pedagogical")) redirect("/");
@@ -79,7 +78,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         }
       />
 
-      {lote && /^\d+$/.test(lote) ? <div role="status" className="mb-6 flex items-start gap-3 rounded-2xl bg-green-soft p-5 text-sm leading-relaxed"><Sprout size={20} className="sprout-mark shrink-0 text-green" aria-hidden /><p>{lote} estudante(s) receberam sugestões de atividade. Abra as atividades de cada estudante para avaliar o que será aplicado.</p></div> : null}
+      {lote !== null ? <div role="status" className="mb-6 flex items-start gap-3 rounded-2xl bg-green-soft p-5 text-sm leading-relaxed"><Sprout size={20} className="sprout-mark shrink-0 text-green" aria-hidden /><p>{lote} estudante(s) receberam sugestões de atividade. Abra as atividades de cada estudante para avaliar o que será aplicado.</p></div> : null}
 
       {allStudents.length ? (
         <>

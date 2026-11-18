@@ -3,11 +3,12 @@
 import { useRef, useState } from "react";
 import { ChoiceField } from "@/components/choice-field";
 import { BnccPicker } from "@/components/bncc-picker";
-import { ACTION_SUGGESTIONS } from "@/lib/objective";
+import { ACTION_SUGGESTIONS, CONDITION_SUGGESTIONS, CRITERION_SUGGESTIONS } from "@/lib/objective";
 import { DIMENSIONS } from "@/lib/scale";
 
 const dimensionOptions = Object.entries(DIMENSIONS).map(([value, label]) => ({ value, label }));
 const allActions = [...new Set(Object.values(ACTION_SUGGESTIONS).flat())];
+const SENTENCE = ["action", "condition", "criterion"] as const;
 
 export function ObjectiveFields({ studentId }: { studentId: string }) {
   const [dimension, setDimension] = useState("comunicacao");
@@ -17,7 +18,7 @@ export function ObjectiveFields({ studentId }: { studentId: string }) {
     const form = box.current?.closest("form");
     if (!form) return "";
     const data = new FormData(form);
-    return ["action", "condition", "criterion"].map((field) => String(data.get(field) ?? "")).join(" ");
+    return SENTENCE.map((field) => String(data.get(field) ?? "")).join(" ");
   };
   return (
     <>
@@ -35,6 +36,8 @@ export function ObjectiveFields({ studentId }: { studentId: string }) {
           suggestFrom={objectiveText}
         />
       </div>
+      <ChoiceField name="condition" label="Com qual apoio ou condição? *" options={CONDITION_SUGGESTIONS} required otherPlaceholder="Ex.: com apoio de um colega" />
+      <ChoiceField name="criterion" label="Como saberemos que conseguiu? *" options={CRITERION_SUGGESTIONS} required otherPlaceholder="Ex.: 3 de 4 tentativas" />
     </>
   );
 }

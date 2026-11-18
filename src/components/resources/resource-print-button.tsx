@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Printer } from "lucide-react";
 import { BUTTON_CLS } from "@/components/form-styles";
+import { PRINT_ATTRIBUTE, printMark, printSelector } from "./print-marks";
 
 export function ResourcePrintButton({ label, activityId, materialsOnly = false }: {
   label: string;
@@ -13,26 +14,26 @@ export function ResourcePrintButton({ label, activityId, materialsOnly = false }
   const [error, setError] = useState("");
 
   async function print(button: HTMLButtonElement) {
-    const root = button.closest<HTMLElement>("[data-resource-print-root]");
-    if (!root || root.dataset.resourcePrintBusy === "true") return;
+    const root = button.closest<HTMLElement>(printSelector("root"));
+    if (!root || root.getAttribute(PRINT_ATTRIBUTE.busy) === "true") return;
     setPending(true);
     setError("");
     const reset = () => {
-      delete root.dataset.resourcePrintMode;
-      delete root.dataset.resourcePrintBusy;
-      root.querySelectorAll("[data-print-selected]").forEach((activity) => activity.removeAttribute("data-print-selected"));
+      root.removeAttribute(PRINT_ATTRIBUTE.mode);
+      root.removeAttribute(PRINT_ATTRIBUTE.busy);
+      root.querySelectorAll(printSelector("selected")).forEach((activity) => activity.removeAttribute(PRINT_ATTRIBUTE.selected));
     };
     reset();
 
-    const selected = [...root.querySelectorAll<HTMLElement>("[data-resource-activity]")].find((activity) => activity.dataset.resourceActivity === activityId);
+    const selected = activityId ? root.querySelector<HTMLElement>(printSelector("activity", activityId)) : null;
     if (activityId && !selected) { setPending(false); return; }
-    root.dataset.resourcePrintBusy = "true";
-    if (selected) selected.dataset.printSelected = "true";
-    root.dataset.resourcePrintMode = materialsOnly ? "material" : activityId ? "activity" : "all";
+    root.setAttribute(PRINT_ATTRIBUTE.busy, "true");
+    selected?.setAttribute(PRINT_ATTRIBUTE.selected, "true");
+    root.setAttribute(PRINT_ATTRIBUTE.mode, materialsOnly ? "material" : activityId ? "activity" : "all");
 
     try {
       // Imagens de cartões abaixo da dobra também precisam estar no papel.
-      const images = [...(selected ?? root).querySelectorAll<HTMLImageElement>("[data-resource-card-image]")];
+      const images = [...(selected ?? root).querySelectorAll<HTMLImageElement>(printSelector("cardImage"))];
       const loaded = await Promise.all(images.map(async (image) => {
         try { await image.decode(); } catch { /* Conferido abaixo, inclusive em navegadores sem decode. */ }
         return image.complete && image.naturalWidth > 0;
@@ -52,7 +53,7 @@ export function ResourcePrintButton({ label, activityId, materialsOnly = false }
     } finally { setPending(false); }
   }
 
-  return <span className="inline-flex flex-col items-start gap-2 print:hidden" data-resource-screen>
+  return <span className="inline-flex flex-col items-start gap-2 print:hidden" {...printMark("screen")}>
     <button type="button" className={BUTTON_CLS.quiet} disabled={pending} aria-busy={pending || undefined} onClick={(event) => void print(event.currentTarget)}>
       <Printer size={16} aria-hidden="true" /> {pending ? "Preparando imagens…" : label}
     </button>

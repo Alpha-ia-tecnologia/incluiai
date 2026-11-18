@@ -15,7 +15,7 @@ import { ActionForm } from "@/components/action-form";
 import { studentAI } from "@/lib/agents/capabilities";
 import { generateActivityImage, removeActivityImage } from "@/actions/activity-images";
 import { ActivityImageForm } from "@/components/activity-image-form";
-import { imageWidthOf } from "@/lib/images/activity-image";
+import { activityImageUrl, imageWidthOf } from "@/lib/images/activity-image";
 import { DataBoard, DataCard, segmentsOf } from "@/components/data-viz";
 import { BarList, StackedBar } from "@/components/charts";
 
@@ -25,6 +25,7 @@ import { LESSON_TOPIC_OPTIONS, REJECT_REASON_OPTIONS } from "@/lib/form-options"
 import { ArrowRight, CircleCheck, Clock, FilePen, FileUp, ImagePlus, ShieldCheck, Trash2, Wand2 } from "lucide-react";
 import { Assurances, Steps } from "@/components/explain";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
+import { GENERATE_IMAGES_FIELD } from "@/lib/form-options";
 
 
 
@@ -62,7 +63,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
       {activity.image ? (
         <figure className="mt-4 print:break-inside-avoid">
           <Image
-            src={`/api/atividades/${activity.id}/imagem?v=${activity.image.createdAt.getTime()}`}
+            src={activityImageUrl(activity.id, activity.image.createdAt)}
             alt={activity.image.altText}
             width={imageWidthOf(activity.image.kind)}
             height={1024}
@@ -261,7 +262,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
             <ChoiceField name="lessonTopic" label="2. O que a turma vai estudar?" options={LESSON_TOPIC_OPTIONS} placeholder="Escolha um conteúdo (opcional)" otherPlaceholder="Ex.: sistema solar" />
             {imagesOn ? (
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-paper p-3 text-sm sm:col-span-2 has-checked:border-brand has-checked:bg-brand-soft/40">
-                <input type="checkbox" name="gerarImagens" className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
+                <input type="checkbox" name={GENERATE_IMAGES_FIELD} className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
                 <span>
                   <span className="flex items-center gap-1.5 font-medium text-ink"><ImagePlus size={15} aria-hidden /> Criar também uma sequência visual dos passos para cada atividade</span>
                   <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">Pictogramas pela OpenAI, sem dado pessoal. Cerca de 1 minuto a mais.</span>
@@ -269,7 +270,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
               </label>
             ) : null}
             <div className="sm:col-span-2">
-              <PendingButton className={BUTTON_CLS.primary} pendingText={aiOn ? "Os agentes da sala comum, do AEE e da família estão preparando as atividades, e o revisor vai conferir." : "Preparando as sugestões…"} wait={aiOn ? "atividades" : undefined}>
+              <PendingButton className={BUTTON_CLS.primary} pendingText={aiOn ? "Os agentes da sala comum, do AEE e da família estão preparando as atividades, e o revisor vai conferir." : "Preparando as sugestões…"} wait={aiOn ? "atividades" : undefined} imagesField={GENERATE_IMAGES_FIELD}>
                 <Wand2 size={16} aria-hidden /> Preparar 3 sugestões
               </PendingButton>
               <p className="mt-4 mb-2 text-sm text-ink-soft">{aiOn ? "Três agentes de IA trabalham ao mesmo tempo." : "Sugestões montadas pelo motor de regras."}</p>

@@ -4,10 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { canAccessStudent } from "@/lib/policy";
 import { can } from "@/lib/roles";
 import { BNCC, bnccSkill } from "@/lib/bncc";
-import { scopeFor, searchSkills, suggestSkills, type BnccScope, type BnccSkill } from "@/lib/bncc-core";
+import { scopeFor, searchSkills, suggestSkills, type BnccScope } from "@/lib/bncc-core";
+import { bnccOption, readBnccQuery } from "@/lib/bncc-query";
 import { unavailableResponse } from "@/lib/tenant";
-
-const view = ({ code, component, years, description }: BnccSkill) => ({ code, component, years, description });
 
 export async function GET(request: NextRequest) {
   const unavailable = await unavailableResponse();
@@ -15,19 +14,16 @@ export async function GET(request: NextRequest) {
   const prisma = await db();
   const user = await getCurrentUser();
   if (!user || !can(user.role, "pedagogical")) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
-  const params = request.nextUrl.searchParams;
-  const codes = params.get("codigos");
-  if (codes) return NextResponse.json(codes.split(",").slice(0, 20).map(bnccSkill).filter((skill) => skill !== null).map(view));
+  const query = readBnccQuery(request.nextUrl.searchParams);
+  if (query.codes) return NextResponse.json(query.codes.slice(0, 20).map(bnccSkill).filter((skill) => skill !== null).map(bnccOption));
 
   let scope: BnccScope | null = null;
-  const studentId = params.get("estudante");
-  if (studentId) {
-    const student = await prisma.student.findUnique({ where: { id: studentId }, select: { id: true, schoolId: true, stage: true, gradeYear: true, birthDate: true } });
+  if (query.studentId) {
+    const student = await prisma.student.findUnique({ where: { id: query.studentId }, select: { id: true, schoolId: true, stage: true, gradeYear: true, birthDate: true } });
     if (!student || !canAccessStudent(user, student)) return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
     scope = scopeFor(student);
   }
-  const suggest = params.get("sugerir");
-  if (suggest) return NextResponse.json(suggestSkills(BNCC, suggest.slice(0, 600), scope, params.get("dimensao")).map(view));
-  const query = (params.get("q") ?? "").slice(0, 120);
-  return NextResponse.json(query.trim().length >= 2 ? searchSkills(BNCC, query, scope).map(view) : []);
+  if (query.suggest) return NextResponse.json(suggestSkills(BNCC, query.suggest.slice(0, 600), scope, query.dimension ?? null).map(bnccOption));
+  const text = (query.text ?? "").slice(0, 120);
+  return NextResponse.json(text.trim().length >= 2 ? searchSkills(BNCC, text, scope).map(bnccOption) : []);
 }

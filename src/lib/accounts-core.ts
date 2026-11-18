@@ -62,6 +62,8 @@ function randomIndex(size: number): number {
   return byte[0] % size;
 }
 
+export const TEMPORARY_PASSWORD_PATTERN = new RegExp(`^[${TEMP_ALPHABET}]{4}-[${TEMP_ALPHABET}]{4}-[${TEMP_ALPHABET}]{4}$`);
+
 export function temporaryPassword(): string {
   const chars = Array.from({ length: 12 }, () => TEMP_ALPHABET[randomIndex(TEMP_ALPHABET.length)]);
   return `${chars.slice(0, 4).join("")}-${chars.slice(4, 8).join("")}-${chars.slice(8).join("")}`;

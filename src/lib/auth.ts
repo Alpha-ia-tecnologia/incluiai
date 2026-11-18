@@ -2,37 +2,12 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { db, isPlatformArea } from "./prisma";
-import { MFA_PENDING_MS, SESSION_MAX_AGE_MS, hashSessionToken, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
+import { MFA_PENDING_MS, SESSION_COOKIE, SESSION_MAX_AGE_MS, hashSessionToken, newSessionToken, sessionState, shouldTouchSession } from "./session-core";
 import { can, isLinkedRole, isPlatformRole, isRole, type Role } from "./roles";
 import { canWorkWithStudent, linkedStudentIds } from "./policy";
 import { UserError } from "./user-error";
 import { requireTwoFactor, secureCookies } from "./env-config";
-
-const SESSION_COOKIE = "incluiedu_session";
-
-export function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString("hex");
-  const derived = scryptSync(password, salt, 32).toString("hex");
-  return `${salt}:${derived}`;
-}
-
-export function verifyPassword(password: string, stored: string): boolean {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
-  const derived = scryptSync(password, salt, 32);
-  const expected = Buffer.from(hash, "hex");
-  return derived.length === expected.length && timingSafeEqual(derived, expected);
-}
-
-let dummyHash: string | null = null;
-export function verifyPasswordOrDummy(password: string, stored: string | null): boolean {
-  if (stored) return verifyPassword(password, stored);
-  dummyHash ??= hashPassword("incluiedu-conta-inexistente");
-  verifyPassword(password, dummyHash);
-  return false;
-}
 
 export async function createSession(userId: string, { pending = false }: { pending?: boolean } = {}): Promise<void> {
   const prisma = await db();

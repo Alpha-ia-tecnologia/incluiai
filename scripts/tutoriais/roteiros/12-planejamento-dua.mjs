@@ -1,13 +1,15 @@
+import { rolesWith } from "../../../src/lib/roles.ts";
+
 const STEPS = "nav[aria-label='Etapas do planejamento']";
 
 export default {
   id: "12-planejamento-dua",
   title: "Planejamento com DUA",
   audience: "Professores e equipe da escola",
-  roles: ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao"],
+  roles: rolesWith("planDua"),
   summary: "Planejar uma atividade da turma em quatro etapas e validar para aplicação.",
   async setup(t) {
-    await t.quietLogin("professor@escola.edu.br");
+    await t.quietLogin("professor_sala");
     await t.dismissWelcome();
     await t.goto("/");
   },

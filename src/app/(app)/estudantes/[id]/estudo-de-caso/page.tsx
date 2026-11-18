@@ -16,7 +16,8 @@ import { CreatedNotice } from "@/components/created-notice";
 import { HealthReportsNote } from "@/components/health-report-note";
 import { ActionForm } from "@/components/action-form";
 import { hintCls, labelCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
-import { splitItems } from "@/lib/format";
+import { splitItems, firstName as firstNameOf } from "@/lib/format";
+import { caseStudyHref, readCaseStudy, type SearchParams } from "@/lib/search-params";
 
 function FieldInput({ field, value }: { field: CaseStudyField; value: string }) {
   const label = field.requiredToConclude ? `${field.label} *` : field.label;
@@ -56,12 +57,12 @@ export default async function CaseStudyPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ editar?: string; salvo?: string; faltaAee?: string; concluido?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const prisma = await db();
   const { id } = await params;
   const { student, can } = await requireStudentPage(id, "Estudo de caso");
-  const { editar, salvo, faltaAee, concluido } = await searchParams;
+  const { editing, saved, concluded: justConcluded, missingAee } = readCaseStudy(await searchParams);
   const clinical = can.clinical;
   const [caseStudy, activePlan, healthReports] = await Promise.all([    prisma.caseStudy.findUnique({ where: { studentId: id } }),
     prisma.plan.findFirst({ where: { studentId: id, status: "ativo" }, select: { id: true } }),
@@ -76,10 +77,10 @@ export default async function CaseStudyPage({
   );
   const concluded = caseStudy?.status === "concluido";
   const canEdit = can.edit;
-  const firstName = student.name.split(" ")[0];
+  const firstName = firstNameOf(student.name);
   const reportsNote = clinical && canEdit ? <HealthReportsNote studentId={id} reports={healthReports} /> : null;
 
-  if (concluded && (editar !== "1" || !canEdit)) {
+  if (concluded && (!editing || !canEdit)) {
     const filled = (field: CaseStudyField) => Boolean(content[field.key]?.trim());
     const allFields = sections.flatMap((section) => section.fields);
     const essential = ESSENTIAL_GROUPS.flatMap((group) => group.keys)
@@ -109,7 +110,7 @@ export default async function CaseStudyPage({
               <PillLink slug="estudo-de-caso" />
               <PrintButton label="Imprimir relatório" />
               {canEdit ? (
-                <ButtonLink href={`/estudantes/${id}/estudo-de-caso?editar=1`} variant="secondary">
+                <ButtonLink href={caseStudyHref(id, { editing: true })} variant="secondary">
                   <Pencil size={15} aria-hidden /> Editar estudo de caso
                 </ButtonLink>
               ) : null}
@@ -117,7 +118,7 @@ export default async function CaseStudyPage({
           }
         />
 
-        {concluido ? <CreatedNotice>Estudo de caso salvo e concluído.</CreatedNotice> : null}
+        {justConcluded ? <CreatedNotice>Estudo de caso salvo e concluído.</CreatedNotice> : null}
 
         <Card className="mb-6 flex items-start gap-6 border-brand/30 bg-brand-soft/50">
           <div className="min-w-0 flex-1">
@@ -167,7 +168,7 @@ export default async function CaseStudyPage({
           ) : canEdit ? (
             <p className="text-sm leading-relaxed text-ink-soft print:hidden">
               Entrevista com a família, escuta do estudante, observação e avaliação pedagógica são opcionais e podem ser registradas quando houver informação.{" "}
-              <Link href={`/estudantes/${id}/estudo-de-caso?editar=1#aprofundar`} className="font-medium text-brand-strong underline underline-offset-4">Aprofundar o estudo</Link>
+              <Link href={caseStudyHref(id, { editing: true, hash: "#aprofundar" })} className="font-medium text-brand-strong underline underline-offset-4">Aprofundar o estudo</Link>
             </p>
           ) : null}
         </div>
@@ -196,12 +197,12 @@ export default async function CaseStudyPage({
         actions={<PillLink slug="estudo-de-caso" />}
       />
 
-      {salvo ? (
+      {saved ? (
         <p role="status" className="mb-5 flex items-center gap-2 rounded-2xl bg-green-soft px-4 py-3 text-sm font-medium text-green">
           <Sprout size={18} aria-hidden className="sprout-mark" /> Rascunho salvo. Continue quando tiver novas informações.
         </p>
       ) : null}
-      {faltaAee ? (
+      {missingAee ? (
         <p role="alert" className="mb-5 rounded-2xl bg-amber-soft px-4 py-3 text-sm font-medium text-amber">
           {concluded ? "Salvo. Marque" : "Salvo, mas não concluído: marque"} {AEE_TEACHER} em <a href="#secao-essencial" className="underline underline-offset-4">Quem participou</a>. É quem conduz o estudo de caso, segundo o INEP.
         </p>

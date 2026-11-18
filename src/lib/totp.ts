@@ -76,7 +76,9 @@ export function otpauthUri(secret: string, account: string, issuer = "IncluiEdu"
 
 export const groupSecret = (secret: string) => secret.replace(/(.{4})/g, "$1 ").trim();
 
-export function newRecoveryCodes(count = 8): string[] {
+export const RECOVERY_CODE_COUNT = 8;
+
+export function newRecoveryCodes(count = RECOVERY_CODE_COUNT): string[] {
   return Array.from({ length: count }, () => {
     const raw = base32Encode(randomBytes(5)).slice(0, 8);
     return `${raw.slice(0, 4)}-${raw.slice(4)}`;

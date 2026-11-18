@@ -7,9 +7,11 @@ import { getConversation, listConversations } from "@/lib/assistant/store";
 import { suggestionsFor } from "@/lib/assistant/labels";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { PageHero } from "@/components/ui";
+import { CONVERSATION_PARAM } from "@/lib/assistant/catalog";
+import { param, type SearchParams } from "@/lib/search-params";
 
-export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
-  const { c } = await searchParams;
+export default async function AssistantPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const c = param((await searchParams)[CONVERSATION_PARAM]);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const [conversations, selected] = await Promise.all([listConversations(user.id), c ? getConversation(user, c) : Promise.resolve(null)]);

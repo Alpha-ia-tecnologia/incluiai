@@ -9,8 +9,8 @@ FROM base AS build
 # Só diz ao Prisma que o banco é PostgreSQL; o build não conecta.
 ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 COPY package.json package-lock.json ./
-COPY scripts ./scripts
-COPY prisma ./prisma
+COPY scripts/prisma-db.mjs ./scripts/
+COPY prisma/schema.prisma prisma/database-url.mjs ./prisma/
 RUN npm ci
 COPY . .
 RUN npm run build

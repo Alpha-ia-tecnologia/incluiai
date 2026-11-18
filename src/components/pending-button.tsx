@@ -22,18 +22,19 @@ function WaitCard({ keyboardFocus, children }: { keyboardFocus: RefObject<boolea
   return <div ref={ref} className="basis-full">{children}</div>;
 }
 
-export function PendingButton({ children, pendingText, className = "", disabled = false, wait }: {
+export function PendingButton({ children, pendingText, className = "", disabled = false, wait, imagesField }: {
   children: ReactNode;
   pendingText: string;
   className?: string;
   disabled?: boolean;
   wait?: InlineScene;
+  imagesField?: string;
 }) {
   const { pending, data } = useFormStatus();
   const statusRef = useRef<HTMLParagraphElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const focusInCard = useRef(false);
-  const withImages = data?.get("gerarImagens") === "on";
+  const withImages = imagesField ? data?.get(imagesField) === "on" : false;
   const announce = useCallback((text: string) => {
     if (statusRef.current && text) statusRef.current.textContent = text;
   }, []);

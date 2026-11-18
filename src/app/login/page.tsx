@@ -12,6 +12,7 @@ import { PlatformLogin } from "@/components/plataforma/platform-login";
 import { Character } from "@/components/character";
 import { roleLabel } from "@/lib/roles";
 import { demoAccounts } from "@/lib/accounts";
+import { DEMO_PASSWORD } from "../../../prisma/demo-data.mjs";
 
 const PROFILES = [
   { role: "secretaria", scope: "A rede inteira e os indicadores", icon: Building2, color: "var(--sky-soft)" },
@@ -119,7 +120,7 @@ export default async function LoginPage() {
           </ul>
           {demo ? (
             <p className="mt-5 text-xs leading-relaxed text-on-navy-soft">
-              Cada perfil tem seu espaço. A senha de todas as contas é <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">demo123</strong>.
+              Cada perfil tem seu espaço. A senha de todas as contas é <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">{DEMO_PASSWORD}</strong>.
             </p>
           ) : (
             <p className="mt-5 text-xs leading-relaxed text-on-navy-soft">

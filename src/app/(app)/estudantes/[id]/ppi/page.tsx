@@ -5,7 +5,7 @@ import { createPlan, createObjective, markObjectiveStatus, reviewPlan, closePlan
 import { activatePlanDraft, discardPlanDraft, generatePlanDraft } from "@/actions/plan-ai";
 import { addDays, brDay, daysUntil, formatDate, isPastDay } from "@/lib/dates";
 import { SUPPORT_LEVELS, DIMENSIONS, OBJECTIVE_STATUS, labelOf, toneOf, type Tone } from "@/lib/scale";
-import { CONDITION_SUGGESTIONS, CRITERION_SUGGESTIONS, buildObjectiveDescription } from "@/lib/objective";
+import { buildObjectiveDescription } from "@/lib/objective";
 import { studentAI } from "@/lib/agents/capabilities";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded, parseCaseStudy } from "@/lib/case-study";
 import { PlanProposalSchema, type CaseAnalysis, type PlanProposal } from "@/lib/agents/schemas";
@@ -409,8 +409,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <p className={`${hintCls} mb-5`}>As respostas formam a frase do objetivo. Campos com * são obrigatórios.</p>
           <ActionForm action={addObjective} className="grid min-w-0 gap-4 sm:grid-cols-2 [&>[role=alert]]:col-span-full">
             <ObjectiveFields studentId={id} />
-            <ChoiceField name="condition" label="Com qual apoio ou condição? *" options={CONDITION_SUGGESTIONS} required otherPlaceholder="Ex.: com apoio de um colega" />
-            <ChoiceField name="criterion" label="Como saberemos que conseguiu? *" options={CRITERION_SUGGESTIONS} required otherPlaceholder="Ex.: 3 de 4 tentativas" />
             <ChoiceField name="deadlineWeeks" label="Prazo para acompanhar" options={DEADLINE_WEEKS} defaultValue="6" required otherType="number" otherMin={1} otherMax={52} otherPlaceholder="Semanas" />
             <div className="min-w-0">
               <label htmlFor="currentSupport" className={labelCls}>Apoio necessário hoje</label>

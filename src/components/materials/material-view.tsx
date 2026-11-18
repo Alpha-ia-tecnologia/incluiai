@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { parseJson } from "@/lib/format";
 import { formatDate } from "@/lib/dates";
-import { MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialActivity, type MaterialKind } from "@/lib/material-content";
+import { MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialActivity, type MaterialKind, MAX_MATERIAL_IMAGES, materialImageUrl } from "@/lib/material-content";
 import { CONTEXTS, MATERIAL_STATUS, labelOf, toneOf } from "@/lib/scale";
 import type { TraceStep } from "@/lib/agents/types";
 import { cardPictogram } from "@/lib/pictograms";
@@ -35,8 +35,6 @@ export function MaterialStatusBadge({ approved }: { approved: boolean }) {
   const status = MATERIAL_STATUS[approved ? "aprovado" : "sugerido"];
   return <Badge tone={status.tone}>{approved ? <CircleCheck size={12} aria-hidden /> : null} {status.label}</Badge>;
 }
-
-export const materialImageUrl = (materialId: string, index: number, at: Date) => `/api/materiais/${materialId}/imagens/${index}?v=${at.getTime()}`;
 
 function ActivityCard({ activity, index, studentId, materialId, printMode, canEdit }: { activity: MaterialActivity; index: number; studentId: string; materialId: string; printMode: boolean; canEdit: boolean }) {
   const ContextIcon = activity.context === "casa" ? House : activity.context === "sala_comum" ? Users : Target;
@@ -94,7 +92,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
   const content = normalizeMaterialContent(parseJson<unknown>(material.content, {}));
   const trace = parseJson<TraceStep[]>(material.trace, []);
   const images = new Map(material.images.map((image) => [image.cardIndex, image]));
-  const missingImages = content.cards.slice(0, 12).filter((_, index) => !images.has(index)).length;
+  const missingImages = content.cards.slice(0, MAX_MATERIAL_IMAGES).filter((_, index) => !images.has(index)).length;
   const approved = material.status === "aprovado";
   const kindLabel = MATERIAL_KIND_LABEL[material.kind as MaterialKind] ?? material.kind;
   const approve = approveMaterial.bind(null, studentId, material.id);

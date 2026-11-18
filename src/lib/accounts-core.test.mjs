@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { accessChanged, accountSchoolProblem, canManageAccount, mergeLinks, passwordProblem, temporaryPassword } from "./accounts-core.ts";
+import { TEMPORARY_PASSWORD_PATTERN, accessChanged, accountSchoolProblem, canManageAccount, mergeLinks, passwordProblem, temporaryPassword } from "./accounts-core.ts";
 import { assignableRoles, isAccountManager } from "./roles.ts";
 
 const secretaria = { id: "s", role: "secretaria", schoolId: null };
@@ -74,7 +74,7 @@ test("senha nova", () => {
 
 test("senha temporária", () => {
   const one = temporaryPassword();
-  assert.match(one, /^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/);
+  assert.match(one, TEMPORARY_PASSWORD_PATTERN);
   assert.doesNotMatch(one, /[01ilo]/);
   assert.notEqual(one, temporaryPassword());
   assert.equal(passwordProblem(one), null);

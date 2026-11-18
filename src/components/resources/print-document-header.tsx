@@ -1,7 +1,8 @@
 import styles from "./resource-print.module.css";
+import { printMark } from "./print-marks";
 
 export function PrintDocumentHeader({ network, kind }: { network: string | null; kind: string }) {
-  return <div className={styles.docHeader} data-print-document-header>
+  return <div className={styles.docHeader} {...printMark("documentHeader")}>
     <div className={styles.docHeaderTop}>
       {network
         ? <p className={styles.docNetwork}>{network}</p>

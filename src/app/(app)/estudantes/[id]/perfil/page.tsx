@@ -1,7 +1,7 @@
 ﻿import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { upsertProfile } from "@/actions/profile";
-import { parseJson, readList } from "@/lib/format";
+import { parseJson, readList, firstName } from "@/lib/format";
 import { SUPPORT_LEVELS, CHANNELS, BARRIERS, SENSORY_AREAS, SENSORY_LABELS, SENSORY_VALUES } from "@/lib/scale";
 import { SUPPORT_FIELD_LABEL, profileSuggestionsFromStudy } from "@/lib/functional-profile";
 import { ButtonLink, PageHeader, Card, SectionTitle } from "@/components/ui";
@@ -14,6 +14,7 @@ import { ATTENTION_MINUTES, CALMING_OPTIONS, EARLY_SIGN_OPTIONS, INTEREST_OPTION
 import { parseCaseStudy } from "@/lib/case-study";
 import { MessageSquareText, ListChecks } from "lucide-react";
 import { inputCls, labelCls, BUTTON_CLS } from "@/components/form-styles";
+import { param, readProfileSaved, type SearchParams } from "@/lib/search-params";
 
 const channelOptions = Object.entries(CHANNELS).map(([value, label]) => ({ value, label }));
 
@@ -35,13 +36,14 @@ export default async function ProfilePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ modo?: string; salvo?: string | string[] }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const prisma = await db();
   const { id } = await params;
   await requireStudentPage(id, "Como aprende", { tab: "perfil" });
-  const { modo, salvo } = await searchParams;
-  const savedAt = typeof salvo === "string" && /^\d+$/.test(salvo) ? salvo : null;
+  const query = await searchParams;
+  const modo = param(query.modo);
+  const savedAt = readProfileSaved(query);
   const [student, profile, caseStudy] = await Promise.all([
     prisma.student.findUniqueOrThrow({ where: { id } }),
     prisma.functionalProfile.findUnique({ where: { studentId: id } }),
@@ -124,7 +126,7 @@ export default async function ProfilePage({
         ) : suggestionNote}
         <ProfileChat
           action={upsert}
-          firstName={student.name.split(" ")[0]}
+          firstName={firstName(student.name)}
           initialAnswers={initialAnswers}
           hasSavedProfile={Boolean(p)}
           savedAt={savedAt}

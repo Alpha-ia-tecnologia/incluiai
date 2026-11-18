@@ -1,6 +1,7 @@
 import "server-only";
 import { db, isPlatformArea } from "./prisma";
-import { createSession, currentSessionId, getCurrentUser, getPendingLogin, hashPassword, loginStep, twoFactorRequired, upgradeSession, verifyPassword, verifyPasswordOrDummy, type SessionUser } from "./auth";
+import { createSession, currentSessionId, getCurrentUser, getPendingLogin, loginStep, twoFactorRequired, upgradeSession, type SessionUser } from "./auth";
+import { hashPassword, verifyPassword, verifyPasswordOrDummy } from "./passwords";
 import { isPlatformRole } from "./roles";
 import { LOGIN_WINDOW_MS, loginBlocked } from "./session-core";
 import { newTotpSecret } from "./totp";

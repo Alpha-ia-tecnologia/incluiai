@@ -1,3 +1,5 @@
+import { rolesWith } from "../../../src/lib/roles.ts";
+
 // A janela de impressão do navegador não aparece na gravação.
 async function printPreview(t, button, narration) {
   await t.page.evaluate(() => { window.print = () => {}; });
@@ -24,10 +26,10 @@ export default {
   id: "14-recursos-e-calendario",
   title: "Banco de recursos e calendário",
   audience: "Professores e equipe da escola",
-  roles: ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao", "secretaria"],
+  roles: rolesWith("pedagogical"),
   summary: "Achar uma proposta pronta, imprimir o material e ver as datas inclusivas.",
   async setup(t) {
-    await t.quietLogin("professor@escola.edu.br");
+    await t.quietLogin("professor_sala");
     await t.dismissWelcome();
     await t.goto("/");
   },

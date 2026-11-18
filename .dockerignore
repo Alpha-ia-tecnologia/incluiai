@@ -3,7 +3,14 @@
 node_modules
 .env*
 prisma/*.db*
-docs/normas
 .playwright-mcp
 *.log
 tsconfig.tsbuildinfo
+trilha_bg.wav
+e2e-*.mjs
+e2e-playwright
+e2e-fixtures
+visual-check.mjs
+playwright.config.mjs
+scripts/tutoriais
+docs

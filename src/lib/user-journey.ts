@@ -6,7 +6,7 @@ import { familyActivityWhere, studentScopeWhere } from "./policy";
 import { roleGroup, rolesWith, teachingContext, type Group } from "./roles";
 import { objectiveTrend } from "./insights";
 import { JOURNEY_STEPS, LAST_STEP, nextStepOf } from "./student-journey";
-import { firstName, plural, readList } from "./format";
+import { decimal, firstName, plural, readList } from "./format";
 import { DAY_MS, brYmd, formatDate, isPastDay } from "./dates";
 import { CHANNELS, PARTICIPATION, PREPARED_ACTIVITY_STATUSES, labelOf, toneOf, type Tone, type Trend } from "./scale";
 import { usesAac } from "./pedagogy-rules";
@@ -64,7 +64,6 @@ type ChapterInput = Omit<Chapter, "status" | "progress" | "date" | "evidence" | 
 const RECENT_DAYS = 30;
 const HOME_DONE_PREFIX = "Fizemos em casa";
 const listText = (items: string[]) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} e ${items.at(-1)}`);
-const decimal = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
 
 export function isHomeActivityNote(note: string): boolean {
@@ -258,7 +257,7 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     const now = average(withEntries.map((objective) => entries.findLast((entry) => entry.objectiveId === objective.id)!.supportLevel));
     const levels = supportSeries(entries.filter((entry) => withEntries.some((objective) => objective.id === entry.objectiveId))).map((point) => point.value);
     const { trend, delta } = supportTrend(levels);
-    impact.push({ label: "Nível de apoio", value: `${decimal(start)} → ${decimal(now)}`, hint: "Subir na linha é precisar de menos apoio (0 = independente).", viz: { kind: "support", values: levels.slice(-20), delta, trend } });
+    impact.push({ label: "Nível de apoio", value: `${decimal(start, { fixed: true })} → ${decimal(now, { fixed: true })}`, hint: "Subir na linha é precisar de menos apoio (0 = independente).", viz: { kind: "support", values: levels.slice(-20), delta, trend } });
   }
   const note = s.familyNotes[0];
 

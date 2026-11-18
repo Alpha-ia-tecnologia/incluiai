@@ -10,6 +10,7 @@ export const IMAGE_KINDS = [
 ] as const satisfies readonly { value: string; label: string; size: ImageSize }[];
 
 const imageSizeOf = (kind: string): ImageSize => IMAGE_KINDS.find((item) => item.value === kind)?.size ?? "1024x1024";
+export const activityImageUrl = (activityId: string, at: Date) => `/api/atividades/${activityId}/imagem?v=${at.getTime()}`;
 export const imageWidthOf = (kind: string) => Number(imageSizeOf(kind).split("x")[0]);
 
 export const STYLE = [

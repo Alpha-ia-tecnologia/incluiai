@@ -1,3 +1,4 @@
+import { firstName } from "./format";
 import { supportInfo } from "./scale";
 
 export interface ObjectiveParts {
@@ -10,9 +11,8 @@ export interface ObjectiveParts {
 }
 
 export function buildObjectiveDescription(p: ObjectiveParts): string {
-  const firstName = p.studentName.split(" ")[0];
   const support = supportInfo(p.currentSupport);
-  return `${firstName} ${p.action}, ${p.condition} (${support.code}), em ${p.criterion}, ao longo de ${p.deadlineWeeks} semanas.`;
+  return `${firstName(p.studentName)} ${p.action}, ${p.condition} (${support.code}), em ${p.criterion}, ao longo de ${p.deadlineWeeks} semanas.`;
 }
 
 export const ACTION_SUGGESTIONS: Record<string, string[]> = {

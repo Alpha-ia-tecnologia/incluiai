@@ -10,6 +10,7 @@ import { UPLOAD_LIMIT_BYTES, megabytes, readUploadedText, requiredUpload } from 
 import { UserError } from "@/lib/user-error";
 import * as census from "@/lib/census";
 import type { ReviewDecision } from "@/lib/census-core";
+import { censusAppliedHref } from "@/lib/search-params";
 
 export async function uploadCensusFile(schoolId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
   return runAction(async (user) => {
@@ -48,7 +49,7 @@ export async function applyCensusImport(importId: string): Promise<ActionResult>
     const { schoolId, created, updated } = await census.applyImport(user, importId);
     revalidatePath("/censo");
     revalidatePath("/estudantes");
-    redirect(`/censo/escolas/${schoolId}?aplicado=${created}-${updated}`);
+    redirect(censusAppliedHref(schoolId, created, updated));
   });
 }
 
