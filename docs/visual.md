@@ -96,10 +96,14 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
   - `danger`: excluir; `dangerOutline`: excluir dentro de uma lista.
 
   Não crie estilo local de campo ou botão.
-- **`src/components/form-kit.tsx`:** `Field` (rótulo, dica e
+- **`src/components/form-kit.tsx`:** `Field` (rótulo, dica, erro e
   `aria-describedby` ligados pelo `id`) e `FormResult` (o resultado da ação:
   alerta com os problemas ou confirmação). `useActionResult`
   (`src/components/use-action-result.ts`) envia por transição.
+  **Erros juntos:** em formulário longo, `noValidate` e todos os problemas de
+  uma vez: `FormResult` no topo com `fields` (cada problema vira link para o
+  campo) e `ref` (o foco vai para ele), e a mensagem também no campo
+  (`error` em `Field` e `ChoiceField`, `FieldError` num grupo de opções).
 - **`src/components/ui.tsx`:**
   - `PageHeader`: `level={2}` para o título de uma aba dentro da ficha do
     estudante, que já tem o h1 com o nome;

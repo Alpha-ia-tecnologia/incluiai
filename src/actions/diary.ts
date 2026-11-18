@@ -5,12 +5,13 @@ import type { ActionResult } from "@/lib/action-result";
 import { formField } from "@/lib/form-data";
 import { runAction, runFormAction } from "@/lib/server-action";
 import { recordHomeActivity, saveDiaryEntry, saveFamilyNote } from "@/lib/records";
+import { supportFromInput } from "@/lib/lesson-log";
 
 const diaryForm = z.object({
   objectiveId: formField.text(64),
   activityId: formField.text(64),
   participation: formField.text(20),
-  supportLevel: z.coerce.number(),
+  supportLevel: z.unknown().transform(supportFromInput),
   criterionMet: formField.text(20),
   note: formField.text(),
   whatWorked: formField.text(),

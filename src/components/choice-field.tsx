@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { type ChoiceOption } from "@/lib/form-options";
 import { inputCls, labelCls } from "@/components/form-styles";
+import { FieldError, errorIdOf } from "@/components/form-kit";
 import { joinItems, splitItems } from "@/lib/format";
 
 const OTHER = "__outro__";
@@ -12,10 +13,11 @@ const normalize = (option: ChoiceOption) => (typeof option === "string" ? { valu
 const sameText = (a: string, b: string) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }) === 0;
 
 export function ChoiceField({
-  name, label, options, defaultValue = "", required = false, placeholder = "Escolha uma opção",
+  id: givenId, name, label, options, defaultValue = "", required = false, placeholder = "Escolha uma opção",
   otherLabel = "Outro (digitar)", otherPlaceholder = "Digite aqui", otherType = "text", otherMin, otherMax,
-  hint, labelClassName = labelCls, inputClassName = inputCls, onValueChange,
+  hint, error, labelClassName = labelCls, inputClassName = inputCls, onValueChange,
 }: {
+  id?: string;
   name: string;
   label: string;
   options: ChoiceOption[];
@@ -28,11 +30,15 @@ export function ChoiceField({
   otherMin?: number;
   otherMax?: number;
   hint?: string;
+  error?: string;
   labelClassName?: string;
   inputClassName?: string;
   onValueChange?: (value: string) => void;
 }) {
-  const id = useId();
+  const autoId = useId();
+  const id = givenId ?? autoId;
+  const describedBy = [hint ? `${id}-hint` : "", error ? errorIdOf(id) : ""].filter(Boolean).join(" ") || undefined;
+  const invalid = error ? true : undefined;
   const items = options.map(normalize);
   const initial = items.find((item) => item.value === defaultValue || sameText(item.label, defaultValue));
   const [selection, setSelection] = useState(initial ? initial.value : defaultValue ? OTHER : "");
@@ -47,7 +53,8 @@ export function ChoiceField({
         id={id}
         value={selection}
         required={required}
-        aria-describedby={hint ? `${id}-hint` : undefined}
+        aria-describedby={describedBy}
+        aria-invalid={invalid}
         onChange={(event) => {
           const next = event.target.value;
           setSelection(next);
@@ -72,6 +79,8 @@ export function ChoiceField({
             value={other}
             required={required}
             placeholder={otherPlaceholder}
+            aria-describedby={error ? errorIdOf(id) : undefined}
+            aria-invalid={invalid}
             onChange={(event) => {
               setOther(event.target.value);
               onValueChange?.(event.target.value.trim());
@@ -81,6 +90,7 @@ export function ChoiceField({
         </>
       ) : null}
       {hint ? <p id={`${id}-hint`} className="mt-1.5 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+      {error ? <FieldError id={errorIdOf(id)}>{error}</FieldError> : null}
       <input type="hidden" name={name} value={value} />
     </div>
   );

@@ -3,7 +3,7 @@ import { notifyFamily, notifyTeam } from "./notifications";
 import { db } from "./prisma";
 import { assertStudentTeam, type SessionUser } from "./auth";
 import { canAccessStudent, isFamilyActivity, isFamilyOf, isTherapistOf } from "./policy";
-import { can, isLinkedRole } from "./roles";
+import { can } from "./roles";
 import { CASE_STUDY_REQUIRED_MESSAGE, isCaseStudyConcluded } from "./case-study";
 import { nextReviewProblem, reviewOnTime } from "./plan-lifecycle";
 import { dayFromInput } from "./dates";
@@ -11,7 +11,8 @@ import { AUDIT_ACTION, auditEntry, recordChange } from "./audit";
 import { invalidateStudent } from "./invalidate";
 import { studentConsent } from "./consent";
 import { UserError } from "./user-error";
-import { CRITERION_MET, OBJECTIVE_STATUS, PARTICIPATION } from "./scale";
+import { OBJECTIVE_STATUS } from "./scale";
+import { lessonProblems, missingAnswers } from "./lesson-log";
 import { validBnccCode } from "./bncc";
 import { buildObjectiveDescription } from "./objective";
 import { homeActivityNote } from "./user-journey";
@@ -41,9 +42,9 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
   const prisma = await db();
   await assertStudentTeam(user, studentId);
   const supportLevel = Math.round(Number(input.supportLevel));
-  if (!Object.hasOwn(PARTICIPATION, input.participation) || !Object.hasOwn(CRITERION_MET, input.criterionMet) || !(supportLevel >= 0 && supportLevel <= 5)) {
-    throw new UserError("Marque a participação, o apoio e o resultado.");
-  }
+  const authorRole = input.authorRole.trim().slice(0, 60);
+  const problems = lessonProblems({ participation: input.participation, supportLevel, criterionMet: input.criterionMet, authorRole });
+  if (problems.length) throw new UserError(missingAnswers(problems.length), "invalid", problems);
   const objectiveId = input.objectiveId || null;
   const activityId = input.activityId || null;
   if (objectiveId) {
@@ -54,8 +55,6 @@ export async function saveDiaryEntry(user: SessionUser, studentId: string, input
     const activity = await prisma.activity.findFirst({ where: { id: activityId, studentId }, select: { id: true } });
     if (!activity) throw new UserError("Atividade não encontrada para este estudante.", "not_found");
   }
-  const authorRole = input.authorRole.trim().slice(0, 60);
-  if (!authorRole || isLinkedRole(authorRole)) throw new UserError("Escolha o seu papel neste registro.");
   const entry = await prisma.diaryEntry.create({
     data: {
       studentId,

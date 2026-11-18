@@ -99,6 +99,11 @@ if (!ONLY_WAIT) {
       await afterAction(page, () => clickByText(page, "Entrar"));
       await until(page, () => !document.querySelector('form:has(#password) button[type="submit"]')?.disabled && Boolean(document.querySelector('[role="alert"]')));
       message = await textOf(page);
+      if (attempt === 1) {
+        await until(page, () => document.activeElement?.id === "password", { timeout: 5000 });
+        const kept = await page.evaluate(() => ({ email: document.querySelector("#email")?.value, password: document.querySelector("#password")?.value, focus: document.activeElement?.id }));
+        check("login: depois de errar, o e-mail fica e o foco vai para a senha", kept.email === "bloqueio@teste.edu.br" && kept.password === "" && kept.focus === "password", JSON.stringify(kept));
+      }
     }
     check(`login: ${LOGIN_MAX_FAILURES + 1}ª tentativa errada seguida é bloqueada`, message.includes("Muitas tentativas"), message.slice(0, 200));
     await ctx.close();
@@ -276,7 +281,6 @@ if (!ONLY_WAIT) {
       await page.click('input[name="participation"][value="total"]');
       await page.select("#supportLevel", "1");
       await page.click('input[name="criterionMet"][value="sim"]');
-      await choose(page, "Seu papel neste registro", "professor_aee");
       const diaryNote = `Teste E2E: identificou o nome com supervisão. ${Date.now()}`;
       await page.type("#note", diaryNote);
       await clickByText(page, "Salvar registro");
@@ -310,6 +314,85 @@ if (!ONLY_WAIT) {
     const gallery = await page.evaluate(() => [...document.querySelectorAll("article[id^='material-']")].map((item) => item.id));
     check("galeria de materiais: um cartão a mais, o novo primeiro", gallery.length === materialsBefore + 1 && gallery[0] === opened.id, `${gallery.length} cartões`);
     check("fluxos sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  });
+
+  await section("registro de aula: objetivo em foco, papel da conta e erros juntos", async () => {
+    const { ctx, page, errors } = await newSession();
+    await login(page, "professor_aee");
+    const main = `#${CONTENT_ID}`;
+
+    const quick = await page.evaluate((selector) => {
+      const link = [...document.querySelectorAll(`${selector} a[href="/estudantes?acao=registrar"]`)].find((item) => item.textContent.includes("Registrar uma aula"));
+      link?.click();
+      return Boolean(link);
+    }, main);
+    if (!quick) throw new Error("atalho Registrar uma aula não encontrado no Início");
+    await until(page, () => location.search.includes("acao=registrar") && Boolean(document.querySelector("h1")?.textContent.includes("registrar a aula")));
+    await settle(page);
+    const picker = await page.evaluate((selector) => ({
+      signUp: [...document.querySelectorAll(`${selector} a`)].some((link) => link.textContent.includes("Cadastrar estudante")),
+      students: [...document.querySelectorAll(`${selector} a[href$="/diario"]`)].map((link) => link.getAttribute("href")),
+    }), main);
+    check("Registrar uma aula (Início): escolhe o estudante, sem Cadastrar estudante", !picker.signUp && picker.students.includes(`${danteHref}/diario`), JSON.stringify(picker));
+    await page.click(`${main} a[href="${danteHref}/diario"]`);
+    await until(page, (path) => location.pathname === path && [...document.querySelectorAll("h2")].some((title) => title.textContent.includes("Registrar aula ou atendimento")), { timeout: 20000 }, `${danteHref}/diario`);
+    await settle(page);
+    check("Registrar uma aula (Início): chega ao registro do estudante", new URL(page.url()).pathname === `${danteHref}/diario`, page.url());
+
+    const form = await page.evaluate(() => {
+      const select = document.querySelector("#objectiveId");
+      return { value: select?.value ?? null, options: [...(select?.options ?? [])].filter((option) => option.value).map((option) => option.textContent) };
+    });
+    check("registro: com objetivo no plano, um objetivo já vem escolhido", Boolean(form.value) && form.options.length > 0, JSON.stringify(form));
+    check("registro: cada objetivo tem um rótulo próprio", new Set(form.options).size === form.options.length, JSON.stringify(form.options));
+    const role = await page.evaluate(() => ({ shown: document.querySelector("[data-papel]")?.textContent, sent: [...document.querySelectorAll('input[type="hidden"][name="authorRole"]')].map((input) => input.value) }));
+    check("registro: o papel vem da conta do AEE, sem perguntar", role.shown === "Professor(a) do AEE" && role.sent.length === 1 && role.sent[0] === "professor_aee" && !(await page.$("select#authorRole")), JSON.stringify(role));
+
+    const posts = [];
+    const onRequest = (request) => { if (request.method() === "POST") posts.push(request.url()); };
+    page.on("request", onRequest);
+    await clickByText(page, "Salvar registro");
+    await until(page, () => document.activeElement?.matches('form [role="alert"]'), { timeout: 5000 });
+    page.off("request", onRequest);
+    const summary = await page.evaluate(() => {
+      const alert = document.querySelector('form [role="alert"]');
+      const targets = [...(alert?.querySelectorAll("a") ?? [])].map((link) => link.getAttribute("href"));
+      return {
+        text: alert?.textContent ?? "",
+        targets,
+        reachable: targets.every((href) => href?.startsWith("#") && Boolean(document.getElementById(href.slice(1)))),
+        focused: document.activeElement === alert,
+        inline: document.querySelectorAll('form p[id$="-erro"]').length,
+      };
+    });
+    check("registro: os erros aparecem juntos, com link para cada campo e o foco no resumo",
+      summary.text.includes("faltam 3 respostas") && summary.targets.length === 3 && summary.reachable && summary.focused && summary.inline === 3 && posts.length === 0, JSON.stringify({ ...summary, posts }));
+    await page.click('input[name="participation"][value="parcial"]');
+    const left = await page.evaluate(() => ({ text: document.querySelector('form [role="alert"]')?.textContent ?? "", inline: document.querySelectorAll('form p[id$="-erro"]').length }));
+    check("registro: ao responder, o problema sai do resumo", left.text.includes("faltam 2 respostas") && left.inline === 2, JSON.stringify(left));
+
+    await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
+    const objectiveLinks = await page.$$eval('a[href*="/diario?objetivo="]', (links) => links.map((link) => link.getAttribute("href")));
+    const target = objectiveLinks.find((href) => !href.endsWith(`=${form.value}`)) ?? objectiveLinks[0];
+    if (!target) check("plano: cada objetivo ativo oferece registrar a aula", false, "nenhum link com ?objetivo=");
+    else {
+      const wanted = new URL(target, BASE).searchParams.get("objetivo");
+      await page.goto(`${BASE}${target}`, { waitUntil: "networkidle2" });
+      const chosen = await page.$eval("#objectiveId", (select) => ({ value: select.value, label: select.selectedOptions[0]?.textContent ?? "" }));
+      check("registro: o objetivo do link (?objetivo=) vem escolhido", chosen.value === wanted, JSON.stringify({ chosen, wanted }));
+      await page.click('input[name="participation"][value="total"]');
+      await page.select("#supportLevel", "2");
+      await page.click('input[name="criterionMet"][value="parcial"]');
+      const note = `Teste E2E: objetivo vindo do plano. ${Date.now()}`;
+      await page.type("#note", note);
+      await clickByText(page, "Salvar registro");
+      await until(page, (text) => document.querySelector("#historico-registros")?.textContent.includes(text), { timeout: 20000 }, note);
+      const card = await page.evaluate((text) => [...document.querySelectorAll("#historico-registros .ui-card")].find((item) => item.textContent.includes(text))?.textContent ?? "", note);
+      const action = chosen.label.split(" · ")[1]?.replace(/…$/, "") ?? "";
+      check("registro: só participação, apoio e resultado bastam para salvar, com o objetivo e o papel certos", Boolean(action) && card.includes(action) && card.includes("Professor(a) do AEE"), card.slice(0, 200));
+    }
+    check("registro de aula sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   });
 

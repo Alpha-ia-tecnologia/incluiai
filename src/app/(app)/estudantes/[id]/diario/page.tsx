@@ -12,11 +12,13 @@ import { ColumnChart, StatusPill } from "@/components/viz/charts";
 import { DataBoard, DataCard, StatTile } from "@/components/viz/cards";
 import { ChartFrame, CriterionBar, ParticipationDonut, SupportChart, SupportMeter } from "@/components/viz/student-viz";
 import { DiaryForm } from "@/components/diary-form";
+import { accountAuthorRole, defaultObjectiveId, objectiveLabels } from "@/lib/lesson-log";
+import { param } from "@/lib/search-params";
 
-export default async function DiaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ activityId?: string | string[] }> }) {
+export default async function DiaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ activityId?: string | string[]; objetivo?: string | string[] }> }) {
   const prisma = await db();
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  await requireStudentPage(id, "Registrar aula (histórico)", { tab: "diario" });
+  const { user, student } = await requireStudentPage(id, "Registrar aula (histórico)", { tab: "diario" });
   const [entries, objectives, acceptedActivities] = await Promise.all([
     prisma.diaryEntry.findMany({
       where: { studentId: id },
@@ -25,7 +27,8 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
     }),
     prisma.objective.findMany({
       where: { plan: { studentId: id, status: "ativo" }, status: "ativo" },
-      select: { id: true, action: true, criterion: true },
+      select: { id: true, action: true, condition: true, criterion: true, dimension: true, targetSupport: true },
+      orderBy: { createdAt: "asc" },
     }),
     prisma.activity.findMany({
       where: { studentId: id, status: "aceita" },
@@ -33,8 +36,10 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
     }),
   ]);
 
-  const selectedActivity = acceptedActivities.find((activity) => activity.id === query.activityId);
-  const initialObjectiveId = objectives.some((objective) => objective.id === selectedActivity?.objectiveId) ? selectedActivity?.objectiveId ?? "" : "";
+  const selectedActivity = acceptedActivities.find((activity) => activity.id === param(query.activityId));
+  const initialObjectiveId = defaultObjectiveId(objectives, entries, [param(query.objetivo), selectedActivity?.objectiveId]);
+  const labels = objectiveLabels(objectives, student.name);
+  const objectiveOptions = objectives.map((objective) => ({ id: objective.id, label: labels.get(objective.id) ?? objective.action, criterion: objective.criterion }));
   const create = createDiaryEntry.bind(null, id);
 
   const support = supportSeries(entries);
@@ -62,7 +67,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
 
       <Card className="mb-8 max-w-3xl">
         <SectionTitle>Novo registro</SectionTitle>
-        <DiaryForm saveAction={create} studentId={id} objectives={objectives} activities={acceptedActivities} initialActivityId={selectedActivity?.id ?? ""} initialObjectiveId={initialObjectiveId} />
+        <DiaryForm saveAction={create} studentId={id} objectives={objectiveOptions} activities={acceptedActivities} initialActivityId={selectedActivity?.id ?? ""} initialObjectiveId={initialObjectiveId} accountRole={accountAuthorRole(user.role)} />
       </Card>
 
       <section id="historico-registros" className="max-w-3xl scroll-mt-6" aria-labelledby="history-title">

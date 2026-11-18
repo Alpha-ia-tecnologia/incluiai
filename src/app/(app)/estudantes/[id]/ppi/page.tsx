@@ -35,6 +35,7 @@ import { CLOSE_REASONS, reviewSummary, suggestedNextReview } from "@/lib/plan-li
 import { HatchedDonut, Legend, RingStat, StatusPill, TONE_COLOR, segmentsOf } from "@/components/viz/charts";
 import { DataBoard, DataCard } from "@/components/viz/cards";
 import { ObjectiveScale } from "./objective-scale";
+import { lessonLogHref } from "@/lib/lesson-log";
 import { BUTTON_CLS, hintCls, inputCls, labelCls, textareaCls } from "@/components/form-styles";
 
 
@@ -360,6 +361,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               )}
               {editable && obj.status === "ativo" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={lessonLogHref(id, obj.id)} className={BUTTON_CLS.secondary}>Registrar aula<span className="sr-only">: {obj.action}</span></Link>
                   <ActionForm action={markDone}><button type="submit" className="inline-flex min-h-11 items-center rounded-full bg-green-soft px-4 text-sm font-medium text-green hover:opacity-80">Marcar como alcançado</button></ActionForm>
                   <ActionForm action={markReview}><button type="submit" className="inline-flex min-h-11 items-center rounded-full bg-amber-soft px-4 text-sm font-medium text-amber hover:opacity-80">Marcar para revisão</button></ActionForm>
                 </div>

@@ -14,6 +14,7 @@ import { PageHero, Badge, EmptyState } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
 import { Character } from "@/components/character";
 import { StepTrack } from "./step-track";
+import { LessonPicker } from "./lesson-picker";
 import { percentOf } from "@/lib/series";
 import { ArrowLeft, ArrowRight, FileSpreadsheet, Layers, Plus, Search, Sprout } from "lucide-react";
 import { param, readActivitiesBatch, type SearchParams } from "@/lib/search-params";
@@ -62,6 +63,10 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
   const listed = nominal || searching ? rows : [];
   const title = action === "registrar" ? "Para quem você quer registrar a aula?" : action === "preparar" ? "Para quem vamos preparar uma atividade?" : action === "acompanhar" ? "Quem você quer acompanhar?" : "Estudantes";
   const resetHref = action ? `/estudantes?acao=${action}` : "/estudantes";
+  const registering = action === "registrar";
+  const lastRecords = registering && listed.length
+    ? new Map((await prisma.diaryEntry.groupBy({ by: ["studentId"], where: { studentId: { in: listed.map((row) => row.student.id) } }, _max: { date: true } })).map((row) => [row.studentId, row._max.date]))
+    : new Map<string, Date | null>();
 
   return (
     <>
@@ -69,13 +74,13 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
       <PageHero
         character="learning"
         title={title}
-        lede={action ? "Procure pelo nome ou escolha uma turma. Depois, selecione o estudante para continuar." : "Encontre um estudante e veja qual é o próximo passo do acompanhamento."}
-        actions={
+        lede={registering ? undefined : action ? "Procure pelo nome ou escolha uma turma. Depois, selecione o estudante para continuar." : "Encontre um estudante e veja qual é o próximo passo do acompanhamento."}
+        actions={registering ? undefined : (
           <div className="flex flex-wrap gap-2">
             <Link href="/estudantes/novo" className={BUTTON_CLS.primary}><Plus size={18} aria-hidden /> Cadastrar estudante</Link>
             {isAccountManager(user.role) ? <Link href="/estudantes/importar" className={BUTTON_CLS.secondary}><FileSpreadsheet size={18} aria-hidden /> Importar planilha</Link> : null}
           </div>
-        }
+        )}
       />
 
       {lote !== null ? <div role="status" className="mb-6 flex items-start gap-3 rounded-2xl bg-green-soft p-5 text-sm leading-relaxed"><Sprout size={20} className="sprout-mark shrink-0 text-green" aria-hidden /><p>{lote} estudante(s) receberam sugestões de atividade. Abra as atividades de cada estudante para avaliar o que será aplicado.</p></div> : null}
@@ -130,17 +135,15 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
               </div>
             </section>
           ) : null}
-          {listed.length ? (
+          {listed.length && registering ? <LessonPicker students={listed.map((row) => row.student)} lastRecords={lastRecords} /> : listed.length ? (
             <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
               {listed.map(({ student, progress, next, steps }) => {
                 const base = `/estudantes/${student.id}`;
-                const selected = action === "registrar"
-                  ? { href: `${base}/diario`, label: "Registrar aula", description: "Conte como foi a aula deste estudante." }
-                  : action === "acompanhar"
-                    ? { href: base, label: "Ver acompanhamento", description: "Veja o plano, as aulas registradas e os próximos passos." }
-                    : action === "preparar" && next.step >= STEP.atividade
-                      ? { href: `${base}/atividades`, label: "Preparar atividade", description: "Veja as sugestões e escolha uma atividade para aplicar." }
-                      : next;
+                const selected = action === "acompanhar"
+                  ? { href: base, label: "Ver acompanhamento", description: "Veja o plano, as aulas registradas e os próximos passos." }
+                  : action === "preparar" && next.step >= STEP.atividade
+                    ? { href: `${base}/atividades`, label: "Preparar atividade", description: "Veja as sugestões e escolha uma atividade para aplicar." }
+                    : next;
                 return (
                   <article key={student.id} className="flex min-w-0 flex-col rounded-2xl border border-line bg-paper-raised p-5 sm:p-6">
                     <div className="flex items-start gap-3">
@@ -164,7 +167,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         </>
       ) : <EmptyState character="learning" title="Cadastre o primeiro estudante" hint="Comece com nome, escola e turma. Depois, você poderá completar as informações de aprendizagem." action={<Link href="/estudantes/novo" className={BUTTON_CLS.primary}><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link>} />}
 
-      {nominal && classes.length ? (
+      {nominal && classes.length && !registering ? (
         <details id="planejar-turma" className="mt-8 rounded-2xl border border-line bg-teal-soft/60">
           <summary className="min-h-14 cursor-pointer px-5 py-5 text-base font-medium sm:px-6">Preparar atividades para uma turma inteira</summary>
           <div className="px-5 pb-6 sm:px-6">
