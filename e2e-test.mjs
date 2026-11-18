@@ -845,9 +845,9 @@ if (!ONLY_WAIT) {
     }
 
     await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
-    const others = await page.evaluate(() => [...document.querySelectorAll("article")]
+    const others = await page.evaluate((exclude) => [...document.querySelectorAll("article")]
       .map((card) => ({ name: card.querySelector("h2")?.textContent ?? "", href: [...card.querySelectorAll("a")].find((link) => link.textContent.trim() === "Ver acompanhamento")?.getAttribute("href") ?? "" }))
-      .filter((item) => !item.name.includes(DANTE_FIRST) && /^\/estudantes\/[^/]+$/.test(item.href)));
+      .filter((item) => !item.name.includes(exclude) && /^\/estudantes\/[^/]+$/.test(item.href)), DANTE_FIRST);
     let gate = null;
     for (const student of others) {
       await page.goto(`${BASE}${student.href}/ppi`, { waitUntil: "networkidle2" });
