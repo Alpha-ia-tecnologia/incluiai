@@ -3,14 +3,16 @@ import { db } from "@/lib/prisma";
 import { requireStudentPage } from "@/lib/page-context";
 import { createDiaryEntry } from "@/actions/diary";
 import { readList } from "@/lib/format";
-import { formatDate, formatDateShort } from "@/lib/dates";
-import { PARTICIPATION, CRITERION_MET, TREND, shortOf, toneOf } from "@/lib/scale";
+import { formatDate } from "@/lib/dates";
+import { PARTICIPATION, CRITERION_MET, shortOf, toneOf } from "@/lib/scale";
 import { roleLabel } from "@/lib/roles";
-import { supportSeries, supportTrend, weeklyCounts } from "@/lib/series";
+import { weeklyCounts } from "@/lib/series";
+import { stepsByObjective } from "@/lib/support-steps";
 import { PageHeader, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
-import { ColumnChart, StatusPill } from "@/components/viz/charts";
+import { ColumnChart } from "@/components/viz/charts";
 import { DataBoard, DataCard, StatTile } from "@/components/viz/cards";
-import { ChartFrame, CriterionBar, ParticipationDonut, SupportChart, SupportMeter } from "@/components/viz/student-viz";
+import { CriterionBar, ParticipationDonut, SupportMeter } from "@/components/viz/student-viz";
+import { SupportSteps, TrendChip } from "@/components/viz/support-steps";
 import { DiaryForm } from "@/components/diary-form";
 import { accountAuthorRole, defaultObjectiveId, objectiveLabels } from "@/lib/lesson-log";
 import { param } from "@/lib/search-params";
@@ -42,13 +44,10 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
   const objectiveOptions = objectives.map((objective) => ({ id: objective.id, label: labels.get(objective.id) ?? objective.action, criterion: objective.criterion }));
   const create = createDiaryEntry.bind(null, id);
 
-  const support = supportSeries(entries);
-  const trend = supportTrend(support.map((point) => point.value));
+  const supportGroups = stepsByObjective(entries);
   const weeks = weeklyCounts(entries.map((entry) => entry.date), 8);
   const recentRecords = weeks.reduce((sum, week) => sum + week.value, 0);
-  const objectiveIds = new Set(entries.flatMap((entry) => (entry.objectiveId ? [entry.objectiveId] : [])));
   const checkIn = await recentCheckIn(id);
-  const singleObjective = objectiveIds.size === 1 && entries.every((entry) => entry.objectiveId) ? entries[0].objective : null;
 
   return (
     <>
@@ -76,22 +75,20 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
           <DataBoard className="mb-5 sm:grid-cols-2">
             <DataCard
               title="Evolução do apoio"
-              hint={objectiveIds.size > 1 ? "Todos os objetivos." : undefined}
+              hint={supportGroups.length > 1 ? "Um quadro por objetivo." : undefined}
               className="sm:col-span-2"
             >
-              {trend.trend !== "sem_dados" ? (
-                <p className="mb-3">
-                  <StatusPill tone={TREND[trend.trend].tone}>{TREND[trend.trend].label}</StatusPill>
-                </p>
-              ) : null}
-              <ChartFrame>
-                <SupportChart
-                  points={support.map((point) => ({ date: formatDateShort(point.date), value: point.value }))}
-                  start={singleObjective?.currentSupport}
-                  target={singleObjective?.targetSupport}
-                  label={`Nível de apoio em ${support.length} ${support.length === 1 ? "registro" : "registros"} de aula`}
-                />
-              </ChartFrame>
+              <div className="space-y-6">
+                {supportGroups.map((group) => (
+                  <div key={group.key} className="min-w-0">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="min-w-0 text-sm text-ink first-letter:uppercase">{group.name ?? "Sem objetivo do plano"}</h4>
+                      <TrendChip reading={group.data.trend} />
+                    </div>
+                    <SupportSteps data={group.data} size="regular" name={group.name ?? "Sem objetivo do plano"} />
+                  </div>
+                ))}
+              </div>
             </DataCard>
             <DataCard title="Participação">
               <ParticipationDonut id="diario-participacao" entries={entries} size={112} />

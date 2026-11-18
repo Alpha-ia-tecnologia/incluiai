@@ -6,12 +6,12 @@ export const shortOf = (table: Readonly<Record<string, Term>>, key: string) => t
 export const legendOf = (table: Readonly<Record<string, Term>>) => Object.entries(table).map(([key, term]) => ({ key, tone: term.tone, label: term.short ?? term.label }));
 
 export const SUPPORT_LEVELS = [
-  { level: 0, code: "IND", label: "Independente", description: "Realiza de forma independente" },
-  { level: 1, code: "SUP", label: "Supervisão", description: "Precisa apenas de supervisão ou lembrete" },
-  { level: 2, code: "VERB", label: "Instrução verbal", description: "Precisa de instrução verbal ou pista visual" },
-  { level: 3, code: "MOD", label: "Modelo", description: "Precisa de modelo ou demonstração" },
-  { level: 4, code: "FIS-P", label: "Apoio físico parcial", description: "Precisa de apoio físico parcial" },
-  { level: 5, code: "FIS-T", label: "Apoio físico total", description: "Precisa de apoio físico total ou não realiza" },
+  { level: 0, code: "IND", label: "Independente", short: "Independente", description: "Realiza de forma independente" },
+  { level: 1, code: "SUP", label: "Supervisão", short: "Supervisão", description: "Precisa apenas de supervisão ou lembrete" },
+  { level: 2, code: "VERB", label: "Instrução verbal", short: "Instrução verbal", description: "Precisa de instrução verbal ou pista visual" },
+  { level: 3, code: "MOD", label: "Modelo", short: "Modelo", description: "Precisa de modelo ou demonstração" },
+  { level: 4, code: "FIS-P", label: "Apoio físico parcial", short: "Físico parcial", description: "Precisa de apoio físico parcial" },
+  { level: 5, code: "FIS-T", label: "Apoio físico total", short: "Físico total", description: "Precisa de apoio físico total ou não realiza" },
 ] as const;
 
 export const clampSupport = (level: number) => Math.min(5, Math.max(0, Math.round(level)));
@@ -19,7 +19,6 @@ export function supportInfo(level: number) {
   return SUPPORT_LEVELS[clampSupport(level)];
 }
 export const supportOffset = (level: number) => (5 - Math.min(5, Math.max(0, level))) / 5;
-export const supportTone = (level: number): Tone => (clampSupport(level) <= 1 ? "good" : clampSupport(level) <= 3 ? "mid" : "alert");
 
 export const CHANNELS: Record<string, string> = {
   fala: "Fala",

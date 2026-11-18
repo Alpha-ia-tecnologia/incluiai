@@ -11,6 +11,7 @@ import { StudentJourney, StudentNextStepLink } from "@/components/student-journe
 import { StudentHead } from "@/components/student-head";
 import { HEAD_PART } from "@/components/student-head-parts";
 import { JOURNEY_SELECT, journeyFacts } from "@/lib/student-journey";
+import { headSignature } from "./head-signature";
 
 export default async function StudentLayout({
   children,
@@ -23,6 +24,7 @@ export default async function StudentLayout({
   const { id } = await params;
   const { student, grant, can } = await studentContext(id);
   const journey = can.edit ? { id, ...journeyFacts(await prisma.student.findUniqueOrThrow({ where: { id }, select: JOURNEY_SELECT })) } : null;
+  const signature = can.edit ? await headSignature(id) : null;
 
   return (
     <>
@@ -38,6 +40,7 @@ export default async function StudentLayout({
           >
             {student.name[0]}
           </span>
+          {signature ? <div className="ml-auto sm:hidden">{signature}</div> : null}
           <div className="min-w-0 flex-1 basis-64">
             <h1 className={`${HEAD_PART.name} font-display text-2xl font-medium leading-tight tracking-tight text-ink`}>{student.name}</h1>
             <p className={`${HEAD_PART.detail} mt-0.5 text-sm text-ink-soft`}>
@@ -51,7 +54,12 @@ export default async function StudentLayout({
               </div>
             ) : null}
           </div>
-          {journey ? <StudentNextStepLink progress={journey} /> : null}
+          {journey || signature ? (
+            <div className="flex shrink-0 flex-col items-end gap-2 empty:hidden max-sm:contents">
+              {journey ? <StudentNextStepLink progress={journey} /> : null}
+              {signature ? <div className="max-sm:hidden">{signature}</div> : null}
+            </div>
+          ) : null}
         </div>
         <StudentTabs studentId={student.id} can={{ edit: can.edit, dua: can.dua }} />
       </StudentHead>

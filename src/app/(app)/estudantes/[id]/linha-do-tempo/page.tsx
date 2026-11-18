@@ -4,13 +4,16 @@ import { requireStudentPage } from "@/lib/page-context";
 import { brYmd, formatDate, formatMonth, monthKey } from "@/lib/dates";
 import { plural } from "@/lib/format";
 import { monthlyCounts } from "@/lib/series";
-import { AEE_SESSION_STATUS, CONTEXTS, TIMELINE_TYPES, labelOf, toneOf, type Term } from "@/lib/scale";
+import { AEE_SESSION_STATUS, CONTEXTS, OBJECTIVE_STATUS, TIMELINE_TYPES, labelOf, toneOf, type Term } from "@/lib/scale";
+import { stepsFor } from "@/lib/support-steps";
+import { trendMessage } from "@/lib/support-trend";
 import { listStudentEvidence } from "@/lib/dua/applications";
 import { listAeeSessions } from "@/lib/aee-sessions";
 import { OBSERVATION } from "@/lib/dua/domain";
-import { PageHeader, Badge, EmptyState } from "@/components/ui";
+import { PageHeader, Badge, EmptyState, SectionTitle } from "@/components/ui";
 import { ColumnChart, CountChips } from "@/components/viz/charts";
 import { DataBoard, DataCard } from "@/components/viz/cards";
+import { SupportSteps, TrendChip } from "@/components/viz/support-steps";
 import {
   ClipboardList, FileText, HeartHandshake, Users, ArrowLeftRight,
   AlertTriangle, Trophy, Package, Layers, CalendarCheck, CalendarX, House, type LucideIcon,
@@ -48,14 +51,27 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
   const prisma = await db();
   const { id } = await params;
   const { user, can } = await requireStudentPage(id, "Evolução");
-  const [events, evidences, sessions] = await Promise.all([
+  const [events, evidences, sessions, objectives, lessons] = await Promise.all([
     prisma.timelineEvent.findMany({
       where: { studentId: id },
       orderBy: { date: "desc" },
     }),
     can.edit ? listStudentEvidence(user, id) : [],
     can.edit ? listAeeSessions(user, id).then((result) => result.sessions) : [],
+    prisma.objective.findMany({
+      where: { plan: { studentId: id, status: "ativo" } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, action: true, targetSupport: true, status: true },
+    }),
+    prisma.diaryEntry.findMany({
+      where: { studentId: id, objective: { plan: { status: "ativo" } } },
+      select: { id: true, date: true, supportLevel: true, participation: true, objectiveId: true },
+    }),
   ]);
+  const supportByObjective = objectives
+    .map((objective) => ({ objective, data: stepsFor(objective, lessons) }))
+    .filter(({ objective, data }) => objective.status === "ativo" || data.total > 0)
+    .sort((a, b) => Number(b.objective.status === "ativo") - Number(a.objective.status === "ativo"));
 
   const entries: Entry[] = [
     ...events.map((e) => ({ key: e.id, date: e.date, type: e.type, term: TIMELINE_TYPES[e.type] ?? OTHER, title: e.title, description: e.description })),
@@ -92,6 +108,26 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
   return (
     <>
       <PageHeader level={2} title="Evolução" />
+      {supportByObjective.length ? (
+        <section aria-labelledby="apoio-por-objetivo" className="mb-8 max-w-2xl">
+          <SectionTitle><span id="apoio-por-objetivo">Apoio em cada objetivo</span></SectionTitle>
+          <DataBoard>
+            {supportByObjective.map(({ objective, data }) => (
+              <section key={objective.id} id={`objetivo-${objective.id}`} aria-labelledby={`objetivo-${objective.id}-titulo`} className="dash-card min-w-0 scroll-mt-6">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                  <h3 id={`objetivo-${objective.id}-titulo`} className="min-w-0 text-base font-medium tracking-tight text-ink first-letter:uppercase">{objective.action}</h3>
+                  <span className="flex flex-wrap gap-1.5">
+                    {objective.status !== "ativo" ? <Badge tone={toneOf(OBJECTIVE_STATUS, objective.status)}>{labelOf(OBJECTIVE_STATUS, objective.status)}</Badge> : null}
+                    <TrendChip reading={data.trend} />
+                  </span>
+                </div>
+                <SupportSteps data={data} size="full" name={objective.action} />
+                <p className="mt-3 text-xs text-ink-soft">{trendMessage(data.trend, data.total)}</p>
+              </section>
+            ))}
+          </DataBoard>
+        </section>
+      ) : null}
       {entries.length === 0 ? (
         <EmptyState character="learning" title="O histórico começa aqui" hint="Planos, atendimentos e conquistas aparecem aqui." />
       ) : (

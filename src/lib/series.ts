@@ -1,6 +1,8 @@
 import { splitItems } from "./format.ts";
 import { DAY_MS, MONTH_NAMES, MONTH_SHORT, dayStart, formatDateShort, monthIndex, monthOfIndex, weekStart } from "./dates.ts";
-import { AEE_SESSION_STATUSES, CRITERION_MET, PARTICIPATION, clampSupport, type AeeSessionStatus, type Term, type Tone, type Trend } from "./scale.ts";
+import { AEE_SESSION_STATUSES, CRITERION_MET, PARTICIPATION, clampSupport, type AeeSessionStatus, type Term, type Tone } from "./scale.ts";
+
+export { supportTrend } from "./support-trend.ts";
 
 export type SeriesPoint = { label: string; title: string; value: number };
 export type SplitSegment = { key: string; label: string; tone: Tone; value: number };
@@ -42,15 +44,6 @@ export function supportSeries(entries: ReadonlyArray<EntryLike>, objectiveId?: s
     .filter((entry) => typeof entry.supportLevel === "number" && (!objectiveId || entry.objectiveId === objectiveId))
     .map((entry) => ({ date: toDate(entry.date), value: clampSupport(entry.supportLevel!) }))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
-}
-
-
-export function supportTrend(values: ReadonlyArray<number>): { trend: Trend; delta: number | null } {
-  if (values.length < 3) return { trend: "sem_dados", delta: null };
-  const half = Math.floor(values.length / 2);
-  const mean = (list: ReadonlyArray<number>) => list.reduce((sum, value) => sum + value, 0) / list.length;
-  const delta = Math.round((mean(values.slice(-half)) - mean(values.slice(0, half))) * 10) / 10;
-  return { trend: delta <= -0.5 ? "avancando" : delta >= 0.5 ? "atencao" : "estavel", delta };
 }
 
 function split(table: Readonly<Record<string, Term>>, values: ReadonlyArray<string | null | undefined>): SplitSegment[] {

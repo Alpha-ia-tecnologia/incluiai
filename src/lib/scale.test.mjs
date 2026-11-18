@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   ACTIVITY_STATUS, AEE_SESSION_STATUSES, CONTEXTS, CRITERION_MET, MATERIAL_STATUS, OBJECTIVE_STATUSES, PARTICIPATION, REPORT_STATUS,
-  clampSupport, labelOf, shortOf, supportInfo, supportOffset, supportTone, toneOf,
+  SUPPORT_LEVELS, clampSupport, labelOf, shortOf, supportInfo, supportOffset, toneOf,
 } from "./scale.ts";
 
 test("valor gravado que a tabela não conhece aparece como veio, em tom neutro", () => {
@@ -16,10 +16,10 @@ test("valor gravado que a tabela não conhece aparece como veio, em tom neutro",
   assert.equal(shortOf(PARTICIPATION, "recusou"), labelOf(PARTICIPATION, "recusou"));
 });
 
-test("escala de apoio de 0 a 5: fora dela fica no limite; tom bom até 1, médio até 3, alerta acima", () => {
+test("escala de apoio de 0 a 5: fora dela fica no limite; cada nível com nome curto em palavras", () => {
   assert.deepEqual([-2, 0, 2.4, 2.6, 5, 9].map(clampSupport), [0, 0, 2, 3, 5, 5]);
   assert.deepEqual([supportInfo(-1).level, supportInfo(7).level], [0, 5]);
-  assert.deepEqual([0, 1, 2, 3, 4, 5].map(supportTone), ["good", "good", "mid", "mid", "alert", "alert"]);
+  assert.deepEqual(SUPPORT_LEVELS.map((item) => item.short), ["Independente", "Supervisão", "Instrução verbal", "Modelo", "Físico parcial", "Físico total"]);
   assert.deepEqual([0, 5, 9].map(supportOffset), [1, 0, 0]);
 });
 

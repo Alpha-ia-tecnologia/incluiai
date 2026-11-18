@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { supportInfo, supportTone, type Tone } from "@/lib/scale";
+import { supportInfo, type Tone } from "@/lib/scale";
 import type { CharacterVariant } from "@/lib/characters";
 import { Character } from "./character";
 import { BUTTON_CLS, type ButtonVariant } from "./form-styles";
@@ -85,7 +85,7 @@ export function Badge({ tone = "neutral", children }: { tone?: Tone; children: R
 export function SupportPill({ level }: { level: number }) {
   const info = supportInfo(level);
   return (
-    <Badge tone={supportTone(level)}>
+    <Badge tone="info">
       <span className="font-semibold">{info.code}</span>
       <span className="hidden sm:inline">· {info.label}</span>
     </Badge>

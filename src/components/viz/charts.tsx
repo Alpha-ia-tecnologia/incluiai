@@ -22,7 +22,6 @@ export const TONE_CLASSES: Record<Tone, string> = {
 };
 
 const RAMP: [number, string][] = [[0, SIGNAL.orange], [0.55, SIGNAL.yellow], [1, SIGNAL.lime]];
-export const RAMP_GRADIENT = `linear-gradient(90deg, ${RAMP.map(([at, color]) => `${color} ${at * 100}%`).join(", ")})`;
 
 export function rampColor(t: number): string {
   const index = Math.max(1, RAMP.findIndex(([at]) => at >= t));
@@ -345,7 +344,7 @@ export function Sparkline({ values, label, domain, invert = false, color = SIGNA
   return (
     <div className="relative w-full" style={{ height }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" role="img" aria-label={label}>
-        <path d={`${line} L100,100 L0,100 Z`} fill="var(--signal-lime-soft)" opacity={0.7} className="viz-grow-y" />
+        <path d={`${line} L100,100 L0,100 Z`} fill="var(--brand-soft)" className="viz-grow-y" />
         <path d={line} fill="none" stroke={color} strokeWidth={1.8} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className="viz-wipe" />
       </svg>
       <span aria-hidden className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-e1" style={{ left: "100%", top: `${y(last)}%`, backgroundColor: color }} />

@@ -189,6 +189,22 @@ await section("acompanhamento de Dante", async () => {
     check(`seção ${tab || "/resumo"} renderiza`, hasHeading);
   }
   {
+    await page.goto(`${BASE}${danteHref}`, { waitUntil: "networkidle2" });
+    const signature = await page.evaluate(() => {
+      const card = [...document.querySelectorAll("article")].find((item) => item.getAttribute("aria-label")?.startsWith("Objetivo: identificará seu nome"));
+      return {
+        head: document.querySelector('.student-head [data-support-steps="mini"][role="img"]')?.getAttribute("aria-label") ?? "",
+        card: card?.querySelector('[data-support-steps="regular"] [role="img"]')?.getAttribute("aria-label") ?? "",
+        trend: card?.querySelector(".status-pill")?.textContent ?? "",
+      };
+    });
+    check("ficha: o cabeçalho mostra os degraus de apoio do objetivo em foco, em palavras", /\d+ aulas?:/.test(signature.head) && !/VERB|FIS-|\bSUP\b/.test(signature.head), signature.head);
+    check("resumo: o objetivo em que o apoio diminuiu não aparece como “Pede atenção”", signature.card.includes("de Modelo para Instrução verbal") && /Avançando|Meta alcançada/.test(signature.trend) && !signature.trend.includes("Pede atenção"), JSON.stringify(signature));
+    await page.goto(`${BASE}${danteHref}/linha-do-tempo`, { waitUntil: "networkidle2" });
+    const steps = await page.$$eval('[data-support-steps="full"] [role="img"]', (items) => items.map((item) => item.getAttribute("aria-label") ?? ""));
+    check("evolução: degraus de apoio de cada objetivo, com a meta", steps.length >= 2 && steps.every((label) => label.includes("meta ")), JSON.stringify(steps));
+  }
+  {
     await page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
     const opened = await page.evaluate(() => { const details = document.querySelector("#revisao details"); if (details) details.open = true; return Boolean(details); });
     if (!opened) check("plano: formulário de revisão presente", false);

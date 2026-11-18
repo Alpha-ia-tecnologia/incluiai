@@ -42,15 +42,25 @@ cartões brancos sobre um fundo cinza-azulado. Estas regras organizam o uso.
 - **Verde, amarelo e laranja** (`signal-*`): só em dados e só para estado
   (bom, intermediário, atenção), sempre com o valor também em texto e com
   `ink-strong` por cima.
+- **Nível de apoio é neutro.** Precisar de apoio físico não é alerta: selos
+  (`SupportPill`), medidores (`SupportMeter`, `SupportCells`), a escala do plano
+  (`SupportScale`) e os degraus ficam em azul e marinho. A cor de estado do
+  apoio vem só da **tendência**, no selo `TrendChip`, sempre com palavra e
+  ícone (veja "Assinatura: degraus de apoio").
 - **Gráficos** (`src/components/viz/charts.tsx`, objeto `SIGNAL`, que lê os tokens
   por nome):
   - quantidade sem juízo (contagens, usos, partes de um todo, etapas
-    cumpridas): azul da marca (`SIGNAL.brand`), o padrão de barras, colunas,
-    anéis e medidores;
+    cumpridas, nível de apoio): azul da marca (`SIGNAL.brand`), o padrão de
+    barras, colunas, anéis e medidores; a área sob a linha (`Sparkline`) em
+    `brand-soft`;
   - estado: lima, amarelo e laranja;
   - estado informativo (estável, aceita, realizado): azul-claro (`SIGNAL.cyan`).
   As cinco situações das pílulas (`StatusPill`) têm o mesmo peso: cor cheia e
-  texto escuro. O degradê do medidor mistura só os três sinais.
+  texto escuro. O degradê (`rampColor`) é só do medidor de percentual do
+  Painel; a escala de apoio não usa degradê.
+- **Eixos que se explicam.** Num gráfico de apoio, os rótulos dizem a direção
+  ("Independente" no alto, "mais autonomia" / "mais apoio" nas bordas); nada
+  de legenda do tipo "subir é precisar de menos apoio".
 - **Âmbar:** só o token (`text-amber`, `border-amber`). Nada de `amber-800`
   nem de outra cor da paleta padrão do Tailwind.
 - **Céu, verde-água, pêssego, sálvia e rosa**: categorias (tipos de tarefa,
@@ -145,6 +155,51 @@ Cada tela diz uma vez o que precisa e mostra o resto com elementos visuais:
   - `HowToRead`: definição de indicador, leitura de gráfico ou norma, a um
     toque ("Como ler"), fechada por padrão.
 
+## Assinatura: degraus de apoio
+
+A marca própria do IncluiEdu ("Menos apoio, mais autonomia"):
+`SupportSteps` (`src/components/viz/support-steps.tsx`).
+
+- **O desenho:** cada aula é um quadrado, da mais antiga (à esquerda) à mais
+  recente. A **altura** é o nível de apoio: Independente no alto, Físico total
+  embaixo, então o desenho sobe quando o estudante precisa de menos apoio. O
+  **preenchimento** é a participação, legível sem cor: cheio (toda a
+  atividade), metade de baixo (parte), só o contorno (recusou). Os quadrados
+  são marinho (`ink-strong`); ficam verdes (`green`) na meta ou acima dela.
+  Os lugares vazios são pontos em `line`, e as colunas sem aula ainda (à
+  direita) mostram onde entram as próximas. A meta é uma linha tracejada com a
+  palavra "meta".
+- **Tamanhos:**
+  - `mini`: 8 aulas, sem rótulo, tamanho fixo. Cabeçalho da ficha (objetivo em
+    foco: o da aula mais recente; some ao rolar), listas, fila do Início.
+  - `regular`: 12 aulas, "meta", bordas "mais autonomia" e "mais apoio" e
+    legenda só do que aparece. Cartões do Resumo, Registrar aula, cartão
+    depois de salvar.
+  - `full`: 24 aulas, níveis por extenso e datas da primeira e da última aula
+    à vista. Evolução, um por objetivo do plano.
+  `regular` e `full` ocupam a largura do pai e tiram as aulas mais antigas
+  quando falta espaço (consulta de contêiner): cabem a 320 px.
+- **Família** (`audience="familia"`): sem nome de nível; "mais autonomia" no
+  alto, "mais ajuda" embaixo e "objetivo" no lugar de "meta".
+- **Palavras, não códigos:** IND, SUP, VERB, MOD e FIS-P/T nunca aparecem nos
+  degraus.
+- **Dados:** `stepsFor(objetivo, aulas)`, `stepsFrom(aulas, { target })` e
+  `stepsByObjective(aulas)` em `src/lib/support-steps.ts` (puros, servem no
+  servidor e no cliente). Para leitor de tela, `role="img"` com a frase de
+  `stepsSentence` ("8 aulas: de Modelo para Supervisão; meta Supervisão
+  alcançada nas 2 últimas; …") e a tabela `sr-only` com data, nível e
+  participação.
+- **Tendência (uma regra só):** `supportTrend` em `src/lib/support-trend.ts`,
+  nas 8 aulas mais recentes. Com menos de 3 aulas, "Poucos registros".
+  "Pede atenção" só quando um limite é cruzado: 2 recusas nas 4 últimas aulas,
+  ou, com 4 aulas ou mais, um nível de apoio a mais, em média, na metade
+  recente. Última aula na meta: "Meta alcançada". Meio nível a menos:
+  "Avançando". Aulas sem avanço ficam "Estável", com a dica de fracionar o
+  objetivo, nunca alerta. O selo é o `TrendChip` (`StatusPill` com ícone:
+  sobe, desce, certo, alerta ou seta).
+- **Movimento:** os quadrados aparecem da esquerda para a direita em até
+  300 ms, uma vez; nada com menos movimento.
+
 ## Personagens
 
 São decorativos (`aria-hidden`); o texto ao lado carrega o sentido. Cada um tem
@@ -178,7 +233,8 @@ novo só com aprovação.
 
 - Os cartões sobem 8 px ao entrar.
 - Os gráficos crescem uma vez:
-  - `viz-grow-y` e `viz-grow-x` nas barras;
+  - `viz-grow-y` e `viz-grow-x` nas barras (e nos degraus de apoio, em até
+    300 ms no total);
   - `viz-ring` nos anéis;
   - `viz-draw` com `pathLength="1"` nas linhas de série.
 - O broto (`sprout-mark`) confirma o que foi salvo.

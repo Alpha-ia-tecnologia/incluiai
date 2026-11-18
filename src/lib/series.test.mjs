@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { countItems, criterionSplit, monthlyCounts, participationSplit, percentOf, sessionsByMonth, supportSeries, supportTrend, weeklyCounts } from "./series.ts";
+import { countItems, criterionSplit, monthlyCounts, participationSplit, percentOf, sessionsByMonth, supportSeries, weeklyCounts } from "./series.ts";
 
 const at = (iso) => new Date(`${iso}T12:00:00-03:00`);
 
@@ -26,13 +26,6 @@ test("série do apoio: ordem por data, por objetivo e presa entre 0 e 5", () => 
   ];
   assert.deepEqual(supportSeries(entries, "a").map((point) => point.value), [4, 3]);
   assert.deepEqual(supportSeries(entries).map((point) => point.value), [4, 5, 3]);
-});
-
-test("tendência: menos apoio no fim é avanço; poucos registros não concluem", () => {
-  assert.deepEqual(supportTrend([4, 4, 3, 2, 2]), { trend: "avancando", delta: -2 });
-  assert.equal(supportTrend([2, 2, 3, 4]).trend, "atencao");
-  assert.equal(supportTrend([3, 3, 3, 3]).trend, "estavel");
-  assert.deepEqual(supportTrend([3, 2]), { trend: "sem_dados", delta: null });
 });
 
 test("divisões de participação e de critério contam cada situação", () => {

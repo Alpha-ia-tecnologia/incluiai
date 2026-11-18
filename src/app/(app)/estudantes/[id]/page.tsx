@@ -2,25 +2,26 @@
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { SUMMARY_SECTION } from "@/lib/audit";
-import { objectiveTrend, studentAlerts, strategiesThatWorked } from "@/lib/insights";
+import { studentAlerts, strategiesThatWorked } from "@/lib/insights";
 import { meetingQuestions } from "@/lib/meeting-questions";
 import { readList } from "@/lib/format";
-import { formatDate, formatDateShort } from "@/lib/dates";
-import { CHANNELS, BARRIERS, SHIFTS, TREND, type Trend } from "@/lib/scale";
-import { countItems, supportSeries } from "@/lib/series";
+import { formatDate } from "@/lib/dates";
+import { CHANNELS, BARRIERS, SHIFTS, supportInfo } from "@/lib/scale";
+import { countItems } from "@/lib/series";
+import { stepsFor } from "@/lib/support-steps";
+import { trendMessage } from "@/lib/support-trend";
 import { requireStudentPage } from "@/lib/page-context";
 import { parseCaseStudy } from "@/lib/case-study";
 import { guidanceForPlan, parseAccepted, reportStatus } from "@/lib/health-reports-core";
 import { censusReference } from "@/lib/federal-guidance";
 import { PROFILE_SUPPORT_GROUPS } from "@/lib/functional-profile";
-import { Card, SectionTitle, Badge, SupportPill, EmptyState } from "@/components/ui";
-import { BarList, StatusPill } from "@/components/viz/charts";
+import { Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
+import { BarList } from "@/components/viz/charts";
 import { DataBoard, DataCard } from "@/components/viz/cards";
-import { ChartFrame, CriterionBar, ParticipationDonut, SupportChart, SupportMeter } from "@/components/viz/student-viz";
+import { CriterionBar, ParticipationDonut } from "@/components/viz/student-viz";
+import { SupportSteps, TrendChip } from "@/components/viz/support-steps";
 import { SupportBars } from "./support-bars";
-import { AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, CircleCheck, Minus, TrendingDown, type LucideIcon } from "lucide-react";
-
-const TREND_ICON: Record<Trend, LucideIcon> = { avancando: TrendingDown, estavel: Minus, atencao: AlertTriangle, sem_dados: Minus };
+import { AlertTriangle, MessageCircleQuestion, ArrowRight, ChevronDown, CircleCheck } from "lucide-react";
 
 export default async function StudentOverview({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
@@ -56,8 +57,9 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
   const interests = readList(student.profile?.interests ?? null);
   const barriers = readList(student.profile?.barriers ?? null);
 
+  const steps = new Map(objectives.map((o) => [o.id, stepsFor(o, student.diaryEntries)]));
   const stalledObjectives = objectives
-    .filter((o) => objectiveTrend(o, student.diaryEntries).trend === "atencao")
+    .filter((o) => steps.get(o.id)!.trend.reason === "sem_avanco")
     .map((o) => o.action);
   const questions = meetingQuestions({
     alerts, stalledObjectives, workedStrategies: worked,
@@ -110,32 +112,20 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
           ) : (
             <DataBoard>
               {objectives.map((obj) => {
-                const insight = objectiveTrend(obj, student.diaryEntries);
-                const Icon = TREND_ICON[insight.trend];
-                const points = supportSeries(student.diaryEntries, obj.id).map((point) => ({ date: formatDateShort(point.date), value: point.value }));
+                const data = steps.get(obj.id)!;
+                const latest = data.lessons.at(-1);
                 return (
                   <article key={obj.id} aria-label={`Objetivo: ${obj.action}`} className="dash-card min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <p className="min-w-0 max-w-xl text-sm leading-relaxed text-ink">{obj.description}</p>
-                      <StatusPill tone={TREND[insight.trend].tone}><Icon size={12} aria-hidden /> {TREND[insight.trend].label}</StatusPill>
+                      <TrendChip reading={data.trend} />
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-                      <span>Apoio atual:</span> <SupportPill level={obj.currentSupport} />
-                      <span>→ apoio esperado:</span> <SupportPill level={obj.targetSupport} />
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                      <span>{latest && latest.level > obj.targetSupport ? `${supportInfo(latest.level).label} → meta ${supportInfo(obj.targetSupport).label}` : `Meta: ${supportInfo(obj.targetSupport).label}`}</span>
                       {obj.bnccCode ? <BnccTag code={obj.bnccCode} /> : null}
                     </div>
-                    {points.length >= 2 ? (
-                      <div className="mt-4">
-                        <ChartFrame>
-                          <SupportChart points={points} start={obj.currentSupport} target={obj.targetSupport} height={140} label={`Nível de apoio em ${points.length} registros de aula: ${obj.action}`} />
-                        </ChartFrame>
-                      </div>
-                    ) : points.length === 1 ? (
-                      <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-                        <span>Primeiro registro ({points[0].date}):</span> <SupportMeter level={points[0].value} />
-                      </p>
-                    ) : null}
-                    <p className="mt-3 text-xs text-ink-soft">{insight.message}</p>
+                    <SupportSteps data={data} size="regular" name={obj.action} className="mt-4" />
+                    <p className="mt-3 text-xs text-ink-soft">{trendMessage(data.trend, data.total)}</p>
                   </article>
                 );
               })}
