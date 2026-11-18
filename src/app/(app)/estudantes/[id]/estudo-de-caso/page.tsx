@@ -281,7 +281,8 @@ export default async function CaseStudyPage({
               </div>
             </details>
 
-            <div className="sticky bottom-[calc(96px_+_env(safe-area-inset-bottom,0px))] z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-paper-raised p-3 shadow-e2 lg:bottom-4">
+            <p className="text-xs text-ink-soft">Para concluir, basta a parte Essencial.</p>
+            <div className="save-bar flex flex-wrap items-center gap-3">
               {concluded ? (
                 <>
                   <button type="submit" name="intent" value="concluir" className={BUTTON_CLS.primary}>
@@ -299,7 +300,6 @@ export default async function CaseStudyPage({
                   </button>
                 </>
               )}
-              <p className="text-xs text-ink-soft">Para concluir, basta a parte Essencial.</p>
             </div>
           </div>
         </ActionForm>

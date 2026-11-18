@@ -213,7 +213,7 @@ export function DiaryForm({
         )}
       </fieldset>
 
-      <div className="flex flex-col items-start gap-3 border-t border-line pt-5">
+      <div className="save-bar flex flex-col items-start gap-3 border-t border-line pt-5">
         <p ref={statusRef} tabIndex={-1} role="status" aria-live="polite" className="text-sm leading-relaxed text-brand-strong">
           {pending ? "Salvando seu registro…" : saved ? (
             <span className="flex items-start gap-2"><Sprout size={16} aria-hidden className="sprout-mark mt-1 shrink-0 text-green" />Registro salvo. Ele já aparece no histórico abaixo.</span>

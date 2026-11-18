@@ -11,7 +11,7 @@ import { inputCls, BUTTON_CLS, textareaCls } from "@/components/form-styles";
 export function AssessmentForm({ action, previous }: { action: (previous: ActionResult | null, formData: FormData) => Promise<ActionResult>; previous: Answers | null }) {
   const [result, submit, pending] = useActionState(action, null);
   return (
-    <form action={submit} className="grid min-w-0 gap-6">
+    <form action={submit} className="flex min-w-0 flex-col gap-6">
       {previous ? <p className="rounded-xl bg-sky-soft/60 px-4 py-3 text-sm leading-relaxed text-ink">Os campos começam com as respostas da última sondagem. Mude o que mudou e deixe como não observado o que você não viu nesta aplicação.</p> : null}
       {AREAS.map((area) => (
         <fieldset key={area.key} className="grid min-w-0 gap-3 rounded-2xl border border-line p-4">
@@ -31,7 +31,7 @@ export function AssessmentForm({ action, previous }: { action: (previous: Action
         {(control) => <textarea {...control} name="notes" rows={3} maxLength={2000} className={textareaCls} />}
       </Field>
       <FormResult result={result} />
-      <div>
+      <div className="save-bar flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className={BUTTON_CLS.primary}><ClipboardCheck size={16} aria-hidden /> {pending ? "Salvando…" : "Salvar a sondagem"}</button>
       </div>
     </form>

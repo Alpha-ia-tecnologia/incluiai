@@ -1,8 +1,10 @@
 "use client";
 
 import { useParams, useSelectedLayoutSegment } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 import { Sparkles, X } from "lucide-react";
+import { ASSISTANT_SLOT_ID } from "@/lib/landmarks";
 import type { ConversationDetail } from "@/lib/assistant/types";
 import { AssistantChat, type AssistantActivity } from "./assistant-chat";
 
@@ -15,6 +17,17 @@ const FAB_LABELS: Record<Activity, string> = {
   interrompida: "Abrir o assistente (a conexão caiu)",
 };
 const STUDENT_ROUTES = new Set(["estudantes", "familia"]);
+// Abaixo de 1024 px o botão fica na barra de cima (um só botão na página), e
+// não flutua sobre o conteúdo.
+const DOCKED = "(max-width: 1023px)";
+const watchDocked = (onChange: () => void) => {
+  const query = window.matchMedia(DOCKED);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const isDocked = () => window.matchMedia(DOCKED).matches;
+const noSlot = () => () => {};
+const findSlot = () => document.getElementById(ASSISTANT_SLOT_ID);
 const FAB_STATUS: Partial<Record<Activity, string>> = {
   pronto: "A resposta do assistente está pronta.",
   aviso: "O assistente não conseguiu responder. Abra o painel para ver o aviso.",
@@ -36,6 +49,8 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
   const fabRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const offPage = section === "assistente";
+  const docked = useSyncExternalStore(watchDocked, isDocked, () => false);
+  const slot = useSyncExternalStore(noSlot, findSlot, () => null);
   const studentId = section && STUDENT_ROUTES.has(section) && id ? id : null;
   // O botão some sem blur do React, então o nome guardado também é liberado aqui.
   if (offPage && open) setOpen(false);
@@ -89,34 +104,36 @@ export function AssistantPopup({ enabled, suggestions }: { enabled: boolean; sug
     if (href.startsWith("/assistente") || window.matchMedia("(max-width: 1023px)").matches) setOpen(false);
   };
 
+  const trigger = (
+    <>
+      <button
+        ref={fabRef}
+        type="button"
+        onClick={() => {
+          setMounted(true);
+          setOpen((value) => !value);
+          setActivity((value) => (value === "ocupado" ? value : "livre"));
+          setHeldActivity(activityRef.current === "ocupado" ? "ocupado" : "livre");
+        }}
+        onFocus={() => setHeldActivity(activityRef.current)}
+        onBlur={() => setHeldActivity(null)}
+        aria-expanded={open}
+        aria-controls="assistente-painel"
+        aria-label={open ? "Fechar o assistente" : FAB_LABELS[heldActivity ?? activity]}
+        className={`${docked ? "assistant-dock" : "assistant-fab"} print:hidden`}
+        data-compact={!docked && compact && !open ? "true" : undefined}
+      >
+        {open ? <X size={docked ? 20 : 22} aria-hidden /> : <Sparkles size={docked ? 20 : 22} aria-hidden />}
+        <span className="assistant-fab-label hidden sm:inline">{open ? "Fechar" : "Assistente"}</span>
+        {!open && activity !== "livre" ? <span className="assistant-fab-mark" data-activity={activity} aria-hidden="true" /> : null}
+      </button>
+      <p role="status" className="sr-only">{open ? "" : FAB_STATUS[activity] ?? ""}</p>
+    </>
+  );
+
   return (
     <>
-      {offPage ? null : (
-        <>
-          <button
-            ref={fabRef}
-            type="button"
-            onClick={() => {
-              setMounted(true);
-              setOpen((value) => !value);
-              setActivity((value) => (value === "ocupado" ? value : "livre"));
-              setHeldActivity(activityRef.current === "ocupado" ? "ocupado" : "livre");
-            }}
-            onFocus={() => setHeldActivity(activityRef.current)}
-            onBlur={() => setHeldActivity(null)}
-            aria-expanded={open}
-            aria-controls="assistente-painel"
-            aria-label={open ? "Fechar o assistente" : FAB_LABELS[heldActivity ?? activity]}
-            className="assistant-fab print:hidden"
-            data-compact={compact && !open ? "true" : undefined}
-          >
-            {open ? <X size={22} aria-hidden /> : <Sparkles size={22} aria-hidden />}
-            <span className="assistant-fab-label hidden sm:inline">{open ? "Fechar" : "Assistente"}</span>
-            {!open && activity !== "livre" ? <span className="assistant-fab-mark" data-activity={activity} aria-hidden="true" /> : null}
-          </button>
-          <p role="status" className="sr-only">{open ? "" : FAB_STATUS[activity] ?? ""}</p>
-        </>
-      )}
+      {offPage ? null : docked ? (slot ? createPortal(trigger, slot) : null) : trigger}
       {mounted ? (
         <div
           ref={panelRef}

@@ -212,9 +212,11 @@ export default async function ProfilePage({
             </div>
           </Card>
 
-          <button type="submit" className={BUTTON_CLS.primary}>
-            Salvar informações
-          </button>
+          <div className="save-bar flex flex-wrap items-center gap-3">
+            <button type="submit" className={BUTTON_CLS.primary}>
+              Salvar informações
+            </button>
+          </div>
         </div>
       </ActionForm>
     </>

@@ -303,7 +303,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
       ) : (
         <div className="dash-board">
-          <nav aria-label="Seções do painel" className="sticky top-0 z-20 -mx-1 mb-3.5 flex gap-1.5 overflow-x-auto rounded-full bg-surface-muted/95 p-1 backdrop-blur scrollbar-none print:hidden">
+          <nav aria-label="Seções do painel" className="sticky top-[var(--shell-top,0px)] z-20 -mx-1 mb-3.5 flex gap-1.5 overflow-x-auto rounded-full bg-surface-muted/95 p-1 backdrop-blur scrollbar-none print:hidden">
             {sections.map(([id, label]) => (
               <a key={id} href={`#${id}`} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-paper-raised/70 px-4 text-sm text-ink-soft transition-colors hover:bg-brand hover:text-white">{label}</a>
             ))}

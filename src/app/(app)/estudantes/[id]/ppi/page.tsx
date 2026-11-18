@@ -102,7 +102,9 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                 <label htmlFor="reviewDate" className={labelCls}>Quando a equipe vai revisar este plano? *</label>
                 <input id="reviewDate" name="reviewDate" type="date" required className={inputCls} />
               </div>
-              <button type="submit" className={BUTTON_CLS.primary}>Salvar plano e definir objetivos <ArrowRight size={16} aria-hidden /></button>
+              <div className="save-bar flex flex-wrap items-center gap-3">
+                <button type="submit" className={BUTTON_CLS.primary}>Salvar plano e definir objetivos <ArrowRight size={16} aria-hidden /></button>
+              </div>
             </div>
           </ActionForm>
         </Card>
@@ -314,9 +316,9 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <FilePen size={16} aria-hidden /> {missingTotal ? "Completar o PAEE e o PEI" : "Editar o PAEE e o PEI"}
             {missingTotal ? <Badge tone="mid">{missingTotal} a registrar</Badge> : null}
           </summary>
-          <ActionForm action={updateDocuments} className="mt-4 grid gap-5">
+          <ActionForm action={updateDocuments} className="mt-4 flex flex-col gap-5">
             <PlanDocumentFields idPrefix="editar" defaults={{ ...plan, aeeServices: plan.aeeServices ?? suggested.aeeServices ?? null, assessmentAccessibility: plan.assessmentAccessibility ?? suggested.assessmentAccessibility ?? null }} />
-            <div><PendingButton className={BUTTON_CLS.primary} pendingText="Salvando o PAEE e o PEI…"><CircleCheck size={16} aria-hidden /> Salvar o PAEE e o PEI</PendingButton></div>
+            <div className="save-bar flex flex-wrap items-center gap-3"><PendingButton className={BUTTON_CLS.primary} pendingText="Salvando o PAEE e o PEI…"><CircleCheck size={16} aria-hidden /> Salvar o PAEE e o PEI</PendingButton></div>
           </ActionForm>
         </details>
       ) : null}

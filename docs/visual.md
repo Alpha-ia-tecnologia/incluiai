@@ -134,6 +134,31 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
     a atualização depois da ação às vezes não chega à tela e o botão fica preso
     em "Preparando…".
 - **Avisos:** `PageHero standalone`, nas páginas de erro e de "não encontrado".
+- **Barra de salvar (`save-bar`, em `globals.css`):** na fileira de ações de um
+  formulário longo (um elemento só, com as próprias classes de layout). Enquanto
+  o formulário está na tela, ela fica presa no rodapé (no celular e no tablet,
+  no lugar da navegação de baixo; com o teclado aberto, logo acima dele) e
+  descansa no fim do formulário. Ela precisa estar num bloco ou numa coluna
+  flex: em item de grade o `sticky` não anda. Já usam: registro de aula, estudo
+  de caso, plano, "Como aprende" e sondagem.
+
+## Moldura no celular e no tablet
+
+Abaixo de 1024 px, a moldura cede o espaço ao conteúdo
+(`src/components/shell-bars.tsx` marca o `<html>`; as regras ficam em
+`globals.css`, "Moldura"):
+
+- **Barra de cima (56 px):** sai ao rolar para baixo e volta ao rolar para cima,
+  no topo da página, com o foco do teclado nela ou com um menu aberto. Tem o
+  Assistente, os avisos e o menu da conta. O que fica preso no topo do conteúdo
+  usa `top: var(--shell-top)` para descer junto quando ela aparece.
+- **Navegação de baixo:** com um campo do conteúdo em foco ou uma barra de
+  salvar presa, ela sai do caminho e a barra de salvar fica no lugar.
+- **Assistente:** na barra de cima (no computador, flutuante, e some no
+  formulário em uso).
+- **VLibras:** o botão do governo fica na ponta direita da navegação de baixo
+  (ou da barra de salvar), sem cobrir o conteúdo.
+- Nada recebe `aria-hidden`: o que sai fica focável e volta com o foco.
 
 ## Menos texto
 

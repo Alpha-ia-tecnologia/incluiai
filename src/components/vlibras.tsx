@@ -9,6 +9,7 @@ import { requestKind, translationBody, translationText, VLIBRAS_ROOT } from "@/l
 declare global {
   interface Window {
     VLibras?: { Widget: new (options: { rootPath: string }) => unknown };
+    VLibrasWidget?: { access?: HTMLElement };
     incluiLibrasGuard?: boolean;
   }
 }
@@ -44,6 +45,20 @@ function installGuard() {
   if (beacon) navigator.sendBeacon = (url, data) => (requestKind(String(url), "POST", location.origin) === "outro" ? beacon(url, data) : true);
 }
 
+// O botão do widget fica num shadow root com posição própria (meio da altura, à
+// direita). O estilo na própria tag vale sobre o do widget e lê variáveis do
+// globals.css ("Moldura"): no celular e no tablet o botão vai para o lugar
+// reservado na navegação de baixo e não cobre o conteúdo. Sem as variáveis,
+// fica onde o widget põe.
+function placeButton() {
+  const access = window.VLibrasWidget?.access ?? document.getElementById("vlibras-access-wrapper")?.shadowRoot?.getElementById("vlibras-access");
+  if (!access) return;
+  access.style.setProperty("top", "var(--vlibras-top, calc(50vh - 20px))");
+  access.style.setProperty("bottom", "var(--vlibras-bottom, auto)");
+  access.style.setProperty("right", "var(--vlibras-right, 10px)");
+  access.style.setProperty("transition", "var(--vlibras-transition, all .5s ease)");
+}
+
 export function VLibras() {
   useEffect(() => installGuard(), []);
   if (process.env.NEXT_PUBLIC_VLIBRAS === "0") return null;
@@ -54,6 +69,7 @@ export function VLibras() {
       onLoad={() => {
         installGuard();
         if (window.VLibras) new window.VLibras.Widget({ rootPath: VLIBRAS_ROOT });
+        placeButton();
       }}
     />
   );
