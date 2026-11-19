@@ -9,6 +9,10 @@ import { canAccessStudent, isFamilyOf, linkedStudentIds } from "./policy";
 import { can } from "./roles";
 import { ALERTS, objectiveTrend, studentAlerts, type StudentAlert } from "./insights";
 import { JOURNEY_STEPS, getStudentNextStep, journeyFacts } from "./student-journey";
+import { parseCaseStudy } from "./case-study";
+import { censusReference } from "./federal-guidance";
+import { recentRecord, type SchoolAlerts } from "./panel-overview";
+import { stepsFor } from "./support-steps";
 import { parseJson, splitItems, readList } from "./format";
 import { aiProviders } from "./agents/capabilities";
 import { usesAac } from "./pedagogy-rules";
@@ -43,26 +47,6 @@ export function periodStart(period: DashboardPeriod, now: Date): Date | null {
   if (period === "90d") return new Date(now.getTime() - 90 * DAY_MS);
   if (period === "ano") return monthStart(brYmd(now).year * 12);
   return null;
-}
-
-export function previousRange(period: DashboardPeriod, start: Date | null, now: Date): { from: Date; to: Date } | null {
-  if (!start) return null;
-  if (period === "ano") {
-    const year = brYmd(now).year - 1;
-    return { from: monthStart(year * 12), to: new Date(Date.UTC(year, now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes())) };
-  }
-  return { from: new Date(start.getTime() - (now.getTime() - start.getTime())), to: start };
-}
-
-export const GAUGES = {
-  jornada: "Jornada",
-  participacao: "Participação",
-  criterio: "Critério de sucesso",
-} as const;
-export type DashboardGauge = keyof typeof GAUGES;
-
-export function parseGauge(value: unknown): DashboardGauge {
-  return typeof value === "string" && Object.hasOwn(GAUGES, value) ? (value as DashboardGauge) : "jornada";
 }
 
 export type MonthState = "registro" | "sem_registro" | "aberto" | "recesso" | "antes" | "futuro";
@@ -136,13 +120,13 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const schoolId = network ? (schools.some((school) => school.id === requested) ? requested : null) : user.schoolId;
   const studentWhere = { status: "ativo", ...(schoolId ? { schoolId } : {}) };
 
-  const [students, classCount, users, accessByAction, actors, aiSends, proposals, images, resources, resourceActivities] = await Promise.all([
+  const [students, classCount, users, accessByAction, actors, proposals, images, resources, resourceActivities] = await Promise.all([
     prisma.student.findMany({
       where: studentWhere,
       orderBy: { name: "asc" },
       include: {
         school: { select: { name: true } },
-        caseStudy: { select: { status: true } },
+        caseStudy: { select: { status: true, content: true } },
         profile: { select: { expressiveChannel: true, barriers: true, sensoryProfile: true, readingSupport: true, writingSupport: true } },
         plans: { include: { objectives: true } },
         reports: { where: { status: "validado" }, select: { validatedAt: true } },
@@ -160,7 +144,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       .then((rows) => rows.map((row) => ({ role: row.role, schoolId: row.schoolId, studentIds: linkedStudentIds(row) }))),
     prisma.accessLog.groupBy({ by: ["action"], where: { student: studentWhere, createdAt }, _count: { _all: true } }),
     prisma.accessLog.findMany({ where: { student: studentWhere, createdAt, role: { not: AI_ACTOR.role } }, distinct: ["actor"], select: { actor: true } }),
-    prisma.accessLog.count({ where: { student: studentWhere, createdAt, actor: AI_ACTOR.name } }),
     prisma.accessLog.groupBy({ by: ["detail"], where: { student: studentWhere, createdAt, detail: { in: Object.values(PLAN_PROPOSAL_DETAIL) } }, _count: { _all: true } }),
     prisma.activityImage.count({ where: { activity: { student: studentWhere }, createdAt } }),
     prisma.resource.findMany({ select: { id: true, title: true, timesUsed: true, positiveOutcomes: true }, orderBy: [{ timesUsed: "desc" }, { title: "asc" }] }),
@@ -200,11 +183,46 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
   const periodFacts = students.map((student, index) => ({ ...facts[index], hasDiary: student.diaryEntries.some((entry) => inPeriod(entry.date)) }));
   const doneSteps = periodFacts.map((item) => JOURNEY_STEPS.filter((step) => step.done(item)).length);
 
-  const range = previousRange(period, start, now);
-  const previousEntries = range ? entries.filter((entry) => entry.date >= range.from && entry.date < range.to) : [];
-  const share = (list: typeof entries, test: (entry: (typeof entries)[number]) => boolean) => percent(list.filter(test).length, list.length);
-  const fullParticipation = (entry: (typeof entries)[number]) => entry.participation === "total";
-  const criterionMet = (entry: (typeof entries)[number]) => entry.criterionMet === "sim";
+  // Visão geral: cobertura, o que funciona e onde a ajuda é necessária.
+  const lastRecords = students.map((student) => student.diaryEntries.at(-1)?.date ?? null);
+  const backed = students.map((student) => censusReference(student.caseStudy && { status: student.caseStudy.status, content: parseCaseStudy(student.caseStudy.content) }, Boolean(activePlanOf(student))).backed);
+  const coverageSteps = JOURNEY_STEPS.map((step) => ({
+    key: step.key,
+    label: step.label,
+    done: step.key === "registro" ? lastRecords.filter((date) => recentRecord(date, now)).length : facts.filter((item) => step.done(item)).length,
+  }));
+  const pending = students
+    .map((student, index) => ({ student, next: nextSteps[index], complete: JOURNEY_STEPS.every((step) => step.done(facts[index])) }))
+    .filter(({ student, complete }) => !complete && visible(student))
+    .sort((a, b) => a.next.step - b.next.step || a.student.name.localeCompare(b.student.name, "pt-BR"))
+    .map(({ student, next }) => ({ id: student.id, name: student.name, className: student.className, school: student.school.name, next: { label: next.label, href: next.href } }));
+  const schoolAlerts = schools
+    .filter((school) => !schoolId || school.id === schoolId)
+    .map((school): SchoolAlerts & { withoutReference: number } => {
+      const indexes = students.flatMap((student, index) => (student.schoolId === school.id ? [index] : []));
+      const withKind = (kind: StudentAlert["kind"]) => indexes.filter((index) => alertsByStudent[index].alerts.some((alert) => alert.kind === kind)).length;
+      return {
+        id: school.id,
+        name: school.name,
+        students: indexes.length,
+        withAlerts: indexes.filter((index) => alertsByStudent[index].alerts.length > 0).length,
+        byKind: (Object.keys(ALERTS) as StudentAlert["kind"][]).map((kind) => ({ kind, value: withKind(kind) })).filter((row) => row.value > 0),
+        withoutReference: indexes.filter((index) => !backed[index]).length,
+      };
+    })
+    .filter((school) => school.students > 0);
+  const trendObjectives = activeObjectives.map(({ objective, student }) => {
+    const steps = stepsFor(objective, student.diaryEntries);
+    const latest = steps.lessons.at(-1);
+    return {
+      key: objective.id,
+      action: objective.action,
+      steps,
+      level: latest?.level ?? null,
+      participation: latest?.participation ?? null,
+      student: visible(student) ? { id: student.id, name: student.name } : null,
+    };
+  });
 
   const monthCounts = countBy(entries, (entry) => String(monthIndex(entry.date)));
   const todayIndex = monthIndex(now);
@@ -283,9 +301,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       objectivesInReview: objectives.filter(({ objective }) => objective.status === "em_revisao").length,
       reducedSupport: reduced,
       measurableObjectives: measurable.length,
-      reducedSupportPct: percent(reduced, measurable.length),
       records: periodEntries.length,
-      previousRecords: range ? previousEntries.length : null,
       studentsWithRecord,
       fullParticipation: participation.get("total") ?? 0,
       fullParticipationPct: percent(participation.get("total") ?? 0, periodEntries.length),
@@ -321,19 +337,17 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
           };
         }),
     },
+    questions: {
+      coverage: { steps: coverageSteps, censusBacked: backed.filter(Boolean).length, pending },
+      objectives: trendObjectives,
+      schools: schoolAlerts,
+    },
     journey: {
       steps: JOURNEY_STEPS.map((step) => ({
         key: step.key, label: step.label, step: step.step,
         done: periodFacts.filter((item) => step.done(item)).length,
-        here: nextSteps.filter((next) => next.step === step.step).length,
       })),
-      caseStudyDrafts: count((student) => student.caseStudy?.status === "rascunho"),
       completion: percent(doneSteps.reduce((sum, done) => sum + done, 0), JOURNEY_STEPS.length * total),
-      complete: doneSteps.filter((done) => done === JOURNEY_STEPS.length).length,
-    },
-    gauges: {
-      participacao: { value: share(periodEntries, fullParticipation), previous: share(previousEntries, fullParticipation), records: periodEntries.length },
-      criterio: { value: share(periodEntries, criterionMet), previous: share(previousEntries, criterionMet), records: periodEntries.length },
     },
     calendar: {
       years: calendarYears,
@@ -342,7 +356,6 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       gaps: calendarMonths.filter((month) => month.state === "sem_registro").length,
     },
     learning: {
-      advancing: trends.get("avancando") ?? 0,
       trends: labeledRows(trends, TREND),
       support: {
         objectives: withRecords.length,
@@ -398,9 +411,7 @@ export async function loadDashboard(user: SessionUser, options: { period: Dashbo
       planProposals: { ia: proposalCount(PLAN_PROPOSAL_DETAIL.ia), regras: proposalCount(PLAN_PROPOSAL_DETAIL.regras) },
       draftsPending: count((student) => !!student.planDraft),
       activities: sources.find((source) => source.source === "ia")!,
-      rulesActivities: sources.find((source) => source.source === "regras")!,
       images,
-      deepseekSends: aiSends,
     },
     profile: {
       withoutProfile: total - profiles.length,

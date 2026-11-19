@@ -132,12 +132,12 @@ await account("coordenacao", "coordenacao", async (page) => {
     await page.evaluate(() => [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Ler o arquivo"))?.click());
     if (await until(page, () => location.pathname.startsWith("/censo/importacoes/"), { timeout: 30000 })) censusPreview = new URL(page.url()).pathname;
   }
-  return [["censo", "/censo"], censusSchool && ["censo_escola", censusSchool], censusPreview && ["censo_previa", censusPreview], ["painel", "/painel"], ["dossie", "/dossie"], ["dossie_pendentes", "/dossie?filtro=pendentes"], ["cadastros", "/cadastros"], ["jornada", "/jornada"], ["estudantes", "/estudantes"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
+  return [["censo", "/censo"], censusSchool && ["censo_escola", censusSchool], censusPreview && ["censo_previa", censusPreview], ["painel", "/painel"], ...["objetivos", "aulas", "atividades", "perfil", "familia"].map((view) => [`painel_${view}`, `/painel?vista=${view}`]), ["dossie", "/dossie"], ["dossie_pendentes", "/dossie?filtro=pendentes"], ["cadastros", "/cadastros"], ["jornada", "/jornada"], ["estudantes", "/estudantes"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
 });
 
 await account("secretaria", "secretaria", async (page) => {
   const accountLink = await firstMatching(page, "/usuarios", /^\/usuarios\/(?!nova$)[^/?#]+$/);
-  return [["inicio", "/"], ["painel", "/painel"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["censo", "/censo"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
+  return [["inicio", "/"], ["painel", "/painel"], ["painel_equipe", "/painel?vista=equipe"], ["configuracao_ia", "/configuracao-ia"], ["avisos", "/avisos"], ["dossie", "/dossie"], ["censo", "/censo"], ["estudantes_importar", "/estudantes/importar"], ["usuarios", "/usuarios"], ["usuarios_nova", "/usuarios/nova"], accountLink && ["usuario", accountLink]];
 });
 
 await account("familia", "familia", async (page) => {

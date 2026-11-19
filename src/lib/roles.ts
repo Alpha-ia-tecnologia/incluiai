@@ -22,6 +22,7 @@ export type Capability =
   | "dossier"
   | "importCensus"
   | "configureCensus"
+  | "configureAi"
   | "seeNames"
   | "teamNotices"
   | "familyPortal"
@@ -65,7 +66,7 @@ const TABLE: Record<Role, RoleSpec> = {
   },
   secretaria: {
     label: "Secretaria de Educação", group: "rede",
-    can: ["pedagogical", "duaIndicators", "management", "adminTasks", "dossier", "configureCensus", "twoFactor"],
+    can: ["pedagogical", "duaIndicators", "management", "adminTasks", "dossier", "configureCensus", "configureAi", "twoFactor"],
     assigns: ["professor_sala", "professor_aee", "apoio", "coordenacao", "gestao", "secretaria"],
   },
   familia: {

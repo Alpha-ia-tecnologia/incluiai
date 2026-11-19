@@ -241,7 +241,7 @@ Uma paleta fria e contida: marinho e azul estruturam tudo, o azul-claro marca a�
 **Character:** Uma família só, humanista e legível em qualquer tamanho; a hierarquia vem do peso (títulos e números em negrito, com leve aperto de -0,015em) e do tamanho, nunca de uma segunda fonte.
 
 ### Hierarchy
-- **Display** (700, 56 px, 1): número em destaque, como o medidor do Painel.
+- **Display** (700, 56 px, 1): número em destaque.
 - **Headline** (700, 40 px, 1,12): título de página (h1) no computador; 24 a 32 px no celular, onde palavras longas como "Acompanhamento" não cabem a 40 px.
 - **Title** (500, 20 px): títulos de seção; 24 px para título de aba e número em anel, 32 px para número de cartão.
 - **Body Reading** (400, 16 px, 1,5): leitura corrida, títulos de cartão, menu lateral; até ~65ch.

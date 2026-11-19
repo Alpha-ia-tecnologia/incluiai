@@ -25,7 +25,7 @@ cartões brancos sobre um fundo cinza-azulado. Estas regras organizam o uso.
     `surface-ink-soft`, `surface-raised`, `surface-line`, `surface-good`,
     `action`, `action-hover`, `on-action`, `action-soft`, `action-ink`), e os
     componentes leem os papéis: `BUTTON_CLS.primary` e `.secondary`,
-    `task-action`, `pill-action`, `Assurances`, `HowToRead`, `PillLink` e
+    `task-action`, `Assurances`, `HowToRead`, `PillLink` e
     `TextSizeControl` ficam certos dentro do marinho sem nenhuma opção. O botão
     discreto (`quiet`) e os selos continuam claros.
   - Foco do teclado em azul-claro (o azul da marca some no marinho).
@@ -56,8 +56,7 @@ cartões brancos sobre um fundo cinza-azulado. Estas regras organizam o uso.
   - estado: lima, amarelo e laranja;
   - estado informativo (estável, aceita, realizado): azul-claro (`SIGNAL.cyan`).
   As cinco situações das pílulas (`StatusPill`) têm o mesmo peso: cor cheia e
-  texto escuro. O degradê (`rampColor`) é só do medidor de percentual do
-  Painel; a escala de apoio não usa degradê.
+  texto escuro. Nenhum gráfico usa degradê.
 - **Eixos que se explicam.** Num gráfico de apoio, os rótulos dizem a direção
   ("Independente" no alto, "mais autonomia" / "mais apoio" nas bordas); nada
   de legenda do tipo "subir é precisar de menos apoio".
@@ -79,7 +78,7 @@ Uma escala só, nada abaixo de 12 px:
 | `text-2xl` | 24 | título de aba, número em anel, título de página no celular (em negrito, palavras longas como "Acompanhamento" não cabem a 32 px) |
 | `text-3xl` | 32 | número de cartão, título no celular |
 | `text-4xl` | 40 | título de página |
-| `text-5xl` | 56 | número em destaque (medidor do Painel) |
+| `text-5xl` | 56 | número em destaque |
 
 - Sem `text-lg` e sem tamanhos arbitrários (`text-[15px]`).
 - Números com `tabular-nums`. A fonte mono só aparece em código.

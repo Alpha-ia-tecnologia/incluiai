@@ -29,7 +29,7 @@ const QUESTIONS = [
 export default async function PlanningListPage({ searchParams }: { searchParams: Promise<{ q?: string; meus?: string; reaproveitar?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!can(user.role, "planDua")) redirect(can(user.role, "duaIndicators") ? "/painel#dua" : "/");
+  if (!can(user.role, "planDua")) redirect(can(user.role, "duaIndicators") ? "/painel?vista=atividades#dua" : "/");
   const params = await searchParams;
   const query = (params.q ?? "").slice(0, 120);
   const mine = params.meus === "1";

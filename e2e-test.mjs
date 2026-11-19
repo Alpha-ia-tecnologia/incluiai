@@ -146,8 +146,77 @@ if (!ONLY_WAIT) {
     await page.goto(`${BASE}/painel`, { waitUntil: "networkidle2" });
     await settle(page);
     const h1 = await page.evaluate(() => document.querySelector("h1")?.textContent);
-    const scoped = await page.evaluate(() => !document.querySelector("#escola") && !document.querySelector("#equipe"));
-    check("professor vê só o painel da própria escola", h1 === "Painel de indicadores" && scoped, `h1=${h1}`);
+    const scoped = await page.evaluate(() => ({
+      select: Boolean(document.querySelector("#escola")),
+      team: Boolean(document.querySelector("#equipe")) || [...document.querySelectorAll('nav[aria-label="Vistas do painel"] a')].some((link) => link.textContent.trim() === "Equipe"),
+      help: document.querySelector("#atencao h2")?.textContent.trim(),
+    }));
+    check("professor vê só o painel da própria escola", h1 === "Painel de indicadores" && !scoped.select && !scoped.team && scoped.help === "Estudantes que precisam de ajuda", `h1=${h1} ${JSON.stringify(scoped)}`);
+    await ctx.close();
+  });
+
+  await section("painel: visão geral em três perguntas e abas que trocam de vista", async () => {
+    const { ctx, page, errors } = await newSession();
+    await page.setViewport({ width: 1280, height: 900 });
+    await login(page, "coordenacao");
+    await page.goto(`${BASE}/painel`, { waitUntil: "networkidle2" });
+    const overview = await page.evaluate(() => {
+      const sections = [...document.querySelectorAll("main section[id]")].filter((item) => ["cobertura", "funciona", "atencao"].includes(item.id));
+      return {
+        order: sections.map((item) => item.id).join(),
+        titles: sections.map((item) => item.querySelector("h2")?.textContent.trim()).join("|"),
+        leads: sections.map((item) => /\d+ de \d+/.test(item.querySelector("h2 + p")?.textContent ?? "")),
+        totals: ["cobertura", "atencao"].map((id) => document.querySelector(`#${id} h2 + p`)?.textContent.match(/de (\d+)/)?.[1]),
+        students: document.querySelector('[data-testid="total-estudantes"]')?.textContent.match(/\d+/)?.[0],
+        steps: document.querySelector('#funciona [data-trend-steps] [role="img"]')?.getAttribute("aria-label") ?? "",
+        squares: document.querySelectorAll('#funciona [data-trend-steps] [role="img"] .size-full').length,
+        flagged: [...document.querySelectorAll("#atencao li")].map((item) => item.textContent),
+        current: document.querySelector('nav[aria-label="Vistas do painel"] [aria-current="page"]')?.textContent.trim(),
+        cards: document.querySelectorAll("main .dash-card").length,
+      };
+    });
+    check("painel: a visão geral responde, nesta ordem, cobertura, o que funciona e quem precisa de ajuda", overview.order === "cobertura,funciona,atencao" && overview.titles === "Cobertura|O que funciona|Estudantes que precisam de ajuda" && overview.leads.every(Boolean) && overview.current === "Visão geral" && overview.cards === 3, JSON.stringify(overview));
+    check("painel: o que funciona mostra os objetivos em degraus, agrupados pela tendência", overview.steps.includes("objetivos em acompanhamento") && overview.squares > 0, overview.steps);
+    check("painel: quem precisa de ajuda lista só estudantes com aviso", overview.flagged.every((text) => text.includes("aviso")), JSON.stringify(overview.flagged));
+    check("painel: cobertura e ajuda contam sobre o mesmo total de estudantes do recorte", overview.totals.every((value) => value && value === overview.students), JSON.stringify({ totals: overview.totals, students: overview.students }));
+
+    const tabs = await page.$$eval('nav[aria-label="Vistas do painel"] a', (links) => links.map((link) => ({ label: link.textContent.trim(), href: link.getAttribute("href") })));
+    const opened = [];
+    for (const tab of tabs) {
+      await page.goto(`${BASE}${tab.href}`, { waitUntil: "networkidle2" });
+      opened.push(await page.evaluate((label) => ({
+        label,
+        current: document.querySelector('nav[aria-label="Vistas do painel"] [aria-current="page"]')?.textContent.trim(),
+        title: document.querySelector("main h2")?.textContent.trim() ?? "",
+        view: new URLSearchParams(location.search).get("vista"),
+      }), tab.label));
+    }
+    check("painel: cada aba abre uma vista pelo próprio endereço", tabs.length === 7 && opened.every((item) => item.current === item.label && item.title) && opened[0].view === null && opened.slice(1).every((item) => item.view), JSON.stringify(opened));
+    await page.goto(`${BASE}/painel#aulas`, { waitUntil: "networkidle2" });
+    check("painel: endereço antigo com âncora abre a vista que tem a seção", await until(page, () => new URLSearchParams(location.search).get("vista") === "aulas" && location.hash === "#aulas" && Boolean(document.querySelector("#aulas")), { timeout: 10000 }), page.url());
+
+    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    const phone = { scrolls: [], small: [] };
+    for (const tab of tabs) {
+      await page.goto(`${BASE}${tab.href}`, { waitUntil: "networkidle2" });
+      const found = await page.evaluate(() => {
+        const nav = document.querySelector('nav[aria-label="Vistas do painel"]');
+        const small = [...document.querySelectorAll("main a[href], main button, main select, main summary, main input:not([type=hidden])")]
+          .filter((element) => element.checkVisibility({ visibilityProperty: true }) && !element.closest(".sr-only"))
+          .map((element) => [element, element.getBoundingClientRect()])
+          .filter(([, box]) => box.width < 44 || box.height < 44)
+          .map(([element, box]) => `${Math.round(box.width)}x${Math.round(box.height)} ${(element.getAttribute("aria-label") || element.textContent).trim().slice(0, 30)}`);
+        return { scrolls: nav.scrollWidth > nav.clientWidth || document.documentElement.scrollWidth > innerWidth, small };
+      });
+      if (found.scrolls) phone.scrolls.push(tab.label);
+      phone.small.push(...found.small.map((item) => `${tab.label}: ${item}`));
+    }
+    check("painel no celular: as abas quebram linha, nada rola de lado", phone.scrolls.length === 0, phone.scrolls.join(", "));
+    check("painel no celular: todo alvo com 44 px", phone.small.length === 0, phone.small.join(" | "));
+
+    await page.goto(`${BASE}/configuracao-ia`, { waitUntil: "networkidle2" });
+    check("configuração da IA: fechada para quem não pode mudar", new URL(page.url()).pathname === "/" && !(await page.$('a[href="/configuracao-ia"]')), page.url());
+    check("painel sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   });
   await section("família e terapeuta bloqueados", async () => {
@@ -563,9 +632,25 @@ if (!ONLY_WAIT) {
     check("endereço antigo do painel municipal redireciona", page.url().endsWith("/painel"), page.url());
     await page.goto(`${BASE}/painel?periodo=tudo`, { waitUntil: "networkidle2" });
     const body = await page.evaluate(() => document.body.innerText);
-    check("painel: indicadores da rede", body.includes("Jornada do acompanhamento") && body.includes("Toda a rede") && Boolean(await page.$('nav[aria-label="Indicador do medidor"]')));
-    check("painel: banco de práticas agregado", body.toLowerCase().includes("banco de práticas por perfil"));
-    check("secretaria: painel sem nomes, com avisos por escola", body.includes("Avisos por escola") && !body.includes(DANTE));
+    check("painel: a rede em três perguntas", ["Cobertura", "O que funciona", "Escolas que precisam de ajuda"].every((title) => body.includes(title)) && body.includes("Toda a rede"));
+    check("secretaria: painel sem nomes, com avisos por escola", body.includes("Números por escola, sem nomes") && !body.includes(DANTE));
+    const views = await page.$$eval('nav[aria-label="Vistas do painel"] a', (links) => links.map((link) => link.getAttribute("href")));
+    const leaks = [];
+    for (const href of views) {
+      await page.goto(`${BASE}${href}`, { waitUntil: "networkidle2" });
+      const text = await contentText(page);
+      const found = [DANTE, RAVI, DEMO_STUDENTS.livia.name, "Claude", "DeepSeek", "OpenAI"].filter((word) => text.includes(word));
+      if (found.length) leaks.push(`${href}: ${found.join(", ")}`);
+    }
+    check("secretaria: nenhuma vista do painel mostra nome de estudante nem fornecedor de IA", views.length === 7 && leaks.length === 0, leaks.join(" | ") || `${views.length} vistas`);
+    await page.goto(`${BASE}/painel?vista=perfil&periodo=tudo`, { waitUntil: "networkidle2" });
+    check("painel: banco de práticas agregado", (await contentText(page)).toLowerCase().includes("banco de práticas por perfil"));
+    const aiLink = Boolean(await page.$('a[href="/configuracao-ia"]'));
+    await page.goto(`${BASE}/configuracao-ia`, { waitUntil: "networkidle2" });
+    const settings = await contentText(page);
+    check("configuração da IA: a Secretaria abre pelo menu e vê os serviços", aiLink && ["Claude", "DeepSeek", "OpenAI"].every((name) => settings.includes(name)) && settings.includes("Não configurado"), settings.slice(0, 200));
+    await page.goto(`${BASE}/planejamento`, { waitUntil: "networkidle2" });
+    check("secretaria: o planejamento leva aos indicadores do DUA no painel", new URL(page.url()).searchParams.get("vista") === "atividades" && Boolean(await page.$("#dua")), page.url());
     await page.goto(`${BASE}/estudantes`, { waitUntil: "networkidle2" });
     check("secretaria: lista de estudantes só com busca", !(await textOf(page)).includes(DANTE));
     await page.goto(`${BASE}/estudantes?q=${encodeURIComponent(DANTE.slice(0, 3))}`, { waitUntil: "networkidle2" });
@@ -1364,7 +1449,7 @@ if (!ONLY_WAIT) {
 
     const coord = await newSession();
     await login(coord.page, "coordenacao");
-    await coord.page.goto(`${BASE}/painel`, { waitUntil: "networkidle2" });
+    await coord.page.goto(`${BASE}/painel?vista=objetivos`, { waitUntil: "networkidle2" });
     check("BNCC: painel conta objetivos por componente", (await textOf(coord.page)).includes("Objetivos por componente da BNCC"));
     await coord.ctx.close();
   });

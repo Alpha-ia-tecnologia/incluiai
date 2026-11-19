@@ -5,7 +5,7 @@ export type NavigationItem = {
   href: string;
   label: string;
   shortLabel: string;
-  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help" | "evidence" | "census" | "games";
+  icon: "home" | "students" | "planning" | "journey" | "assistant" | "resources" | "calendar" | "network" | "schools" | "accounts" | "family" | "care" | "help" | "evidence" | "census" | "games" | "ai";
   exact?: boolean;
   section?: "routine" | "management" | "help";
 };
@@ -54,5 +54,6 @@ export function getNavigation(role: string, studentIds: string[] = []): Navigati
   if (can(role, "importCensus") || can(role, "configureCensus")) links.push({ href: "/censo", label: "Censo Escolar", shortLabel: "Censo", icon: "census", section: "management" });
   if (can(role, "management")) links.push({ href: "/cadastros", label: "Escolas e turmas", shortLabel: "Cadastros", icon: "schools", section: "management" });
   if (isAccountManager(role)) links.push({ href: "/usuarios", label: "Pessoas e acessos", shortLabel: "Acessos", icon: "accounts", section: "management" });
+  if (can(role, "configureAi")) links.push({ href: "/configuracao-ia", label: "Configuração da IA", shortLabel: "IA", icon: "ai", section: "management" });
   return [...links, help];
 }

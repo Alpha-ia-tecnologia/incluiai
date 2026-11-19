@@ -340,7 +340,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
       why: "Sem objetivo combinado, não há como acompanhar o avanço.",
       done: total > 0 && withPlan === total, progress: ratio(withPlan, total),
       evidence: `${withPlan} de ${plural(total, "estudante", "estudantes")} com plano e objetivo.`,
-      action: { label: "Ver quem ainda não tem plano", href: "/painel#atencao" },
+      action: { label: "Ver quem ainda não tem plano", href: "/painel#cobertura" },
     },
     {
       key: "revisao", tone: "rose", title: "Manter os planos revisados no prazo",
@@ -356,7 +356,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
       why: "Queda no ritmo de registros costuma anteceder o abandono do acompanhamento.",
       done: total > 0 && recorded === total, progress: ratio(recorded, total),
       evidence: `${recorded} de ${plural(total, "estudante", "estudantes")} com aula registrada nos últimos ${RECENT_DAYS} dias.`,
-      action: { label: "Ver o ritmo de registros", href: "/painel#aulas" },
+      action: { label: "Ver o ritmo de registros", href: "/painel?vista=aulas" },
     },
     {
       key: "rede", tone: "teal", title: "Aproximar a família e a saúde",
@@ -364,7 +364,7 @@ async function schoolJourney(user: SessionUser, marks: Marks): Promise<Journey> 
       why: "O que acontece fora da escola completa o que a equipe vê na sala.",
       done: total > 0 && connected === total, progress: ratio(connected, total),
       evidence: `${connected} de ${plural(total, "estudante", "estudantes")} com participação da família ou da saúde.`,
-      action: { label: "Ver família e rede de apoio", href: "/painel#familia" },
+      action: { label: "Ver família e rede de apoio", href: "/painel?vista=familia" },
     },
     {
       key: "calendario", tone: "lilac", title: "Celebrar as datas inclusivas",
@@ -441,7 +441,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
       why: "O plano é a base para medir o avanço sem depender de nota.",
       done: total > 0 && withPlan === total, progress: ratio(withPlan, total),
       evidence: `${withPlan} de ${plural(total, "estudante", "estudantes")} da rede com plano e objetivo.`,
-      action: { label: "Ver no painel", href: "/painel#atencao" },
+      action: { label: "Ver no painel", href: "/painel#cobertura" },
     },
     {
       key: "caa", tone: "rose", title: "Garantir recursos de comunicação",
@@ -449,7 +449,7 @@ async function networkJourney(user: SessionUser, marks: Marks): Promise<Journey>
       why: "Sem o recurso certo, o estudante fica sem voz na aula.",
       done: caa.length === caaReady, progress: caa.length ? ratio(caaReady, caa.length) : null,
       evidence: caa.length ? `${caaReady} de ${plural(caa.length, "estudante", "estudantes")} com comunicação alternativa têm recursos registrados.` : "Nenhum estudante com comunicação alternativa registrado.",
-      action: { label: "Ver o perfil dos estudantes", href: "/painel#perfil" },
+      action: { label: "Ver o perfil dos estudantes", href: "/painel?vista=perfil" },
     },
     {
       key: "recursos", tone: "teal", title: "Fortalecer o banco de práticas",

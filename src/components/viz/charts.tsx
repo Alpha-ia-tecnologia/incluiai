@@ -21,16 +21,6 @@ export const TONE_CLASSES: Record<Tone, string> = {
   info: "bg-accent-sky text-ink-strong",
 };
 
-const RAMP: [number, string][] = [[0, SIGNAL.orange], [0.55, SIGNAL.yellow], [1, SIGNAL.lime]];
-
-export function rampColor(t: number): string {
-  const index = Math.max(1, RAMP.findIndex(([at]) => at >= t));
-  const [fromAt, from] = RAMP[index - 1];
-  const [toAt, to] = RAMP[index];
-  const local = toAt === fromAt ? 0 : (t - fromAt) / (toAt - fromAt);
-  return `color-mix(in oklab, ${to} ${Math.round(local * 100)}%, ${from})`;
-}
-
 export type ChartSegment = { key: string; label: string; value: number; color: string };
 
 export const withSegmentColors = (rows: ReadonlyArray<{ key: string; label: string; value: number; tone: Tone }>): ChartSegment[] =>

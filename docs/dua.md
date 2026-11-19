@@ -11,7 +11,7 @@ Este documento diz o que foi feito, para quem, onde está e como cada requisito 
 | Professor(a) da sala comum e do AEE | Planeja, edita, valida para aplicação, aplica e registra evidências. |
 | Profissional de apoio | Planeja e colabora, mas **não valida**: validar é uma decisão pedagógica. |
 | Coordenação e gestão | Tudo o que o professor faz nos planejamentos da escola. Também compartilha, define colaboradores e vê os indicadores. |
-| Secretaria | Só os indicadores do painel. Quem abre `/planejamento` vai para `/painel#dua`. |
+| Secretaria | Só os indicadores do painel. Quem abre `/planejamento` vai para `/painel?vista=atividades#dua`. |
 | Família e terapeuta | Não acessam o DUA: nem planejamentos, nem apoios, nem evidências. |
 
 Quem lê um planejamento:
@@ -35,7 +35,7 @@ Fora desse recorte, a resposta é "não encontrado". A permissão é conferida a
   - passo Atividade, vista "Planejar com DUA" (`/estudantes/[id]/atividades/dua`; o endereço antigo `/dua` redireciona): planejar a participação numa atividade, ver apoios, evidências e próximos passos;
   - aba "Atendimentos AEE" (`/estudantes/[id]/atendimentos-aee`): frequência do AEE;
   - a linha do tempo mostra as evidências e a frequência.
-- **Painel** (`/painel#dua`): "Planejamento com DUA — uso e documentação", para coordenação, gestão e secretaria.
+- **Painel** (`/painel?vista=atividades#dua`, na vista Atividades): "Planejamento com DUA — uso e documentação", para coordenação, gestão e secretaria.
 - **Assistente**: a ferramenta `proximos_passos_dua` traz os próximos passos de um estudante, cada um com a base usada e o que falta observar.
 
 Código: regras puras em `src/lib/dua/domain.ts`, `access.ts` e `checks.ts`. Dados em `src/lib/dua/*.ts`, ações em `src/actions/dua.ts` e telas em `src/components/dua/`.
@@ -121,7 +121,6 @@ Testes: `npm run test:unit` (unitários, `src/lib/**/*.test.mjs`) e `npm run tes
   - linha do tempo;
   - plano de ensino.
 - **320 px:** nenhuma dessas telas tem rolagem horizontal.
-- **Fora do DUA:** no `/painel`, o axe aponta uma região rolável sem foco (`#jornada`, `overflow-x-auto`). Ela já existia antes do DUA.
 
 ## Banco de dados
 

@@ -12,7 +12,7 @@ test("menu de cada perfil", () => {
   assert.equal(menu("professor_aee"), `${routine} /painel /dossie /ajuda`);
   assert.equal(menu("coordenacao"), `${routine} ${management}`);
   assert.equal(menu("gestao"), `${routine} ${management}`);
-  assert.equal(menu("secretaria"), `/ /estudantes /jornada /assistente /recursos /calendario ${management}`);
+  assert.equal(menu("secretaria"), `/ /estudantes /jornada /assistente /recursos /calendario ${management.replace(" /ajuda", " /configuracao-ia* /ajuda")}`);
   assert.equal(menu("familia", ["a"]), "/familia/a /jornada /assistente /calendario /ajuda");
   assert.equal(menu("familia", ["a", "b"]), "/familia /jornada /assistente /calendario /ajuda");
   assert.equal(menu("terapeuta", ["a"]), "/terapeuta /jornada /assistente /calendario /ajuda");

@@ -1,138 +1,23 @@
-import { REASSESS_WEEKS, smallNumber } from "@/lib/assessment";
 import Link from "next/link";
-import { recordJourneyMark } from "@/lib/user-journey";
 import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
-import { ArrowRight, ArrowUpRight, CalendarDays, Check, CircleSlash, Lightbulb, Scale, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
+import { recordJourneyMark } from "@/lib/user-journey";
 import { getCurrentUser } from "@/lib/auth";
-import { AUDIT_ACTION } from "@/lib/audit";
-import {
-  GAUGES, PERIODS, loadDashboard, parseGauge, parsePeriod,
-  type DashboardGauge, type DashboardPeriod,
-} from "@/lib/dashboard";
-import { supportInfo, shortOf } from "@/lib/scale";
-import { ALERTS, PLAN_MISSING } from "@/lib/insights";
-import { can, roleLabel } from "@/lib/roles";
-import { decimal, firstName, plural } from "@/lib/format";
-import { CALENDAR_THEMES, relativeLabel, upcomingEvents } from "@/lib/commemorative-dates";
-import { MONTH_SHORT, brYmd, formatDate, formatDateNumeric, formatDateShort, formatDateTime, monthKey } from "@/lib/dates";
+import { PERIODS, loadDashboard, parsePeriod, type DashboardPeriod } from "@/lib/dashboard";
+import { can } from "@/lib/roles";
+import { plural } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/dates";
 import { duaIndicators } from "@/lib/dua/indicators";
-import { AI_BLOCK_DECISION } from "@/lib/dua/domain";
+import { LEGACY_ANCHORS, panelViews, parseView, type PanelView } from "@/lib/panel-overview";
 import { EmptyState } from "@/components/ui";
 import { BUTTON_CLS } from "@/components/form-styles";
-import { Assurances, HowToRead } from "@/components/explain";
-import { BarList, type ChartSegment, ColumnChart, HatchedDonut, Legend, Meter, RingStat, SIGNAL, ShareRing, StackedBar, StatusPill, TONE_CLASSES, TONE_COLOR, withSegmentColors } from "@/components/viz/charts";
-import { StatTile } from "@/components/viz/cards";
-import { SCALE_MARKER, SupportScale } from "@/components/viz/student-viz";
-import { HatchedGauge, MonthGrid, TrendBadge } from "./charts";
-import type { Tone } from "@/lib/scale";
-import { Character } from "@/components/character";
 import { PrintButton } from "@/components/print-button";
+import { LegacyAnchor } from "./legacy-anchor";
+import { Overview } from "./overview";
+import { ActivitiesView, FamilyView, LessonsView, ObjectivesView, ProfileView, TeamView } from "./views";
 
-const ACCESS_LABELS: Record<string, string> = { [AUDIT_ACTION.viewed]: "Consultas", [AUDIT_ACTION.created]: "Inclusões", [AUDIT_ACTION.edited]: "Alterações", [AUDIT_ACTION.sent]: "Envios à IA de reserva (DeepSeek)" };
+const PERIOD_SHORT: Record<DashboardPeriod, string> = { "30d": "30 dias", "90d": "90 dias", ano: "Este ano", tudo: "Todo o histórico" };
 
-const oneDecimal = (value: number) => Math.round(value * 10) / 10;
-const pointsDelta = (gauge: { value: number | null; previous: number | null }) => (gauge.value !== null && gauge.previous !== null ? gauge.value - gauge.previous : null);
-const pointsText = (delta: number) => `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)} ${Math.abs(delta) === 1 ? "ponto" : "pontos"}`;
-
-function CardHeader({ title, hint, help, href, linkLabel }: { title: string; hint?: string; help?: ReactNode; href?: string; linkLabel?: string }) {
-  return (
-    <div className="mb-4 flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <h3 className="text-base font-medium tracking-tight text-ink">{title}</h3>
-        {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
-        {help ? <HowToRead>{help}</HowToRead> : null}
-      </div>
-      {href ? <Link href={href} className="circle-link" aria-label={linkLabel ?? `Abrir ${title.toLowerCase()}`}><ArrowUpRight size={16} aria-hidden /></Link> : null}
-    </div>
-  );
-}
-
-function Section({ id, title, description, help, note, children }: { id: string; title: string; description?: string; help?: ReactNode; note?: ReactNode; children: ReactNode }) {
-  return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-10 scroll-mt-20">
-      <div className="mb-3.5 px-1">
-        <h2 id={`${id}-titulo`} className="font-display text-xl font-medium tracking-tight text-ink sm:text-2xl">{title}</h2>
-        {description ? <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-soft">{description}</p> : null}
-        {note ? <div className="mt-2">{note}</div> : null}
-        {help ? <HowToRead>{help}</HowToRead> : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function CountList({ label, labelledBy, items }: { label?: string; labelledBy?: string; items: { key: string; value: number; label: string; tone: Tone }[] }) {
-  return (
-    <ul aria-label={labelledBy ? undefined : label} aria-labelledby={labelledBy} className="flex min-w-0 flex-wrap gap-1.5">
-      {items.map((item) => (
-        <li key={item.key} className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-full bg-surface-muted/70 py-1 pl-1 pr-3 text-xs text-ink">
-          <span className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-1.5 text-sm font-semibold tabular-nums ${TONE_CLASSES[item.tone]}`}>{item.value}</span>
-          <span className="min-w-0">{item.label}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-type FactorTrend = { delta: number | null; better: "up" | "down"; caption: string };
-type Factor = { title: string; value: ReactNode; tone: Tone; status: string; text: string; href: string; trend?: FactorTrend };
-
-function FactorCard({ title, value, tone, status, text, href, trend }: Factor) {
-  return (
-    <article className="dash-card flex min-w-0 flex-col !p-4">
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium leading-snug text-ink">{title}</h3>
-        <Link href={href} className="circle-link !size-8" aria-label={`Ver detalhes: ${title}`}><ArrowUpRight size={15} aria-hidden /></Link>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink">{value}</p>
-        <StatusPill tone={tone}>{status}</StatusPill>
-      </div>
-      <p className="mt-2.5 text-xs leading-relaxed text-ink-soft">{text}</p>
-      {trend && trend.delta !== null ? (
-        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-snug text-ink-soft">
-          <TrendBadge delta={trend.delta} better={trend.better} text={pointsText(trend.delta)} />
-          <span className="min-w-0">{trend.caption}</span>
-        </p>
-      ) : null}
-    </article>
-  );
-}
-
-function AiStat({ label, value, detail, wide = false, children }: { label: string; value: ReactNode; detail?: string; wide?: boolean; children?: ReactNode }) {
-  return (
-    <div className={`min-w-0 rounded-2xl bg-surface-muted/70 p-3.5 ${wide ? "col-span-2" : ""}`}>
-      <dt className="text-xs leading-snug text-ink-soft">{label}</dt>
-      <dd className="mt-1.5 font-display text-2xl font-semibold leading-none tracking-tight text-ink tabular-nums">{value}</dd>
-      {detail ? <dd className="mt-1 text-xs leading-snug text-ink-soft">{detail}</dd> : null}
-      {children ? <dd className="mt-2">{children}</dd> : null}
-    </div>
-  );
-}
-
-function DuaIndicatorCard({ ringId, label, definition, unit, numerator, denominator, value, noBaseText }: {
-  ringId: string; label: string; definition: string; unit: string; numerator: number; denominator: number; value: number | null; noBaseText: string;
-}) {
-  return (
-    <article className="dash-card flex min-w-0 flex-col">
-      <CardHeader title={label} help={definition} />
-      <div className="flex min-w-0 items-center gap-4">
-        <div aria-hidden className="shrink-0">
-          <RingStat id={ringId} value={value} label={label} size={64}><span /></RingStat>
-        </div>
-        <div className="min-w-0">
-          {value === null
-            ? <p className="text-sm font-medium leading-snug text-ink-soft">{noBaseText}</p>
-            : <p className="font-display text-3xl font-bold leading-none tracking-tight text-ink">{decimal(value)}%</p>}
-          <p className="mt-2 text-sm text-ink">{numerator} de {denominator} {unit}</p>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periodo?: string; escola?: string; indicador?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periodo?: string; escola?: string; vista?: string }> }) {
   const filters = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -140,692 +25,96 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   await recordJourneyMark(user.id, "painel");
 
   const period = parsePeriod(filters.periodo);
-  const gaugeKey = parseGauge(filters.indicador);
   const data = await loadDashboard(user, { period, school: filters.escola });
-  const { scope, overview: o, attention: a, journey: j, gauges: g, calendar: cal, learning: l, records: r, activities: act, ai, profile: p, family: f, resources: res, team } = data;
-  const dua = await duaIndicators(user, { start: scope.start, now: scope.now, schoolId: scope.schoolId, schoolName: scope.schoolName });
+  const { scope, overview: o } = data;
+  const views = panelViews({ network: scope.network });
+  const view = parseView(filters.vista, { network: scope.network });
+  const dua = view === "atividades" ? await duaIndicators(user, { start: scope.start, now: scope.now, schoolId: scope.schoolId, schoolName: scope.schoolName }) : null;
   const periodText = PERIODS[period].toLowerCase();
-  const today = brYmd(scope.now);
-  const upcomingDates = upcomingEvents(today).slice(0, 4);
-  const updatedAt = formatDateTime(scope.now);
 
-  const href = (changes: { periodo?: DashboardPeriod; indicador?: DashboardGauge }) => {
+  const href = (changes: { periodo?: DashboardPeriod; vista?: PanelView }) => {
     const params = new URLSearchParams();
     const periodo = changes.periodo ?? period;
-    const indicador = changes.indicador ?? gaugeKey;
+    const vista = changes.vista ?? view;
+    if (vista !== "geral") params.set("vista", vista);
     if (periodo !== "ano") params.set("periodo", periodo);
     if (scope.network && scope.schoolId) params.set("escola", scope.schoolId);
-    if (indicador !== "jornada") params.set("indicador", indicador);
     const query = params.toString();
     return query ? `/painel?${query}` : "/painel";
   };
 
-  const gauge = (() => {
-    if (gaugeKey === "jornada") {
-      return {
-        value: j.completion,
-        pill: { tone: (j.complete > 0 ? "good" : "neutral") as Tone, text: `${j.complete} de ${o.students} completos` },
-        context: `5 etapas por estudante · ${periodText}`,
-        definition: "Média das 5 etapas concluídas por estudante: estudo de caso, perfil, plano com objetivo, atividade preparada e aula registrada no período.",
-      };
-    }
-    const current = g[gaugeKey];
-    const delta = pointsDelta(current);
-    const pill = current.value === null ? { tone: "neutral" as Tone, text: "Sem registros" }
-      : delta === null ? { tone: "neutral" as Tone, text: period === "tudo" ? "Todo o histórico" : "Sem comparação" }
-        : delta > 0 ? { tone: "good" as Tone, text: `▲ ${delta} pts` }
-          : delta < 0 ? { tone: "alert" as Tone, text: `▼ ${Math.abs(delta)} pts` }
-            : { tone: "neutral" as Tone, text: "= Estável" };
-    return {
-      value: current.value,
-      pill,
-      deltaText: delta === null ? (current.value === null ? null : "não há registros no período anterior para comparar") : `${Math.abs(delta)} pontos ${delta >= 0 ? "a mais" : "a menos"} que no período anterior`,
-      context: `${plural(current.records, "registro", "registros")} de aula · ${periodText}`,
-      definition: gaugeKey === "participacao"
-        ? "Parte dos registros de aula em que o estudante participou plenamente."
-        : "Parte dos registros de aula em que o critério de sucesso do objetivo foi atingido.",
-    };
-  })();
-  const scopePhrase = scope.schoolName ? (scope.network ? `da ${scope.schoolName}` : "da sua escola") : "da rede";
-
-  const recordShare = o.students ? o.studentsWithRecord / o.students : 0;
-  const factors: Factor[] = [
-    {
-      title: "Plano individual", value: `${o.planCoverage ?? 0}%`,
-      tone: (o.planCoverage ?? 0) >= 80 ? "good" : "alert", status: (o.planCoverage ?? 0) >= 80 ? "Em dia" : "Atenção",
-      text: `${o.withActivePlan} de ${o.students} estudantes com plano ativo`, href: "#atencao",
-    },
-    {
-      title: "Redução de apoio", value: o.reducedSupportPct === null ? "—" : `${o.reducedSupportPct}%`,
-      tone: o.reducedSupportPct === null ? "neutral" : o.reducedSupportPct >= 50 ? "good" : o.reducedSupportPct > 0 ? "mid" : "alert",
-      status: o.reducedSupportPct === null ? "Sem dados" : o.reducedSupportPct >= 50 ? "Avançando" : o.reducedSupportPct > 0 ? "Em progresso" : "Atenção",
-      text: `${o.reducedSupport} de ${o.measurableObjectives} objetivos já pedem menos apoio`, href: "#objetivos",
-    },
-    {
-      title: "Registros de aula", value: o.records,
-      tone: recordShare === 1 ? "good" : recordShare >= 0.5 ? "mid" : "alert", status: recordShare === 1 ? "Em dia" : recordShare >= 0.5 ? "Parcial" : "Atenção",
-      text: `${o.studentsWithRecord} de ${o.students} estudantes com registro · ${periodText}`, href: "#aulas",
-      trend: { delta: o.previousRecords === null ? null : o.records - o.previousRecords, better: "up", caption: "registros vs. período anterior" },
-    },
-    {
-      title: "Objetivos", value: o.activeObjectives,
-      tone: o.achievedObjectives > 0 ? "good" : "neutral", status: o.achievedObjectives > 0 ? `${o.achievedObjectives} alcançados` : "Em andamento",
-      text: `em acompanhamento · ${o.objectivesInReview} em revisão`, href: "#objetivos",
-      trend: { delta: pointsDelta(g.criterio), better: "up", caption: "critério atingido vs. período anterior" },
-    },
-    {
-      title: "Atividades", value: o.preparedActivities,
-      tone: o.pendingSuggestions > 0 ? "mid" : "good", status: o.pendingSuggestions > 0 ? `${o.pendingSuggestions} para avaliar` : "Em dia",
-      text: `preparadas para usar · ${periodText}`, href: "#atividades",
-    },
-    {
-      title: "Família", value: f.notes,
-      tone: f.notes > 0 ? "good" : "neutral", status: f.notes > 0 ? "Participando" : "Sem registros",
-      text: `conquistas registradas em casa · ${periodText}`, href: "#familia",
-    },
-  ];
-
-  const counters: { value: number; label: string; tone: Tone; href: string }[] = [
-    { value: a.studentsWithAlerts, label: "Estudantes com avisos", tone: a.studentsWithAlerts ? "alert" : "good", href: "#atencao" },
-    { value: a.reviewsSoon, label: `Revisões de plano em ${a.reviewHorizonDays} dias`, tone: a.reviewsSoon ? "mid" : "neutral", href: "#atencao" },
-    { value: o.pendingSuggestions, label: "Sugestões para avaliar", tone: o.pendingSuggestions ? "mid" : "neutral", href: "#atividades" },
-    { value: l.advancing, label: "Objetivos avançando", tone: l.advancing ? "good" : "neutral", href: "#objetivos" },
-  ];
-
-  const sections: [string, string][] = [
-    ["visao-geral", "Visão geral"], ["atencao", "Estudantes"], ["objetivos", "Objetivos"], ["aulas", "Aulas"], ["atividades", "Atividades"],
-    ...(dua ? [["dua", "DUA"] as [string, string]] : []),
-    ["ia", "IA"], ["perfil", "Perfil"], ["familia", "Família"], ["recursos", "Recursos e datas"],
-    ...(scope.network ? [["equipe", "Equipe"] as [string, string]] : []),
-  ];
-
-  const duaPeriod = dua ? `${PERIODS[period]}${dua.period.start ? ` (de ${formatDate(dua.period.start)} a ${formatDate(dua.period.end)})` : ` (até ${formatDate(dua.period.end)})`}` : "";
-  const duaDecisions: ChartSegment[] = dua ? (["aceito", "editado", "recusado"] as const).map((key) => ({ key, label: AI_BLOCK_DECISION[key].label, value: dua.decisions[key], color: TONE_COLOR[AI_BLOCK_DECISION[key].tone] })) : [];
-
-  const support = l.support;
-  const supportDrop = support.initial !== null && support.latest !== null ? oneDecimal(oneDecimal(support.initial) - oneDecimal(support.latest)) : null;
-  const participation = withSegmentColors(r.participation);
-  const participationTotal = participation.reduce((sum, segment) => sum + segment.value, 0);
-  const statusSegments = withSegmentColors(act.byStatus);
-  const tableRows = a.students.slice(0, 8);
-  const nominal = can(user.role, "seeNames");
-  const schoolRows = nominal ? [] : [...a.students.reduce((map, student) => {
-    const row = map.get(student.school) ?? { school: student.school, students: 0, withAlerts: 0, noPlan: 0, overdue: 0 };
-    row.students += 1;
-    if (student.alerts.length) row.withAlerts += 1;
-    if (student.plan === "sem_plano") row.noPlan += 1;
-    if (student.plan === "vencido") row.overdue += 1;
-    return map.set(student.school, row);
-  }, new Map<string, { school: string; students: number; withAlerts: number; noPlan: number; overdue: number }>()).values()].sort((x, y) => y.withAlerts - x.withAlerts || x.school.localeCompare(y.school, "pt-BR"));
-  const strategyMax = Math.max(1, ...r.strategies.map((item) => item.value));
-  const strategyHalf = Math.ceil(r.strategies.length / 2);
-  const topUses = Math.max(1, ...res.top.map((item) => item.uses));
-
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-3xl">Painel de indicadores</h1>
-          <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
-            <span className="font-medium text-ink">{scope.schoolName ?? "Toda a rede"}</span>
-            {o.students ? <> · <span data-testid="total-estudantes">{plural(o.students, "estudante", "estudantes")}</span> {plural(o.schools, "escola", "escolas")} · {plural(o.classes, "turma", "turmas")}</> : null}
-            {" "}· {PERIODS[period]}{scope.start ? ` (desde ${formatDate(scope.start)})` : ""} · atualizado em {updatedAt}
-          </p>
+      <header className="surface-navy mb-4 rounded-3xl px-5 pb-5 pt-6 sm:px-8 sm:pt-7">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-bold leading-[1.15] tracking-tight text-on-navy sm:text-4xl">Painel de indicadores</h1>
+            <p className="mt-2 text-sm leading-relaxed text-on-navy-soft">
+              <span className="font-medium text-on-navy">{scope.schoolName ?? "Toda a rede"}</span>
+              {o.students ? <> · <span data-testid="total-estudantes">{plural(o.students, "estudante", "estudantes")}</span> · {plural(o.schools, "escola", "escolas")} · {plural(o.classes, "turma", "turmas")}</> : null}
+              {view !== "geral" && o.students ? <span className="hidden print:inline"> · {PERIODS[period]}{scope.start ? ` (desde ${formatDate(scope.start)})` : ""}</span> : null}
+              {" "}· atualizado em {formatDateTime(scope.now)}
+            </p>
+          </div>
+          <PrintButton label="Imprimir" className="hidden min-h-11 shrink-0 items-center gap-2 rounded-full border border-navy-line px-4 text-sm font-medium text-on-navy transition-colors hover:bg-navy-hover sm:inline-flex print:hidden" />
         </div>
-        <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <nav aria-label="Período" className="flex flex-wrap gap-1 rounded-2xl border border-line bg-surface-muted p-1 sm:rounded-full">
+        {o.students ? (
+          <nav aria-label="Vistas do painel" className="mt-5 print:hidden">
+            <ul className="flex flex-wrap gap-1.5">
+              {views.map((item) => (
+                <li key={item.key}>
+                  <Link
+                    href={href({ vista: item.key })}
+                    aria-current={item.key === view ? "page" : undefined}
+                    className="inline-flex min-h-11 items-center rounded-full border border-navy-line px-4 text-sm text-on-navy-soft transition-colors hover:bg-navy-hover hover:text-on-navy aria-[current=page]:border-transparent aria-[current=page]:bg-accent-sky aria-[current=page]:font-medium aria-[current=page]:text-ink-strong"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ) : null}
+      </header>
+
+      {(view !== "geral" && o.students) || scope.network ? <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
+        {view !== "geral" && o.students ? (
+          <nav aria-label="Período" className="grid w-full grid-cols-2 gap-1 rounded-3xl border border-line bg-surface-muted p-1 sm:flex sm:w-auto sm:flex-wrap">
             {(Object.keys(PERIODS) as DashboardPeriod[]).map((key) => (
-              <Link key={key} href={href({ periodo: key })} aria-current={key === period ? "page" : undefined} className="inline-flex min-h-9 items-center rounded-full px-3.5 text-sm text-ink-soft transition-colors hover:text-ink aria-[current=page]:bg-paper-raised aria-[current=page]:font-medium aria-[current=page]:text-ink aria-[current=page]:shadow-e1">
-                {PERIODS[key]}
+              <Link key={key} href={href({ periodo: key })} aria-current={key === period ? "page" : undefined} className="inline-flex min-h-11 items-center justify-center rounded-full px-2 text-sm text-ink-soft transition-colors sm:px-4 hover:text-ink aria-[current=page]:bg-paper-raised aria-[current=page]:font-medium aria-[current=page]:text-ink aria-[current=page]:shadow-e1">
+                {PERIOD_SHORT[key]}
               </Link>
             ))}
           </nav>
-          {scope.network ? (
-            <form method="get" action="/painel" className="flex w-full items-center gap-2 sm:w-auto">
-              {period !== "ano" ? <input type="hidden" name="periodo" value={period} /> : null}
-              {gaugeKey !== "jornada" ? <input type="hidden" name="indicador" value={gaugeKey} /> : null}
-              <label htmlFor="escola" className="text-sm text-ink-soft">Escola</label>
-              {/* w-full: sem ele, o nome de escola mais longo vira a largura mínima e a página rola de lado a 320 px. */}
-              <select id="escola" name="escola" defaultValue={scope.schoolId ?? ""} className="min-h-10 w-full min-w-0 flex-1 rounded-full border border-line bg-paper-raised px-3.5 text-sm sm:max-w-60">
-                <option value="">Toda a rede</option>
-                {scope.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
-              </select>
-              <button type="submit" className={BUTTON_CLS.primary}>Ver</button>
-            </form>
-          ) : null}
-          <PrintButton label="Imprimir" />
-        </div>
-      </div>
+        ) : null}
+        {scope.network ? (
+          <form method="get" action="/painel" className="flex w-full items-center gap-2 sm:w-auto">
+            {view !== "geral" ? <input type="hidden" name="vista" value={view} /> : null}
+            {period !== "ano" ? <input type="hidden" name="periodo" value={period} /> : null}
+            <label htmlFor="escola" className="text-sm text-ink-soft">Escola</label>
+            {/* w-full: sem ele, o nome de escola mais longo vira a largura mínima e a página rola de lado a 320 px. */}
+            <select id="escola" name="escola" defaultValue={scope.schoolId ?? ""} className="min-h-11 w-full min-w-0 flex-1 rounded-full border border-line bg-paper-raised px-3.5 text-sm sm:max-w-60">
+              <option value="">Toda a rede</option>
+              {scope.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
+            </select>
+            <button type="submit" className={BUTTON_CLS.primary}>Ver</button>
+          </form>
+        ) : null}
+      </div> : null}
 
       {o.students === 0 ? (
-        <div>
-          <EmptyState character="resources" title="Ainda não há estudantes ativos neste recorte" hint="Quando houver estudantes cadastrados, os indicadores aparecem aqui." action={<Link href="/estudantes/novo" className="task-action">Cadastrar estudante</Link>} />
-        </div>
-      ) : (
-        <div className="dash-board">
-          <nav aria-label="Seções do painel" className="sticky top-[var(--shell-top,0px)] z-20 -mx-1 mb-3.5 flex gap-1.5 overflow-x-auto rounded-full bg-surface-muted/95 p-1 backdrop-blur scrollbar-none print:hidden">
-            {sections.map(([id, label]) => (
-              <a key={id} href={`#${id}`} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-paper-raised/70 px-4 text-sm text-ink-soft transition-colors hover:bg-brand hover:text-white">{label}</a>
-            ))}
-          </nav>
-
-          <section id="visao-geral" aria-label="Visão geral" className="grid scroll-mt-20 grid-cols-1 gap-3.5 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]">
-            <div className="contents xl:order-2 xl:flex xl:min-w-0 xl:flex-col xl:gap-3.5">
-              <section aria-labelledby="destaque-titulo" className="dash-hero surface-navy relative order-1 min-w-0 px-5 pb-6 pt-8 text-center sm:px-8 xl:order-none">
-                <Character variant="resources" className="absolute right-4 top-4 hidden w-16 sm:block xl:w-20" />
-                <h2 id="destaque-titulo" className="font-display text-3xl font-medium leading-tight tracking-tight text-on-navy sm:text-4xl">Olá, {firstName(user.name)}</h2>
-                <p className="mt-1 text-xl font-light leading-snug text-on-navy-soft sm:text-2xl">Este é o acompanhamento {scopePhrase}</p>
-                <nav aria-label="Indicador do medidor" className="mx-auto mt-5 inline-flex max-w-full flex-wrap justify-center gap-1 rounded-full border border-navy-line bg-navy-hover p-1">
-                  {(Object.keys(GAUGES) as DashboardGauge[]).map((key) => (
-                    <Link key={key} href={href({ indicador: key })} scroll={false} aria-current={key === gaugeKey ? "page" : undefined} className="inline-flex min-h-9 items-center rounded-full px-4 text-sm text-on-navy-soft transition-colors hover:text-on-navy aria-[current=page]:bg-accent-sky aria-[current=page]:font-medium aria-[current=page]:text-ink-strong">
-                      {GAUGES[key]}
-                    </Link>
-                  ))}
-                </nav>
-                <div className="relative mx-auto mt-3 max-w-[400px]">
-                  <HatchedGauge value={gauge.value} label={`${GAUGES[gaugeKey]}: ${gauge.value === null ? "sem dados" : `${gauge.value}%`}, em uma escala de 0 a 100%.`} />
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
-                    <StatusPill tone={gauge.pill.tone}>{gauge.pill.text}{"deltaText" in gauge && gauge.deltaText ? <span className="sr-only">: {gauge.deltaText}</span> : null}</StatusPill>
-                    <p className="mt-1 font-display text-5xl font-bold leading-none tracking-tight text-on-navy sm:text-5xl">{gauge.value ?? "—"}{gauge.value !== null ? <span className="text-[0.5em]">%</span> : null}</p>
-                  </div>
-                </div>
-                <p className="mx-auto mt-4 max-w-sm text-xs text-on-navy-soft">{gauge.context}</p>
-                <HowToRead className="mx-auto max-w-sm">{gauge.definition}</HowToRead>
-                {scope.network
-                  ? <a href="#atencao" className="pill-action mx-auto mt-5 max-w-sm">Ver estudantes com avisos</a>
-                  : <Link href="/estudantes?acao=registrar" className="pill-action mx-auto mt-5 max-w-sm">Registrar uma aula</Link>}
-              </section>
-
-              <div className="order-2 grid min-w-0 grid-cols-2 gap-3.5 xl:order-none 2xl:grid-cols-3">
-                {factors.map((factor) => <FactorCard key={factor.title} {...factor} />)}
-              </div>
-
-            </div>
-
-            <div className="contents xl:order-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-3.5">
-              <section id="jornada" aria-labelledby="jornada-titulo" className="dash-card order-3 min-w-0 scroll-mt-20 xl:order-none">
-                <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 id="jornada-titulo" className="text-base font-medium tracking-tight">Jornada do acompanhamento</h2>
-                  <p className="text-xs text-ink-soft">{j.completion ?? 0}% concluída{j.caseStudyDrafts ? ` · ${plural(j.caseStudyDrafts, "estudo de caso em andamento", "estudos de caso em andamento")}` : ""}</p>
-                </div>
-                <div className="-mx-1 overflow-x-auto scrollbar-none" tabIndex={0} role="region" aria-label="Etapas da jornada do acompanhamento (role para o lado no celular)">
-                  <ol className="stepper">
-                    {j.steps.map((step) => {
-                      const complete = step.done === o.students;
-                      return (
-                        <li key={step.key} className="stepper-item">
-                          <span className={`relative z-10 flex size-[34px] items-center justify-center rounded-full text-xs font-semibold ${complete ? "bg-brand text-white" : step.done > 0 ? "border-2 border-brand bg-brand-soft text-brand-strong" : "border-2 border-dashed border-line bg-paper-raised text-ink-soft"}`}>
-                            {complete ? <Check size={17} strokeWidth={3} aria-hidden /> : step.done}
-                          </span>
-                          <span className="mt-2 text-xs text-ink-soft">Etapa {step.step}</span>
-                          <span className="text-sm font-medium leading-snug text-ink">{step.label}</span>
-                          <span className="mt-0.5 text-xs text-ink-soft">{step.done} de {o.students}</span>
-                          {step.here ? <span className="mt-1.5 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand-strong">{step.here} {step.step === 5 ? "na rotina" : "nesta etapa"}</span> : null}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-              </section>
-
-              <div className="order-3 flex min-w-0 flex-wrap gap-2.5 xl:order-none">
-                {counters.map((counter) => (
-                  <a key={counter.label} href={counter.href} className="inline-flex min-h-12 items-center gap-3 rounded-full bg-paper-raised py-1.5 pl-1.5 pr-4 text-sm font-medium text-ink transition-shadow hover:shadow-e2">
-                    <span className={`flex size-9 items-center justify-center rounded-full text-sm font-semibold ${TONE_CLASSES[counter.tone]}`}>{counter.value}</span>
-                    {counter.label}
-                  </a>
-                ))}
-              </div>
-
-              <section id="atencao" aria-labelledby="atencao-titulo" className="dash-card order-3 min-w-0 scroll-mt-20 xl:order-none">
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 id="atencao-titulo" className="text-base font-medium tracking-tight">{nominal ? "Estudantes" : "Avisos por escola"}</h2>
-                    {nominal ? <p className="mt-1 text-xs text-ink-soft">Ordenados por avisos.</p> : (
-                      <>
-                        <Assurances className="mt-2" label="Privacidade" items={[{ icon: ShieldCheck, text: "Números por escola, sem nomes" }]} />
-                        <p className="mt-2 text-xs text-ink-soft">Ficha com nome: busque em Estudantes e informe o motivo.</p>
-                      </>
-                    )}
-                  </div>
-                  {nominal ? <Link href="/estudantes" className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line px-3.5 text-sm text-ink transition-colors hover:border-ink-strong">Ver todos <ArrowRight size={15} aria-hidden /></Link> : null}
-                </div>
-                {!nominal ? (
-                  <div className="-mx-1 overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <caption className="sr-only">Avisos de acompanhamento por escola</caption>
-                      <thead>
-                        <tr className="text-left text-xs text-ink-soft">
-                          <th scope="col" className="px-1 py-2.5 font-normal">Escola</th>
-                          <th scope="col" className="px-1 py-2.5 text-right font-normal">Estudantes</th>
-                          <th scope="col" className="px-1 py-2.5 text-right font-normal">Com aviso</th>
-                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">{PLAN_MISSING.short}</th>
-                          <th scope="col" className="hidden px-1 py-2.5 text-right font-normal sm:table-cell">{shortOf(ALERTS, "plano_vencido")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line border-t border-line tabular-nums">
-                        {schoolRows.map((row) => (
-                          <tr key={row.school}>
-                            <th scope="row" className="px-1 py-3 text-left font-medium text-ink">{row.school}</th>
-                            <td className="px-1 py-3 text-right">{row.students}</td>
-                            <td className="px-1 py-3 text-right">{row.withAlerts ? <StatusPill tone="alert">{row.withAlerts}</StatusPill> : <StatusPill tone="good">0</StatusPill>}</td>
-                            <td className="hidden px-1 py-3 text-right sm:table-cell">{row.noPlan}</td>
-                            <td className="hidden px-1 py-3 text-right sm:table-cell">{row.overdue}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : tableRows.length ? (
-                  <div className="-mx-1">
-                    <table className="w-full text-sm">
-                      <caption className="sr-only">Estudantes, situação do plano, último registro e avisos</caption>
-                      <thead>
-                        <tr className="text-left text-xs text-ink-soft">
-                          <th scope="col" className="px-1 py-2.5 font-normal">Estudante</th>
-                          <th scope="col" className="hidden px-1 py-2.5 font-normal sm:table-cell">Plano</th>
-                          <th scope="col" className="hidden whitespace-nowrap px-1 py-2.5 font-normal md:table-cell">Último registro</th>
-                          <th scope="col" className="px-1 py-2.5 font-normal">Situação</th>
-                          <th scope="col" className="w-10 px-1 py-2.5"><span className="sr-only">Próximo passo</span></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line border-t border-line">
-                        {tableRows.map((student) => (
-                          <tr key={student.id} className="align-top">
-                            <td className="px-1 py-3">
-                              <Link href={`/estudantes/${student.id}`} className="font-medium text-ink hover:underline">{student.name}</Link>
-                              <p className="mt-0.5 text-xs text-ink-soft">{student.className}{scope.schoolId ? "" : ` · ${student.school}`}</p>
-                            </td>
-                            <td className="hidden px-1 py-3 sm:table-cell">
-                              {student.plan === "ativo" ? <><p>Ativo</p><p className="mt-0.5 text-xs text-ink-soft">revisão {student.reviewDate ? formatDateShort(student.reviewDate) : ""}</p></>
-                                : student.plan === "vencido" ? <><p className="text-signal-orange-ink">{shortOf(ALERTS, "plano_vencido")}</p><p className="mt-0.5 text-xs text-ink-soft">desde {student.reviewDate ? formatDateShort(student.reviewDate) : ""}</p></>
-                                  : <p className="text-signal-orange-ink">{PLAN_MISSING.short}</p>}
-                            </td>
-                            <td className="hidden whitespace-nowrap px-1 py-3 text-ink-soft md:table-cell">{student.lastRecord ? formatDateNumeric(student.lastRecord) : "Nenhum"}</td>
-                            <td className="px-1 py-3">
-                              <StatusPill tone={student.alerts.length ? "alert" : "good"}>{student.alerts.length ? plural(student.alerts.length, "aviso", "avisos") : "Em dia"}</StatusPill>
-                              {student.alerts.length ? <p className="mt-1 text-xs leading-snug text-ink-soft">{student.alerts.map((kind) => shortOf(ALERTS, kind)).join(" · ")}</p> : null}
-                            </td>
-                            <td className="px-1 py-2.5 text-right">
-                              <Link href={student.next.href} className="circle-link" title={`Próximo passo: ${student.next.label}`} aria-label={`${student.name}: ${student.next.label}`}><ArrowUpRight size={16} aria-hidden /></Link>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : <p className="text-sm text-ink-soft">Nenhum estudante deste recorte está vinculado ao seu acesso.</p>}
-                {nominal && a.students.length > tableRows.length ? <p className="mt-2 text-xs text-ink-soft">Mostrando {tableRows.length} de {a.students.length}. <Link href="/estudantes" className="font-medium text-ink underline">Ver todos os estudantes</Link></p> : null}
-                <div className="mt-3 border-t border-line pt-3">
-                  <p id="avisos-por-tipo" className="mb-2 text-xs font-medium text-ink">Avisos em {scope.schoolName ?? "toda a rede"}</p>
-                  <CountList
-                    labelledBy="avisos-por-tipo"
-                    items={a.byKind.map((kind) => ({ key: kind.key, value: kind.value, label: kind.short, tone: kind.value ? "alert" : "good" }))}
-                  />
-                </div>
-              </section>
-
-              <div className="order-3 grid min-w-0 gap-3.5 md:grid-cols-2 xl:order-none">
-                <section aria-labelledby="apoio-titulo" className="dash-card">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h2 id="apoio-titulo" className="text-base font-medium tracking-tight">Nível de apoio</h2>
-                    {supportDrop !== null && support.target !== null ? <TrendBadge delta={-supportDrop} better="down" text={supportDrop === 0 ? "Sem mudança desde o início" : `${supportDrop > 0 ? "−" : "+"}${decimal(Math.abs(supportDrop), { fixed: true })} desde o início`} /> : null}
-                  </div>
-                  {support.initial !== null && support.latest !== null && support.target !== null ? (
-                    <>
-                      <p className="mt-1 text-xs text-ink-soft">Média de {plural(support.objectives, "objetivo", "objetivos")} com registro</p>
-                      <SupportScale initial={support.initial} latest={support.latest} target={support.target} />
-                      <dl className="mt-4 flex min-w-0 flex-wrap gap-1.5">
-                        {([["No início", support.initial, SCALE_MARKER.initial], ["Agora", support.latest, SCALE_MARKER.latest], ["Meta", support.target, SCALE_MARKER.target]] as const).map(([label, value, marker]) => (
-                          <div key={label} className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-1.5 rounded-full bg-surface-muted/70 py-1.5 pl-2.5 pr-3 text-xs">
-                            <dt className="inline-flex items-center gap-1.5 self-center text-ink-soft"><span aria-hidden className={`inline-block size-2.5 shrink-0 ${marker}`} />{label}</dt>
-                            <dd className="font-display font-bold text-base leading-none tracking-tight text-ink tabular-nums">{decimal(value, { fixed: true })}</dd>
-                            <dd className="text-ink-soft">{supportInfo(Math.round(value)).label}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </>
-                  ) : <p className="mt-2 text-sm text-ink-soft">Ainda não há registros de aula ligados a objetivos.</p>}
-                </section>
-
-                <section aria-labelledby="participacao-titulo" className="dash-card">
-                  <h2 id="participacao-titulo" className="text-base font-medium tracking-tight">Participação nas aulas</h2>
-                  {participationTotal ? (
-                    <div className="mt-4 flex flex-wrap items-center gap-5">
-                      <HatchedDonut id="rosca-participacao" segments={participation} label={`Participação: ${participation.map((segment) => `${segment.label} ${segment.value}`).join(", ")}`} size={140} thickness={18}>
-                        <span className="font-display text-3xl leading-none tracking-tight">{o.fullParticipationPct ?? 0}%</span>
-                        <span className="mt-1 text-xs leading-tight text-ink-soft">{o.fullParticipation} de {o.records}<br />plenas</span>
-                      </HatchedDonut>
-                      <div className="min-w-[150px] flex-1">
-                        <Legend segments={participation} />
-                      </div>
-                    </div>
-                  ) : <p className="mt-2 text-sm text-ink-soft">Nenhum registro de aula · {periodText}.</p>}
-                </section>
-              </div>
-
-              <section aria-labelledby="meses-titulo" className="dash-card order-3 min-w-0 xl:order-none">
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 id="meses-titulo" className="text-base font-medium tracking-tight">Meses com registro de aula</h2>
-                    <p className="mt-1 text-xs text-ink-soft">
-                      {cal.schoolMonths
-                        ? <><strong className="text-sm font-semibold text-ink tabular-nums">{cal.monthsWithRecords} de {cal.schoolMonths}</strong> {cal.schoolMonths === 1 ? "mês letivo" : "meses letivos"} · todo o histórico</>
-                        : "Ainda não há registros de aula · todo o histórico"}
-                    </p>
-                    <HowToRead>Meses letivos desde o primeiro registro de aula. Este quadro não segue o filtro de período.</HowToRead>
-                  </div>
-                  {cal.gaps ? <StatusPill tone="alert">{plural(cal.gaps, "mês sem registro", "meses sem registro")}</StatusPill> : cal.schoolMonths ? <StatusPill tone="good">Sem lacunas</StatusPill> : null}
-                </div>
-                <MonthGrid years={cal.years} />
-                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
-                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border-2 border-signal-lime-soft bg-signal-lime" />Com registro</li>
-                  <li className="flex items-center gap-1.5"><span aria-hidden className="flex size-3 items-center justify-center rounded-full bg-signal-orange" />Mês letivo sem registro</li>
-                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-dashed border-line" />Mês atual</li>
-                  <li className="flex items-center gap-1.5"><span aria-hidden className="size-3 rounded-full border border-line bg-paper" />Recesso (janeiro)</li>
-                </ul>
-              </section>
-            </div>
-            <section id="ia" aria-labelledby="ia-titulo" className="dash-card order-4 min-w-0 scroll-mt-20 xl:order-3 xl:col-span-2">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h2 id="ia-titulo" className="text-base font-medium tracking-tight">Inteligência artificial</h2>
-                <p className="text-xs text-ink-soft">{PERIODS[period]}</p>
-              </div>
-              <Assurances
-                className="mb-3"
-                label="Cuidados com a IA"
-                items={[{ icon: UserCheck, text: "A IA propõe, o professor decide" }, { icon: ShieldCheck, text: "Dados pessoais saem como marcadores" }]}
-              />
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:items-start lg:gap-4">
-              <dl className="grid gap-1.5 text-sm">
-                {([
-                  ["Claude", "planos e atividades", ai.providers.claude],
-                  ["DeepSeek", "reserva", ai.providers.deepseek],
-                  ["OpenAI", "imagens de apoio", ai.providers.openai],
-                ] as const).map(([name, purpose, active]) => (
-                  <div key={name} className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl bg-surface-muted/70 px-3.5 py-2">
-                    <dt className="min-w-0"><span className="font-medium text-ink">{name}</span> <span className="text-ink-soft">· {purpose}</span></dt>
-                    <dd>{active ? <StatusPill tone="good"><Check size={12} strokeWidth={3} aria-hidden /> Ativo</StatusPill> : <StatusPill tone="neutral">Não configurado</StatusPill>}</dd>
-                  </div>
-                ))}
-              </dl>
-              <dl className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                <AiStat label="Planos propostos pela IA" value={ai.planProposals.ia} detail={`${plural(ai.planProposals.regras, "proposto", "propostos")} pelo motor de regras`} />
-                <AiStat label="Propostas aguardando revisão" value={ai.draftsPending} detail={ai.draftsPending ? "o professor decide" : "nenhuma pendente"} />
-                <AiStat label="Atividades criadas pela IA" value={ai.activities.total} wide detail={ai.activities.adhesion === null ? "Adesão: sem atividades avaliadas para calcular." : `Adesão de ${ai.activities.adhesion}%: ${ai.activities.used} de ${plural(ai.activities.decided, "avaliada foi aceita ou aplicada", "avaliadas foram aceitas ou aplicadas")}.`}>
-                  {ai.activities.adhesion !== null ? <Meter value={ai.activities.adhesion} max={100} /> : null}
-                </AiStat>
-                <AiStat label="Imagens geradas" value={ai.images} />
-                <AiStat label="Envios à IA de reserva" value={ai.deepseekSends} />
-              </dl>
-              </div>
-              <Link href="/estudantes?acao=preparar" className="pill-action mt-4 sm:w-fit"><Sparkles size={16} aria-hidden /> Preparar uma atividade</Link>
-            </section>
-          </section>
-
-          <Section id="objetivos" title="Objetivos e aprendizagem" help="Avançar é precisar de menos apoio na mesma tarefa (0 é independente; 5, apoio físico total).">
-            <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
-              <div className="dash-card">
-                <CardHeader title="Como estão os objetivos" />
-                <StackedBar segments={withSegmentColors(l.trends)} empty="Nenhum objetivo em acompanhamento." />
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Objetivos por área" />
-                <BarList rows={l.byDimension.map((row) => ({ ...row, detail: plural(row.achieved, "alcançado", "alcançados") }))} empty="Nenhum objetivo cadastrado." />
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Critério de sucesso" hint={`Registros de aula · ${periodText}.`} />
-                <StackedBar segments={withSegmentColors(l.criterion)} />
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Sondagem" hint={`${smallNumber(l.assessment.withBaseline)} de ${plural(l.assessment.total, "estudante", "estudantes")} com linha de base`} help={`Em dia: sondagem reaplicada nas últimas ${REASSESS_WEEKS} semanas.`} />
-                <p className="font-display text-3xl font-bold tracking-tight text-ink"><span className="tabular-nums">{smallNumber(l.assessment.upToDate)}</span> <span className="text-base text-ink-soft">em dia</span></p>
-                {l.assessment.improved.some((row) => row.value > 0) ? (
-                  <ul className="mt-3 grid gap-1 text-sm text-ink-soft">
-                    {l.assessment.improved.filter((row) => row.value > 0).map((row) => <li key={row.label}><span className="text-ink">{row.label}:</span> {smallNumber(row.value)} com menos apoio que na linha de base</li>)}
-                  </ul>
-                ) : null}
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Relatórios do período" hint="Validados para a família · últimos 6 meses" />
-                <p className="font-display text-3xl font-bold tracking-tight text-ink"><span className="tabular-nums">{l.reports.covered}</span> <span className="text-base text-ink-soft">de {plural(l.reports.total, "estudante", "estudantes")}</span></p>
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Objetivos por componente da BNCC" hint={l.bncc.total ? `${l.bncc.linked} de ${l.bncc.total} objetivos com habilidade da BNCC` : undefined} />
-                <BarList rows={l.bncc.byComponent} empty="Nenhum objetivo ligado à BNCC ainda." />
-              </div>
-            </div>
-          </Section>
-
-          <Section id="aulas" title="Aulas e registros">
-            <div className="grid gap-3.5 xl:grid-cols-3">
-              <div className="dash-card xl:col-span-2">
-                <CardHeader title={r.weekly ? "Registros por semana" : "Registros por mês"} hint={`${PERIODS[period]}.`} />
-                {r.series.some((row) => row.value > 0) ? <ColumnChart rows={r.series} label={r.weekly ? "Registros de aula por semana" : "Registros de aula por mês"} /> : <p className="text-sm text-ink-soft">Nenhum registro de aula · {periodText}.</p>}
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Quem registrou" />
-                <BarList rows={r.byAuthor.map((row) => ({ ...row, label: roleLabel(row.key, { short: true }) }))} />
-              </div>
-              <div className="dash-card xl:col-span-3">
-                <CardHeader title="Estratégias que mais funcionaram" hint={`Marcadas em “o que funcionou” · ${periodText}`} />
-                {r.strategies.length ? (
-                  <div className="grid min-w-0 gap-x-8 gap-y-3 md:grid-cols-2">
-                    <BarList rows={r.strategies.slice(0, strategyHalf)} max={strategyMax} />
-                    {r.strategies.length > strategyHalf ? <BarList rows={r.strategies.slice(strategyHalf)} max={strategyMax} /> : null}
-                  </div>
-                ) : <p className="text-sm text-ink-soft">Sem estratégias registradas no período.</p>}
-              </div>
-            </div>
-          </Section>
-
-          <Section id="atividades" title="Atividades" description={`Criadas · ${periodText}.`}>
-            <div className="grid gap-3.5 md:grid-cols-2">
-              <div className="dash-card">
-                <CardHeader title="Situação das atividades" />
-                {act.created ? (
-                  <div className="flex flex-wrap items-center gap-5">
-                    <HatchedDonut id="rosca-atividades" segments={statusSegments} label={`Atividades: ${statusSegments.map((segment) => `${segment.label} ${segment.value}`).join(", ")}`} size={132} thickness={17}>
-                      <span className="font-display text-3xl leading-none tracking-tight">{act.created}</span>
-                      <span className="mt-1 text-xs text-ink-soft">criadas</span>
-                    </HatchedDonut>
-                    <div className="min-w-[160px] flex-1"><Legend segments={statusSegments} /></div>
-                  </div>
-                ) : <p className="text-sm text-ink-soft">Nenhuma atividade criada no período.</p>}
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Onde acontecem" />
-                <BarList rows={act.byContext} empty="Nenhuma atividade criada no período." />
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Origem e adesão" help="Adesão: atividades aceitas ou aplicadas entre as avaliadas." />
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <caption className="sr-only">Atividades por origem e adesão</caption>
-                    <thead>
-                      <tr className="text-xs text-ink-soft">
-                        <th scope="col" className="pb-2.5 text-left font-normal">Origem</th>
-                        <th scope="col" className="pb-2.5 text-right font-normal">Criadas</th>
-                        <th scope="col" className="pb-2.5 text-right font-normal">Avaliadas</th>
-                        <th scope="col" className="pb-2.5 text-right font-normal">Adesão</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-line border-t border-line">
-                      {act.sources.map((source) => (
-                        <tr key={source.source}>
-                          <th scope="row" className="py-3 pr-2 text-left font-normal">{source.label}</th>
-                          <td className="py-3 text-right tabular-nums">{source.total}</td>
-                          <td className="py-3 text-right tabular-nums">{source.decided}</td>
-                          <td className="py-3 text-right">{source.adhesion === null ? <span className="text-ink-soft">—</span> : <StatusPill tone={source.adhesion >= 70 ? "good" : source.adhesion >= 40 ? "mid" : "alert"}>{source.adhesion}%</StatusPill>}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Por que as sugestões são rejeitadas" />
-                <BarList rows={act.rejectReasons.map((reason) => ({ label: `“${reason.label}”`, value: reason.value }))} color={SIGNAL.yellow} empty="Nenhuma sugestão rejeitada no período." />
-              </div>
-            </div>
-          </Section>
-
-          {dua ? (
-            <Section
-              id="dua" title="Planejamento com DUA — uso e documentação" description={`${duaPeriod} · ${dua.scopeLabel}.`}
-              note={
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <Assurances
-                    label="Como ler os indicadores do DUA"
-                    items={[
-                      { icon: Scale, text: "Medem uso, não aprendizagem" },
-                      { icon: ShieldCheck, text: "Não avaliam professor, escola nem estudante" },
-                      { icon: CircleSlash, text: "Sem base, nunca 0%" },
-                    ]}
-                  />
-                  {can(user.role, "planDua") ? <Link href="/planejamento" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink underline">Abrir o planejamento <ArrowRight size={15} aria-hidden /></Link> : null}
-                </div>
-              }
-            >
-              <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
-                {dua.indicators.map(({ key, ...indicator }) => (
-                  <DuaIndicatorCard key={key} ringId={`anel-dua-${key}`} {...indicator} noBaseText={dua.noBaseText} />
-                ))}
-                <div className="dash-card min-w-0">
-                  <CardHeader title="Decisões sobre as sugestões" hint={dua.decisions.total ? `${plural(dua.decisions.total, "bloco revisado", "blocos revisados")} pela equipe` : undefined} />
-                  <StackedBar segments={duaDecisions} empty={`${dua.noBaseText}: nenhum bloco de sugestão revisado.`} />
-                </div>
-              </div>
-            </Section>
-          ) : null}
-
-          <Section id="perfil" title="Perfil dos estudantes" note={<Assurances label="Privacidade" items={[{ icon: ShieldCheck, text: "Dados agregados, sem identificar ninguém" }]} />}>
-            {p.caa.withoutResources > 0 ? (
-              <div className="mb-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-signal-yellow-soft p-4 sm:p-5">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-yellow text-ink-strong"><Lightbulb size={17} aria-hidden /></span>
-                <p className="shrink-0 font-display text-3xl font-bold leading-none tracking-tight text-ink tabular-nums">{p.caa.withoutResources} <span className="text-base font-medium">de {p.caa.total}</span></p>
-                <div className="min-w-0 flex-1 basis-60 text-sm text-ink">
-                  <p><strong className="font-medium">Sem recursos de acessibilidade registrados</strong>, entre quem usa comunicação alternativa ou acionador</p>
-                  <p className="mt-0.5 text-xs">Leitura para a gestão: indicativo para compra de materiais e formação.</p>
-                </div>
-              </div>
-            ) : null}
-            <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
-              {p.bySchool.length > 1 ? <div className="dash-card"><CardHeader title="Estudantes por escola" /><BarList rows={p.bySchool} /></div> : null}
-              <div className="dash-card"><CardHeader title="Etapa de ensino" /><BarList rows={p.byStage} /></div>
-              <div className="dash-card"><CardHeader title="Canais de comunicação" /><BarList rows={p.channels} empty="Nenhum perfil preenchido." /></div>
-              <div className="dash-card"><CardHeader title="Barreiras ativas" /><BarList rows={p.barriers} color={SIGNAL.yellow} empty="Nenhuma barreira registrada." /></div>
-              <div className="dash-card"><CardHeader title="Hipersensibilidade sensorial" /><BarList rows={p.hypersensitivity} empty="Nenhuma hipersensibilidade registrada." /></div>
-            </div>
-            {p.withoutProfile ? <p className="mt-3 px-1 text-xs text-ink-soft">{plural(p.withoutProfile, "estudante sem perfil de aprendizagem fica", "estudantes sem perfil de aprendizagem ficam")} fora destes números.</p> : null}
-            {p.practices.length ? (
-              <>
-                <h3 className="mb-1 mt-7 px-1 text-base font-medium">Banco de práticas por perfil</h3>
-                <p className="mb-3.5 px-1 text-sm text-ink-soft">Estratégias de aulas com boa resposta · {periodText}</p>
-                <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
-                  {p.practices.map((cluster) => (
-                    <div key={cluster.label} className="dash-card">
-                      <div className="mb-3 flex items-start justify-between gap-2">
-                        <h4 className="text-sm font-medium text-ink">{cluster.label}</h4>
-                        <StatusPill tone="good">{plural(cluster.records, "registro", "registros")}</StatusPill>
-                      </div>
-                      <BarList rows={cluster.top} empty="Sem estratégias marcadas para este perfil." />
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : null}
-          </Section>
-
-          <Section id="familia" title="Família e rede de apoio">
-            <div className="grid gap-3.5 lg:grid-cols-3">
-              <div className="grid gap-3.5 sm:grid-cols-2 lg:col-span-2">
-                <StatTile label="Conquistas registradas pela família" value={f.notes} hint={PERIODS[period]} />
-                <StatTile
-                  label="Registros de aula feitos em casa" value={f.records} hint={PERIODS[period]}
-                  chart={<ShareRing id="anel-familia-registros" part={f.records} whole={o.records} label="Registros de aula feitos em casa" caption={`dos ${plural(o.records, "registro", "registros")} de aula do período foram feitos em casa.`} />}
-                />
-                <StatTile
-                  label="Famílias com acesso à plataforma" value={`${f.withAccess} de ${o.students}`}
-                  chart={<ShareRing id="anel-familia-acesso" part={f.withAccess} whole={o.students} label="Famílias com acesso à plataforma" caption="dos estudantes têm a família com acesso." />}
-                />
-                <StatTile
-                  label="Relatórios intersetoriais" value={f.reports} hint={`${f.reportsInPeriod} no período`}
-                  chart={<ShareRing id="anel-familia-relatorios" part={f.studentsWithReport} whole={o.students} label="Estudantes com orientações da rede de apoio" caption={`dos estudantes (${f.studentsWithReport}) têm orientações da rede de apoio.`} />}
-                />
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Materiais acessíveis" hint={`${f.materialsInPeriod} produzidos no período`} />
-                <BarList rows={f.materials} empty="Nenhum material produzido ainda." />
-              </div>
-            </div>
-          </Section>
-
-          <Section id="recursos" title="Recursos e datas">
-            <div className="grid gap-3.5 lg:grid-cols-2">
-              <div className="dash-card">
-                <CardHeader title="Recursos mais usados" hint="Banco municipal · o mesmo para toda a rede" href="/recursos" linkLabel="Abrir o banco de recursos" />
-                <div className="-mt-1 mb-3">
-                  <CountList
-                    label="Banco municipal em números"
-                    items={[
-                      { key: "recursos", value: res.total, label: res.total === 1 ? "recurso" : "recursos", tone: "info" },
-                      { key: "propostas", value: res.activities, label: res.activities === 1 ? "proposta prática" : "propostas práticas", tone: "info" },
-                      { key: "usos", value: res.uses, label: res.uses === 1 ? "uso registrado" : "usos registrados", tone: "info" },
-                    ]}
-                  />
-                </div>
-                {res.top.length ? (
-                  <ol className="divide-y divide-line">
-                    {res.top.map((item) => (
-                      <li key={item.id}>
-                        <Link href={`/recursos/${item.id}`} className="group block min-h-12 py-2.5 text-sm">
-                          <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                            <span className="min-w-0 group-hover:underline">{item.title}</span>
-                            <span className="ml-auto flex shrink-0 items-center gap-2 text-xs tabular-nums text-ink-soft">{plural(item.uses, "uso", "usos")}{item.positive !== null ? <StatusPill tone={item.positive >= 70 ? "good" : item.positive >= 40 ? "mid" : "alert"}>{item.positive}% bom resultado</StatusPill> : null}</span>
-                          </span>
-                          <Meter value={item.uses} max={topUses} className="mt-2" />
-                        </Link>
-                      </li>
-                    ))}
-                  </ol>
-                ) : <p className="text-sm text-ink-soft">Nenhum uso registrado ainda.</p>}
-              </div>
-              <div className="dash-card">
-                <CardHeader title="Próximas datas inclusivas" href="/calendario" linkLabel="Abrir o calendário inclusivo" />
-                {upcomingDates.length ? (
-                  <ul className="space-y-1.5">
-                    {upcomingDates.map((event) => (
-                      <li key={event.key}>
-                        <Link href={`/calendario?mes=${monthKey(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-surface-muted">
-                          <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-xs">{MONTH_SHORT[event.start.month - 1]}</span></span>
-                          <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-xs text-ink-soft">{relativeLabel(event, today)}</span></span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : <p className="text-sm text-ink-soft">Nenhuma data comemorativa nas próximas semanas.</p>}
-                <Link href="/calendario" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink"><CalendarDays size={16} aria-hidden /> Ver calendário inclusivo</Link>
-              </div>
-            </div>
-          </Section>
-
-          {scope.network ? (
-            <Section id="equipe" title="Equipe e privacidade">
-              <div className="grid gap-3.5 lg:grid-cols-2">
-                <div className="dash-card">
-                  <CardHeader title="Pessoas com acesso" hint={scope.schoolId ? "Equipe da escola, famílias e terapeutas dos estudantes" : "Todos os usuários da rede"} />
-                  <BarList rows={team.byRole.map((row) => ({ ...row, label: roleLabel(row.key, { short: true }) }))} empty="Nenhum usuário cadastrado." />
-                </div>
-                <div className="dash-card">
-                  <CardHeader title="Acessos registrados" hint={`${plural(team.actors, "pessoa acessou", "pessoas acessaram")} dados de estudantes · ${periodText}`} />
-                  <BarList rows={team.access.map((row) => ({ ...row, label: ACCESS_LABELS[row.key] }))} empty="Nenhum acesso registrado no período." />
-                </div>
-              </div>
-            </Section>
-          ) : null}
-        </div>
-      )}
+        <EmptyState character="resources" title="Ainda não há estudantes ativos neste recorte" hint="Quando houver estudantes cadastrados, os indicadores aparecem aqui." action={<Link href="/estudantes/novo" className="task-action">Cadastrar estudante</Link>} />
+      ) : view === "geral" ? (
+        <>
+          <LegacyAnchor anchors={LEGACY_ANCHORS} />
+          <Overview data={data} nominal={can(user.role, "seeNames")} canCensus={can(user.role, "importCensus") || can(user.role, "configureCensus")} periodText={periodText} />
+        </>
+      ) : view === "objetivos" ? <ObjectivesView data={data} periodText={periodText} />
+        : view === "aulas" ? <LessonsView data={data} periodText={periodText} />
+          : view === "atividades" ? <ActivitiesView data={data} dua={dua} periodText={periodText} canConfigureAi={can(user.role, "configureAi")} canPlanDua={can(user.role, "planDua")} />
+            : view === "perfil" ? <ProfileView data={data} periodText={periodText} />
+              : view === "familia" ? <FamilyView data={data} />
+                : <TeamView data={data} periodText={periodText} />}
     </>
   );
 }

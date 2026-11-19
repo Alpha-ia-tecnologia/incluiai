@@ -269,22 +269,15 @@ html[data-text-scale] .status-pill { white-space: normal; }
 .pastel-card { transition: transform 180ms ease, box-shadow 180ms ease; }
 a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2); }
 @layer components { .ui-card { border: 1px solid var(--line); border-radius: 22px; background: var(--paper-raised); padding: 22px; } }
-/* Painel de indicadores: quadro cinza com cartões brancos, destaque em marinho
-   (dash-hero + surface-navy), texturas listradas e linha de etapas. As ações,
-   as etapas e as quantidades usam o azul da plataforma; lima, amarelo e
-   laranja ficam só para o estado dos dados. */
+/* Painel de indicadores: quadro cinza com cartões brancos e texturas
+   listradas. As ações e as quantidades usam o azul da plataforma; lima,
+   amarelo e laranja ficam só para o estado dos dados. */
 @layer components {
   .dash-board { border-radius: 30px; background: var(--surface-muted); padding: 14px; }
   .dash-card { border-radius: 22px; background: var(--paper-raised); padding: 20px; }
-  .dash-hero { border-radius: 30px; }
   .hatch { background-image: var(--hatch); }
-  .pill-action { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 0 24px; font-size: 0.875rem; font-weight: 500; transition: background 160ms ease; @apply bg-action text-on-action; }
-  .pill-action:hover { @apply bg-action-hover; }
   .circle-link { display: inline-flex; width: 36px; height: 36px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); transition: background 160ms ease, color 160ms ease, border-color 160ms ease; }
   .circle-link:hover { border-color: var(--brand); background: var(--brand); color: white; }
-  .stepper { display: grid; grid-template-columns: repeat(5, minmax(104px, 1fr)); }
-  .stepper-item { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0 6px; text-align: center; }
-  .stepper-item:not(:last-child)::after { content: ""; position: absolute; top: 17px; left: calc(50% + 24px); right: calc(-50% + 24px); border-top: 1.5px dashed var(--line); }
 }
 /* Assistente: botão flutuante e painel, acima da navegação do celular. Ficam
    na camada de componentes para os utilitários (hidden, print:hidden) valerem. */
