@@ -11,6 +11,7 @@ import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
 import { readList, firstName as firstNameOf } from "@/lib/format";
 import { formatDate } from "@/lib/dates";
 import { CHANNELS } from "@/lib/scale";
+import { withoutCodes } from "@/lib/without-codes";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { MultiChoiceField } from "@/components/choice-field";
 import { ActionForm } from "@/components/action-form";
@@ -64,7 +65,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
   const latest = reports[0];
   const latestSeen = seenAt[0] ?? null;
   const p = student.profile;
-  const interests = readList(p?.interests ?? null);
+  const interests = readList(p?.interests ?? null).map(withoutCodes);
   const create = createIntersectorReport.bind(null, student.id);
   const firstName = firstNameOf(student.name);
 

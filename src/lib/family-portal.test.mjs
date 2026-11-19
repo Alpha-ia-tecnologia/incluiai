@@ -12,6 +12,7 @@ test("objetivo na voz da família: o verbo no infinitivo, sem o nome no começo"
   assert.equal(familyGoalTitle("fará a transição entre atividades com aviso antecipado."), "Fazer a transição entre atividades com aviso antecipado");
   assert.equal(familyGoalTitle("Dante comunicará três necessidades da rotina", "Dante"), "Comunicar três necessidades da rotina");
   assert.equal(familyGoalTitle("Reconhecer o próprio nome"), "Reconhecer o próprio nome");
+  assert.equal(familyGoalTitle("identificará seu nome com pista visual (VERB) (EF01LP04)"), "Identificar seu nome com pista visual");
 });
 
 test("frase do objetivo: a ajuda em palavras, com o objetivo quando ainda não chegou", () => {
@@ -73,6 +74,8 @@ test("semana na escola: o que foi registrado, em palavras da família, só nos 7
   assert.equal(items[5].href, "/familia/x/relatorios/r1");
   const one = familyWeek({ since, portal: "/familia/x", firstName: "Dante", lessons: [{ date: at(13), participation: "parcial", objectiveId: "b" }], objectives: [{ id: "b", action: "comunicará três necessidades" }], sessions: [], conquests: [], activities: [], materials: [], reports: [] });
   assert.equal(one[0].title, "1 aula registrada: participou de parte da atividade");
+  const coded = familyWeek({ since, portal: "/familia/x", firstName: "Dante", lessons: [], objectives: [], sessions: [], conquests: [{ id: "c2", date: at(14), title: "De modelo (MOD) para pista verbal (VERB)" }], activities: [{ id: "t2", title: "Rotina (FIS-P)", at: at(15) }], materials: [{ id: "m2", title: "Prancha (EF01LP04)", at: at(16) }], reports: [] });
+  assert.deepEqual(coded.map((item) => item.detail), ["De modelo para pista verbal", "Rotina", "Prancha"]);
   const empty = familyWeek({ since, portal: "/familia/x", firstName: "Dante", lessons: [{ date: at(5), participation: "total", objectiveId: null }], objectives: [], sessions: [], conquests: [], activities: [], materials: [], reports: [] });
   assert.deepEqual(empty, []);
 });

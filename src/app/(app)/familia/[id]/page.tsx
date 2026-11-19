@@ -12,6 +12,7 @@ import { readList, firstName as firstNameOf, plural } from "@/lib/format";
 import { periodLabel, reportData } from "@/lib/reports";
 import { stepsFor } from "@/lib/support-steps";
 import { familyGoalSentence, familyGoalTitle, familyWeek, pickGoals, weekWindow, type WeekItem } from "@/lib/family-portal";
+import { withoutCodes } from "@/lib/without-codes";
 import { activityImageUrl, imageWidthOf } from "@/lib/images/activity-image";
 import { CONTENT_ID } from "@/lib/landmarks";
 import { JourneyProgress } from "@/components/journey-ui";
@@ -183,10 +184,10 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
           ) : (
             <ul className="-mt-1 divide-y divide-line">
               {homeActivities.map(({ activity: a, doneAt }) => {
-                const steps = readList(a.steps);
+                const steps = readList(a.steps).map(withoutCodes);
                 return (
                   <li key={a.id} className="min-w-0 py-4 first:pt-1 last:pb-0">
-                    <p className="text-base font-medium leading-snug text-ink">{a.title}</p>
+                    <p className="text-base font-medium leading-snug text-ink">{withoutCodes(a.title)}</p>
                     {doneAt ? <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-green"><CircleCheck size={16} aria-hidden /> Vocês fizeram em {formatDate(doneAt)}. A escola foi avisada.</p> : null}
                     {steps.length || a.image ? (
                       <details className="group mt-1">
@@ -227,7 +228,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
             <SectionTitle><span className="flex items-center gap-1.5"><BookOpen size={14} aria-hidden /> Materiais para usar em casa</span></SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2">
               {student.materials.map((material) => (
-                <MaterialGalleryCard key={material.id} studentId={id} material={materialSummary(material)} href={`${portal}/materiais/${material.id}`} />
+                <MaterialGalleryCard key={material.id} studentId={id} material={materialSummary({ ...material, title: withoutCodes(material.title) })} href={`${portal}/materiais/${material.id}`} />
               ))}
             </div>
           </Card>
@@ -257,8 +258,8 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
               items={student.timeline.slice(0, 3).map((event) => ({
                 key: event.id,
                 date: formatDate(event.date),
-                title: event.title,
-                body: event.description || undefined,
+                title: withoutCodes(event.title),
+                body: event.description ? withoutCodes(event.description) : undefined,
                 marker: <Trophy size={16} />,
                 markerClassName: "bg-amber-soft text-amber",
               }))}
@@ -297,7 +298,7 @@ function NoteList({ notes }: { notes: { id: string; note: string; author: string
     <ul className="divide-y divide-line">
       {notes.map((note) => (
         <li key={note.id} className="py-2.5">
-          <p className="text-sm leading-relaxed text-ink">“{note.note}”</p>
+          <p className="text-sm leading-relaxed text-ink">“{withoutCodes(note.note)}”</p>
           <p className="mt-0.5 text-xs text-ink-soft">{note.author} · {formatDate(note.date)}</p>
         </li>
       ))}

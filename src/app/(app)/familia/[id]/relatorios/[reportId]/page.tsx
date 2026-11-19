@@ -24,7 +24,7 @@ export default async function FamilyReportPage({ params }: { params: Promise<{ i
       <PageHeader title="Relatório da escola" lede="O que a escola registrou no período e o parecer da equipe sobre o acompanhamento." actions={<div className="flex flex-wrap gap-2"><ReadAloud targetId={REPORT_ID} label="Ouvir o relatório" /><PrintButton label="Imprimir" /></div>} />
       <Card className="max-w-3xl">
         <div id={REPORT_ID}>
-          <ReportView data={reportData(report.data)} opinion={report.opinion} status={report.status} validatedByName={report.validatedByName} validatedAt={report.validatedAt} />
+          <ReportView data={reportData(report.data)} opinion={report.opinion} status={report.status} validatedByName={report.validatedByName} validatedAt={report.validatedAt} audience="familia" />
         </div>
       </Card>
     </>

@@ -22,6 +22,7 @@ import { ACTIVITY_STATUS, CONTEXTS, DIMENSIONS, OBJECTIVE_STATUS, SHIFTS, STAGES
 import { plural, readList } from "../format";
 import { ageFrom, brYmd, formatDate } from "../dates";
 import { isHomeActivityNote } from "../user-journey";
+import { withoutCodes } from "../without-codes";
 import { studentFollowUp } from "../dua/applications";
 import { hasStudentLabel, type Pseudonymizer } from "../agents/redactor";
 import { FALLBACK } from "../action-result";
@@ -441,9 +442,9 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         const objectives = s.plans.flatMap((plan) => plan.objectives);
         return [
           `# ${label} (página: /familia/${studentId})`,
-          `## O que a escola está trabalhando\n${objectives.map((objective) => `- ${objective.description}`).join("\n") || "A escola ainda está montando o plano."}`,
-          `## Atividades para fazer em casa\n${s.activities.map((a) => `- ${a.title} (${a.durationMinutes} min). Materiais: ${readList(a.materials).join(", ")}. Passos: ${readList(a.steps).map((step, index) => `${index + 1}. ${step}`).join(" ")} Se não der certo: ${a.planB}`).join("\n") || "A escola ainda não enviou atividades para casa."}`,
-          `## Conquistas registradas pela escola\n${s.timeline.map((event) => `- ${event.title}${event.description ? `: ${event.description}` : ""} (${formatDate(event.date)})`).join("\n") || "Nenhuma ainda."}`,
+          `## O que a escola está trabalhando\n${objectives.map((objective) => `- ${withoutCodes(objective.description)}`).join("\n") || "A escola ainda está montando o plano."}`,
+          `## Atividades para fazer em casa\n${s.activities.map((a) => `- ${withoutCodes(a.title)} (${a.durationMinutes} min). Materiais: ${readList(a.materials).join(", ")}. Passos: ${readList(a.steps).map((step, index) => `${index + 1}. ${withoutCodes(step)}`).join(" ")} Se não der certo: ${withoutCodes(a.planB)}`).join("\n") || "A escola ainda não enviou atividades para casa."}`,
+          `## Conquistas registradas pela escola\n${s.timeline.map((event) => `- ${withoutCodes(event.title)}${event.description ? `: ${withoutCodes(event.description)}` : ""} (${formatDate(event.date)})`).join("\n") || "Nenhuma ainda."}`,
           `## O que a família já contou\n${s.familyNotes.map((note) => `- "${note.note}" (${note.author}, ${formatDate(note.date)})${isHomeActivityNote(note.note) ? " [atividade feita em casa]" : ""}`).join("\n") || "Nenhuma observação ainda."}`,
         ].join("\n\n");
       },

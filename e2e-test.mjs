@@ -1540,6 +1540,41 @@ if (!ONLY_WAIT) {
     check("avisos: sem erros de cliente (equipe)", errors.length === 0, errors.join("; "));
     await ctx.close();
   });
+  await section("códigos só para a equipe", async () => {
+    // Escala de apoio (IND, SUP, VERB, MOD, FIS-P, FIS-T) e BNCC: só nas telas da equipe.
+    // Depois de "avisos": abrir /avisos zera o sino que aquela seção confere.
+    const CODES = /(?<![\p{L}\d-])(?:IND|SUP|VERB|MOD|FIS-[PT])(?![\p{L}\d-])|\bE[IFM]\d{2}[A-Z]{2}\d{2,3}\b|\bBNCC\b/u;
+    const family = await newSession();
+    const portal = new URL(await login(family.page, "familia")).pathname;
+    const links = await family.page.evaluate(() => [...document.querySelectorAll('#relatorios a, #materiais a[href*="/materiais/"]')].map((link) => link.getAttribute("href")));
+    const familyPages = [portal, `${portal}/privacidade`, "/jornada", "/avisos", ...links.slice(0, 2)];
+    for (const path of familyPages) {
+      await family.page.goto(`${BASE}${path}`, { waitUntil: "networkidle2" });
+      const text = await contentText(family.page);
+      const found = text.match(CODES);
+      check(`códigos: a família não vê códigos internos em ${path.replace(portal, "/familia/:id")}`, !found, found?.[0]);
+      if (path.includes("/relatorios/")) check("códigos: o relatório da família diz a habilidade da BNCC em palavras", text.includes("Ligado ao que a turma aprende em"), text.slice(0, 300));
+    }
+    check("códigos: o relatório da família foi conferido", links.some((href) => href.includes("/relatorios/")), JSON.stringify(links));
+    check("códigos: sem erros de cliente (família)", family.errors.length === 0, family.errors.join("; "));
+    await family.ctx.close();
+
+    const therapist = await newSession();
+    await login(therapist.page, "terapeuta");
+    for (const path of ["/terapeuta", "/jornada", "/avisos"]) {
+      await therapist.page.goto(`${BASE}${path}`, { waitUntil: "networkidle2" });
+      const found = (await contentText(therapist.page)).match(CODES);
+      check(`códigos: o terapeuta não vê códigos internos em ${path}`, !found, found?.[0]);
+    }
+    await therapist.ctx.close();
+
+    const team = await newSession();
+    await login(team.page, "professor_aee");
+    await team.page.goto(`${BASE}${danteHref}/ppi`, { waitUntil: "networkidle2" });
+    const plan = await contentText(team.page);
+    check("códigos: a equipe continua vendo a habilidade da BNCC e o código do apoio no plano", /BNCC EF\d{2}[A-Z]{2}\d{2}/.test(plan) && /\((?:IND|SUP|VERB|MOD|FIS-[PT])\)/.test(plan), plan.slice(0, 300));
+    await team.ctx.close();
+  });
   await section("dossiê", async () => {
     const { ctx, page, errors } = await newSession();
     await login(page, "professor_aee");

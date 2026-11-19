@@ -6,6 +6,8 @@ import { requireFamilyPortal } from "@/lib/page-context";
 import { familyMaterialWhere } from "@/lib/policy";
 import { MaterialView } from "@/components/materials/material-view";
 import { PrintButton } from "@/components/print-button";
+import { parseJson } from "@/lib/format";
+import { withoutCodes, withoutCodesDeep } from "@/lib/without-codes";
 
 export default async function FamilyMaterialPage({ params }: { params: Promise<{ id: string; materialId: string }> }) {
   const prisma = await db();
@@ -29,7 +31,14 @@ export default async function FamilyMaterialPage({ params }: { params: Promise<{
         <PrintButton label="Imprimir material" />
       </div>
       <h1 className="mb-4 font-display text-3xl font-bold leading-tight tracking-tight text-ink">Material de apoio para casa</h1>
-      <MaterialView studentId={id} material={material} objective={objective?.description ?? null} imagesOn={false} canEdit={false} printHref={null} />
+      <MaterialView
+        studentId={id}
+        material={{ ...material, title: withoutCodes(material.title), content: JSON.stringify(withoutCodesDeep(parseJson<unknown>(material.content, {}))) }}
+        objective={objective ? withoutCodes(objective.description) : null}
+        imagesOn={false}
+        canEdit={false}
+        printHref={null}
+      />
     </>
   );
 }

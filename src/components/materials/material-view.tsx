@@ -11,6 +11,7 @@ import { MATERIAL_KIND_LABEL, normalizeMaterialContent, type MaterialActivity, t
 import { CONTEXTS, MATERIAL_STATUS, labelOf, toneOf } from "@/lib/scale";
 import type { TraceStep } from "@/lib/agents/types";
 import { cardPictogram } from "@/lib/pictograms";
+import { withoutCodes } from "@/lib/without-codes";
 import { MaterialImagesButton, SendActivityButton } from "./material-actions";
 import { Pictogram } from "./pictogram";
 import { ReadAloud } from "@/components/read-aloud";
@@ -223,7 +224,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
         {content.familyTip ? (
           <section className="min-w-0 rounded-2xl bg-surface-muted/60 p-4 print:break-inside-avoid">
             <h3 className="flex items-center gap-2 text-sm font-medium text-ink"><House size={16} aria-hidden /> Para a família</h3>
-            <p className="mt-2 text-sm text-ink-soft">{content.familyTip}</p>
+            <p className="mt-2 text-sm text-ink-soft">{withoutCodes(content.familyTip)}</p>
           </section>
         ) : null}
       </div>

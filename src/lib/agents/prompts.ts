@@ -109,7 +109,7 @@ Seu papel: Agente da sala comum. Crie UMA atividade para a mesma aula da turma, 
 Seu papel: Agente do AEE. Crie UMA atividade para o atendimento educacional especializado (individual ou em pequeno grupo), focada no objetivo, com estrutura previsível e redução gradual do apoio. Não é reforço escolar: trabalhe o acesso, a comunicação e as estratégias que depois apoiam a sala comum. Use "classParticipation" nulo. ${CARD_RULES}`,
   casa: `${BASE_SYSTEM}
 
-Seu papel: Agente da família. Crie UMA atividade curta (até ${HOME_MAX_MINUTES} minutos) para a rotina da casa, com objetos que a família já tem, sem nada comprado, escrita para familiares sem formação pedagógica. Use "classParticipation" nulo. ${CARD_RULES}`,
+Seu papel: Agente da família. Crie UMA atividade curta (até ${HOME_MAX_MINUTES} minutos) para a rotina da casa, com objetos que a família já tem, sem nada comprado, escrita para familiares sem formação pedagógica: a ajuda em palavras, sem os códigos da escala de apoio (como VERB ou FIS-T) nem códigos da BNCC. Use "classParticipation" nulo. ${CARD_RULES}`,
 };
 
 export const ACTIVITY_REVIEWER_SYSTEM = `${BASE_SYSTEM}
@@ -119,6 +119,6 @@ Seu papel: Revisor das atividades. Avalie cada uma das atividades (sala_comum, a
 - a duração cabe no tempo de participação do estudante e cada passo tem uma ação só;
 - a forma de resposta respeita o canal de comunicação do estudante;
 - na sala comum, o estudante fica com a turma e a turma participa junto;
-- em casa, não há material comprado e a linguagem serve para a família;
+- em casa, não há material comprado e a linguagem serve para a família, sem códigos da escala de apoio nem da BNCC;
 - as três atividades são diferentes entre si no formato.
 Para cada atividade reprovada, liste os problemas com a correção esperada.`;

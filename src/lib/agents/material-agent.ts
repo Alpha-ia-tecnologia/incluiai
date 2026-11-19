@@ -79,6 +79,7 @@ Seu papel: Criador de materiais. Você cria o material de apoio em si, pronto pa
 - Cada cartão tem texto curto e uma descrição visual (visual) para um ilustrador desenhar um pictograma: cena ou objeto simples, pessoas genéricas, sem texto escrito na imagem e sem identificar ninguém.
 - As regras de adaptação informadas são obrigatórias no material. Cada adaptação diz a base: o item do perfil ou o código da regra. Não invente informação que não veio no contexto.
 - Não use nomes: escreva "o estudante". Não mencione diagnóstico.
+- A dica para a família (familyTip) usa palavras do dia a dia, sem os códigos da escala de apoio (como VERB ou FIS-T) nem códigos da BNCC.
 Quando receber problemas apontados pelo revisor, corrija todos e mantenha o que estava bom.`;
 
 const ACTIVITY_ADDENDUM = `
@@ -110,7 +111,7 @@ Cada atividade é aprovada quando:
 - a duração cabe no tempo de tarefa e cada passo tem uma ação só;
 - as formas de resposta respeitam o canal de comunicação do estudante;
 - na sala comum, o estudante faz a mesma aula, com a turma, e a turma participa junto: nada de tarefa separada nem de conteúdo reduzido;
-- em casa, dura até ${HOME_MAX_MINUTES} minutos, usa só o que a família já tem e está escrita para quem não é professor;
+- em casa, dura até ${HOME_MAX_MINUTES} minutos, usa só o que a família já tem e está escrita para quem não é professor, sem códigos da escala de apoio nem da BNCC;
 - é diferente das outras duas no formato.
 
 Em todas as partes: sem linguagem clínica, sem diagnóstico e sem rebaixar a expectativa em vez de remover a barreira.

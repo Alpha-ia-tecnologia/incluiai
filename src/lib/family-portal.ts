@@ -3,6 +3,7 @@ import { plural } from "./format.ts";
 import { PARTICIPATION, clampSupport } from "./scale.ts";
 import { TREND_RULE } from "./support-trend.ts";
 import type { SupportStepsData } from "./support-steps.ts";
+import { withoutCodes } from "./without-codes.ts";
 
 /** Quanta ajuda, em palavras do dia a dia, para cada nível da escala de apoio (0 a 5). */
 export const FAMILY_HELP = [
@@ -30,7 +31,7 @@ function infinitive(word: string): string {
  * "Identificar seu nome entre 5 opções". Sem o nome do estudante no começo.
  */
 export function familyGoalTitle(action: string, firstName = ""): string {
-  let text = action.trim().replace(/\s+/g, " ");
+  let text = withoutCodes(action).replace(/\s+/g, " ");
   if (firstName && text.toLocaleLowerCase("pt-BR").startsWith(`${firstName.toLocaleLowerCase("pt-BR")} `)) text = text.slice(firstName.length + 1);
   text = text.replace(/\p{L}+/gu, infinitive).replace(/[.;]+$/, "");
   return text.charAt(0).toLocaleUpperCase("pt-BR") + text.slice(1);
@@ -153,13 +154,13 @@ export function familyWeek(input: WeekInput): WeekItem[] {
   }
 
   for (const conquest of input.conquests.filter((item) => inWeek(item.date))) {
-    items.push({ key: `conquista-${conquest.id}`, kind: "conquista", title: "Conquista na escola", detail: conquest.title });
+    items.push({ key: `conquista-${conquest.id}`, kind: "conquista", title: "Conquista na escola", detail: withoutCodes(conquest.title) });
   }
   for (const activity of input.activities.filter((item) => inWeek(item.at))) {
-    items.push({ key: `casa-${activity.id}`, kind: "casa", title: "Nova atividade para casa", detail: activity.title, href: "#casa" });
+    items.push({ key: `casa-${activity.id}`, kind: "casa", title: "Nova atividade para casa", detail: withoutCodes(activity.title), href: "#casa" });
   }
   for (const material of input.materials.filter((item) => inWeek(item.at))) {
-    items.push({ key: `material-${material.id}`, kind: "material", title: "Novo material para casa", detail: material.title, href: `${input.portal}/materiais/${material.id}` });
+    items.push({ key: `material-${material.id}`, kind: "material", title: "Novo material para casa", detail: withoutCodes(material.title), href: `${input.portal}/materiais/${material.id}` });
   }
   for (const report of input.reports.filter((item) => inWeek(item.at))) {
     items.push({ key: `relatorio-${report.id}`, kind: "relatorio", title: "Relatório do período pronto", href: `${input.portal}/relatorios/${report.id}` });

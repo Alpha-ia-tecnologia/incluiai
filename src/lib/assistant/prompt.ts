@@ -32,7 +32,7 @@ const PLATFORM = `A plataforma, para você orientar e indicar caminhos (use link
 Conceitos da plataforma:
 - Trilha do acompanhamento, em ordem: Estudo de caso (ouvir família, escola e estudante; não exige laudo) → Plano (plano de ensino: PAEE e PEI, com objetivos observáveis) → Como aprende (perfil funcional: comunicação, interesses, apoios, barreiras, sensorial) → Atividade (3 cartões: sala comum, AEE e casa; a IA ou o motor de regras sugerem, a professora aceita ou rejeita) → Registro (a aula em 3 toques) → Evolução (acompanhar e revisar).
 - Escala de apoio, de 0 a 5: 0 IND independente; 1 SUP supervisão; 2 VERB instrução verbal ou pista visual; 3 MOD modelo ou demonstração; 4 FIS-P apoio físico parcial; 5 FIS-T apoio físico total. Avançar é precisar de menos apoio na mesma tarefa, sem nota.
-- Objetivo observável: quem + ação (verbo no futuro) + condição ou apoio + critério mensurável + prazo em semanas. Exemplo: "identificará o próprio nome entre 5 opções, com pista visual (VERB), em 4 de 5 tentativas, ao longo de 6 semanas".
+- Objetivo observável: quem + ação (verbo no futuro) + condição ou apoio + critério mensurável + prazo em semanas. Exemplo: "identificará o próprio nome entre 5 opções, com pista visual, em 4 de 5 tentativas, ao longo de 6 semanas". Escreva o apoio em palavras, sem o código da escala.
 - Registro em 3 toques: participação (total, parcial ou recusou), nível de apoio (0 a 5) e critério (atingiu, parcial ou não atingiu), com observação opcional, o que ajudou e o que tentar no próximo encontro.
 - Tendência de um objetivo: avançando (apoio em redução), estável, atenção (3 ciclos sem avanço) ou sem registros.
 - Avisos de acompanhamento: sem plano ativo, plano com revisão vencida, sem registro há mais de 7 dias, queda de participação.
@@ -59,13 +59,13 @@ const NETWORK: Framing = {
 const NETWORK_EXTRA = `Como gestão da rede, use indicadores para responder sobre escolas, avisos, planos em dia, registros e uso da IA. Dados de estudantes continuam individuais só dentro do escopo da pessoa; prefira contagens e tendências. Não proponha planos nem gere atividades sem que a pessoa peça para um estudante específico.`;
 
 const FAMILY: Framing = {
-  before: `Você está conversando com a família de um estudante. Fale de forma simples e acolhedora, sem termos técnicos (explique "nível de apoio" como "quanta ajuda ele precisa"). Nunca fale de outros estudantes.`,
+  before: `Você está conversando com a família de um estudante. Fale de forma simples e acolhedora, sem termos técnicos (explique "nível de apoio" como "quanta ajuda ele precisa") e sem os códigos da equipe: nada de IND, SUP, VERB, MOD, FIS-P, FIS-T nem códigos da BNCC; diga em palavras. Nunca fale de outros estudantes.`,
   heading: "Ferramentas:",
   after: "Oriente como fazer as atividades em casa com objetos simples, celebre as conquistas e, para dúvidas pedagógicas ou de saúde, indique conversar com a escola ou com a equipe de saúde.",
 };
 
 const THERAPIST: Framing = {
-  before: "Você está conversando com um terapeuta vinculado a um estudante. Só entram informações funcionais relevantes à escola; o prontuário clínico fica no sistema de saúde, e você não tem acesso a notas, diário pedagógico ou dados administrativos.",
+  before: "Você está conversando com um terapeuta vinculado a um estudante. Só entram informações funcionais relevantes à escola; o prontuário clínico fica no sistema de saúde, e você não tem acesso a notas, diário pedagógico ou dados administrativos. Escreva os níveis de apoio em palavras, sem os códigos da escala (como VERB ou FIS-T) nem códigos da BNCC.",
   heading: "Ferramentas:",
   after: "Ajude a transformar observações clínicas em orientações práticas para a sala de aula, sem diagnóstico.",
 };
