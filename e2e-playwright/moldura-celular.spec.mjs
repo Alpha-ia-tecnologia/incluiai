@@ -83,13 +83,19 @@ test.describe("moldura no celular", () => {
     const header = page.getByRole("banner");
     await scrollInSteps(page, 700);
     expect((await box(header)).bottom, "rolando para baixo, a barra sai").toBeLessThanOrEqual(0);
-    await scrollInSteps(page, 560);
+    // A página pode acabar antes de 700 px: sobe a partir de onde ela parou.
+    const landed = await page.evaluate(() => window.scrollY);
+    expect(landed, "o Início rola o bastante para o teste").toBeGreaterThanOrEqual(300);
+    await scrollInSteps(page, landed - 140);
     const shown = await box(header);
     expect(shown.top, "rolando para cima, a barra volta presa no topo").toBe(0);
     expect(shown.bottom - shown.top, "≈ 56 px").toBeLessThanOrEqual(60);
 
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.keyboard.press("Tab");
+    // Depois do clique em "Entrar", o Chrome segue o Tab de onde estava o botão
+    // (que saiu da página): o primeiro Tab pode ir para o VLibras, no fim do body.
+    // O Tab parte do primeiro item da página.
+    await page.getByRole("link", { name: "Pular para o conteúdo" }).focus();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     const assistant = header.getByRole("button", { name: /assistente/ });
