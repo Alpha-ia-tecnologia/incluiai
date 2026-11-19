@@ -541,7 +541,7 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
       why: "A equipe usa o que a família observa para planejar as próximas aulas.",
       done: stories.length > 0, date: stories[0]?.date ?? null,
       evidence: stories.length ? `Última conquista contada: “${stories.at(-1)!.note}”` : null,
-      action: { label: "Contar uma conquista", href: `${path}#conquista` },
+      action: { label: "Contar uma conquista", href: `${path}#contar` },
     },
   ]);
 
@@ -562,7 +562,7 @@ async function familyJourney(user: SessionUser, marks: Marks): Promise<Journey> 
       { label: "Conquistas contadas pela família", value: String(stories.length) },
     ],
     strategies: [],
-    quote: lastAccess ? { text: `A equipe da escola consultou o acompanhamento de ${name} em ${formatDate(lastAccess.createdAt)}.`, source: "Quem acessou os dados fica registrado na página do acompanhamento." } : null,
+    quote: lastAccess ? { text: `A equipe da escola consultou o acompanhamento de ${name} em ${formatDate(lastAccess.createdAt)}.`, source: "Quem acessou os dados fica registrado em Privacidade e acessos, no acompanhamento." } : null,
     milestones: [
       { key: "plano", title: "Plano combinado", description: `A escola definiu o primeiro objetivo de ${name}.`, achieved: objectives.length > 0, date: s.plans[0]?.createdAt ?? null },
       { key: "casa", title: "Primeira atividade em casa", description: "Vocês fizeram uma atividade enviada pela escola.", achieved: homeDone.length > 0, date: homeDone[0]?.date ?? null },

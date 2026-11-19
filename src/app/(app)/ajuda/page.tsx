@@ -29,7 +29,7 @@ export default async function HelpPage() {
   const steps = family ? [
     { title: "Ver o que está sendo trabalhado", text: "Abra Meu filho. Veja os objetivos apresentados pela escola, as atividades para casa e as conquistas recentes.", href: portal, action: "Abrir acompanhamento" },
     { title: "Observar uma conquista em casa", text: "Faça as atividades orientadas pela escola e observe o que a criança conseguiu fazer e de que ajuda precisou.", href: portal, action: "Ver atividades para casa" },
-    { title: "Compartilhar com a escola", text: "Use Registrar uma conquista de casa. Escreva uma observação do cotidiano, informe quem está registrando e envie. Você poderá consultar o registro na mesma página.", href: portal, action: "Registrar uma conquista" },
+    { title: "Compartilhar com a escola", text: "Use Contar para a escola. Marque como foi a semana em casa, conte uma conquista, diga quem viu e envie. O que vocês contaram fica logo abaixo, na mesma página.", href: `${portal}#contar`, action: "Contar para a escola" },
   ] : therapist ? [
     { title: "Conhecer o contexto escolar", text: "Em Orientações, confira o estudante acompanhado e as informações de comunicação e interesses compartilhadas pela escola.", href: portal, action: "Abrir orientações" },
     { title: "Compartilhar orientações práticas", text: "Preencha o formulário com recursos de acessibilidade, estratégias e orientações que possam ser usadas na escola. Os campos com asterisco são obrigatórios.", href: portal, action: "Escrever orientações" },

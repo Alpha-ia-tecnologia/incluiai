@@ -6,5 +6,6 @@ export function invalidateStudent(studentId: string): void {
   revalidatePath("/estudantes");
   revalidatePath("/");
   revalidatePath(`/familia/${studentId}`);
+  revalidatePath(`/familia/${studentId}/privacidade`);
   revalidatePath("/terapeuta");
 }

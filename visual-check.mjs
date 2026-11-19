@@ -145,7 +145,7 @@ await account("familia", "familia", async (page) => {
   const portal = new URL(page.url()).pathname;
   const material = await firstLink(page, portal, 'a[href*="/materiais/"]');
   const report = await firstLink(page, portal, 'a[href*="/relatorios/"]');
-  return [["portal", portal], ["jornada", "/jornada"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], material && ["material", material], report && ["relatorio", report]];
+  return [["portal", portal], ["privacidade", `${portal}/privacidade`], ["jornada", "/jornada"], ["conta_seguranca", "/conta/seguranca"], ["avisos", "/avisos"], material && ["material", material], report && ["relatorio", report]];
 });
 
 await account("terapeuta", "terapeuta", async () => [["portal", "/terapeuta"], ["jornada", "/jornada"], ["avisos", "/avisos"]]);

@@ -1,56 +1,55 @@
-import { weekStart } from "@/lib/dates";
-import { answerCheckIn } from "@/actions/notifications";
-import { CheckInForm } from "@/components/notice-forms";
 import Image from "next/image";
-import { ConsentCard } from "@/components/consent-card";
-import { ReadAloud } from "@/components/read-aloud";
-import { TextSizeControl } from "@/components/text-size-control";
-import { studentConsent } from "@/lib/consent";
-import { AUDIT_ACTION } from "@/lib/audit";
+import Link from "next/link";
+import { BookOpen, ChevronDown, CircleCheck, FileText, HandHeart, Home, NotebookPen, ShieldCheck, Trophy, type LucideIcon } from "lucide-react";
+import { weekStart, formatDate } from "@/lib/dates";
 import { db } from "@/lib/prisma";
 import { requireFamilyPortal } from "@/lib/page-context";
 import { familyActivityWhere, familyMaterialWhere, isFamilyOf } from "@/lib/policy";
-import { createFamilyNote, markHomeActivityDone } from "@/actions/diary";
+import { markHomeActivityDone } from "@/actions/diary";
+import { tellSchool } from "@/actions/family";
 import { homeActivityNote, loadJourney, recordJourneyMark } from "@/lib/user-journey";
-import { JourneyProgress, JourneyWelcome } from "@/components/journey-ui";
-import { PendingButton } from "@/components/pending-button";
-import { ActionForm } from "@/components/action-form";
-import { readList, firstName as firstNameOf } from "@/lib/format";
-import { formatDate } from "@/lib/dates";
-import { roleLabel } from "@/lib/roles";
-import { PageHero, Card, SectionTitle } from "@/components/ui";
-import { ChoiceField, MultiChoiceField } from "@/components/choice-field";
-import { FAMILY_ACHIEVEMENT_OPTIONS, FAMILY_MEMBER_OPTIONS } from "@/lib/form-options";
-import { Trophy, ShieldCheck, Home, CircleCheck, BookOpen, FileText, IdCard } from "lucide-react";
-import { canViewCard, loadCardView } from "@/lib/student-card";
-import { rotateStudentCard, saveCardPreferences } from "@/actions/student-card";
-import { StudentCardView } from "@/components/student-card-view";
-import { CardPreferencesForm } from "@/components/student-card-forms";
-import Link from "next/link";
+import { readList, firstName as firstNameOf, plural } from "@/lib/format";
 import { periodLabel, reportData } from "@/lib/reports";
-import { MaterialGalleryCard, materialSummary } from "@/components/materials/material-gallery";
-import { SIGNAL } from "@/components/viz/charts";
-import { DataBoard, RingTile, StatTile } from "@/components/viz/cards";
-import { SupportTrack } from "./support-track";
-import { percentOf } from "@/lib/series";
-import { Timeline } from "@/components/viz/timeline";
-import { BUTTON_CLS } from "@/components/form-styles";
+import { stepsFor } from "@/lib/support-steps";
+import { familyGoalSentence, familyGoalTitle, familyWeek, pickGoals, weekWindow, type WeekItem } from "@/lib/family-portal";
 import { activityImageUrl, imageWidthOf } from "@/lib/images/activity-image";
 import { CONTENT_ID } from "@/lib/landmarks";
+import { JourneyProgress } from "@/components/journey-ui";
+import { PendingButton } from "@/components/pending-button";
+import { ActionForm } from "@/components/action-form";
+import { ReadAloud } from "@/components/read-aloud";
+import { TextSizeControl } from "@/components/text-size-control";
+import { PageHero, Card, SectionTitle } from "@/components/ui";
+import { BUTTON_CLS } from "@/components/form-styles";
+import { MaterialGalleryCard, materialSummary } from "@/components/materials/material-gallery";
+import { SupportSteps } from "@/components/viz/support-steps";
+import { Timeline } from "@/components/viz/timeline";
+import { ShareForm } from "./share-form";
 
+const WEEK_ICON: Record<WeekItem["kind"], LucideIcon> = {
+  aulas: NotebookPen,
+  atendimento: HandHeart,
+  conquista: Trophy,
+  casa: Home,
+  material: BookOpen,
+  relatorio: FileText,
+};
+
+const NOTES_SHOWN = 3;
 
 export default async function FamilyStudentPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = await db();
   const { id } = await params;
   const { user } = await requireFamilyPortal(id, "Portal da família");
+  const week = weekWindow();
   const student = await prisma.student.findUniqueOrThrow({
     where: { id },
     include: {
-      school: true,
-      plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" } } } },
+      plans: { where: { status: "ativo" }, include: { objectives: { where: { status: "ativo" }, orderBy: { createdAt: "asc" } } } },
       familyNotes: { orderBy: { date: "desc" } },
-      accessLogs: { orderBy: { createdAt: "desc" }, take: 200 },
-      timeline: { where: { type: "conquista" }, orderBy: { date: "desc" }, take: 5 },
+      timeline: { where: { type: "conquista" }, orderBy: { date: "desc" }, take: 10 },
+      diaryEntries: { orderBy: { date: "asc" }, select: { id: true, date: true, supportLevel: true, participation: true, objectiveId: true } },
+      aeeSessions: { where: { date: { gte: week.since } }, select: { date: true, status: true } },
       activities: {
         where: familyActivityWhere,
         orderBy: { createdAt: "desc" },
@@ -61,247 +60,245 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
         where: familyMaterialWhere,
         orderBy: { createdAt: "desc" },
         take: 6,
-        select: { id: true, title: true, kind: true, status: true, content: true, createdAt: true, images: { where: { cardIndex: 0 }, select: { createdAt: true } } },
+        select: { id: true, title: true, kind: true, status: true, content: true, createdAt: true, approvedAt: true, images: { where: { cardIndex: 0 }, select: { createdAt: true } } },
       },
     },
   });
   const isFamily = isFamilyOf(user, student.id);
-  const justified = await prisma.accessLog.findMany({ where: { studentId: student.id, action: AUDIT_ACTION.justifiedAccess }, orderBy: { createdAt: "desc" }, take: 50 });
-  const accessLogs = [...new Map([...student.accessLogs, ...justified].map((log) => [log.id, log])).values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  const [consent, reports, prefs, checkIn] = await Promise.all([
-    studentConsent(student.id),
-    prisma.studentReport.findMany({ where: { studentId: student.id, status: "validado" }, orderBy: { periodEnd: "desc" }, take: 6, select: { id: true, data: true, validatedAt: true, validatedByName: true } }),
-    prisma.user.findUnique({ where: { id: user.id }, select: { weeklyCheckIn: true } }),
+  const [reports, prefs, checkIn] = await Promise.all([
+    prisma.studentReport.findMany({ where: { studentId: student.id, status: "validado" }, orderBy: { periodEnd: "desc" }, take: 6, select: { id: true, data: true, validatedAt: true } }),
+    isFamily ? prisma.user.findUnique({ where: { id: user.id }, select: { weeklyCheckIn: true } }) : null,
     prisma.familyCheckIn.findUnique({ where: { studentId_weekStart: { studentId: student.id, weekStart: weekStart() } }, select: { answers: true, note: true } }),
   ]);
   if (isFamily) await recordJourneyMark(user.id, "familia_inicio");
   const journey = isFamily ? await loadJourney(user) : null;
-  const objectives = student.plans.flatMap((p) => p.objectives);
-  const addNote = createFamilyNote.bind(null, id);
   const firstName = firstNameOf(student.name);
-  const cardView = consent.card && canViewCard(user, student) ? await loadCardView(student.id) : null;
-  const decidesCard = isFamily;
-  const homeActivities = student.activities.map((activity) => ({ activity, doneAt: student.familyNotes.find((n) => n.note === homeActivityNote(activity.title))?.date }));
-  const homeDone = homeActivities.filter((item) => item.doneAt).length;
-  const lastNote = student.familyNotes[0];
+  const portal = `/familia/${id}`;
+  const objectives = student.plans.flatMap((plan) => plan.objectives);
+  const goals = pickGoals(objectives, student.diaryEntries);
+  const otherGoals = objectives.filter((objective) => !goals.includes(objective));
+  const weekItems = familyWeek({
+    since: week.since,
+    portal,
+    firstName,
+    lessons: student.diaryEntries,
+    objectives,
+    sessions: student.aeeSessions,
+    conquests: student.timeline,
+    activities: student.activities.map((activity) => ({ id: activity.id, title: activity.title, at: activity.decidedAt ?? activity.createdAt })),
+    materials: student.materials.map((material) => ({ id: material.id, title: material.title, at: material.approvedAt ?? material.createdAt })),
+    reports: reports.map((report) => ({ id: report.id, at: report.validatedAt })),
+  });
+  const lastLesson = student.diaryEntries.at(-1);
+  const homeActivities = student.activities.map((activity) => ({ activity, doneAt: student.familyNotes.find((note) => note.note === homeActivityNote(activity.title))?.date }));
+  const [recentNotes, olderNotes] = [student.familyNotes.slice(0, NOTES_SHOWN), student.familyNotes.slice(NOTES_SHOWN)];
 
   return (
     <>
       <PageHero
         character="care"
         title={`Acompanhamento de ${firstName}`}
-        actions={<><ReadAloud targetId={CONTENT_ID} label="Ouvir esta página" /><TextSizeControl /></>}
+        actions={<>
+          <ReadAloud targetId={CONTENT_ID} label="Ouvir esta página" />
+          <TextSizeControl />
+          <Link href={`${portal}/privacidade`} className={BUTTON_CLS.quiet}><ShieldCheck size={16} aria-hidden /> Privacidade e acessos</Link>
+        </>}
       />
-      {journey ? (journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />) : null}
 
-      {isFamily && prefs?.weeklyCheckIn ? (
-        <Card className="mb-6 max-w-3xl border-brand/30" id="pergunta-da-semana">
-          <SectionTitle>Pergunta da semana</SectionTitle>
-          <CheckInForm action={answerCheckIn.bind(null, id)} firstName={firstName} previous={checkIn ? { answers: readList(checkIn.answers), note: checkIn.note ?? "" } : null} />
-        </Card>
-      ) : null}
-
-      <section aria-label={`Resumo do acompanhamento de ${firstName}`} className="mb-6">
-        <DataBoard className="sm:grid-cols-2">
-          <StatTile label="Objetivos em andamento" value={objectives.length} hint={objectives.length ? undefined : "A escola ainda está montando o plano."} />
-          {homeActivities.length ? (
-            <RingTile
-              id="familia-casa"
-              pct={percentOf(homeDone, homeActivities.length)}
-              label="Atividades de casa feitas"
-              value={`${homeDone} de ${homeActivities.length}`}
-              color={SIGNAL.lime}
-            />
+      <div className="grid max-w-3xl gap-5">
+        <Card id="semana" className="scroll-mt-24">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+            <SectionTitle>Esta semana na escola</SectionTitle>
+            <p className="mb-4 text-sm text-ink-soft">{week.label}</p>
+          </div>
+          {weekItems.length ? (
+            <ul className="divide-y divide-line">
+              {weekItems.map((item) => <WeekLine key={item.key} item={item} />)}
+            </ul>
           ) : (
-            <StatTile label="Atividades de casa" value={0} />
+            <p className="text-sm text-ink-soft">Nada registrado nesses 7 dias.{lastLesson ? ` O último registro de aula foi em ${formatDate(lastLesson.date)}.` : ""}</p>
           )}
-          <StatTile label="Conquistas recentes" value={student.timeline.length} hint={student.timeline[0] ? `A mais recente em ${formatDate(student.timeline[0].date)}.` : undefined} />
-          <StatTile label="Registros da família" value={student.familyNotes.length} hint={lastNote ? `O último em ${formatDate(lastNote.date)}.` : undefined} />
-        </DataBoard>
-      </section>
+        </Card>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="space-y-5">
-          <Card className="scroll-mt-24" id="plano">
-            <SectionTitle>O que estamos trabalhando agora</SectionTitle>
-            {objectives.length === 0 ? (
-              <p className="text-sm text-ink-soft">A escola ainda está montando o plano de {firstName}.</p>
-            ) : (
-              <ul className="space-y-3">
-                {objectives.map((o) => (
-                  <li key={o.id} className="min-w-0 rounded-xl border border-line bg-paper px-3.5 py-3">
-                    <p className="text-sm leading-relaxed text-ink">{o.description}</p>
-                    <div className="mt-3"><SupportTrack current={o.currentSupport} target={o.targetSupport} /></div>
+        <Card id="contar" className="scroll-mt-24">
+          <SectionTitle>Contar para a escola</SectionTitle>
+          <ShareForm
+            action={tellSchool.bind(null, id)}
+            firstName={firstName}
+            weekly={Boolean(prefs?.weeklyCheckIn)}
+            previous={checkIn ? { answers: readList(checkIn.answers), note: checkIn.note ?? "" } : null}
+          />
+          {recentNotes.length ? (
+            <div className="mt-6 border-t border-line pt-5">
+              <h3 className="mb-2 text-sm font-medium text-ink">O que vocês já contaram</h3>
+              <NoteList notes={recentNotes} />
+              {olderNotes.length ? (
+                <details className="group mt-1">
+                  <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-brand-strong [&::-webkit-details-marker]:hidden">
+                    Ver os anteriores ({olderNotes.length}) <ChevronDown size={16} aria-hidden className="transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+                  </summary>
+                  <NoteList notes={olderNotes} />
+                </details>
+              ) : null}
+            </div>
+          ) : null}
+        </Card>
+
+        <Card id="plano" className="scroll-mt-24">
+          <SectionTitle>O que {firstName} está aprendendo</SectionTitle>
+          {goals.length === 0 ? (
+            <p className="text-sm text-ink-soft">A escola ainda está montando o plano de {firstName}.</p>
+          ) : (
+            <ul className="-mt-1 divide-y divide-line">
+              {goals.map((objective) => {
+                const title = familyGoalTitle(objective.action, firstName);
+                const steps = stepsFor(objective, student.diaryEntries);
+                const sentence = familyGoalSentence(steps);
+                return (
+                  <li key={objective.id} className="min-w-0 py-4 first:pt-1 last:pb-0">
+                    <h3 className="text-base font-medium leading-snug text-ink">{title}</h3>
+                    <SupportSteps data={steps} audience="familia" name={title} className="mt-3" />
+                    {sentence ? <p className="mt-3 text-sm leading-relaxed text-ink">{sentence}</p> : null}
                   </li>
-                ))}
+                );
+              })}
+            </ul>
+          )}
+          {otherGoals.length ? (
+            <details className="group mt-4 border-t border-line pt-3">
+              <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-brand-strong [&::-webkit-details-marker]:hidden">
+                {otherGoals.length === 1 ? "Mais 1 objetivo do plano" : `Mais ${otherGoals.length} objetivos do plano`} <ChevronDown size={16} aria-hidden className="transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+              </summary>
+              <ul className="mt-2 grid list-disc gap-1.5 pl-5 text-sm text-ink">
+                {otherGoals.map((objective) => <li key={objective.id}>{familyGoalTitle(objective.action, firstName)}</li>)}
               </ul>
-            )}
-          </Card>
+            </details>
+          ) : null}
+        </Card>
 
-          <Card className="scroll-mt-24" id="casa">
-            <SectionTitle><span className="flex items-center gap-1.5"><Home size={13} aria-hidden /> Atividades para fazer em casa</span></SectionTitle>
-            {homeActivities.length === 0 ? (
-              <p className="text-sm text-ink-soft">A escola ainda não enviou atividades para casa.</p>
-            ) : (
-              <ul className="space-y-3">
-                {homeActivities.map(({ activity: a, doneAt }) => {
-                  const steps = readList(a.steps);
-                  return (
-                    <li key={a.id} className="rounded-lg border border-line bg-paper px-3.5 py-2.5">
-                      <p className="text-sm font-medium text-ink">{a.title}</p>
-                      <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-sm text-ink-soft">
-                        {steps.map((s) => <li key={s}>{s}</li>)}
-                      </ol>
-                      {a.image ? (
-                        <Image
-                          src={activityImageUrl(a.id, a.image.createdAt)}
-                          alt={a.image.altText}
-                          width={imageWidthOf(a.image.kind)}
-                          height={1024}
-                          unoptimized
-                          className="mt-3 h-auto w-full rounded-lg border border-line bg-white"
-                        />
-                      ) : null}
-                      {doneAt ? <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-green"><CircleCheck size={14} aria-hidden /> Vocês fizeram esta atividade em {formatDate(doneAt)}. A escola foi avisada.</p> : null}
-                      {isFamily ? (
-                        <ActionForm action={markHomeActivityDone.bind(null, a.id)} className="mt-3">
-                          <PendingButton className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-green/50 bg-green-soft px-4 text-sm font-medium text-green hover:bg-green-soft/70" pendingText="Avisando a escola...">
-                            <CircleCheck size={16} aria-hidden /> {doneAt ? "Fizemos de novo" : "Fizemos esta atividade"}
-                          </PendingButton>
-                        </ActionForm>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
+        <Card id="casa" className="scroll-mt-24">
+          <SectionTitle><span className="flex items-center gap-1.5"><Home size={14} aria-hidden /> Atividades para fazer em casa</span></SectionTitle>
+          {homeActivities.length === 0 ? (
+            <p className="text-sm text-ink-soft">A escola ainda não enviou atividades para casa.</p>
+          ) : (
+            <ul className="-mt-1 divide-y divide-line">
+              {homeActivities.map(({ activity: a, doneAt }) => {
+                const steps = readList(a.steps);
+                return (
+                  <li key={a.id} className="min-w-0 py-4 first:pt-1 last:pb-0">
+                    <p className="text-base font-medium leading-snug text-ink">{a.title}</p>
+                    {doneAt ? <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-green"><CircleCheck size={16} aria-hidden /> Vocês fizeram em {formatDate(doneAt)}. A escola foi avisada.</p> : null}
+                    {steps.length || a.image ? (
+                      <details className="group mt-1">
+                        <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-brand-strong [&::-webkit-details-marker]:hidden">
+                          Como fazer{steps.length ? ` (${plural(steps.length, "passo", "passos")})` : ""} <ChevronDown size={16} aria-hidden className="transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+                        </summary>
+                        <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-ink">
+                          {steps.map((step) => <li key={step}>{step}</li>)}
+                        </ol>
+                        {a.image ? (
+                          <Image
+                            src={activityImageUrl(a.id, a.image.createdAt)}
+                            alt={a.image.altText}
+                            width={imageWidthOf(a.image.kind)}
+                            height={1024}
+                            unoptimized
+                            className="mt-3 h-auto w-full rounded-xl border border-line bg-white"
+                          />
+                        ) : null}
+                      </details>
+                    ) : null}
+                    {isFamily ? (
+                      <ActionForm action={markHomeActivityDone.bind(null, a.id)} className="mt-2">
+                        <PendingButton className="inline-flex min-h-11 items-center gap-2 rounded-full border border-green/50 bg-green-soft px-4 text-sm font-medium text-green hover:bg-green-soft/70" pendingText="Avisando a escola...">
+                          <CircleCheck size={16} aria-hidden /> {doneAt ? "Fizemos de novo" : "Fizemos esta atividade"}
+                        </PendingButton>
+                      </ActionForm>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
 
-          {reports.length ? (
-          <Card className="scroll-mt-24" id="relatorios">
-            <SectionTitle><span className="flex items-center gap-1.5"><FileText size={13} aria-hidden /> Relatórios da escola</span></SectionTitle>
+        {student.materials.length ? (
+          <Card id="materiais" className="scroll-mt-24">
+            <SectionTitle><span className="flex items-center gap-1.5"><BookOpen size={14} aria-hidden /> Materiais para usar em casa</span></SectionTitle>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {student.materials.map((material) => (
+                <MaterialGalleryCard key={material.id} studentId={id} material={materialSummary(material)} href={`${portal}/materiais/${material.id}`} />
+              ))}
+            </div>
+          </Card>
+        ) : null}
+
+        {reports.length ? (
+          <Card id="relatorios" className="scroll-mt-24">
+            <SectionTitle><span className="flex items-center gap-1.5"><FileText size={14} aria-hidden /> Relatórios da escola</span></SectionTitle>
             <ul className="grid gap-2">
               {reports.map((report) => (
                 <li key={report.id}>
-                  <Link href={`/familia/${id}/relatorios/${report.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-3 text-sm hover:bg-brand-soft">
+                  <Link href={`${portal}/relatorios/${report.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-3 text-sm hover:bg-brand-soft">
                     <span className="font-medium text-ink">Período de {periodLabel(reportData(report.data))}</span>
-                    <span className="text-xs text-ink-soft">Validado em {formatDate(report.validatedAt!)}</span>
+                    {report.validatedAt ? <span className="text-xs text-ink-soft">Validado em {formatDate(report.validatedAt)}</span> : null}
                   </Link>
                 </li>
               ))}
             </ul>
           </Card>
-          ) : null}
+        ) : null}
 
-          {student.materials.length ? (
-          <Card className="scroll-mt-24" id="materiais">
-            <SectionTitle><span className="flex items-center gap-1.5"><BookOpen size={13} aria-hidden /> Materiais para usar em casa</span></SectionTitle>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {student.materials.map((material) => (
-                <MaterialGalleryCard key={material.id} studentId={id} material={materialSummary(material)} href={`/familia/${id}/materiais/${material.id}`} />
-              ))}
-            </div>
-          </Card>
-          ) : null}
-
-          {student.timeline.length ? (
+        {student.timeline.length ? (
           <Card>
-            <SectionTitle>Conquistas recentes</SectionTitle>
+            <SectionTitle>Conquistas na escola</SectionTitle>
             <Timeline
-              label={`Conquistas recentes de ${firstName}, da mais nova para a mais antiga`}
-              items={student.timeline.map((t) => ({
-                key: t.id,
-                date: formatDate(t.date),
-                title: t.title,
-                body: t.description || undefined,
+              label={`Conquistas de ${firstName} na escola, da mais nova para a mais antiga`}
+              items={student.timeline.slice(0, 3).map((event) => ({
+                key: event.id,
+                date: formatDate(event.date),
+                title: event.title,
+                body: event.description || undefined,
                 marker: <Trophy size={16} />,
                 markerClassName: "bg-amber-soft text-amber",
               }))}
             />
           </Card>
-          ) : null}
+        ) : null}
 
-          {cardView ? (
-            <Card className="scroll-mt-24" id="carteirinha">
-              <SectionTitle><span className="flex items-center gap-1.5"><IdCard size={13} aria-hidden /> Carteirinha de {firstName}</span></SectionTitle>
-              <StudentCardView view={cardView} />
-              {decidesCard ? (
-                <div className="mt-5 border-t border-line pt-5">
-                  <CardPreferencesForm action={saveCardPreferences.bind(null, id)} firstName={firstName} settings={cardView.settings} guardian={cardView.guardian} hasProfile={cardView.settings.hasProfile} />
-                  <ActionForm action={rotateStudentCard.bind(null, id)} className="mt-4 border-t border-line pt-4">
-                    <p className="mb-2 text-sm text-ink-soft">Perderam a carteirinha? Troquem o código: a antiga deixa de abrir.</p>
-                    <PendingButton className={BUTTON_CLS.quiet} pendingText="Trocando o código…">Trocar o código</PendingButton>
-                  </ActionForm>
-                </div>
-              ) : null}
-            </Card>
-          ) : null}
-
-          <ConsentCard studentId={id} firstName={firstName} consent={consent} canDecide={isFamily && user.studentIds.includes(id)} />
-
-          <Card>
-            <SectionTitle>
-              <span className="flex items-center gap-1.5"><ShieldCheck size={13} aria-hidden /> Quem acessou os dados</span>
-            </SectionTitle>
-            {accessLogs.length === 0 ? (
-              <p className="text-sm text-ink-soft">Nenhum acesso registrado.</p>
-            ) : (
-              <>
-                <AccessList logs={accessLogs.slice(0, 8)} />
-                {accessLogs.length > 8 ? (
-                  <details className="mt-3">
-                    <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-brand-strong">Ver o histórico completo ({accessLogs.length} registros{student.accessLogs.length === 200 ? ", os mais recentes e os acessos justificados" : ""})</summary>
-                    <AccessList logs={accessLogs.slice(8)} />
-                  </details>
-                ) : null}
-              </>
-            )}
-          </Card>
-        </div>
-
-        <div className="space-y-5">
-          <Card className="scroll-mt-24 border-green/40" id="conquista">
-            <SectionTitle>Registrar uma conquista de casa</SectionTitle>
-            <ActionForm action={addNote}>
-              <div className="space-y-4">
-                <MultiChoiceField name="note" label="O que aconteceu? *" options={FAMILY_ACHIEVEMENT_OPTIONS} required otherPlaceholder={`Ex.: ${firstName} pediu água durante o jantar`} />
-                <ChoiceField name="author" label="Quem observou" options={FAMILY_MEMBER_OPTIONS} placeholder="Escolha (opcional)" otherPlaceholder="Ex.: madrinha" />
-                <button type="submit" className="min-h-11 rounded-full bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-strong">
-                  Enviar
-                </button>
-              </div>
-            </ActionForm>
-          </Card>
-
-          {student.familyNotes.length ? (
-          <div>
-            <SectionTitle>O que a família já registrou</SectionTitle>
-            <div className="space-y-3">
-              {student.familyNotes.map((n) => (
-                <Card key={n.id}>
-                  <p className="text-sm leading-relaxed text-ink">“{n.note}”</p>
-                  <p className="mt-1 text-xs text-ink-soft">{n.author} · {formatDate(n.date)}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-          ) : null}
-        </div>
+        {journey ? <JourneyProgress journey={journey} layout="strip" /> : null}
       </div>
     </>
   );
 }
 
-function AccessList({ logs }: { logs: { id: string; actor: string; role: string; action: string; detail: string | null; createdAt: Date }[] }) {
+function WeekLine({ item }: { item: WeekItem }) {
+  const Icon = WEEK_ICON[item.kind];
+  const body = (
+    <>
+      <span aria-hidden className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong"><Icon size={16} /></span>
+      <span className="min-w-0">
+        <span className="block text-sm font-medium leading-snug text-ink">{item.title}</span>
+        {item.detail ? <span className="mt-0.5 block text-sm leading-snug text-ink-soft">{item.detail}</span> : null}
+      </span>
+    </>
+  );
   return (
-    <ul className="divide-y divide-line text-sm">
-      {logs.map((log) => (
-        <li key={log.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2">
-          <span className="min-w-0">
-            <span className="font-medium text-ink">{log.actor}</span> <span className="text-xs text-ink-soft">({roleLabel(log.role)})</span>
-            <span className="block text-xs text-ink-soft">{log.action}{log.detail ? ` · ${log.detail}` : ""}</span>
-          </span>
-          <span className="shrink-0 text-xs tabular-nums text-ink-soft">{formatDate(log.createdAt)}</span>
+    <li className="min-w-0">
+      {item.href
+        ? <Link href={item.href} className="-mx-2 flex min-h-11 gap-3 rounded-xl px-2 py-3 hover:bg-surface-muted/60">{body}</Link>
+        : <div className="flex gap-3 py-3">{body}</div>}
+    </li>
+  );
+}
+
+function NoteList({ notes }: { notes: { id: string; note: string; author: string; date: Date }[] }) {
+  return (
+    <ul className="divide-y divide-line">
+      {notes.map((note) => (
+        <li key={note.id} className="py-2.5">
+          <p className="text-sm leading-relaxed text-ink">“{note.note}”</p>
+          <p className="mt-0.5 text-xs text-ink-soft">{note.author} · {formatDate(note.date)}</p>
         </li>
       ))}
     </ul>

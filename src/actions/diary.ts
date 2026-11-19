@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 import type { ActionResult } from "@/lib/action-result";
 import { formField } from "@/lib/form-data";
 import { runAction, runFormAction } from "@/lib/server-action";
-import { recordHomeActivity, saveDiaryEntry, saveFamilyNote, savedLesson } from "@/lib/records";
+import { recordHomeActivity, saveDiaryEntry, savedLesson } from "@/lib/records";
 import { supportFromInput, type SavedLesson } from "@/lib/lesson-log";
 
 const diaryForm = z.object({
@@ -28,12 +28,4 @@ export async function createDiaryEntry(studentId: string, formData: FormData): P
 
 export async function markHomeActivityDone(activityId: string): Promise<ActionResult> {
   return runAction((user) => recordHomeActivity(user, activityId));
-}
-
-const familyNoteForm = z.object({ note: formField.text(), author: formField.text(120) });
-
-export async function createFamilyNote(studentId: string, _previous: unknown, formData: FormData): Promise<ActionResult> {
-  return runFormAction(formData, familyNoteForm, async (user, data) => {
-    await saveFamilyNote(user, studentId, data.note, data.author);
-  });
 }

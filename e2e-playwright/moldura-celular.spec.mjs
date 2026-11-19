@@ -106,13 +106,17 @@ test.describe("moldura no celular", () => {
 
   test("Assistente: na barra de cima, e nada fixo cobre o fim do conteúdo", async ({ page }) => {
     await login(page, "familia");
+    // A entrada passa por "/" e só depois abre o portal; rolar antes disso rola a página errada.
+    await page.waitForURL(/\/familia\//);
     await expect(page.getByRole("banner").getByRole("button", { name: /Abrir o assistente/ })).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await page.waitForTimeout(500);
     const last = page.locator(`#${CONTENT_ID} > *`).last();
     const covered = await last.evaluate((element) => {
       const content = element.getBoundingClientRect();
-      const fixed = [...document.querySelectorAll("body *")].filter((item) => getComputedStyle(item).position === "fixed" && item.getBoundingClientRect().height > 0);
+      // Só o que está na tela: o painel do Menu fechado (dentro de <details>) e o link de pular, fora da tela, têm caixa mas não cobrem nada.
+      const onScreen = (item) => { const box = item.getBoundingClientRect(); return box.height > 0 && box.bottom > 0 && box.top < window.innerHeight && item.checkVisibility({ opacityProperty: true, visibilityProperty: true }); };
+      const fixed = [...document.querySelectorAll("body *")].filter((item) => getComputedStyle(item).position === "fixed" && onScreen(item));
       return fixed.map((item) => ({ name: item.getAttribute("aria-label") ?? item.className, box: item.getBoundingClientRect() }))
         .filter(({ box }) => box.top < content.bottom && box.bottom > content.top && box.left < content.right && box.right > content.left)
         .map(({ name }) => String(name));

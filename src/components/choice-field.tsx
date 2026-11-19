@@ -98,7 +98,7 @@ export function ChoiceField({
 
 export function MultiChoiceField({
   name, label, options, defaultValue = [], required = false, separator = ";", submit = "joined",
-  hint, otherPlaceholder = "Digite e toque em Adicionar",
+  hint, otherPlaceholder = "Digite e toque em Adicionar", allowOther = true,
 }: {
   name: string;
   label: string;
@@ -109,6 +109,8 @@ export function MultiChoiceField({
   submit?: "joined" | "multiple";
   hint?: string;
   otherPlaceholder?: string;
+  /** Sem a opção "Outro": só as opções da lista. */
+  allowOther?: boolean;
 }) {
   const id = useId();
   const items = options.map(normalize);
@@ -177,7 +179,7 @@ export function MultiChoiceField({
             </button>
           </span>
         ))}
-        <button
+        {allowOther ? <button
           type="button"
           aria-expanded={otherOpen}
           aria-controls={`${id}-outro`}
@@ -188,7 +190,7 @@ export function MultiChoiceField({
           className={`${chipCls} ${otherOpen ? onCls : `${offCls} border-dashed`}`}
         >
           <Plus size={14} aria-hidden /> Outro
-        </button>
+        </button> : null}
       </div>
       {otherOpen ? (
         <div id={`${id}-outro`} className="mt-3 flex flex-col gap-2 sm:flex-row">

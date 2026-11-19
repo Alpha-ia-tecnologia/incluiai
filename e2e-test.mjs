@@ -32,6 +32,20 @@ const browser = await launchChrome();
 const newSession = () => openSession(browser);
 const FAB = 'button[aria-controls="assistente-painel"]';
 const contentText = (page) => page.$eval(`#${CONTENT_ID}`, (main) => main.textContent ?? "").catch(() => "");
+// Autorizações, carteirinha e quem acessou os dados ficam em "Privacidade e acessos", a um toque do portal.
+async function openPrivacy(page) {
+  const href = await page.$eval('a[href$="/privacidade"]', (link) => link.getAttribute("href")).catch(() => null);
+  if (!href) throw new Error("link de privacidade não encontrado no portal");
+  await page.goto(`${BASE}${href}`, { waitUntil: "networkidle2" });
+  return href;
+}
+// "Contar para a escola": a conquista de casa fica num bloco que abre (com a pergunta da semana ligada) ou à vista.
+async function tellAchievement(page, text) {
+  await page.evaluate(() => [...document.querySelectorAll("#contar details")].filter((item) => item.querySelector("summary")?.textContent.includes("Teve uma conquista")).forEach((item) => { item.open = true; }));
+  const legend = await page.evaluate(() => [...document.querySelectorAll("#contar legend")].map((item) => item.textContent).find((item) => /Qual conquista|O que aconteceu em casa/.test(item)));
+  await typeOther(page, legend, text);
+  await clickByText(page, "Enviar para a escola");
+}
 
 async function choose(page, label, value) {
   const handle = await page.evaluateHandle((l) => [...document.querySelectorAll("label")].find((item) => item.textContent.includes(l))?.control ?? null, label);
@@ -504,11 +518,22 @@ if (!ONLY_WAIT) {
   await section("família", async () => {
     const { ctx, page, errors } = await newSession();
     await login(page, "familia");
-    await typeOther(page, "O que aconteceu?", "Teste E2E: pediu água pela prancha no jantar.");
-    // O botão do próprio formulário: numa base nova, a pergunta da semana vem antes com "Enviar para a escola".
-    await page.evaluate(() => [...document.querySelectorAll("fieldset")].find((item) => item.querySelector("legend")?.textContent.includes("O que aconteceu?")).closest("form").querySelector('button[type="submit"]').click());
+    const portal = await page.evaluate(() => ({
+      sections: [...document.querySelectorAll("main h2")].map((h) => h.textContent.trim()).slice(0, 2),
+      steps: document.querySelectorAll("#plano [data-support-steps]").length,
+      words: [...document.querySelectorAll("#plano li > p")].map((p) => p.textContent).join(" "),
+      privacy: Boolean(document.querySelector('.page-hero a[href$="/privacidade"]')),
+      consentsHere: Boolean(document.querySelector("#autorizacoes")),
+    }));
+    check("família: o portal começa por 'Esta semana na escola' e 'Contar para a escola'", portal.sections[0] === "Esta semana na escola" && portal.sections[1] === "Contar para a escola", JSON.stringify(portal.sections));
+    check("família: objetivos com os degraus de apoio e uma frase na voz da família", portal.steps >= 1 && portal.steps <= 2 && /fez |objetivo é fazer|preferiu não fazer/.test(portal.words), JSON.stringify(portal));
+    check("família: privacidade a um toque, fora do portal", portal.privacy && !portal.consentsHere, JSON.stringify(portal));
+    await tellAchievement(page, "Teste E2E: pediu água pela prancha no jantar.");
     await until(page, () => document.body.innerText.includes("pediu água pela prancha no jantar"), { timeout: 20000 });
     check("família registra conquista de casa", await page.evaluate(() => document.body.innerText.includes("pediu água pela prancha no jantar")));
+    check("família: 'Contar para a escola' agradece e deixa contar de novo", (await textOf(page)).includes("Obrigado! A escola vai ver") && await page.evaluate(() => [...document.querySelectorAll("#contar button")].some((button) => button.textContent.includes("Contar mais uma coisa"))));
+    const privacy = await openPrivacy(page);
+    check("família: a página de privacidade tem um título só", (await page.evaluate(() => document.querySelector("h1")?.textContent)) === "Privacidade e acessos" && privacy.endsWith("/privacidade"));
     check("família vê log de acessos (LGPD)", await page.evaluate(() => document.body.innerText.toLowerCase().includes("quem acessou os dados")));
     check("família vê o nome de quem acessou a ficha", new RegExp(`${firstName(DEMO_ACCOUNTS.professor_aee.name)}[\\s\\S]{0,160}visualizou`).test(await contentText(page)));
     check("família vê as autorizações", await page.evaluate(() => Boolean(document.querySelector("#autorizacoes"))));
@@ -523,6 +548,12 @@ if (!ONLY_WAIT) {
     check("família autoriza de novo a conexão com o terapeuta", await page.evaluate(() => [...document.querySelectorAll("#autorizacoes button")].some((button) => button.textContent.includes("Retirar a autorização: Conexão com o terapeuta"))));
     check("família sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
+
+    const team = await newSession();
+    await login(team.page, "professor_aee");
+    await team.page.goto(`${BASE}${danteHref}`, { waitUntil: "networkidle2" });
+    check("família: o que ela contou chega à escola (ficha do estudante)", (await textOf(team.page)).includes("pediu água pela prancha no jantar"));
+    await team.ctx.close();
   });
 
   await section("Secretaria", async () => {
@@ -559,6 +590,7 @@ if (!ONLY_WAIT) {
       check("secretaria: aba de registro volta ao resumo", new URL(page.url()).pathname === danteHref, `url=${page.url()}`);
       const family = await newSession();
       await login(family.page, "familia");
+      await openPrivacy(family.page);
       check("família vê o acesso justificado da Secretaria", (await contentText(family.page)).includes("acesso justificado"));
       await family.ctx.close();
     }
@@ -1364,6 +1396,8 @@ if (!ONLY_WAIT) {
     await login(family.page, "familia");
     const link = await family.page.evaluate(() => [...document.querySelectorAll('#relatorios a')].at(0)?.getAttribute("href"));
     check("relatório: aparece no portal da família", Boolean(link));
+    check("relatório: o portal avisa na semana que o relatório ficou pronto", await family.page.evaluate((href) => Boolean(document.querySelector(`#semana a[href="${href}"]`)), link));
+    await openPrivacy(family.page);
     const history = await contentText(family.page);
     check("relatório: a família vê a validação no histórico de acessos", history.includes("validou") && history.includes("Relatório do período"));
     if (link) {
@@ -1481,9 +1515,13 @@ if (!ONLY_WAIT) {
     await family.page.goto(`${BASE}${portal}`, { waitUntil: "networkidle2" });
     const answered = (await textOf(family.page)).includes("Você já contou como foi esta semana");
     if (answered) await family.page.$eval("#pergunta-da-semana summary", (summary) => summary.click());
-    await family.page.evaluate(() => document.querySelectorAll('#pergunta-da-semana input[name="answers"]').forEach((box) => { box.checked = ["Dormiu bem", "Teve uma conquista"].includes(box.value); }));
+    // As opções são botões de escolha (caixas escondidas dentro do rótulo): toca em cada uma que precisa mudar.
+    await family.page.evaluate(() => [...document.querySelectorAll("#pergunta-da-semana fieldset label")].forEach((label) => {
+      const box = label.querySelector('input[type="checkbox"]');
+      if (box && box.checked !== ["Dormiu bem", "Teve uma conquista"].includes(label.textContent.trim())) label.click();
+    }));
     await family.page.$eval("#checkin-nota", (area, value) => { area.value = value; }, NOTE);
-    await clickByText(family.page, answered ? "Atualizar a resposta" : "Enviar para a escola");
+    await clickByText(family.page, "Enviar para a escola");
     await until(family.page, () => document.body.innerText.includes("Obrigado! A escola vai ver"), { timeout: 15000 });
     check(`pergunta da semana: a família ${answered ? "muda a resposta" : "responde"}`, (await textOf(family.page)).includes("Obrigado! A escola vai ver"));
     await family.page.goto(`${BASE}${portal}`, { waitUntil: "networkidle2" });
@@ -1520,6 +1558,7 @@ if (!ONLY_WAIT) {
 
     const family = await newSession();
     await login(family.page, "familia");
+    await openPrivacy(family.page);
     check("dossiê: a impressão fica no histórico que a família vê", (await contentText(family.page)).includes("Impressão do dossiê de evidências"));
     await family.ctx.close();
 
@@ -1749,9 +1788,9 @@ if (!ONLY_WAIT) {
     await aee.page.goto(cardPage, { waitUntil: "networkidle2" });
     check("carteirinha: sem autorização da família, a equipe não faz", (await textOf(aee.page)).includes("ainda não autorizou a carteirinha"));
 
-    await family.page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
+    await family.page.goto(`${BASE}/familia/${childId}/privacidade`, { waitUntil: "networkidle2" });
     await clickByText(family.page, "Autorizar: Carteirinha digital");
-    check("carteirinha: autorizar cria a carteirinha no portal", await appears(family.page, "#carteirinha", 15000));
+    check("carteirinha: autorizar cria a carteirinha (em Privacidade e acessos)", await appears(family.page, "#carteirinha", 15000));
     await family.page.click('input[name="mostrarComoAjudar"]');
     await family.page.click('input[name="mostrarContato"]');
     await family.page.$eval("#contato-telefone", (input) => { input.value = ""; });
@@ -1803,7 +1842,7 @@ if (!ONLY_WAIT) {
     check("carteirinha: código trocado não abre mais", reader.page.url().endsWith("/carteirinha/inativa") && !(await textOf(reader.page)).includes(DANTE_FIRST), reader.page.url());
     await reader.ctx.close();
 
-    await family.page.goto(`${BASE}/familia/${childId}`, { waitUntil: "networkidle2" });
+    await family.page.goto(`${BASE}/familia/${childId}/privacidade`, { waitUntil: "networkidle2" });
     const history = await family.page.evaluate(() => { document.querySelectorAll("details").forEach((d) => { d.open = true; }); return document.body.innerText; });
     check("carteirinha: a leitura do QR entra no histórico da família", history.includes("visualizou · Código QR da carteirinha") && history.includes("enviou · Foto da carteirinha"));
     await clickByText(family.page, "Retirar a autorização: Carteirinha digital");
