@@ -9,7 +9,6 @@ export default function NotFound() {
       <PageHero
         standalone
         character="resources"
-        eyebrow="Página não encontrada"
         title="Este endereço não existe na plataforma"
         lede={<p>Confira o endereço digitado ou volte para o início para continuar de onde parou.</p>}
         actions={<Link href="/" className={BUTTON_CLS.primary}><ArrowLeft size={16} aria-hidden /> Ir para o início</Link>}

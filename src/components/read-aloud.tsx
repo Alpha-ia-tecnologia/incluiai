@@ -34,6 +34,9 @@ export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; lab
   const [rate, setRate] = useState(1);
   const [remoteOk, setRemoteOk] = useState(false);
   const id = useId();
+  // No celular, só o verbo fica à vista ("Ouvir"), para caber ao lado da velocidade; o nome acessível continua inteiro.
+  const [verb, ...words] = label.split(" ");
+  const rest = words.join(" ");
 
   useEffect(() => cancel, [cancel]);
 
@@ -56,7 +59,7 @@ export function ReadAloud({ targetId, label = "Ouvir" }: { targetId: string; lab
         {status === "lendo" ? (
           <button type="button" onClick={stop} className={BUTTON_CLS.quiet}><Square size={16} aria-hidden /> Parar a leitura</button>
         ) : (
-          <button type="button" onClick={() => start()} className={BUTTON_CLS.quiet}><Volume2 size={16} aria-hidden /> {label}</button>
+          <button type="button" onClick={() => start()} className={BUTTON_CLS.quiet}><Volume2 size={16} aria-hidden /> <span>{verb}{rest ? <span className="max-sm:sr-only"> {rest}</span> : null}</span></button>
         )}
         <label htmlFor={`${id}-rate`} className="sr-only">Velocidade da leitura</label>
         <select id={`${id}-rate`} value={rate} onChange={(event) => setRate(Number(event.target.value))} className={selectCls}>

@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BASE, launchChrome, login, newSession, settle, until } from "./e2e-support.mjs";
+import { BASE, launchChrome, login, newSession, settle, studentHref, until } from "./e2e-support.mjs";
+import { DEMO_STUDENTS } from "./prisma/demo-data.mjs";
 import { getNavigation } from "./src/lib/navigation.ts";
 import { STUDENT_TABS } from "./src/lib/student-tab-list.ts";
 import { TEXT_SCALE_KEY } from "./src/lib/text-scale.ts";
@@ -119,10 +120,15 @@ await account("professor_aee", "aee", async (page) => {
   const report = student ? await firstLink(page, `${student}/relatorios`, `a[href^="${student}/relatorios/"]`) : null;
   const adapted = student ? await firstLink(page, `${student}/atividades`, `a[href^="${student}/atividades/adaptadas/"]`) : null;
   const tabs = student ? [...STUDENT_TABS.map((tab) => tab.slug), "atividades/dua", "sondagem/aplicar", "dossie/imprimir"].map((slug) => [`estudante${slug ? `_${slug.replaceAll("/", "_")}` : ""}`, `${student}${slug ? `/${slug}` : ""}`]) : [];
+  // O primeiro estudante da lista ainda não tem plano: a ficha de Dante mostra os degraus de apoio
+  // (cabeçalho, cartões do Resumo, Evolução e Registro) para o axe e a checagem de 320 px.
+  const dante = await studentHref(page, DEMO_STUDENTS.dante.name);
+  if (!dante) { problems += 1; console.log(`✗ ${DEMO_STUDENTS.dante.name}: estudante não encontrado na lista`); }
+  const signature = dante ? ["", "linha-do-tempo", "diario"].map((slug) => [`dante${slug ? `_${slug}` : ""}`, `${dante}${slug ? `/${slug}` : ""}`]) : [];
   return [
     ["inicio", "/"], ["estudantes", "/estudantes"], ["estudantes_registrar", "/estudantes?acao=registrar"], ["estudantes_novo", "/estudantes/novo"], ["jornada", "/jornada"], ["assistente", "/assistente"],
     ["calendario", "/calendario"], ["ajuda", "/ajuda"], ["recursos", "/recursos"], resource && ["recurso", resource],
-    ...tabs, material && ["material", material], material && ["material_imprimir", `${material}/imprimir`],
+    ...tabs, ...signature, material && ["material", material], material && ["material_imprimir", `${material}/imprimir`],
     report && ["relatorio", report], report && ["relatorio_imprimir", `${report}/imprimir`],
     student && ["adaptar", `${student}/atividades/adaptar`], adapted && ["adaptada", adapted], adapted && ["adaptada_imprimir", `${adapted}/imprimir`],
     ["jogos", "/jogos"], ...(student ? [["jogos_estudante", `/jogos?estudante=${student.split("/")[2]}`], ...["memoria", "sequencia", "associacao", "emocoes"].map((game) => [`jogar_${game}`, `/jogar/${game}?estudante=${student.split("/")[2]}&nivel=desafio`])] : []),

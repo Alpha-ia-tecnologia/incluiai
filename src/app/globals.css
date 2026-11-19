@@ -56,8 +56,10 @@
   --shadow-e1: 0 2px 8px rgb(11 53 80 / 0.03);
   --shadow-e2: 0 8px 24px rgb(11 53 80 / 0.08);
   --shadow-glow: 0 0 0 4px rgb(79 179 227 / 0.35);
-  /* Moldura das telas de entrada e painel do Assistente: sombra longa, no marinho. */
+  /* Moldura das telas de entrada: sombra longa, no marinho. */
   --shadow-frame: 0 24px 80px -36px rgb(11 53 80 / 0.24);
+  /* Borda de baixo do que fica preso no topo ao rolar (barra de cima, cabeçalho da ficha). */
+  --shadow-sticky: 0 10px 18px -16px rgb(11 53 80 / 0.3);
   --ease-alpha: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Painel de indicadores: sinais verde (bom), amarelo (intermediário) e
@@ -161,6 +163,7 @@
   --shadow-e2: var(--shadow-e2);
   --shadow-glow: var(--shadow-glow);
   --shadow-frame: var(--shadow-frame);
+  --shadow-sticky: var(--shadow-sticky);
 }
 
 body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font-noto), system-ui, sans-serif; }
@@ -328,7 +331,7 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
    conteúdo que passa por baixo. */
 @layer components {
   .student-head { position: sticky; top: var(--shell-top, 0px); z-index: 25; margin: 0 -8px 24px; padding: 8px 8px 0; background: var(--paper); transition: top 200ms var(--ease-alpha); }
-  .student-head[data-compact="true"] { box-shadow: 0 10px 18px -16px rgb(11 53 80 / 0.3); }
+  .student-head[data-compact="true"] { box-shadow: var(--shadow-sticky); }
   /* Abas fixas, na ordem da trilha: Resumo | seis passos | Mais. Nada rola de
      lado: com espaço, uma linha; sem espaço, linhas de quatro (de três no
      celular estreito), sem cortar palavra. Com a página rolada e a grade em
@@ -367,7 +370,9 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
 
 /* Movimento discreto: cartões entram subindo 8 px e gráficos crescem uma vez.
    Sem opacidade, para o texto nunca ficar com pouco contraste no meio do caminho.
-   Quem pede menos movimento no sistema não vê nada disso (regra global no fim). */
+   Quem pede menos movimento no sistema não vê nada disso (regra global no fim).
+   Só na tela: na impressão, o Chrome monta outra página e uma entrada que
+   recomeça ali sairia no papel no primeiro quadro (degraus achatados). */
 @keyframes rise { from { transform: translateY(8px); } to { transform: none; } }
 @keyframes grow-y { from { transform: scaleY(0); } to { transform: none; } }
 @keyframes grow-x { from { transform: scaleX(0); } to { transform: none; } }
@@ -379,7 +384,7 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
 @keyframes wipe { from { clip-path: inset(-20% 100% -20% -20%); } to { clip-path: inset(-20% -20% -20% -20%); } }
 @keyframes respira { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes sprout { from { opacity: 0; transform: scaleY(0.2); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: no-preference) {
+@media screen and (prefers-reduced-motion: no-preference) {
   main .ui-card, main .dash-card, main .pastel-card, main .page-hero { animation: rise 260ms var(--ease-alpha) both; }
   main .dash-board > :nth-child(2) { animation-delay: 40ms; }
   main .dash-board > :nth-child(3) { animation-delay: 80ms; }
@@ -406,7 +411,7 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
 @container (max-height: 539px) { .assistant-note-busy { display: none; } }
 /* Broto ao lado do horário da resposta recém-chegada: cresce uma vez. */
 @keyframes assistant-sprout-mark { from { opacity: 0; transform: scaleY(0.2); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: no-preference) {
+@media screen and (prefers-reduced-motion: no-preference) {
   .assistant-sprout-mark { transform-origin: 50% 100%; animation: assistant-sprout-mark 900ms var(--ease-alpha) both; }
 }
 .scrollbar-none { scrollbar-width: none; }
@@ -429,11 +434,11 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
   .app-frame { display: block; margin: 8px; padding: 0; min-height: calc(100dvh - 16px); border-radius: 24px; }
   .nav-rail { display: none; }
   .app-content { padding: 10px 18px 92px; }
-  .ui-card { padding: 18px; border-radius: 19px; }
+  .ui-card { padding: 18px; }
   .dashboard-side { display: block; padding: 22px 18px; }
   .dashboard-side > section + section { margin-top: 26px; }
-  .dash-board { padding: 8px; border-radius: 24px; }
-  .dash-card { padding: 16px; border-radius: 19px; }
+  .dash-board { padding: 8px; }
+  .dash-card { padding: 16px; }
 
 
 
@@ -462,7 +467,7 @@ a.pastel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-e2);
   :root { --topbar-reserve: var(--topbar-h); --bottom-reserve: calc(88px + env(safe-area-inset-bottom, 0px)); --shell-top: var(--topbar-h); }
   html[data-topbar-hidden] { --shell-top: 0px; }
   .shell-header { position: sticky; top: 0; z-index: 30; min-height: var(--topbar-h); margin: 0 -18px 20px; padding: 6px 18px; background: var(--paper); transition: transform 200ms var(--ease-alpha), box-shadow 200ms var(--ease-alpha); }
-  html[data-scrolled] .shell-header { box-shadow: 0 10px 18px -16px rgb(11 53 80 / 0.3); }
+  html[data-scrolled] .shell-header { box-shadow: var(--shadow-sticky); }
   html[data-topbar-hidden] .shell-header { transform: translateY(calc(-100% - 16px)); box-shadow: none; }
   .assistant-slot { display: flex; min-width: 44px; justify-content: flex-end; }
   html[data-form-mode] .mobile-nav:not(:has(:focus-visible, details[open])) { transform: translateY(calc(100% + 16px + env(safe-area-inset-bottom, 0px))); }
@@ -527,7 +532,7 @@ html[data-form-mode] .assistant-fab[aria-expanded="false"]:not(:focus-visible) {
 @media print {
   body { background: white; }
   .app-frame { display: block; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
-  .nav-rail, .mobile-nav, .shell-header, .skip-link { display: none !important; }
+  .nav-rail, .mobile-nav, .shell-header, .skip-link, #vlibras-access-wrapper, [vw] { display: none !important; }
   .app-content { padding: 0; }
   .ui-card, .dash-card { break-inside: avoid; }
   .dash-board { background: white; padding: 0; }

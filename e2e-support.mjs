@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "./prisma/demo-data.mjs";
@@ -8,15 +8,33 @@ export const BASE = (process.env.BASE ?? "http://localhost:3214").replace(/\/+$/
 
 export const chromePath = () => process.env.CHROME_PATH ?? (process.platform === "win32" ? "C:/Program Files/Google/Chrome/Application/chrome.exe" : "/usr/bin/google-chrome");
 
+// Perfis temporários do Chrome: apagados quando o navegador fecha e, por garantia, na saída do processo
+// (rodadas longas encheram o /tmp com /tmp/pptr-*).
+const profiles = new Set();
+const removeProfile = (dir) => {
+  profiles.delete(dir);
+  rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+};
+process.once("exit", () => profiles.forEach(removeProfile));
+
 export async function launchChrome({ args = [], ...options } = {}) {
   const { default: puppeteer } = await import("puppeteer-core");
-  return puppeteer.launch({
-    executablePath: chromePath(),
-    headless: true,
-    userDataDir: mkdtempSync(join(tmpdir(), "pptr-")),
-    ...options,
-    args: ["--no-sandbox", "--disable-gpu", "--disable-extensions", ...args],
-  });
+  const profile = options.userDataDir ? null : mkdtempSync(join(tmpdir(), "pptr-"));
+  if (profile) profiles.add(profile);
+  try {
+    const browser = await puppeteer.launch({
+      executablePath: chromePath(),
+      headless: true,
+      ...(profile ? { userDataDir: profile } : {}),
+      ...options,
+      args: ["--no-sandbox", "--disable-gpu", "--disable-extensions", ...args],
+    });
+    if (profile) browser.once("disconnected", () => removeProfile(profile));
+    return browser;
+  } catch (error) {
+    if (profile) removeProfile(profile);
+    throw error;
+  }
 }
 
 export async function newSession(browser, viewport) {

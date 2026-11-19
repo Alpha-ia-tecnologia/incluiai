@@ -5,6 +5,7 @@ import { decimal, firstName } from "@/lib/format";
 import { lessSupport, type ReportData, type ReportObjective } from "@/lib/period-report";
 import { OBJECTIVE_STATUS, REPORT_STATUS, labelOf, supportInfo, toneOf } from "@/lib/scale";
 import { withoutCodes } from "@/lib/without-codes";
+import { familyAssessmentLine, familyHelp } from "@/lib/family-portal";
 import { BnccSkillLine, type BnccAudience } from "@/components/bncc-tag";
 
 const asIs = (text: string) => text;
@@ -22,7 +23,9 @@ function Objective({ objective, audience, plain }: { objective: ReportObjective;
       <p className="mt-2 text-sm leading-relaxed text-ink">{plain(objective.description)}</p>
       {objective.bncc ? <div className="mt-1"><BnccSkillLine skill={objective.bncc} audience={audience} /></div> : null}
       <p className="mt-2 text-sm text-ink-soft">
-        {end ? <>Apoio de que precisava: <span className="text-ink">{start.label}</span> no começo do período, <span className="text-ink">{end.label}</span> no fim. </> : <>Apoio no começo do período: <span className="text-ink">{start.label}</span>. </>}
+        {audience === "familia"
+          ? <>No começo do período, fazia <span className="text-ink">{familyHelp(objective.supportStart)}</span>{objective.supportEnd === null ? ". " : <>; no fim, <span className="text-ink">{familyHelp(objective.supportEnd)}</span>. </>}</>
+          : end ? <>Apoio de que precisava: <span className="text-ink">{start.label}</span> no começo do período, <span className="text-ink">{end.label}</span> no fim. </> : <>Apoio no começo do período: <span className="text-ink">{start.label}</span>. </>}
         {objective.records ? `${objective.records} ${objective.records === 1 ? "registro de aula" : "registros de aula"} no período.` : "Sem registro de aula no período."}
       </p>
     </li>
@@ -70,13 +73,24 @@ export function ReportView({ data, opinion, status, validatedByName, validatedAt
 
       {data.assessment?.length ? (
         <section aria-labelledby="relatorio-sondagem" className="min-w-0">
-          <h3 id="relatorio-sondagem" className="mb-2 text-base font-medium text-ink">Sondagem: apoio médio por área</h3>
-          <p className="mb-2 text-sm text-ink-soft">Escala de 0 (independente) a 5 (apoio físico total): menor é melhor.</p>
-          <ul className="grid gap-1 text-sm text-ink">
-            {data.assessment.map((row) => (
-              <li key={row.label}><span className="font-medium">{row.label}:</span> {row.start !== null && row.end !== null && row.start !== row.end ? `${decimal(row.start)} no começo, ${decimal(row.end)} no fim` : decimal((row.end ?? row.start) as number)}</li>
-            ))}
-          </ul>
+          {audience === "familia" ? (
+            <>
+              <h3 id="relatorio-sondagem" className="mb-2 text-base font-medium text-ink">Quanta ajuda precisa em cada área</h3>
+              <ul className="grid gap-1 text-sm text-ink">
+                {data.assessment.map((row) => familyAssessmentLine({ ...row, label: plain(row.label) })).filter(Boolean).map((line) => <li key={line}>{line}.</li>)}
+              </ul>
+            </>
+          ) : (
+            <>
+              <h3 id="relatorio-sondagem" className="mb-2 text-base font-medium text-ink">Sondagem: apoio médio por área</h3>
+              <p className="mb-2 text-sm text-ink-soft">Escala de 0 (independente) a 5 (apoio físico total): menor é melhor.</p>
+              <ul className="grid gap-1 text-sm text-ink">
+                {data.assessment.map((row) => (
+                  <li key={row.label}><span className="font-medium">{row.label}:</span> {row.start !== null && row.end !== null && row.start !== row.end ? `${decimal(row.start)} no começo, ${decimal(row.end)} no fim` : decimal((row.end ?? row.start) as number)}</li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
       ) : null}
 

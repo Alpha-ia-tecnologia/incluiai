@@ -18,6 +18,6 @@ export default async function CardNoticePage({ params }: { params: Promise<{ mot
   const notice = NOTICES[motivo as keyof typeof NOTICES];
   if (!notice) notFound();
   return (
-    <PageHero standalone character="care" eyebrow="Carteirinha" title={notice.title} lede={<p>{notice.text}</p>} actions={<Link href="/" className="task-action">Ir para o início</Link>} />
+    <PageHero standalone character="care" title={notice.title} lede={<p>{notice.text}</p>} actions={<Link href="/" className="task-action">Ir para o início</Link>} />
   );
 }

@@ -126,7 +126,7 @@ if (!ONLY_WAIT) {
   for (const [role, path, h1part] of [
     ["secretaria", "/", "O que vamos fazer hoje?"],
     ["professor_sala", "/", "O que vamos fazer hoje?"],
-    ["terapeuta", "/terapeuta", "Articulação intersetorial"],
+    ["terapeuta", "/terapeuta", "Orientações para a escola"],
     ["familia", "/familia/", "Acompanhamento de"],
   ]) {
     const who = emailOf(role).split("@")[0];
@@ -135,6 +135,10 @@ if (!ONLY_WAIT) {
       const url = await login(page, role);
       const h1 = (await page.evaluate(() => document.querySelector("h1")?.textContent)) ?? "";
       check(`login ${who} → ${path}`, url.includes(path) && h1.includes(h1part), `url=${url} h1=${h1}`);
+      // O botão "Entrar" sai da página: o primeiro Tab parte do começo, não do fim do body (VLibras).
+      await page.keyboard.press("Tab");
+      const firstTab = await page.evaluate(() => document.activeElement?.textContent?.trim() ?? "");
+      check(`login ${who}: o primeiro Tab vai a "Pular para o conteúdo"`, firstTab === "Pular para o conteúdo", firstTab);
       check(`sem erros de cliente (${who})`, errors.length === 0, errors.join("; "));
       await ctx.close();
     });
@@ -1848,7 +1852,8 @@ if (!ONLY_WAIT) {
       document.querySelectorAll('input[name="times"]').forEach((input, index) => { input.value = values.times[index] ?? ""; });
       document.querySelector('input[name="enabled"]').checked = true;
     }, { start, end, times });
-    await setWindow(soon.day, soon.day, [soon.time]);
+    // A janela começa hoje: perto da meia-noite, daqui a 2 minutos já é amanhã e o monitor seguiria ativo.
+    await setWindow(brasilia(0).day, soon.day, [soon.time]);
     await clickByText(network.page, "Salvar a janela");
     await until(network.page, () => document.body.innerText.includes("Janela salva"), { timeout: 20000 });
     await network.page.goto(`${BASE}/censo`, { waitUntil: "networkidle2" });

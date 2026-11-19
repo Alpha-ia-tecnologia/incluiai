@@ -18,6 +18,7 @@ import { NavigationProgress } from "./navigation-progress";
 import { TextSizeControl } from "./text-size-control";
 import { NoticeBell } from "./notice-bell";
 import { ShellBars } from "./shell-bars";
+import { FocusStart } from "./focus-start";
 import { ASSISTANT_SLOT_ID, CONTENT_ID } from "@/lib/landmarks";
 
 export function Shell({ user, notices = { unread: 0, latest: null }, brand = null, children }: { user: SessionUser; notices?: { unread: number; latest: string | null }; brand?: MunicipalityBrand | null; children: ReactNode }) {
@@ -26,6 +27,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
   const home = links[0].href;
   return (
     <div className="app-frame">
+      <FocusStart />
       <a href={`#${CONTENT_ID}`} className="skip-link">Pular para o conteúdo</a>
       <Suspense fallback={null}><NavigationProgress /></Suspense>
       <aside className="nav-rail" aria-label="Menu lateral">

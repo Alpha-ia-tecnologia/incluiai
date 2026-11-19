@@ -64,6 +64,14 @@ cartões brancos sobre um fundo cinza-azulado. Estas regras organizam o uso.
   nem de outra cor da paleta padrão do Tailwind.
 - **Céu, verde-água, pêssego, sálvia e rosa**: categorias (tipos de tarefa,
   temas do calendário).
+- **Rótulo não é estado.** Gostos, barreiras, serviços (AEE, profissional de
+  apoio), tipos e contextos ficam em selo azul-claro ou neutro, ou num par de
+  categoria. Verde, âmbar e coral só para a situação que pede ação ou confirma
+  algo (vencido, pendente, validado, alcançado).
+- **Dois selos, dois usos:** `StatusPill` (cor cheia) é a leitura de um dado:
+  tendência (`TrendChip`), indicadores do Painel, "visto pela escola", serviço
+  ativo. `Badge` (fundo suave) é a situação de um registro (ativo, validado,
+  rascunho, pendente), o prazo na fila do Início, rótulos e contagens.
 
 ## Tipografia
 
@@ -113,7 +121,26 @@ Uma escala só, nada abaixo de 12 px:
 | `rounded-3xl` | 30 | quadros (`dash-board`) e heróis |
 | `rounded-full` | pílula | botões, selos, abas em pílula |
 
-As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
+Valem em toda largura: no celular o cartão continua em 22 e o quadro em 30 (o
+respiro do quadro aperta para 8 px, concêntrico com o cartão). A moldura da
+aplicação é a borda da tela e fica fora da tabela (32 no computador, 24 no
+celular). As marcas de gráfico (barras, quadrados dos degraus, quadradinhos de
+legenda, traço da aba ativa) também ficam fora da regra.
+
+## Sombras
+
+Planas em repouso; profundidade vem do tom. Só os tokens de `globals.css`:
+
+| Token | Uso |
+| --- | --- |
+| `shadow-e1` | marcas pequenas sobre gráficos, itens soltos sem borda, período escolhido no Painel |
+| `shadow-e2` | o que flutua (barra do celular, Assistente, menus) e cartão-link no hover |
+| `shadow-sticky` | borda de baixo do que fica preso no topo com a página rolada (barra de cima, cabeçalho compacto da ficha) |
+| `shadow-glow` | halo de foco do campo |
+| `shadow-frame` | telas de entrada (login e etapas logo depois dele) |
+
+Exceções da moldura, que nenhum componente copia: a moldura da aplicação sobre a
+névoa, o painel aberto do Assistente e a barra de salvar presa no rodapé.
 
 ## Kit de componentes
 
@@ -138,7 +165,9 @@ As marcas de gráfico (barras, quadradinhos de legenda) ficam fora da regra.
   - `PageHeader`: `level={2}` para o título de uma aba dentro da ficha do
     estudante, que já tem o h1 com o nome;
   - `PageHero`: faixa em marinho com o personagem, nas telas principais;
-    `standalone` quando ela é a página inteira (erro, "não encontrado", aviso);
+    `standalone` quando ela é a página inteira (erro, "não encontrado", aviso).
+    Sem sobretítulo: o título fala sozinho (o `eyebrow` só leva o selo de
+    estado no painel da plataforma);
   - `EmptyState`: com `character` e `action`;
   - `ButtonLink`;
   - `Card`, `Badge`, `SectionTitle`.
@@ -216,10 +245,11 @@ A marca própria do IncluiEdu ("Menos apoio, mais autonomia"):
   palavra "meta".
 - **Tamanhos:**
   - `mini`: 8 aulas, sem rótulo, tamanho fixo. Cabeçalho da ficha (objetivo em
-    foco: o da aula mais recente; some ao rolar), listas, fila do Início.
+    foco: o da aula mais recente; some ao rolar) e lista de objetivos na meta
+    do Painel.
   - `regular`: 12 aulas, "meta", bordas "mais autonomia" e "mais apoio" e
     legenda só do que aparece. Cartões do Resumo, Registrar aula, cartão
-    depois de salvar.
+    depois de salvar, portal da família (variante da família).
   - `full`: 24 aulas, níveis por extenso e datas da primeira e da última aula
     à vista. Evolução, um por objetivo do plano.
   `regular` e `full` ocupam a largura do pai e tiram as aulas mais antigas
@@ -242,8 +272,12 @@ A marca própria do IncluiEdu ("Menos apoio, mais autonomia"):
   "Avançando". Aulas sem avanço ficam "Estável", com a dica de fracionar o
   objetivo, nunca alerta. O selo é o `TrendChip` (`StatusPill` com ícone:
   sobe, desce, certo, alerta ou seta).
+- **Vazio:** sem aula, a grade pontilhada com "Ainda sem registro" dentro
+  dela; a dica ao lado não repete ("Aplique uma atividade e registre em 3
+  toques.").
 - **Movimento:** os quadrados aparecem da esquerda para a direita em até
-  300 ms, uma vez; nada com menos movimento.
+  300 ms, uma vez, só na tela; nada com menos movimento, e na impressão os
+  quadrados saem inteiros.
 
 ## Personagens
 
@@ -276,7 +310,10 @@ novo só com aprovação.
   Atividade · Registro · Evolução (`TRAIL_STEPS` em
   `src/lib/student-journey.ts`). Abas, etapas do Resumo, Minha jornada, Ajuda e
   Painel leem dali. Botão pode usar o verbo ("Registrar aula"); o passo se chama
-  pelo substantivo.
+  pelo substantivo. O mesmo vale fora da ficha: o planejamento da turma é
+  "Planejamento com DUA" (menu, página e plano do estudante; a vista do passo
+  Atividade é "Planejar com DUA") e o que o terapeuta envia é "orientação"
+  (menu "Orientações para a escola", página, jornada, Resumo e relatório).
 - **Abas fixas** (`src/lib/student-tab-list.ts`): Resumo | os seis passos |
   Mais (Sondagem, Atendimentos AEE, Materiais de apoio, Relatórios, Dossiê,
   Carteirinha). Nenhuma aba muda de lugar nem rola de lado: com espaço, uma
@@ -302,6 +339,8 @@ novo só com aprovação.
   - `viz-draw` com `pathLength="1"` nas linhas de série.
 - O broto (`sprout-mark`) confirma o que foi salvo.
 - Nada pisca nem fica em laço, fora o pulso lento do carregamento.
+- Só na tela (`@media screen`): a impressão não anima, e nada sai no papel no
+  meio da entrada.
 - Sem opacidade na entrada: o texto nunca fica com pouco contraste no meio
   do caminho.
 - Quem pede menos movimento no sistema (`prefers-reduced-motion`) não vê
@@ -322,3 +361,9 @@ novo só com aprovação.
 - Um h1 por página.
 - O foco do teclado nunca fica escondido embaixo do cabeçalho preso
   (`scroll-padding-top`).
+- O primeiro Tab de toda tela é "Pular para o conteúdo", também logo depois de
+  entrar (`FocusStart` em `src/components/focus-start.tsx`: o botão "Entrar"
+  sai da página e o Chrome seguiria o Tab do fim do body).
+- Para a família, palavras do dia a dia (`FAMILY_HELP` em
+  `src/lib/family-portal.ts`: "com uma dica falada ou visual"), nunca a escala de
+  0 a 5 nem códigos.

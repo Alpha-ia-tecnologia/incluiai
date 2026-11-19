@@ -217,11 +217,11 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               </div>
               <div>
                 <dt className="text-sm text-ink-soft">Do que gosta</dt>
-                <dd className="mt-1 flex flex-wrap gap-1">{interests.map((i) => <Badge key={i} tone="mid">{i}</Badge>)}</dd>
+                <dd className="mt-1 flex flex-wrap gap-1">{interests.map((i) => <Badge key={i} tone="info">{i}</Badge>)}</dd>
               </div>
               <div>
                 <dt className="text-sm text-ink-soft">O que dificulta a participação</dt>
-                <dd className="mt-1 flex flex-wrap gap-1">{barriers.map((b) => <Badge key={b} tone="alert">{BARRIERS[b] ?? b}</Badge>)}</dd>
+                <dd className="mt-1 flex flex-wrap gap-1">{barriers.map((b) => <Badge key={b}>{BARRIERS[b] ?? b}</Badge>)}</dd>
               </div>
               <div>
                 <dt className="text-sm text-ink-soft">Tempo de participação em uma atividade</dt>

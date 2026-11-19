@@ -12,6 +12,7 @@ import { CHANNELS, PARTICIPATION, PREPARED_ACTIVITY_STATUSES, labelOf, toneOf, t
 import { usesAac } from "./pedagogy-rules";
 import { upcomingEvents } from "./commemorative-dates";
 import type { CharacterVariant } from "./characters";
+import type { TrendReason } from "./support-trend";
 
 export type JourneyMarkKey = "boas_vindas" | "painel" | "recursos" | "calendario" | "cadastros" | "familia_inicio" | "terapeuta_inicio";
 
@@ -37,7 +38,7 @@ export type Milestone = { key: string; title: string; description: string; achie
 export type ImpactViz =
   | { kind: "weekly"; points: SeriesPoint[] }
   | { kind: "ring"; pct: number | null; tone: Tone }
-  | { kind: "support"; values: number[]; delta: number | null; trend: Trend }
+  | { kind: "support"; values: number[]; delta: number | null; trend: Trend; reason: TrendReason }
   | { kind: "dots"; items: { key: string; title: string; tone: Tone }[] };
 export type ImpactItem = { label: string; value: string; hint?: string; viz?: ImpactViz };
 
@@ -257,8 +258,8 @@ async function teacherJourney(user: SessionUser, marks: Marks, requestedId?: str
     const start = average(withEntries.map((objective) => objective.currentSupport));
     const now = average(withEntries.map((objective) => entries.findLast((entry) => entry.objectiveId === objective.id)!.supportLevel));
     const levels = supportSeries(entries.filter((entry) => withEntries.some((objective) => objective.id === entry.objectiveId))).map((point) => point.value);
-    const { trend, delta } = supportTrend(levels);
-    impact.push({ label: "Nível de apoio", value: `${decimal(start, { fixed: true })} → ${decimal(now, { fixed: true })}`, hint: "Do início ao último registro · 0 é independente, 5 é apoio físico total.", viz: { kind: "support", values: levels.slice(-20), delta, trend } });
+    const { trend, delta, reason } = supportTrend(levels);
+    impact.push({ label: "Nível de apoio", value: `${decimal(start, { fixed: true })} → ${decimal(now, { fixed: true })}`, hint: "Do início ao último registro · 0 é independente, 5 é apoio físico total.", viz: { kind: "support", values: levels.slice(-20), delta, trend, reason } });
   }
   const note = s.familyNotes[0];
 
@@ -610,7 +611,7 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
       story: "Marque comunicação, recursos e estratégias que ajudam na escola. Só informações funcionais: o prontuário clínico fica no sistema de saúde.",
       why: "Orientações práticas chegam à sala comum e ao AEE no resumo do estudante.",
       done: reports.length > 0, date: reports[0]?.createdAt ?? null,
-      evidence: last ? `Último relatório enviado em ${formatDate(last.createdAt)}.` : null,
+      evidence: last ? `Última orientação enviada em ${formatDate(last.createdAt)}.` : null,
       action: { label: "Escrever orientações", href: "/terapeuta#novo-relatorio" },
     },
     {
@@ -618,16 +619,16 @@ async function therapistJourney(user: SessionUser, marks: Marks): Promise<Journe
       story: `Suas orientações aparecem no resumo de ${name} para a equipe.`,
       why: "Saber que a orientação chegou fecha o ciclo entre saúde e escola.",
       done: !!seen, date: seen, waiting: !!last && !seen,
-      evidence: seen ? `A equipe abriu o acompanhamento em ${formatDate(seen)}, depois do seu último relatório.` : last ? "A equipe ainda não abriu o acompanhamento desde o seu último relatório." : null,
-      action: { label: "Ver relatórios enviados", href: "/terapeuta#relatorios" },
+      evidence: seen ? `A equipe abriu o acompanhamento em ${formatDate(seen)}, depois da sua última orientação.` : last ? "A equipe ainda não abriu o acompanhamento desde a sua última orientação." : null,
+      action: { label: "Ver orientações enviadas", href: "/terapeuta#relatorios" },
     },
     {
       key: "atualizar", tone: "lilac", title: "Atualizar as orientações",
-      story: "Quando algo mudar na terapia, envie um novo relatório. A equipe vê sempre o mais recente.",
+      story: "Quando algo mudar na terapia, envie uma nova orientação. A equipe vê sempre a mais recente.",
       why: "Orientações atualizadas acompanham o momento do estudante.",
       done: reports.length >= 2, date: reports[1]?.createdAt ?? null,
-      evidence: reports.length >= 2 ? `${plural(reports.length, "relatório enviado", "relatórios enviados")}.` : null,
-      action: { label: "Enviar um novo relatório", href: "/terapeuta#novo-relatorio" },
+      evidence: reports.length >= 2 ? `${plural(reports.length, "orientação enviada", "orientações enviadas")}.` : null,
+      action: { label: "Enviar uma nova orientação", href: "/terapeuta#novo-relatorio" },
     },
   ]);
 

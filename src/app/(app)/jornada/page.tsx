@@ -4,8 +4,9 @@ import { ArrowRight, Check, CircleHelp, Hourglass, Lock, Sparkles, Trophy } from
 import { getCurrentUser } from "@/lib/auth";
 import type { ReactNode } from "react";
 import { loadJourney, recordJourneyMark, type Chapter, type ImpactItem } from "@/lib/user-journey";
-import { PARTICIPATION, TREND, legendOf } from "@/lib/scale";
-import { ColumnChart, CountChips, DotStrip, RingStat, Sparkline, StatusPill, TONE_COLOR } from "@/components/viz/charts";
+import { PARTICIPATION, legendOf } from "@/lib/scale";
+import { ColumnChart, CountChips, DotStrip, RingStat, Sparkline, TONE_COLOR } from "@/components/viz/charts";
+import { TrendChip } from "@/components/viz/support-steps";
 import { DataCard, StatTile } from "@/components/viz/cards";
 import { QuoteCard } from "./quote-card";
 import { formatDate } from "@/lib/dates";
@@ -207,7 +208,7 @@ function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
   if (viz?.kind === "dots") chart = <DotStrip items={viz.items} label={`${item.label}: uma marca por aula`} legend={legendOf(PARTICIPATION)} />;
   if (viz?.kind === "support") {
     chart = <Sparkline values={viz.values} domain={[0, 5]} invert label={`${item.label}: ${viz.values.join(", ")} (0 é independente, 5 é apoio físico total)`} />;
-    trend = <StatusPill tone={TREND[viz.trend].tone}>{TREND[viz.trend].label}</StatusPill>;
+    trend = <TrendChip reading={viz} />;
   }
   if (viz?.kind === "ring") {
     return (

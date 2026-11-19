@@ -76,7 +76,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <SectionTitle>Primeiro, conclua o estudo de caso</SectionTitle>
             <p className="text-sm leading-relaxed text-ink" role="status">{CASE_STUDY_REQUIRED_MESSAGE}</p>
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-              {student.caseStudy ? "O estudo de caso está em elaboração." : "O estudo de caso ainda não foi começado."} Atividades com DUA, em Planejamento, não dependem dele.
+              {student.caseStudy ? "O estudo de caso está em elaboração." : "O estudo de caso ainda não foi começado."} O Planejamento com DUA não depende dele.
             </p>
             <Link href={`/estudantes/${id}/estudo-de-caso`} className={`${BUTTON_CLS.primary} mt-4`}>
               {student.caseStudy ? "Continuar o estudo de caso" : "Começar o estudo de caso"} <ArrowRight size={16} aria-hidden />
@@ -375,7 +375,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
       {duaByObjective.length || dua.canPlan ? (
         <Card className="mb-6 min-w-0 max-w-3xl">
-          <SectionTitle>Atividades com DUA ligadas a este plano</SectionTitle>
+          <SectionTitle>Planejamento com DUA ligado a este plano</SectionTitle>
           {duaByObjective.length ? (
             <ul className="space-y-4">
               {duaByObjective.map(({ objective, supports }) => (

@@ -41,45 +41,48 @@ export default async function SchoolDashboard() {
   const welcoming = !journey.welcomed;
 
   return (
-    <div className="dashboard-grid">
-      <div className="min-w-0">
-        {welcoming ? <JourneyWelcome journey={journey} hero /> : null}
-        <h1 className="mb-6 max-w-xl font-display text-3xl font-bold leading-[1.12] tracking-tight sm:text-4xl">O que vamos fazer hoje?</h1>
+    <>
+      {/* As boas-vindas ocupam a largura toda: na coluna principal, deixavam a lateral curta ao lado de uma coluna longa. */}
+      {welcoming ? <JourneyWelcome journey={journey} hero /> : null}
+      <div className="dashboard-grid">
+        <div className="min-w-0">
+          <h1 className="mb-6 max-w-xl font-display text-3xl font-bold leading-[1.12] tracking-tight sm:text-4xl">O que vamos fazer hoje?</h1>
 
-        <section aria-label="Atalhos" className="@container">
-          <div className="grid gap-2.5 @lg:grid-cols-2">
-          {tasks.map(({ title, href, icon: Icon, color, accent }) => (
-            <Link key={href} href={href} className={`pastel-card group flex min-h-16 items-center gap-3 rounded-2xl px-4 py-3 ${color}`}>
-              <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/75 ${accent}`}><Icon size={20} strokeWidth={1.7} aria-hidden /></span>
-              <span className="min-w-0 flex-1 text-base font-medium leading-snug">{title}</span>
-              <ArrowRight size={18} aria-hidden className={`shrink-0 transition-transform group-hover:translate-x-1 motion-reduce:transition-none ${accent}`} />
-            </Link>
-          ))}
-          </div>
-          {nominal ? null : <Assurances className="mt-3" label="Acesso à ficha de um estudante" items={[{ icon: FileLock2, text: "Ficha só com motivo registrado" }, { icon: Eye, text: "A família vê quem acessou" }]} />}
-        </section>
+          <section aria-label="Atalhos" className="@container">
+            <div className="grid gap-2.5 @lg:grid-cols-2">
+            {tasks.map(({ title, href, icon: Icon, color, accent }) => (
+              <Link key={href} href={href} className={`pastel-card group flex min-h-16 items-center gap-3 rounded-2xl px-4 py-3 ${color}`}>
+                <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/75 ${accent}`}><Icon size={20} strokeWidth={1.7} aria-hidden /></span>
+                <span className="min-w-0 flex-1 text-base font-medium leading-snug">{title}</span>
+                <ArrowRight size={18} aria-hidden className={`shrink-0 transition-transform group-hover:translate-x-1 motion-reduce:transition-none ${accent}`} />
+              </Link>
+            ))}
+            </div>
+            {nominal ? null : <Assurances className="mt-3" label="Acesso à ficha de um estudante" items={[{ icon: FileLock2, text: "Ficha só com motivo registrado" }, { icon: Eye, text: "A família vê quem acessou" }]} />}
+          </section>
 
-        {nominal && students === 0 ? (
-          <div className="mt-8">
-            <EmptyState character="learning" title="Vamos começar pelo primeiro estudante?" hint="O cadastro permite reunir informações, preparar o plano de ensino e acompanhar as aulas." action={<Link href="/estudantes/novo" className="task-action"><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link>} />
-          </div>
-        ) : <WorkQueue queue={queue} />}
+          {nominal && students === 0 ? (
+            <div className="mt-8">
+              <EmptyState character="learning" title="Vamos começar pelo primeiro estudante?" hint="O cadastro permite reunir informações, preparar o plano de ensino e acompanhar as aulas." action={<Link href="/estudantes/novo" className="task-action"><Plus size={18} aria-hidden /> Cadastrar primeiro estudante</Link>} />
+            </div>
+          ) : <WorkQueue queue={queue} />}
+        </div>
+
+        <aside className="dashboard-side" aria-label="Sua jornada e as próximas datas">
+          {welcoming ? null : <JourneyProgress journey={journey} />}
+
+          <section className={welcoming ? "" : "mt-6"} aria-labelledby="dates-title">
+            <h2 id="dates-title" className="mb-3 text-base font-medium">Próximas datas inclusivas</h2>
+            {upcomingDates.length ? <ul className="space-y-2">{upcomingDates.map((event) => (
+              <li key={event.key}><Link href={`/calendario?mes=${monthKey(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl bg-paper-raised p-3 transition-colors hover:bg-brand-soft">
+                <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-xs">{MONTH_SHORT[event.start.month - 1]}</span></span>
+                <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-sm text-ink-soft">{relativeLabel(event, today)}</span></span>
+              </Link></li>
+            ))}</ul> : <p className="rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft">Nenhuma data comemorativa nas próximas semanas.</p>}
+            <Link href="/calendario" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong"><CalendarDays size={16} aria-hidden /> Ver calendário inclusivo</Link>
+          </section>
+        </aside>
       </div>
-
-      <aside className="dashboard-side" aria-label="Sua jornada e as próximas datas">
-        {welcoming ? null : <JourneyProgress journey={journey} />}
-
-        <section className={welcoming ? "" : "mt-6"} aria-labelledby="dates-title">
-          <h2 id="dates-title" className="mb-3 text-base font-medium">Próximas datas inclusivas</h2>
-          {upcomingDates.length ? <ul className="space-y-2">{upcomingDates.map((event) => (
-            <li key={event.key}><Link href={`/calendario?mes=${monthKey(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl bg-paper-raised p-3 transition-colors hover:bg-brand-soft">
-              <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-xs">{MONTH_SHORT[event.start.month - 1]}</span></span>
-              <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-sm text-ink-soft">{relativeLabel(event, today)}</span></span>
-            </Link></li>
-          ))}</ul> : <p className="rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft">Nenhuma data comemorativa nas próximas semanas.</p>}
-          <Link href="/calendario" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong"><CalendarDays size={16} aria-hidden /> Ver calendário inclusivo</Link>
-        </section>
-      </aside>
-    </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { FAMILY_HELP, familyGoalSentence, familyGoalTitle, familyWeek, pickGoals, planShare, sameCheckIn, weekWindow } from "./family-portal.ts";
+import { FAMILY_HELP, familyAssessmentLine, familyGoalSentence, familyGoalTitle, familyWeek, pickGoals, planShare, sameCheckIn, weekWindow } from "./family-portal.ts";
 import { stepsFrom } from "./support-steps.ts";
 
 const at = (day, hour = 12) => new Date(`2026-11-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:00:00-03:00`);
@@ -91,4 +91,13 @@ test("resposta da semana igual: mesmas opções em qualquer ordem e mesma frase"
   assert.ok(sameCheckIn({ answers: ["Comeu bem", "Dormiu bem"], note: null }, { answers: ["Dormiu bem", "Comeu bem"], note: "" }));
   assert.ok(!sameCheckIn({ answers: ["Dormiu bem"], note: "a" }, { answers: ["Dormiu bem"], note: "b" }));
   assert.ok(!sameCheckIn({ answers: ["Dormiu bem"], note: null }, { answers: ["Dormiu bem", "Comeu bem"], note: null }));
+});
+
+test("sondagem para a família: média de apoio em palavras, sem número", () => {
+  assert.equal(familyAssessmentLine({ label: "Comunicação", start: 3.2, end: 2.1 }), "Comunicação: no começo, vendo alguém fazer antes; no fim, com uma dica falada ou visual");
+  assert.equal(familyAssessmentLine({ label: "Autonomia", start: 2.2, end: 1.8 }), "Autonomia: com uma dica falada ou visual");
+  assert.equal(familyAssessmentLine({ label: "Leitura", start: null, end: 0.4 }), "Leitura: sem ajuda");
+  assert.equal(familyAssessmentLine({ label: "Escrita", start: 4.6, end: null }), "Escrita: com ajuda física o tempo todo");
+  assert.equal(familyAssessmentLine({ label: "Matemática", start: null, end: null }), null);
+  assert.doesNotMatch(familyAssessmentLine({ label: "Comunicação", start: 3.2, end: 2.1 }), /\d/);
 });

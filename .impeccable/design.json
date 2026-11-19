@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-18T20:05:19+00:00",
+  "generatedAt": "2026-11-19T03:45:33+00:00",
   "title": "Design System: IncluiEdu",
   "extensions": {
     "colorMeta": {
@@ -594,7 +594,7 @@
     "typographyMeta": {
       "display": {
         "displayName": "Número em destaque",
-        "purpose": "Número do medidor do Painel."
+        "purpose": "Número em destaque (hoje, só nos jogos)."
       },
       "headline": {
         "displayName": "Título de página",
@@ -614,11 +614,11 @@
       },
       "body": {
         "displayName": "Interface",
-        "purpose": "Texto de interface, campos e botões."
+        "purpose": "Texto de interface, campos, botões, dicas, metadados e mensagens de vazio."
       },
       "label": {
         "displayName": "Selo e legenda",
-        "purpose": "Selos, legendas de gráfico, dicas. O menor tamanho permitido."
+        "purpose": "Selos e texto de gráfico (eixos, legendas, degraus). O menor tamanho permitido."
       },
       "code": {
         "displayName": "Código",
@@ -629,12 +629,17 @@
       {
         "name": "e1",
         "value": "0 2px 8px rgb(11 53 80 / 0.03)",
-        "purpose": "Repouso: marcas pequenas sobre gráficos e trilhas, itens soltos sem borda."
+        "purpose": "Repouso: marcas pequenas sobre gráficos e trilhas, itens soltos sem borda, período escolhido no Painel."
       },
       {
         "name": "e2",
         "value": "0 8px 24px rgb(11 53 80 / 0.08)",
-        "purpose": "Flutuante: cartão-link no hover, barra do celular, Assistente."
+        "purpose": "Flutuante: cartão-link no hover, barra do celular, Assistente, menus."
+      },
+      {
+        "name": "sticky",
+        "value": "0 10px 18px -16px rgb(11 53 80 / 0.3)",
+        "purpose": "Borda Presa: barra de cima do celular e cabeçalho compacto da ficha, só com a página rolada."
       },
       {
         "name": "glow",
@@ -644,7 +649,22 @@
       {
         "name": "frame",
         "value": "0 24px 80px -36px rgb(11 53 80 / 0.24)",
-        "purpose": "Moldura das telas de entrada e do painel do Assistente."
+        "purpose": "Moldura das telas de entrada (login e etapas logo depois dele)."
+      },
+      {
+        "name": "shell-frame",
+        "value": "0 20px 70px rgb(11 53 80 / 0.08)",
+        "purpose": "Exceção da moldura: a moldura da aplicação sobre a névoa."
+      },
+      {
+        "name": "shell-assistant",
+        "value": "0 24px 70px rgb(11 53 80 / 0.22)",
+        "purpose": "Exceção da moldura: o painel aberto do Assistente, por cima do conteúdo."
+      },
+      {
+        "name": "shell-save-bar",
+        "value": "0 -4px 16px rgb(11 53 80 / 0.06), 0 8px 24px rgb(11 53 80 / 0.08)",
+        "purpose": "Exceção da moldura: a barra de salvar presa no rodapé."
       }
     ],
     "motion": [
@@ -656,7 +676,7 @@
       {
         "name": "rise",
         "value": "translateY(8px) → none, 260ms",
-        "purpose": "Cartões e heróis entram subindo, sem opacidade."
+        "purpose": "Cartões e heróis entram subindo, sem opacidade; só na tela, nunca na impressão."
       },
       {
         "name": "grow",
@@ -675,8 +695,8 @@
       },
       {
         "name": "support-steps-in",
-        "value": "≤ 300ms no total, esquerda para direita",
-        "purpose": "Entrada dos Degraus de apoio; desligada com prefers-reduced-motion."
+        "value": "scaleY 0 → 1, 180 ms por quadrado, ≤ 300 ms no total, da esquerda para a direita",
+        "purpose": "Entrada dos Degraus de apoio; só na tela, desligada com prefers-reduced-motion; na impressão, os quadrados saem inteiros."
       }
     ],
     "breakpoints": [
@@ -754,15 +774,23 @@
       "refersTo": "card",
       "description": "Cartão branco com borda fina sobre o papel; plano em repouso.",
       "html": "<div class=\"ds-paper\"><article class=\"ds-card\"><h3 class=\"ds-card-title\">Registros nos últimos 7 dias</h3><p class=\"ds-card-num\">12</p><p class=\"ds-card-meta\">Por semana, nas últimas 8.</p></article></div>",
-      "css": ".ds-paper { font-family: var(--font-noto), system-ui, sans-serif; background: var(--paper); padding: 24px; } .ds-card { max-width: 320px; border: 1px solid var(--line); border-radius: 22px; background: var(--paper-raised); padding: 22px; color: var(--ink); } .ds-card-title { margin: 0; font-size: 1rem; font-weight: 500; } .ds-card-num { margin: 8px 0 4px; font-size: 2rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; } .ds-card-meta { margin: 0; font-size: 0.75rem; color: var(--ink-soft); }"
+      "css": ".ds-paper { font-family: var(--font-noto), system-ui, sans-serif; background: var(--paper); padding: 24px; } .ds-card { max-width: 320px; border: 1px solid var(--line); border-radius: 22px; background: var(--paper-raised); padding: 22px; color: var(--ink); } .ds-card-title { margin: 0; font-size: 1rem; font-weight: 500; } .ds-card-num { margin: 8px 0 4px; font-size: 2rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; } .ds-card-meta { margin: 0; font-size: 0.875rem; color: var(--ink-soft); }"
     },
     {
       "name": "Selo de tendência",
       "kind": "chip",
       "refersTo": "status-pill-good",
-      "description": "Só a tendência carrega cor de estado, sempre com palavra e seta.",
-      "html": "<span class=\"ds-pill ds-pill-good\">↗ Avançando</span> <span class=\"ds-pill ds-pill-info\">→ Estável</span> <span class=\"ds-pill ds-pill-alert\">↘ Pede atenção</span> <span class=\"ds-pill ds-pill-neutral\">Poucos registros</span>",
+      "description": "TrendChip: só a tendência carrega cor de estado ao lado dos degraus, sempre com palavra e ícone.",
+      "html": "<span class=\"ds-pill ds-pill-good\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polyline points=\"22 7 13.5 15.5 8.5 10.5 2 17\"/><polyline points=\"16 7 22 7 22 13\"/></svg> Avançando</span> <span class=\"ds-pill ds-pill-good\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg> Meta alcançada</span> <span class=\"ds-pill ds-pill-info\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 8l4 4-4 4\"/><path d=\"M2 12h20\"/></svg> Estável</span> <span class=\"ds-pill ds-pill-alert\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polyline points=\"22 17 13.5 8.5 8.5 13.5 2 7\"/><polyline points=\"16 17 22 17 22 11\"/></svg> Pede atenção</span> <span class=\"ds-pill ds-pill-neutral\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/></svg> Poucos registros</span>",
       "css": ".ds-pill { font-family: var(--font-noto), system-ui, sans-serif; display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px; padding: 4px 10px; font-size: 0.75rem; font-weight: 500; white-space: nowrap; } .ds-pill-good { background: var(--signal-lime); color: var(--ink-strong); } .ds-pill-info { background: var(--accent-sky); color: var(--ink-strong); } .ds-pill-alert { background: var(--signal-orange); color: var(--ink-strong); } .ds-pill-neutral { background: var(--signal-track); color: var(--ink-soft); }"
+    },
+    {
+      "name": "Selo suave",
+      "kind": "chip",
+      "refersTo": "badge-neutral",
+      "description": "Badge: situação de um registro, prazo na fila do Início, rótulos e contagens. Rótulo nunca em cor de estado.",
+      "html": "<span class=\"ds-badge ds-badge-info\">AEE 2x por semana</span> <span class=\"ds-badge ds-badge-neutral\">em 3 dias</span> <span class=\"ds-badge ds-badge-alert\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/></svg> há 18 dias</span> <span class=\"ds-badge ds-badge-good\">Validado</span>",
+      "css": ".ds-badge { font-family: var(--font-noto), system-ui, sans-serif; display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px; padding: 4px 10px; font-size: 0.75rem; font-weight: 500; white-space: nowrap; } .ds-badge-info { background: var(--brand-soft); color: var(--brand-strong); } .ds-badge-neutral { background: color-mix(in srgb, var(--line) 60%, transparent); color: var(--ink-soft); } .ds-badge-alert { background: var(--coral-soft); color: var(--coral); } .ds-badge-good { background: var(--green-soft); color: var(--green); }"
     },
     {
       "name": "Herói e menu no marinho",
@@ -776,26 +804,32 @@
       "name": "Degraus de apoio",
       "kind": "custom",
       "refersTo": "support-steps-square",
-      "description": "Assinatura (direção assumida nesta rodada): cada aula é um quadrado; a altura é o nível de apoio (Independente no topo), o preenchimento é a participação, e o verde acende na meta.",
-      "html": "<figure class=\"ds-steps\" role=\"img\" aria-label=\"8 aulas: de Modelo para Supervisão; meta Supervisão alcançada nas 2 últimas; participou de toda a atividade em 7, de parte em 1.\"><div class=\"ds-steps-labels\" aria-hidden=\"true\"><span>Independente</span><span>Supervisão</span><span>Instrução verbal</span><span>Modelo</span><span>Físico parcial</span><span>Físico total</span></div><div class=\"ds-steps-grid\" aria-hidden=\"true\"><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-sq ds-sq-goal\"></span><span class=\"ds-sq ds-sq-goal\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-sq\"></span><span class=\"ds-sq ds-sq-part\"></span><span class=\"ds-sq\"></span><span class=\"ds-sq\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-sq\"></span><span class=\"ds-sq\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-steps-goal\"><span>meta</span></span></div><figcaption class=\"ds-steps-legend\">8 aulas · <span class=\"ds-key ds-sq\"></span> participou <span class=\"ds-key ds-sq ds-sq-part\"></span> em parte <span class=\"ds-key ds-sq ds-sq-out\"></span> recusou</figcaption></figure>",
-      "css": ".ds-steps { font-family: var(--font-noto), system-ui, sans-serif; display: grid; grid-template-columns: auto auto; column-gap: 12px; margin: 0; padding: 20px 52px 20px 20px; width: max-content; max-width: 100%; border: 1px solid var(--line); border-radius: 22px; background: var(--paper-raised); color: var(--ink); } .ds-steps-labels { display: grid; grid-template-rows: repeat(6, 22px); align-items: center; font-size: 0.75rem; color: var(--ink-soft); text-align: right; } .ds-steps-grid { position: relative; display: grid; grid-template-columns: repeat(8, 22px); grid-template-rows: repeat(6, 22px); place-items: center; } .ds-dot { width: 4px; height: 4px; border-radius: 9999px; background: var(--line); } .ds-sq { width: 14px; height: 14px; border-radius: 2px; background: var(--ink-strong); border: 1.5px solid var(--ink-strong); box-sizing: border-box; } .ds-sq-goal { background: var(--green); border-color: var(--green); } .ds-sq-part { background: linear-gradient(to top, var(--ink-strong) 50%, transparent 50%); } .ds-sq-goal.ds-sq-part { background: linear-gradient(to top, var(--green) 50%, transparent 50%); } .ds-sq-out { background: transparent; } .ds-steps-goal { position: absolute; left: 0; right: -40px; top: 32px; border-top: 1.5px dashed var(--green); pointer-events: none; } .ds-steps-goal span { position: absolute; right: 0; top: -9px; padding: 0 4px; background: var(--paper-raised); font-size: 0.75rem; font-weight: 500; color: var(--green); } .ds-steps-legend { grid-column: 1 / -1; margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--ink-soft); } .ds-key { display: inline-block; width: 10px; height: 10px; } @keyframes ds-step-in { from { transform: translateY(4px); } to { transform: none; } } @media (prefers-reduced-motion: no-preference) { .ds-steps-grid .ds-sq { animation: ds-step-in 200ms var(--ease-alpha) both; } }"
+      "description": "A assinatura: cada aula é um quadrado; a altura é o nível de apoio (Independente no topo), o preenchimento é a participação e o verde acende na meta. Tamanho full (Evolução).",
+      "html": "<figure class=\"ds-steps\"><div class=\"ds-steps-figure\" role=\"img\" aria-label=\"8 aulas: de Modelo para Supervisão; meta Supervisão alcançada nas 2 últimas; participou de toda a atividade em 7, de parte em 1.\"><div class=\"ds-steps-labels\" aria-hidden=\"true\"><span>Independente</span><span>Supervisão</span><span>Instrução verbal</span><span>Modelo</span><span>Físico parcial</span><span>Físico total</span></div><div class=\"ds-steps-grid\" aria-hidden=\"true\"><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-sq ds-sq-goal\" style=\"animation-delay:103ms\"></span><span class=\"ds-sq ds-sq-goal\" style=\"animation-delay:120ms\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-sq\" style=\"animation-delay:34ms\"></span><span class=\"ds-sq ds-sq-part\" style=\"animation-delay:51ms\"></span><span class=\"ds-sq\" style=\"animation-delay:69ms\"></span><span class=\"ds-sq\" style=\"animation-delay:86ms\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-sq\" style=\"animation-delay:0ms\"></span><span class=\"ds-sq\" style=\"animation-delay:17ms\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-dot\"></span><span class=\"ds-steps-goal\"></span></div><div class=\"ds-steps-goal-label\" aria-hidden=\"true\">meta</div><div class=\"ds-steps-dates\" aria-hidden=\"true\"><span>17/10</span><span>10/11</span></div></div><figcaption class=\"ds-steps-legend\"><span class=\"ds-key ds-sq\"></span> Toda a atividade <span class=\"ds-key ds-sq ds-sq-part\"></span> Parte <span class=\"ds-key ds-sq ds-sq-goal\"></span> Na meta</figcaption></figure>",
+      "css": ".ds-steps { font-family: var(--font-noto), system-ui, sans-serif; margin: 0; padding: 20px; width: max-content; max-width: 100%; border: 1px solid var(--line); border-radius: 22px; background: var(--paper-raised); color: var(--ink); } .ds-steps-figure { display: grid; grid-template-columns: auto auto auto; column-gap: 8px; } .ds-steps-labels { display: grid; grid-template-rows: repeat(6, 14px); row-gap: 3px; align-items: center; font-size: 0.75rem; line-height: 1rem; color: var(--ink-soft); white-space: nowrap; } .ds-steps-grid { position: relative; display: grid; grid-template-columns: repeat(10, 14px); grid-template-rows: repeat(6, 14px); gap: 3px; place-items: center; } .ds-dot { width: 3px; height: 3px; border-radius: 9999px; background: var(--line); } .ds-sq { position: relative; z-index: 1; width: 14px; height: 14px; border-radius: 3px; background: var(--ink-strong); border: 1.5px solid var(--ink-strong); box-sizing: border-box; } .ds-sq-goal { background: var(--green); border-color: var(--green); } .ds-sq-part { background: linear-gradient(to top, var(--ink-strong) 50%, var(--paper-raised) 50%); } .ds-sq-goal.ds-sq-part { background: linear-gradient(to top, var(--green) 50%, var(--paper-raised) 50%); } .ds-steps-goal { position: absolute; left: -4px; right: -4px; top: 23.25px; border-top: 1.5px dashed var(--ink-soft); pointer-events: none; } .ds-steps-goal-label { padding-top: 16px; font-size: 0.75rem; line-height: 1rem; font-weight: 500; color: var(--ink-soft); } .ds-steps-dates { grid-column: 2; display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.75rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; } .ds-steps-legend { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--ink-soft); } .ds-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; } @keyframes ds-step-in { from { transform: scaleY(0); } to { transform: none; } } @media screen and (prefers-reduced-motion: no-preference) { .ds-steps-grid .ds-sq { transform-origin: 50% 100%; animation: ds-step-in 180ms var(--ease-alpha) both; } }"
     }
   ],
   "narrative": {
     "northStar": "Menos apoio, mais autonomia",
-    "overview": "**Creative North Star: \"Menos apoio, mais autonomia\"**\n\nO IncluiEdu gira em torno da trajetória do estudante. A linha do apoio liga o registro de aula, a ficha, o Painel e o portal da família: cada tela responde, de um jeito ou de outro, se o estudante está precisando de menos ajuda do que antes. O sistema visual existe para tornar essa resposta legível num relance, no intervalo entre aulas e no celular. A assinatura do produto, os **Degraus de apoio**, é a forma gráfica dessa ideia: quadrados que sobem conforme o estudante ganha autonomia.\n\nO tom é **calmo e preciso**. O marinho e o azul seguram a tela; o conteúdo fica em cartões brancos sobre um papel cinza-azulado, com um único bloco marinho por tela (além do menu) ancorando a leitura. A cor de estado (verde, âmbar, laranja, coral) só aparece quando um limite é cruzado, e sempre acompanhada de palavras. Os personagens em azul-claro aparecem só nas boas-vindas, nos estados vazios e nos momentos de conclusão. Nada de decoração nova. A densidade é de ferramenta de trabalho (modo Operate): varredura e consistência valem mais que expressão. O tom é pedagógico, nunca clínico.\n\n`docs/visual.md` é o caderno de regras detalhado do projeto (tokens, escala, cantos, kit de formulário, \"Menos texto\", personagens, movimento); este DESIGN.md é o resumo legível por máquina e não o contradiz. A única regra em que os dois divergem é a cor dos níveis de apoio: aqui vale a regra nova (cor pela tendência, níveis neutros), decidida nesta rodada; `docs/visual.md` será alinhado a ela.",
+    "overview": "**Creative North Star: \"Menos apoio, mais autonomia\"**\n\nO IncluiEdu gira em torno da trajetória do estudante. A linha do apoio liga o registro de aula, a ficha, o Painel e o portal da família: cada tela responde, de um jeito ou de outro, se o estudante está precisando de menos ajuda do que antes. O sistema visual existe para tornar essa resposta legível num relance, no intervalo entre aulas e no celular. A assinatura do produto, os **Degraus de apoio**, é a forma gráfica dessa ideia: quadrados que sobem conforme o estudante ganha autonomia. Ela aparece no cabeçalho da ficha, nos cartões do Resumo, na Evolução, no cartão depois de salvar uma aula, no portal da família e no Painel, sempre com o mesmo desenho.\n\nO tom é **calmo e preciso**. O marinho e o azul seguram a tela; o conteúdo fica em cartões brancos sobre um papel cinza-azulado, com um único bloco marinho por tela (além do menu) ancorando a leitura. A cor de estado (verde, âmbar, laranja, coral) só aparece quando um limite é cruzado, e sempre acompanhada de palavras e ícone; rótulos (gostos, barreiras, serviços) nunca usam cor de estado. Os personagens em azul-claro aparecem só nas boas-vindas, nos estados vazios e nos momentos de conclusão. Nada de decoração nova. A densidade é de ferramenta de trabalho (modo Operate): varredura e consistência valem mais que expressão. O tom é pedagógico, nunca clínico.\n\n`docs/visual.md` é o caderno de regras detalhado do projeto (tokens, escala, cantos, kit de formulário, moldura no celular, \"Menos texto\", assinatura, personagens, movimento); este DESIGN.md é o resumo legível por máquina, e os dois dizem a mesma coisa.",
     "keyCharacteristics": [
       "Marinho como âncora: menu lateral, barra do celular e um herói por tela, com troca de papéis de cor (`surface-navy`).",
       "Cartões brancos com borda fina sobre papel cinza-azulado; profundidade por tom, não por sombra.",
-      "Uma família tipográfica (Noto Sans), títulos e números em negrito, nada abaixo de 12 px.",
-      "Quatro cantos: 12, 22, 30 e pílula.",
-      "Cor de estado só quando um limite é cruzado, sempre com texto; o nível de apoio em si é neutro.",
+      "Uma família tipográfica (Noto Sans), títulos e números em negrito; 12 px só em selo e gráfico.",
+      "Quatro cantos: 12, 22, 30 e pílula (a moldura da tela, 32, é a única exceção).",
+      "Cor de estado só quando um limite é cruzado, sempre com palavra e ícone; o nível de apoio e os rótulos são neutros.",
+      "Os Degraus de apoio, com o mesmo desenho em toda tela que mostra apoio por aula.",
       "Menos texto: dizer uma vez, rótulo no lugar de frase, seção vazia some."
     ],
     "rules": [
       {
         "name": "The Cor pela Tendência Rule",
-        "body": "A cor fala da tendência, não do rótulo. O nível de apoio é neutro (marinho e azul); só o selo de tendência carrega cor de estado (\"Avançando\" verde, \"Estável\" azul-céu, \"Pede atenção\" laranja/coral, \"Poucos registros\" neutro), sempre com palavra e seta ou ícone. \"Pede atenção\" só quando um limite é cruzado (o apoio subiu nas aulas recentes, ou recusas repetidas); \"sem avanço por algumas aulas\" é Estável, com uma dica pedagógica. Precisar de apoio físico não é alerta: nada de âmbar, laranja ou coral para nível de apoio.",
+        "body": "A cor fala da tendência, não do rótulo. O nível de apoio é neutro (marinho e azul); só o selo de tendência (`TrendChip`) carrega cor de estado (\"Avançando\" e \"Meta alcançada\" lima, \"Estável\" azul-céu, \"Pede atenção\" laranja, \"Poucos registros\" neutro), sempre com palavra e ícone. \"Pede atenção\" só quando um limite é cruzado (o apoio subiu um nível, em média, nas aulas recentes, ou 2 recusas nas 4 últimas); \"sem avanço por algumas aulas\" é Estável, com uma dica pedagógica. Precisar de apoio físico não é alerta: nada de âmbar, laranja ou coral para nível de apoio.",
+        "section": "colors"
+      },
+      {
+        "name": "The Rótulo Não É Estado Rule",
+        "body": "Gostos, barreiras, serviços (AEE, profissional de apoio), tipos e contextos são rótulos: selo azul-brisa ou neutro, ou um par de categoria. Verde, âmbar e coral ficam para a situação que pede ação ou confirma algo (vencido, pendente, validado, alcançado).",
         "section": "colors"
       },
       {
@@ -810,7 +844,17 @@
       },
       {
         "name": "The Escala Única Rule",
-        "body": "Só os oito degraus 12, 14, 16, 20, 24, 32, 40, 56. Sem `text-lg` (18) e sem tamanhos arbitrários. Números sempre com algarismos tabulares.",
+        "body": "Só os oito degraus 12, 14, 16, 20, 24, 32, 40, 56. Sem `text-lg` (18) e sem tamanhos arbitrários; as únicas exceções são a letra ampliada da atividade adaptada e o \"A\" maior do controle de tamanho do texto, onde o tamanho é o conteúdo. Números sempre com algarismos tabulares.",
+        "section": "typography"
+      },
+      {
+        "name": "The Doze É Selo Rule",
+        "body": "12 px é de selo e de gráfico. Frase, dica, rótulo, metadado e título pequeno ficam em 14 px, também em `ink-soft`; a hierarquia vem do peso e da cor. Sem rótulo em caixa alta e sem rótulo pequeno acima de título (o tipo de um item vira selo; nenhum herói tem sobretítulo).",
+        "section": "typography"
+      },
+      {
+        "name": "The Quebra Calma Rule",
+        "body": "Títulos com `text-wrap: balance`, parágrafos e itens de lista com `text-wrap: pretty` (regra global): nenhuma última palavra sozinha, nenhum título com uma linha longa e outra curta.",
         "section": "typography"
       },
       {
@@ -824,35 +868,54 @@
         "section": "layout"
       },
       {
+        "name": "The Um Nome por Passo Rule",
+        "body": "Cada coisa tem um nome em todas as telas: os passos da trilha vêm de `TRAIL_STEPS` (abas, etapas, Minha jornada, Ajuda, Painel); o planejamento da turma é \"Planejamento com DUA\" (a vista do passo Atividade é \"Planejar com DUA\"); o que o terapeuta envia é \"orientação\". Botão pode usar o verbo; o passo se chama pelo substantivo.",
+        "section": "layout"
+      },
+      {
         "name": "The Plano em Repouso Rule",
         "body": "Cartões ficam planos e com borda em repouso; a sombra Flutuante é só para o que flutua ou responde ao hover. Nenhuma sombra dura deslocada.",
         "section": "elevation"
       },
       {
+        "name": "The Exceções da Moldura Rule",
+        "body": "Três peças da moldura têm sombra própria, e só elas: a moldura da aplicação sobre a névoa (`0 20px 70px`, 8%), o painel aberto do Assistente (`0 24px 70px`, 22%, por cima do conteúdo) e a barra de salvar presa no rodapé (a Flutuante mais uma sombra curta para cima). Nenhum componente novo copia esses valores.",
+        "section": "elevation"
+      },
+      {
         "name": "The Subir É Autonomia Rule",
-        "body": "Em toda marca de apoio, para cima é menos apoio, e os rótulos dos eixos dizem isso sozinhos; nenhuma legenda precisa explicar (\"Subir é precisar de menos apoio\" deixa de ser necessária).",
+        "body": "Em toda marca de apoio, para cima é menos apoio, e os rótulos dos eixos dizem isso sozinhos; nenhuma legenda precisa explicar (\"Subir é precisar de menos apoio\" deixou de existir).",
+        "section": "components"
+      },
+      {
+        "name": "The Mesmo Desenho Rule",
+        "body": "Onde houver nível de apoio por aula, a marca é `SupportSteps` (ou `StepSquare` num quadro agregado do Painel), nunca um gráfico de linha ou uma régua colorida próprios.",
         "section": "components"
       }
     ],
     "dos": [
       "**Do** usar só os tokens de `src/app/globals.css` e os papéis de cor (`action`, `surface-ink`…), para que o marinho e o tema do município funcionem sem opção.",
-      "**Do** mostrar o nível de apoio em marinho e azul, e dar cor de estado só ao selo de tendência, sempre com palavra e seta ou ícone (The Cor pela Tendência Rule).",
-      "**Do** usar os Degraus de apoio onde houver nível de apoio por aula: cabeçalho da ficha, cartão depois de salvar, Evolução, portal da família, Painel.",
+      "**Do** mostrar o nível de apoio em marinho e azul, e dar cor de estado só ao selo de tendência, sempre com palavra e ícone (The Cor pela Tendência Rule).",
+      "**Do** usar os Degraus de apoio onde houver nível de apoio por aula: cabeçalho da ficha, Resumo, Registrar aula, cartão depois de salvar, Evolução, portal da família, Painel.",
       "**Do** manter um bloco marinho por tela, além do menu, com ação em azul-céu dentro dele.",
       "**Do** usar o azul da marca para quantidade sem juízo nos gráficos e os sinais (lima, amarelo, laranja) só para estado, sempre com o valor também em texto.",
-      "**Do** garantir 44 px nos alvos de toque, contraste de 4.5:1 no texto (3:1 em gráficos), foco visível e nenhuma rolagem lateral a 320 px.",
-      "**Do** dizer uma vez: rótulo no lugar de frase, seção vazia some, explicação de leitura atrás de \"Como ler\".",
+      "**Do** usar `StatusPill` para o estado de um dado e `Badge` para a situação de um registro, rótulos e contagens.",
+      "**Do** garantir 44 px nos alvos de toque (botões, links soltos ou em lista, chips que agem, abas, `summary`, botões de ícone; link dentro de frase fica de fora), contraste de 4.5:1 no texto e no placeholder (3:1 em gráficos), foco visível e nenhuma rolagem lateral a 320 px.",
+      "**Do** dizer uma vez: rótulo no lugar de frase, seção vazia some, explicação de leitura atrás de \"Como ler\"; um nome por coisa em todas as telas.",
+      "**Do** escrever para a família em palavras do dia a dia (\"com uma dica falada ou visual\"), nunca com a escala de 0 a 5 nem com códigos.",
       "**Do** usar personagens só nas boas-vindas, nos estados vazios e nos momentos de conclusão, sempre decorativos (`aria-hidden`)."
     ],
     "donts": [
       "**Don't** pintar nível de apoio de âmbar, laranja ou coral: precisar de apoio físico não é alerta.",
+      "**Don't** dar cor de estado a rótulo (gosto, barreira, serviço, tipo).",
       "**Don't** chamar de \"Pede atenção\" a falta de avanço por algumas aulas; isso é Estável, com uma dica pedagógica.",
-      "**Don't** criar hex novo, fonte nova, `text-lg` ou tamanho arbitrário, nem texto abaixo de 12 px.",
+      "**Don't** criar hex novo, fonte nova, `text-lg` ou tamanho arbitrário, nem texto abaixo de 12 px; nem pôr frase, dica ou metadado em 12 px.",
       "**Don't** pôr `ink`, `ink-soft` ou `brand` sobre o marinho, nem empilhar dois blocos marinhos.",
       "**Don't** usar azul-céu, amarelo ou lima como cor de texto sobre branco.",
-      "**Don't** pôr rótulo pequeno acima de título nem introdução que repete o título.",
+      "**Don't** pôr rótulo pequeno acima de título (nem no herói) nem introdução que repete o título.",
       "**Don't** mostrar códigos (VERB, FIS-T) na assinatura nem informar estado só pela cor.",
-      "**Don't** animar com opacidade na entrada, em laço ou piscando; com `prefers-reduced-motion`, nada se move."
+      "**Don't** criar sombra nova nem copiar as sombras da moldura em componente.",
+      "**Don't** animar com opacidade na entrada, em laço ou piscando, nem na impressão; com `prefers-reduced-motion`, nada se move."
     ]
   }
 }

@@ -15,7 +15,6 @@ export default function AppError({ error, unstable_retry }: { error: Error & { d
     <PageHero
       standalone
       character="care"
-      eyebrow="Algo não saiu como esperado"
       title="Não foi possível abrir esta tela agora"
       lede={<p>Pode ter sido uma falha passageira de conexão. O que já estava salvo continua salvo.{error.digest ? ` Se o problema continuar, informe à equipe técnica o código ${error.digest}.` : ""}</p>}
       actions={<>

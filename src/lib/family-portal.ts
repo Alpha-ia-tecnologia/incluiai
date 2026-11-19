@@ -17,6 +17,20 @@ export const FAMILY_HELP = [
 
 export const familyHelp = (level: number) => FAMILY_HELP[clampSupport(level)];
 
+/**
+ * Uma área da sondagem para a família: a média de apoio (0 a 5) vira palavras do dia a dia,
+ * no começo e no fim do período quando mudou de degrau ("Comunicação: no começo, vendo alguém
+ * fazer antes; no fim, com uma dica falada ou visual").
+ */
+export function familyAssessmentLine(row: { label: string; start: number | null; end: number | null }): string | null {
+  const now = row.end ?? row.start;
+  if (now === null) return null;
+  if (row.start !== null && row.end !== null && clampSupport(row.start) !== clampSupport(row.end)) {
+    return `${row.label}: no começo, ${familyHelp(row.start)}; no fim, ${familyHelp(row.end)}`;
+  }
+  return `${row.label}: ${familyHelp(now)}`;
+}
+
 // Futuro do presente irregular: o infinitivo não é "futuro sem o acento".
 const IRREGULAR_ENDINGS: ReadonlyArray<[string, string]> = [["fará", "fazer"], ["dirá", "dizer"], ["trará", "trazer"]];
 

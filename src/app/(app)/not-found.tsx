@@ -8,7 +8,6 @@ export default function NotFound() {
     <PageHero
       standalone
       character="resources"
-      eyebrow="Não encontrado"
       title="Não encontramos o que você procurava"
       lede={<p>O endereço pode ter mudado ou o registro pode ter sido excluído. Seus dados continuam protegidos e nada foi alterado.</p>}
       actions={<>

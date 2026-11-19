@@ -66,5 +66,5 @@ test("tendência do objetivo: só as aulas dele, em ordem de data", () => {
   const reading = objectiveSupportTrend({ id: "a", targetSupport: 1 }, entries);
   assert.equal(reading.lessons, 3);
   assert.equal(reading.trend, "avancando");
-  assert.equal(trendMessage(objectiveSupportTrend({ id: "c", targetSupport: 1 }, entries), 0), "Sem registros ainda. Aplique uma atividade e registre em 3 toques.");
+  assert.equal(trendMessage(objectiveSupportTrend({ id: "c", targetSupport: 1 }, entries), 0), "Aplique uma atividade e registre em 3 toques.");
 });

@@ -44,7 +44,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
   if (!(await studentConsent(studentId)).therapistLink) {
     return (
       <>
-        <PageHero character="care" title="Articulação intersetorial" lede="Você vê só o perfil funcional e os relatórios de articulação. Os registros clínicos ficam no sistema de saúde." />
+        <PageHero character="care" title="Orientações para a escola" lede="Você vê só o perfil funcional e as orientações que enviou. Os registros clínicos ficam no sistema de saúde." />
         {switcher}
         <Card className="max-w-2xl">
           <SectionTitle>Aguardando a autorização da família</SectionTitle>
@@ -74,26 +74,26 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
     <>
       <PageHero
         character="care"
-        title="Articulação intersetorial"
-        lede="Você vê só o perfil funcional e os relatórios de articulação. Os registros clínicos ficam no sistema de saúde."
+        title="Orientações para a escola"
+        lede="Você vê só o perfil funcional e as orientações que enviou. Os registros clínicos ficam no sistema de saúde."
       />
       {journey.welcomed ? <JourneyProgress journey={journey} layout="strip" /> : <JourneyWelcome journey={journey} />}
       {switcher}
 
-      <section aria-label="Seus relatórios" className="mb-6">
+      <section aria-label="Suas orientações" className="mb-6">
         <DataBoard className="sm:grid-cols-2">
           <StatTile
-            label="Relatórios enviados"
+            label="Orientações enviadas"
             value={reports.length}
-            hint={latest ? `O último em ${formatDate(latest.createdAt)}. Por mês, nos últimos 6.` : undefined}
-            chart={reports.length ? <ColumnChart compact rows={monthlyCounts(reports.map((report) => report.createdAt), 6)} label="Relatórios enviados por mês, nos últimos 6 meses" /> : undefined}
+            hint={latest ? `A última em ${formatDate(latest.createdAt)}. Por mês, nos últimos 6.` : undefined}
+            chart={reports.length ? <ColumnChart compact rows={monthlyCounts(reports.map((report) => report.createdAt), 6)} label="Orientações enviadas por mês, nos últimos 6 meses" /> : undefined}
           />
           <StatTile
             label="A escola recebeu"
             value={!latest ? "—" : latestSeen ? "Sim" : "Ainda não"}
             tone={latestSeen ? "good" : "mid"}
             status={!latest ? undefined : latestSeen ? "Recebido" : "Aguardando"}
-            hint={!latest ? "Aparece depois do primeiro relatório." : latestSeen ? `A equipe abriu o acompanhamento em ${formatDate(latestSeen)}.` : "A equipe ainda não abriu o acompanhamento desde o último relatório."}
+            hint={!latest ? "Aparece depois da primeira orientação." : latestSeen ? `A equipe abriu o acompanhamento em ${formatDate(latestSeen)}.` : "A equipe ainda não abriu o acompanhamento desde a última orientação."}
           />
         </DataBoard>
       </section>
@@ -107,7 +107,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
       </Card>
 
       <Card className="mb-8 max-w-3xl scroll-mt-24" id="novo-relatorio">
-        <SectionTitle>Novo relatório de articulação</SectionTitle>
+        <SectionTitle>Nova orientação para a escola</SectionTitle>
         <p className="mb-5 text-sm leading-relaxed text-ink-soft">Os itens com * são obrigatórios.</p>
         <ActionForm action={create} className="grid gap-6">
           <MultiChoiceField name="communication" label="Formas de comunicação mais eficazes *" options={COMMUNICATION_OPTIONS} required />
@@ -125,13 +125,13 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
         </ActionForm>
       </Card>
 
-      <div id="relatorios" className="scroll-mt-24"><SectionTitle>Relatórios enviados</SectionTitle></div>
+      <div id="relatorios" className="scroll-mt-24"><SectionTitle>Orientações enviadas</SectionTitle></div>
       {reports.length === 0 ? (
-        <p className="text-sm text-ink-soft">Nenhum relatório enviado.</p>
+        <p className="text-sm text-ink-soft">Nenhuma orientação enviada.</p>
       ) : (
         <Card className="min-w-0">
           <Timeline
-            label="Relatórios enviados, do mais recente para o mais antigo"
+            label="Orientações enviadas, da mais recente para a mais antiga"
             items={reports.map((r, index) => {
               const seen = seenAt[index];
               return {
@@ -139,10 +139,10 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
                 date: formatDate(r.createdAt),
                 badge: seen ? <><StatusPill tone="good"><Check size={12} aria-hidden /> Visto pela escola</StatusPill><span className="text-sm text-ink-soft">em {formatDate(seen)}</span></>
                   : index === 0 ? <StatusPill tone="mid">Aguardando a escola abrir</StatusPill>
-                    : <><StatusPill tone="neutral">Sem visualização</StatusPill><span className="text-sm text-ink-soft">um relatório mais novo o substituiu</span></>,
+                    : <><StatusPill tone="neutral">Sem visualização</StatusPill><span className="text-sm text-ink-soft">uma orientação mais nova a substituiu</span></>,
                 marker: seen ? <Check size={16} strokeWidth={3} /> : <FileText size={16} />,
                 markerClassName: seen ? "bg-signal-lime text-ink-strong" : "border-2 border-dashed border-line bg-paper-raised text-ink-soft",
-                title: `Relatório de ${r.authorName}`,
+                title: `Orientação de ${r.authorName}`,
                 body: <ReportDetails report={r} />,
               };
             })}

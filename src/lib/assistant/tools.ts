@@ -8,6 +8,7 @@ import { assertStudentTeam, type SessionUser } from "../auth";
 import { can, roleGroup, type Group } from "../roles";
 import { familyActivityWhere } from "../policy";
 import { loadPlanContext, profileText } from "../agents/context";
+import { aiStatusText } from "../agents/ai-status";
 import { proposePlan } from "../plan-proposal";
 import { generateActivities } from "../activities";
 import { ALERTS, objectiveTrend, studentAlerts } from "../insights";
@@ -411,7 +412,7 @@ const TOOLS: Record<ToolName, ToolBuilder> = {
         `- Atividades no ano: ${d.activities.created} criadas; sugestões aguardando avaliação: ${d.overview.pendingSuggestions}; adesão: ${d.activities.sources.map((source) => `${source.label} ${source.adhesion === null ? "—" : `${source.adhesion}%`}`).join(", ")}.`,
         `- Tendência dos objetivos: ${d.learning.trends.map((trend) => `${trend.label}: ${trend.value}`).join("; ")}.`,
         d.records.strategies.length ? `- Estratégias que mais funcionaram: ${d.records.strategies.map((item) => `${item.label} (${item.value}x)`).join(", ")}.` : "",
-        `- IA: Claude ${d.ai.providers.claude ? "ativo" : "não configurado"}, DeepSeek ${d.ai.providers.deepseek ? "ativo" : "não configurado"}, OpenAI ${d.ai.providers.openai ? "ativo" : "não configurado"}; planos propostos pela IA: ${d.ai.planProposals.ia}; atividades da IA: ${d.ai.activities.total}; imagens: ${d.ai.images}.`,
+        `- IA: ${aiStatusText(d.ai.providers, can(ctx.user.role, "configureAi"))}; planos propostos pela IA: ${d.ai.planProposals.ia}; atividades da IA: ${d.ai.activities.total}; imagens: ${d.ai.images}.`,
         network ? `- Escolas da rede: ${d.scope.schools.map((school) => `${ctx.privacy.schoolLabel(school.id)} (id ${school.id})`).join(", ")}.` : "",
         d.profile.caa.withoutResources ? `- Leitura para a gestão: ${d.profile.caa.withoutResources} de ${d.profile.caa.total} estudantes com comunicação alternativa ainda sem recursos de acessibilidade registrados.` : "",
         d.attention.students.length && can(ctx.user.role, "seeNames") ? `- Estudantes com avisos (no seu escopo): ${d.attention.students.filter((student) => student.alerts.length).slice(0, 15).map((student) => `${ctx.privacy.studentLabel(student.id)} (id ${student.id}): ${student.alerts.map((kind) => ALERTS[kind].label.toLowerCase()).join(", ")}`).join("; ")}.` : "",

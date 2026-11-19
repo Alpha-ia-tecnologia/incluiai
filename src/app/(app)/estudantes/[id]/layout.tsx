@@ -49,7 +49,7 @@ export default async function StudentLayout({
             {student.aeeFrequency || student.supportProfessional || student.accessibilityNotes ? (
               <div className={`${HEAD_PART.detail} mt-2 flex min-w-0 flex-wrap gap-1.5`}>
                 {student.aeeFrequency ? <Badge tone="info">AEE {student.aeeFrequency}</Badge> : null}
-                {student.supportProfessional ? <Badge tone="good">Profissional de apoio</Badge> : null}
+                {student.supportProfessional ? <Badge tone="info">Profissional de apoio</Badge> : null}
                 {student.accessibilityNotes ? <Badge tone="mid">{student.accessibilityNotes}</Badge> : null}
               </div>
             ) : null}

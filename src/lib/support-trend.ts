@@ -75,7 +75,7 @@ export const trendLabel = (reading: Pick<SupportTrend, "trend" | "reason">) => (
 export function trendMessage(reading: Pick<SupportTrend, "reason" | "refusals">, lessons: number): string {
   switch (reading.reason) {
     case "poucos":
-      return lessons === 0 ? "Sem registros ainda. Aplique uma atividade e registre em 3 toques." : "Com 3 aulas registradas, a tendência aparece.";
+      return lessons === 0 ? "Aplique uma atividade e registre em 3 toques." : "Com 3 aulas registradas, a tendência aparece.";
     case "meta":
       return "Meta alcançada. Vale marcar o objetivo como alcançado ou combinar o próximo degrau.";
     case "menos_apoio":

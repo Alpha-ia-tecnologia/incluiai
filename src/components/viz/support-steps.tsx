@@ -133,6 +133,12 @@ export function SupportSteps({ data, size = "regular", audience = "equipe", name
             </span>
           );
         })}
+        {labelled && !lessons.length ? (
+          // Sem aula, a frase fica dentro da grade: no celular, ao lado ela caía entre a grade e a borda "mais apoio".
+          <span className="absolute inset-x-0 top-1/2 z-[2] flex -translate-y-1/2 justify-center">
+            <span className="whitespace-nowrap rounded-full bg-paper-raised px-2 text-sm text-ink-soft">Ainda sem registro</span>
+          </span>
+        ) : null}
       </span>
       {labelled && target !== null ? (
         <span className="shrink-0">{slots((level) => (level === target ? <span className="whitespace-nowrap text-xs font-medium leading-4 text-ink-soft">{words.goal}</span> : null))}</span>
@@ -152,10 +158,7 @@ export function SupportSteps({ data, size = "regular", audience = "equipe", name
     <figure data-support-steps={size} className={`@container min-w-0 ${className}`}>
       <div role="img" aria-label={name ? `${name}. ${sentence}` : sentence} className="flex min-w-0 flex-col gap-1.5">
         <span className={size === "full" ? "@sm:hidden" : ""}><EdgeLabel icon={ArrowUp}>{words.up}</EdgeLabel></span>
-        <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {grid}
-          {lessons.length ? null : <span className="text-sm text-ink-soft">Ainda sem registro</span>}
-        </span>
+        {grid}
         <span className={size === "full" ? "@sm:hidden" : ""}><EdgeLabel icon={ArrowDown}>{words.down}</EdgeLabel></span>
       </div>
       {lessons.length ? (
