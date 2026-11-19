@@ -176,6 +176,14 @@ button:not(:disabled), summary { cursor: pointer; }
     transition: border-color 160ms ease, box-shadow 160ms ease;
   }
   input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: var(--shadow-glow); }
+  /* Placeholder com contraste de texto (5,7:1 sobre o campo). O Firefox põe opacidade no placeholder por padrão. */
+  ::placeholder { color: var(--ink-soft); opacity: 1; }
+  /* Títulos com as linhas equilibradas; parágrafos sem a última palavra sozinha.
+     Navegador que não conhece text-wrap quebra como antes. */
+  h1, h2, h3, h4, legend { text-wrap: balance; }
+  /* No Chrome, o balance num título em flex (ícone ou número + texto) quebra cedo e deixa uma ou duas palavras na primeira linha. */
+  :is(h1, h2, h3, h4, legend):is(.flex, .inline-flex), p, li, dt, dd, figcaption, blockquote { text-wrap: pretty; }
+  td, th { font-variant-numeric: tabular-nums; }
 }
 /* Lista de seleção: continua o controle nativo (o mais acessível), com a seta e o
    espaço da plataforma. A seta vem de --select-arrow (o tema do município troca a cor). Fora de camada para valer sobre o px-* dos utilitários. */

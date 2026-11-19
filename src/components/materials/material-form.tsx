@@ -48,7 +48,7 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
                 <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand-strong"><Icon size={18} /></span>
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-ink">{item.label}</span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">{item.description}</span>
+                  <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">{item.description}</span>
                 </span>
               </label>
             );
@@ -72,7 +72,7 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
             <option value="">Sem objetivo específico</option>
             {objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.description}</option>)}
           </select>
-          <p className="mt-1 text-xs leading-relaxed text-ink-soft">As atividades do material passam a apoiar este objetivo.</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-soft">As atividades do material passam a apoiar este objetivo.</p>
         </div>
       </div>
 
@@ -93,15 +93,15 @@ export function MaterialForm({ studentId, objectives, defaultContext, aiOn, aiCo
           <input type="checkbox" name={GENERATE_IMAGES_FIELD} defaultChecked className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
           <span>
             <span className="font-medium">Desenhar um pictograma para cada cartão</span>
-            <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">Pela OpenAI, só com a descrição do cartão, sem dado pessoal. De 1 a 3 minutos.</span>
+            <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Pela OpenAI, só com a descrição do cartão, sem dado pessoal. De 1 a 3 minutos.</span>
           </span>
         </label>
       ) : (
-        <p className="rounded-2xl bg-surface-muted/60 p-3 text-xs leading-relaxed text-ink-soft">As imagens dos cartões estão desligadas nesta instalação (falta a chave OPENAI_API_KEY). O material sai com a descrição de cada pictograma.</p>
+        <p className="rounded-2xl bg-surface-muted/60 p-3 text-sm leading-relaxed text-ink-soft">As imagens dos cartões estão desligadas nesta instalação (falta a chave OPENAI_API_KEY). O material sai com a descrição de cada pictograma.</p>
       )}
 
       <div className="grid min-w-0 gap-3">
-        {!aiConfigured ? <p className="text-xs leading-relaxed text-ink-soft">IA desligada nesta instalação: o material sai pelas regras da plataforma, a partir do perfil.</p> : null}
+        {!aiConfigured ? <p className="text-sm leading-relaxed text-ink-soft">IA desligada nesta instalação: o material sai pelas regras da plataforma, a partir do perfil.</p> : null}
         <Assurances
           label="Como o material é criado"
           items={[

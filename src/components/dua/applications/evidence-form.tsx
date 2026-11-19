@@ -74,7 +74,7 @@ export function EvidenceForm({ planningId, applicationId, student, criteria, str
 
       {criteria.length ? (
         <div className="grid min-w-0 gap-3">
-          <p className="text-xs leading-relaxed text-ink-soft">
+          <p className="text-sm leading-relaxed text-ink-soft">
             “Não houve oportunidade de observar” e “Ainda não registrado” não são “Ainda não demonstrou”: não contam como resultado nem como conclusão sobre a aprendizagem.
           </p>
           {criteria.map((criterion, index) => (

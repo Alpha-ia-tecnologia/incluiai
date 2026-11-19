@@ -57,7 +57,7 @@ export function ParticipantPicker({ idPrefix, legend, hint, students, className,
       ) : (
         <p className="text-sm text-ink-soft">{turma && !showAll ? `Nenhum estudante da turma ${turma} no seu acesso. Marque a opção acima para ver as outras turmas.` : "Nenhum estudante encontrado no seu acesso."}</p>
       )}
-      <p role="status" aria-live="polite" className="mt-2 text-xs text-ink-soft">{selected.length} participante(s) marcado(s){byClass.length && turma ? ` · ${byClass.length} na turma ${turma}` : ""}</p>
+      <p role="status" aria-live="polite" className="mt-2 text-sm text-ink-soft">{selected.length} participante(s) marcado(s){byClass.length && turma ? ` · ${byClass.length} na turma ${turma}` : ""}</p>
     </fieldset>
   );
 }

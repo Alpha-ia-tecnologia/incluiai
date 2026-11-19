@@ -149,7 +149,7 @@ export default async function HealthReportPage({
               <p className="mt-3 text-base leading-relaxed text-ink">{reading.summary}</p>
               {reading.limits ? <p className="mt-3 text-sm leading-relaxed text-ink-soft"><span className="font-medium text-ink">Limites da leitura:</span> {reading.limits}</p> : null}
               <AIDisclaimer />
-              {report.privacyNote ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">{report.privacyNote}</p> : null}
+              {report.privacyNote ? <p className="mt-3 text-sm leading-relaxed text-ink-soft">{report.privacyNote}</p> : null}
             </Card>
 
             <ActionForm action={reviewHealthReportAction.bind(null, report.id)}>
@@ -164,7 +164,7 @@ export default async function HealthReportPage({
                           <input type="checkbox" name="orientacao" value={index} defaultChecked className={checkboxCls} />
                           <span className="min-w-0">
                             {item.text}
-                            {item.excerpt ? <span className="mt-1 block text-xs leading-relaxed text-ink-soft">No laudo: {quote(item.excerpt)}</span> : null}
+                            {item.excerpt ? <span className="mt-1 block text-sm leading-relaxed text-ink-soft">No laudo: {quote(item.excerpt)}</span> : null}
                           </span>
                         </label>
                       ))}
@@ -250,7 +250,7 @@ export default async function HealthReportPage({
         )}
 
         <details className="rounded-2xl bg-surface-muted p-4 print:hidden">
-          <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir este laudo</summary>
+          <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Excluir este laudo</summary>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">O arquivo e a leitura da IA saem da plataforma. O que já foi juntado ao estudo de caso continua lá.</p>
           <ActionForm action={deleteHealthReportAction.bind(null, report.id)} className="mt-3">
             <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir o laudo</button>

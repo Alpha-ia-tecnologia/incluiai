@@ -6,7 +6,7 @@ export function StepTrack({ steps, current, note }: { steps: ReadonlyArray<StepI
   const here = steps[current - 1];
   return (
     <div className="min-w-0">
-      <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs">
+      <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
         <span className="font-medium text-ink">Etapa {current} de {steps.length}</span>
         <span className="min-w-0 text-ink-soft">{note ?? here?.label}</span>
       </p>

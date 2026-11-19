@@ -50,9 +50,9 @@ export function StudentVoice({ planningId, studentId, supportId, entries, canEdi
         <ul className="mt-3 grid min-w-0 gap-2">
           {sorted.map((entry) => (
             <li key={entry.id} className="min-w-0 rounded-xl bg-surface-muted/60 p-3">
-              <p className="text-xs font-medium text-ink-soft">{STUDENT_VOICE_LABEL[entry.kind] ?? entry.kind}</p>
+              <p className="text-sm font-medium text-ink-soft">{STUDENT_VOICE_LABEL[entry.kind] ?? entry.kind}</p>
               <p className="mt-1 whitespace-pre-line break-words text-sm text-ink">{entry.text}</p>
-              <p className="mt-1 break-words text-xs text-ink-soft">
+              <p className="mt-1 break-words text-sm text-ink-soft">
                 Contexto: {entry.context} · {VOICE_ORIGIN_LABEL[entry.origin] ?? entry.origin} · {isoToBr(entry.date)}
               </p>
               {canEdit ? (

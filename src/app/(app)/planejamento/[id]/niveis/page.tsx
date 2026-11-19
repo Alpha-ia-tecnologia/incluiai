@@ -78,7 +78,7 @@ export default async function LevelsPage({ params, searchParams }: { params: Pro
                   </div>
                   {access.edit && task.status !== "aprovada" ? (
                     <details className="mt-4 rounded-2xl bg-surface-muted p-4">
-                      <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Ajustar e aprovar: {LEVEL_LABEL[task.level as LevelKey]}</summary>
+                      <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Ajustar e aprovar: {LEVEL_LABEL[task.level as LevelKey]}</summary>
                       <div className="mt-4"><AdaptedEditor action={saveTask.bind(null, { planningId: id }, task.id)} content={content} approveLabel="Aprovar este nível" /></div>
                     </details>
                   ) : null}

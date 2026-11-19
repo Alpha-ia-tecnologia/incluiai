@@ -20,7 +20,7 @@ export function ValidateSupport({ planningId, studentId, supportId, revision, va
           <CircleCheck size={16} aria-hidden /> {pending ? "Validando…" : "Validar apoio"}
         </button>
       )}
-      <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+      <p className="mt-2 text-sm leading-relaxed text-ink-soft">
         Validar confirma o apoio só para esta atividade. Não altera a matrícula, a classificação na educação especial, o perfil nem o Plano de ensino.
       </p>
       <FormResult result={result} />

@@ -91,7 +91,7 @@ export default async function CalendarPage({
 
       <nav aria-label="Filtrar por tema" className="scrollbar-none -mx-1 mb-6 flex gap-2 overflow-x-auto px-1 pb-1 md:flex-wrap print:hidden">
         {filterOptions.map(([key, label]) => (
-          <Link key={key ?? "todos"} href={calendarHref(current, key)} aria-current={tema === key ? "true" : undefined} className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line bg-paper-raised px-4 text-xs font-medium text-ink-soft transition-colors hover:bg-brand-soft aria-[current=true]:border-brand aria-[current=true]:bg-brand aria-[current=true]:text-white">
+          <Link key={key ?? "todos"} href={calendarHref(current, key)} aria-current={tema === key ? "true" : undefined} className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line bg-paper-raised px-4 text-sm font-medium text-ink-soft transition-colors hover:bg-brand-soft aria-[current=true]:border-brand aria-[current=true]:bg-brand aria-[current=true]:text-white">
             {key ? <span className={`mr-2 size-2 rounded-full ${CALENDAR_THEMES[key].dot}`} aria-hidden /> : null}
             {label}
           </Link>
@@ -124,10 +124,10 @@ export default async function CalendarPage({
                     const dayEvents = eventsOn(day);
                     const isToday = isCurrentMonth && day === today.day;
                     return (
-                      <td key={col} aria-current={isToday ? "date" : undefined} className={`h-16 rounded-xl p-1 align-top sm:h-24 sm:p-1.5 ${isToday ? "bg-brand-soft ring-2 ring-brand" : dayEvents.length ? "bg-surface-muted" : "bg-paper"}`}>
+                      <td key={col} aria-current={isToday ? "date" : undefined} className={`relative h-16 rounded-xl p-1 align-top sm:h-24 sm:p-1.5 ${isToday ? "bg-brand-soft ring-2 ring-brand" : dayEvents.length ? "bg-surface-muted" : "bg-paper"}`}>
                         <div className="flex h-full flex-col">
                           {dayEvents.length ? (
-                            <a href={`#evento-${dayEvents[0].key}`} aria-label={`${day} de ${monthName}: ${dayEvents.map((event) => event.entry.title).join("; ")}`} className="w-fit rounded-md px-1 text-sm font-semibold hover:underline">{day}</a>
+                            <a href={`#evento-${dayEvents[0].key}`} aria-label={`${day} de ${monthName}: ${dayEvents.map((event) => event.entry.title).join("; ")}`} className="w-fit rounded-md px-1 text-sm font-semibold after:absolute after:inset-0 after:rounded-xl hover:underline">{day}</a>
                           ) : (
                             <span className="px-1 text-sm text-ink-soft">{day}</span>
                           )}
@@ -153,7 +153,7 @@ export default async function CalendarPage({
         <section aria-labelledby="month-events-title">
           <div className="mb-4 flex items-baseline justify-between gap-3">
             <h2 id="month-events-title" className="text-base font-medium">Datas de {monthName}</h2>
-            <span className="text-xs text-ink-soft">{events.length} {events.length === 1 ? "data" : "datas"}</span>
+            <span className="text-sm text-ink-soft">{events.length} {events.length === 1 ? "data" : "datas"}</span>
           </div>
           {events.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-line bg-surface-muted/40 px-5 py-10 text-center">
@@ -198,17 +198,17 @@ function EventCard({ event, today }: { event: CalendarEvent; today: YMD }) {
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-medium leading-snug">{entry.title}</h3>
-          <p className="mt-1 text-xs text-ink-soft">{singleDay ? `${WEEKDAYS[weekdayOf(event.start)][1]}, ` : ""}{dateRangeLabel(event)}</p>
+          <p className="mt-1 text-sm text-ink-soft">{singleDay ? `${WEEKDAYS[weekdayOf(event.start)][1]}, ` : ""}{dateRangeLabel(event)}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${theme.chip}`}>{theme.label}</span>
             {soon ? <span className="rounded-full bg-brand px-2.5 py-1 text-xs font-medium text-white">{relativeLabel(event, today)}</span> : null}
           </div>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">{entry.about}</p>
           <div className="mt-3 rounded-2xl bg-surface-muted p-3">
-            <p className="flex items-center gap-1.5 text-xs font-medium text-brand-strong"><Lightbulb size={14} aria-hidden /> Ideia para a turma</p>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-brand-strong"><Lightbulb size={14} aria-hidden /> Ideia para a turma</p>
             <p className="mt-1 text-sm leading-relaxed">{entry.idea}</p>
           </div>
-          <p className="mt-3 text-xs text-ink-soft">Referência: {entry.origin}</p>
+          <p className="mt-3 text-sm text-ink-soft">Referência: {entry.origin}</p>
         </div>
       </div>
     </li>

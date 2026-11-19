@@ -71,7 +71,7 @@ export function ReportView({ data, opinion, status, validatedByName, validatedAt
       {data.assessment?.length ? (
         <section aria-labelledby="relatorio-sondagem" className="min-w-0">
           <h3 id="relatorio-sondagem" className="mb-2 text-base font-medium text-ink">Sondagem: apoio médio por área</h3>
-          <p className="mb-2 text-xs text-ink-soft">Escala de 0 (independente) a 5 (apoio físico total): menor é melhor.</p>
+          <p className="mb-2 text-sm text-ink-soft">Escala de 0 (independente) a 5 (apoio físico total): menor é melhor.</p>
           <ul className="grid gap-1 text-sm text-ink">
             {data.assessment.map((row) => (
               <li key={row.label}><span className="font-medium">{row.label}:</span> {row.start !== null && row.end !== null && row.start !== row.end ? `${decimal(row.start)} no começo, ${decimal(row.end)} no fim` : decimal((row.end ?? row.start) as number)}</li>

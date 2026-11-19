@@ -5,8 +5,8 @@ import { ArrowRight, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import { login } from "@/actions/auth";
 import { FormResult } from "@/components/form-kit";
 
-const inputCls = "w-full rounded-2xl border border-line bg-paper-raised py-3.5 pl-11 pr-4 text-sm text-ink transition-colors placeholder:text-ink-soft/65 hover:border-ink/25 focus:border-ink";
-const labelCls = "mb-2 block text-xs font-medium text-ink";
+const inputCls = "w-full rounded-2xl border border-line bg-paper-raised py-3.5 pl-11 pr-4 text-sm text-ink transition-colors hover:border-ink/25 focus:border-ink";
+const labelCls = "mb-2 block text-sm font-medium text-ink";
 
 export function LoginForm() {
   const [result, action, pending] = useActionState(login, null);

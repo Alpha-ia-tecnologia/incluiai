@@ -62,8 +62,8 @@ export function ProfileChat({
           subtitle={<Assurances className="mt-1.5" label={`O que registrar sobre ${firstName}`} items={[{ icon: ShieldCheck, text: "Sem informações de diagnóstico" }]} />}
           counter={(
             <div className="shrink-0 text-right">
-              <p className="text-xs font-semibold tabular-nums text-ink">{progress}%</p>
-              <p className="text-xs tabular-nums text-ink-soft">{chat.answered} de {fields.length}</p>
+              <p className="text-sm font-semibold tabular-nums text-ink">{progress}%</p>
+              <p className="text-sm tabular-nums text-ink-soft">{chat.answered} de {fields.length}</p>
             </div>
           )}
           progress={progress}
@@ -79,7 +79,7 @@ export function ProfileChat({
                   const completed = fields.filter((field) => field.section === section.title).every((field) => answeredIn(chat.answers, field.key));
                   const active = section.title === current.section;
                   return (
-                    <li key={section.title} className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs ${active ? "bg-brand-soft font-semibold text-brand-strong" : "text-ink-soft"}`}>
+                    <li key={section.title} className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm ${active ? "bg-brand-soft font-semibold text-brand-strong" : "text-ink-soft"}`}>
                       <span className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs ${completed ? "bg-green text-white" : active ? "bg-brand text-white" : "bg-line/70"}`}>
                         {completed ? <Check size={11} aria-hidden /> : index + 1}
                       </span>
@@ -97,7 +97,7 @@ export function ProfileChat({
                     <p className="text-sm font-semibold text-ink">
                       {current.section} <span className="font-normal tabular-nums text-ink-soft">· etapa {sectionIndex + 1} de {PROFILE_SECTIONS.length}</span>
                     </p>
-                    <p className="mt-0.5 text-xs text-ink-soft">{PROFILE_SECTIONS[sectionIndex].description}</p>
+                    <p className="mt-0.5 text-sm text-ink-soft">{PROFILE_SECTIONS[sectionIndex].description}</p>
                   </div>
                   {chat.editing ? <span className="rounded-full bg-amber-soft px-2.5 py-1 text-xs font-semibold text-amber">Editando</span> : null}
                 </div>
@@ -109,8 +109,8 @@ export function ProfileChat({
                     <div className="mb-5 hidden space-y-2 border-b border-line/60 pb-5 sm:block">
                       {recentAnswered.map((field) => (
                         <div key={field.key} className="flex justify-end">
-                          <button type="button" onClick={() => chat.edit(field)} className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-soft px-3.5 py-2 text-left text-xs text-brand-strong hover:ring-1 hover:ring-brand/30">
-                            <span className="block text-xs font-semibold opacity-70">{field.label}</span>
+                          <button type="button" onClick={() => chat.edit(field)} className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-soft px-3.5 py-2 text-left text-sm text-brand-strong hover:ring-1 hover:ring-brand/30">
+                            <span className="block text-sm font-semibold opacity-70">{field.label}</span>
                             {answerText(field, chat.answers, undefined, NOT_SEEN)}
                           </button>
                         </div>

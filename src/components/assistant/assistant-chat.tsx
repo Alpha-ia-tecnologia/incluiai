@@ -62,7 +62,7 @@ function ActionCard({ action, busy, onDecide }: { action: ActionView; busy: bool
   const pending = action.status === "pendente";
   return (
     <article className={`my-2 rounded-2xl border p-3.5 ${pending ? "border-brand/40 bg-brand-soft/60" : action.status === "confirmada" ? "border-green/40 bg-green-soft/60" : "border-line bg-surface-muted/60"}`} aria-live="polite">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{action.label} · {pending ? "aguardando sua confirmação" : action.status === "confirmada" ? "confirmada" : "cancelada"}</p>
+      <p className="text-sm font-medium text-ink-soft">{action.label} · {pending ? "aguardando sua confirmação" : action.status === "confirmada" ? "confirmada" : "cancelada"}</p>
       <p className="mt-1 text-sm leading-relaxed text-ink">{action.summary}</p>
       {pending ? (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -393,7 +393,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
               <li key={suggestion} className="min-w-0 max-w-full"><button type="button" onClick={(event) => { keepFocus(event.detail); void send(suggestion); }} className="min-h-11 max-w-full rounded-full border border-line bg-paper-raised px-4 py-2 text-left text-sm text-ink transition-colors hover:border-brand hover:text-brand-strong">{suggestion}</button></li>
             ))}
           </ul>
-          <p className="max-w-md text-xs leading-relaxed text-ink-soft">Tudo o que altera o acompanhamento passa por um cartão de confirmação. Os dados chegam à IA sem nomes.</p>
+          <p className="max-w-md text-sm leading-relaxed text-ink-soft">Tudo o que altera o acompanhamento passa por um cartão de confirmação. Os dados chegam à IA sem nomes.</p>
         </>
       ) : (
         <>
@@ -411,9 +411,9 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
           {messages.map((message, index) => (
             <li key={message.id}>
               {message.role === "usuario" ? (
-                <div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-tr-md bg-brand px-4 py-2.5 text-sm leading-relaxed text-white"><p className="whitespace-pre-wrap">{message.text}</p><p className="mt-1 text-right text-xs text-white/70">{formatTime(message.createdAt)}</p></div></div>
+                <div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-tr-md bg-brand px-4 py-2.5 text-sm leading-relaxed text-white"><p className="whitespace-pre-wrap">{message.text}</p><p className="mt-1 text-right text-sm text-white/70">{formatTime(message.createdAt)}</p></div></div>
               ) : message.role === "sistema" ? (
-                <div className="mx-auto max-w-[90%] rounded-xl bg-surface-muted px-3 py-2 text-center text-xs leading-relaxed text-ink-soft">
+                <div className="mx-auto max-w-[90%] rounded-xl bg-surface-muted px-3 py-2 text-center text-sm leading-relaxed text-ink-soft">
                   <Markdown text={message.text} />
                   {index === messages.length - 1 && isLocal(message, "erro") && !live && !dropOpen ? <button type="button" onClick={retry} className="mt-1 inline-flex min-h-11 items-center rounded-full px-3 font-medium text-brand-strong underline underline-offset-4 hover:bg-paper-raised">Usar a mesma mensagem</button> : null}
                   {index === messages.length - 1 && (isLocal(message, "interrompida") || dropOpen) ? recheck : null}
@@ -424,7 +424,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
                   <div className="min-w-0 max-w-[88%] rounded-2xl rounded-tl-md bg-paper-raised px-4 py-3 shadow-e1">
                     <Steps steps={message.steps} live={false} />
                     <Markdown text={message.text} />
-                    <p className="mt-1 flex items-center gap-1 text-xs text-ink-soft">{formatTime(message.createdAt)}{message.id === freshId ? <Sprout size={12} className={message.id === settledId ? "text-brand" : "assistant-sprout-mark text-brand"} onAnimationEnd={() => setSettledId(message.id)} aria-hidden /> : null}</p>
+                    <p className="mt-1 flex items-center gap-1 text-sm text-ink-soft">{formatTime(message.createdAt)}{message.id === freshId ? <Sprout size={12} className={message.id === settledId ? "text-brand" : "assistant-sprout-mark text-brand"} onAnimationEnd={() => setSettledId(message.id)} aria-hidden /> : null}</p>
                   </div>
                 </div>
               )}
@@ -433,7 +433,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
           ))}
           {replyMissing ? (
             <li>
-              <div className="mx-auto max-w-[90%] rounded-xl bg-surface-muted px-3 py-2 text-center text-xs leading-relaxed text-ink-soft">
+              <div className="mx-auto max-w-[90%] rounded-xl bg-surface-muted px-3 py-2 text-center text-sm leading-relaxed text-ink-soft">
                 <p>A resposta a esta mensagem ainda não apareceu. Se o assistente ainda estiver trabalhando, ela fica salva aqui.</p>
                 {recheck}
               </div>
@@ -462,8 +462,8 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
   const composer = (
     <form onSubmit={submit} className="border-t border-line bg-paper-raised px-3 py-3">
       <p ref={statusRef} role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="espera-status" />
-      {error ? <p role="alert" className="mb-2 text-xs text-coral">{error}</p> : null}
-      {long ? <p className="mb-2 text-xs text-amber">Esta conversa ficou longa. <button ref={newConversationRef} type="button" onClick={reset} className="font-medium underline">Comece uma nova conversa</button> para continuar.</p> : null}
+      {error ? <p role="alert" className="mb-2 text-sm text-coral">{error}</p> : null}
+      {long ? <p className="mb-2 text-sm text-amber">Esta conversa ficou longa. <button ref={newConversationRef} type="button" onClick={reset} className="font-medium underline">Comece uma nova conversa</button> para continuar.</p> : null}
       <div className="flex items-end gap-2">
         {/* Durante o turno o campo fica só leitura (não desligado): o foco de
             quem está nele não se perde e volta a valer quando a resposta chega. */}
@@ -486,7 +486,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
           <ArrowUp size={18} aria-hidden />
         </button>
       </div>
-      <p className={`mt-2 text-xs leading-relaxed text-ink-soft ${live ? "assistant-note-busy" : ""}`}>O assistente propõe; você decide. Confira antes de usar com o estudante.</p>
+      <p className={`mt-2 text-sm leading-relaxed text-ink-soft ${live ? "assistant-note-busy" : ""}`}>O assistente propõe; você decide. Confira antes de usar com o estudante.</p>
     </form>
   );
 
@@ -496,7 +496,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
         <header className="flex items-center justify-between gap-2 border-b border-line bg-paper-raised px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-white"><Sparkles size={15} aria-hidden /></span>
-            <div className="min-w-0"><p className="text-sm font-semibold">Assistente</p><p className="truncate text-xs text-ink-soft">{conversation?.title ?? "Nova conversa"}</p></div>
+            <div className="min-w-0"><p className="text-sm font-semibold">Assistente</p><p className="truncate text-sm text-ink-soft">{conversation?.title ?? "Nova conversa"}</p></div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <button type="button" onClick={reset} disabled={!!live} aria-label="Nova conversa" title="Nova conversa" className="flex size-9 items-center justify-center rounded-full text-ink-soft hover:bg-surface-muted disabled:opacity-50"><MessageSquarePlus size={18} aria-hidden /></button>
@@ -530,14 +530,14 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
             <li className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-line px-3 py-6 text-center">
               <MessageSquareText size={20} className="text-brand" aria-hidden />
               <p className="text-sm font-medium text-ink">Nenhuma conversa ainda</p>
-              <p className="text-xs leading-relaxed text-ink-soft">Suas conversas aparecem aqui.</p>
+              <p className="text-sm leading-relaxed text-ink-soft">Suas conversas aparecem aqui.</p>
             </li>
           ) : null}
           {list.map((item) => (
             <li key={item.id} className="group flex items-center gap-1">
               <button type="button" onClick={() => void open(item.id)} aria-current={conversation?.id === item.id ? "true" : undefined} className="min-w-0 flex-1 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-paper-raised aria-[current=true]:bg-paper-raised aria-[current=true]:font-medium">
                 <span className="block truncate">{loadingId === item.id ? "Abrindo..." : item.title}</span>
-                <span className="block text-xs text-ink-soft">{formatDay(item.updatedAt)}</span>
+                <span className="block text-sm text-ink-soft">{formatDay(item.updatedAt)}</span>
               </button>
               <button type="button" onClick={() => void remove(item.id)} aria-label={`Apagar a conversa ${item.title}`} className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-soft opacity-0 transition-opacity hover:bg-coral-soft hover:text-coral focus:opacity-100 group-hover:opacity-100"><Trash2 size={15} aria-hidden /></button>
             </li>
@@ -547,7 +547,7 @@ export function AssistantChat({ layout, enabled, suggestions, initial, conversat
       <section className="flex min-h-[60vh] flex-col overflow-hidden rounded-2xl border border-line bg-paper" aria-label="Conversa com o assistente">
         <header className="flex items-center gap-3 border-b border-line bg-paper-raised px-4 py-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-white"><Sparkles size={17} aria-hidden /></span>
-          <div className="min-w-0"><h2 className="truncate text-base font-medium">{conversation?.title ?? "Nova conversa"}</h2><p className="text-xs text-ink-soft">Dúvidas, acompanhamento, planos, atividades e registros.</p></div>
+          <div className="min-w-0"><h2 className="truncate text-base font-medium">{conversation?.title ?? "Nova conversa"}</h2><p className="text-sm text-ink-soft">Dúvidas, acompanhamento, planos, atividades e registros.</p></div>
         </header>
         {thread}
         {garden}

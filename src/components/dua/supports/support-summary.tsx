@@ -38,7 +38,7 @@ export function SupportSummary({ data, showProfile = true }: { data: DuaSupportD
               {profileRefs.map((ref) => (
                 <li key={ref.field}>
                   <span className="text-ink">{ref.label}:</span> {ref.value}{" "}
-                  <span className="text-xs">({ref.source} · {ref.updatedAt ? formatDate(ref.updatedAt) : "sem data"})</span>
+                  <span className="text-sm">({ref.source} · {ref.updatedAt ? formatDate(ref.updatedAt) : "sem data"})</span>
                 </li>
               ))}
             </ul>

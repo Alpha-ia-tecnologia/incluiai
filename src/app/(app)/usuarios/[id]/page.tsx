@@ -68,7 +68,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             ) : null}
             {account.totpEnabledAt ? (
               <details className="rounded-2xl bg-surface-muted p-4">
-                <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Desligar as duas etapas (celular perdido)</summary>
+                <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Desligar as duas etapas (celular perdido)</summary>
                 <p className="my-3 text-sm leading-relaxed text-ink-soft">
                   Só se a pessoa perdeu o celular e os códigos de recuperação, depois de confirmar quem ela é.
                   {twoFactorRequired(account.role) ? " No próximo acesso, ela liga de novo (obrigatório para a equipe)." : " Ela pode ligar de novo em Segurança da conta."}
@@ -80,7 +80,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             ) : null}
             {active ? (
               <details className="rounded-2xl bg-surface-muted p-4">
-                <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Desativar a conta</summary>
+                <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Desativar a conta</summary>
                 <p className="my-3 text-sm text-ink-soft">A pessoa deixa de entrar na hora e as sessões abertas são encerradas.</p>
                 <Assurances
                   label="O que fica"
@@ -110,7 +110,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                 <li key={event.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
                   <p className="text-sm text-ink"><strong className="font-medium">{event.actorName}</strong> ({roleLabel(event.actorRole)}) {event.action}</p>
                   {event.detail ? <p className="mt-0.5 text-sm text-ink-soft">{event.detail}</p> : null}
-                  <p className="mt-0.5 text-xs text-ink-soft"><time dateTime={event.createdAt.toISOString()}>{formatDateTime(event.createdAt)}</time></p>
+                  <p className="mt-0.5 text-sm text-ink-soft"><time dateTime={event.createdAt.toISOString()}>{formatDateTime(event.createdAt)}</time></p>
                 </li>
               ))}
             </ol>

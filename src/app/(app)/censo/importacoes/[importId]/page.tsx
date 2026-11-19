@@ -20,7 +20,7 @@ const DECISION_LABEL = { link: "Vínculo escolhido na revisão", create: "Cadast
 
 function Warnings({ item }: { item: PlanItem }) {
   if (!item.warnings.length) return null;
-  return <ul className="mt-2 grid gap-1">{item.warnings.map((warning) => <li key={warning} className="flex gap-1.5 text-xs leading-relaxed text-amber"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {warning}</li>)}</ul>;
+  return <ul className="mt-2 grid gap-1">{item.warnings.map((warning) => <li key={warning} className="flex gap-1.5 text-sm leading-relaxed text-amber"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {warning}</li>)}</ul>;
 }
 
 function Undo({ importId, personKey }: { importId: string; personKey: string }) {
@@ -67,7 +67,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
             {review.map((item) => (
               <Card key={item.key}>
                 <h3 className="text-sm font-medium text-ink">{item.censusName}</h3>
-                <p className="mt-1 text-xs text-ink-soft">{item.create?.birthDate ? `Nascimento ${isoToBr(item.create.birthDate)}` : "Sem data de nascimento válida no arquivo"}{item.create?.inepId ? ` · ID INEP ${item.create.inepId}` : ""}</p>
+                <p className="mt-1 text-sm text-ink-soft">{item.create?.birthDate ? `Nascimento ${isoToBr(item.create.birthDate)}` : "Sem data de nascimento válida no arquivo"}{item.create?.inepId ? ` · ID INEP ${item.create.inepId}` : ""}</p>
                 <Warnings item={item} />
                 <div className="mt-4"><CensusDecisionForm action={decideCensusPerson.bind(null, importId, item.key)} personKey={item.key} candidates={item.candidates ?? []} canCreate={Boolean(item.create?.birthDate)} /></div>
               </Card>
@@ -83,7 +83,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
               {by("create").map((item) => (
                 <li key={item.key} className="min-w-0 rounded-2xl border border-line bg-paper-raised p-4">
                   <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium text-ink">{item.create?.name}</span>{item.person.hasAee ? <Badge tone="info">AEE</Badge> : null}{item.decision ? <Badge>{DECISION_LABEL[item.decision]}</Badge> : null}</div>
-                  <p className="mt-1 text-xs text-ink-soft">Nascimento {item.create?.birthDate ? isoToBr(item.create.birthDate) : "sem data"} · {STAGES[item.create?.stage ?? ""] ?? "Etapa a informar"} · turma {item.create?.className}{STAGE_GROUPS[item.person.stageGroup] ? ` (${STAGE_GROUPS[item.person.stageGroup]})` : ""}</p>
+                  <p className="mt-1 text-sm text-ink-soft">Nascimento {item.create?.birthDate ? isoToBr(item.create.birthDate) : "sem data"} · {STAGES[item.create?.stage ?? ""] ?? "Etapa a informar"} · turma {item.create?.className}{STAGE_GROUPS[item.person.stageGroup] ? ` (${STAGE_GROUPS[item.person.stageGroup]})` : ""}</p>
                   <Warnings item={item} />
                   {item.decision ? <div className="mt-2"><Undo importId={importId} personKey={item.key} /></div> : null}
                 </li>
@@ -163,7 +163,7 @@ export default async function CensusImportPage({ params }: { params: Promise<{ i
           />
           <CensusApplyForm action={applyCensusImport.bind(null, importId)} blocked={plan.totals.review ? `Resolva ${plan.totals.review === 1 ? "a revisão" : `as ${plan.totals.review} revisões`} acima para aplicar.` : null} />
           <ActionForm action={discardCensusImport.bind(null, importId)} className="mt-3"><button type="submit" className={BUTTON_CLS.quiet}>Descartar a prévia</button></ActionForm>
-          {decided.length ? <p className="mt-3 text-xs text-ink-soft">{decided.length === 1 ? "1 decisão de revisão registrada" : `${decided.length} decisões de revisão registradas`}.</p> : null}
+          {decided.length ? <p className="mt-3 text-sm text-ink-soft">{decided.length === 1 ? "1 decisão de revisão registrada" : `${decided.length} decisões de revisão registradas`}.</p> : null}
         </Card>
       </div>
     </>

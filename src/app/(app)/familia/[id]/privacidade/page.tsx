@@ -86,10 +86,10 @@ function AccessList({ logs }: { logs: { id: string; actor: string; role: string;
       {logs.map((log) => (
         <li key={log.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2">
           <span className="min-w-0">
-            <span className="font-medium text-ink">{log.actor}</span> <span className="text-xs text-ink-soft">({roleLabel(log.role)})</span>
-            <span className="block text-xs text-ink-soft">{log.action}{log.detail ? ` · ${log.detail}` : ""}</span>
+            <span className="font-medium text-ink">{log.actor}</span> <span className="text-sm text-ink-soft">({roleLabel(log.role)})</span>
+            <span className="block text-sm text-ink-soft">{log.action}{log.detail ? ` · ${log.detail}` : ""}</span>
           </span>
-          <span className="shrink-0 text-xs tabular-nums text-ink-soft">{formatDate(log.createdAt)}</span>
+          <span className="shrink-0 text-sm tabular-nums text-ink-soft">{formatDate(log.createdAt)}</span>
         </li>
       ))}
     </ul>

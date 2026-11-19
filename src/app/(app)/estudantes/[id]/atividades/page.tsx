@@ -71,7 +71,7 @@ function ActivityCardView({ activity, studentId, imagesOn }: { activity: Activit
             unoptimized
             className={`h-auto w-full rounded-xl border border-line bg-white ${imageWidthOf(activity.image.kind) > 1024 ? "max-w-2xl" : "max-w-md"}`}
           />
-          <figcaption className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+          <figcaption className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
             Imagem gerada por IA (OpenAI). Confira antes de usar com o estudante.
             {imagesOn && activity.status !== "rejeitada" ? (
               <ActionForm action={removeImage} className="print:hidden">
@@ -231,7 +231,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
               <li key={task.id}>
                 <Link href={`/estudantes/${id}/atividades/adaptadas/${task.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-2.5 text-sm hover:bg-brand-soft">
                   <span className="min-w-0 font-medium text-ink">{task.kind === "prova" ? "Prova" : "Atividade"}: {task.title}</span>
-                  <span className="text-xs text-ink-soft">{labelOf(ADAPTED_TASK_STATUS, task.status)} · {formatDate(task.createdAt)}</span>
+                  <span className="text-sm text-ink-soft">{labelOf(ADAPTED_TASK_STATUS, task.status)} · {formatDate(task.createdAt)}</span>
                 </Link>
               </li>
             ))}
@@ -267,7 +267,7 @@ export default async function ActivitiesPage({ params }: { params: Promise<{ id:
                 <input type="checkbox" name={GENERATE_IMAGES_FIELD} className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
                 <span>
                   <span className="flex items-center gap-1.5 font-medium text-ink"><ImagePlus size={15} aria-hidden /> Criar também uma sequência visual dos passos para cada atividade</span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">Pictogramas pela OpenAI, sem dado pessoal. Cerca de 1 minuto a mais.</span>
+                  <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Pictogramas pela OpenAI, sem dado pessoal. Cerca de 1 minuto a mais.</span>
                 </span>
               </label>
             ) : null}

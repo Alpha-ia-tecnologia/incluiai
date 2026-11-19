@@ -118,7 +118,7 @@ function ImportSteps({ schools, fixedSchool, onRestart }: { schools: { id: strin
         <button type="submit" disabled={pending} className={BUTTON_CLS.primary}>
           <FileSpreadsheet size={16} aria-hidden /> {pending ? "Conferindo…" : "Conferir a planilha"}
         </button>
-        <a href="/estudantes/importar/modelo" download className={`text-sm ${linkCls}`}>Baixar o modelo (.csv)</a>
+        <a href="/estudantes/importar/modelo" download className={`inline-flex min-h-11 items-center text-sm ${linkCls}`}>Baixar o modelo (.csv)</a>
       </div>
     </form>
   );

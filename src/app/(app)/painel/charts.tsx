@@ -56,7 +56,7 @@ export function CoverageList({ rows, total }: { rows: ReadonlyArray<{ key: strin
     <ul className="grid gap-3.5">
       {rows.map((row) => (
         <li key={row.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1.5">
-          <span className="min-w-0 text-sm text-ink">{row.label}{row.hint ? <span className="text-xs text-ink-soft"> · {row.hint}</span> : null}</span>
+          <span className="min-w-0 text-sm text-ink">{row.label}{row.hint ? <span className="text-sm text-ink-soft"> · {row.hint}</span> : null}</span>
           <span className="whitespace-nowrap text-sm tabular-nums text-ink-soft"><strong className="font-semibold text-ink">{row.done}</strong> de {total}</span>
           <Meter value={row.done} max={total} thick className="col-span-2" />
         </li>

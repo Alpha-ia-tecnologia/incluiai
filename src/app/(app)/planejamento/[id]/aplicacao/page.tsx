@@ -95,16 +95,16 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ i
             <DataCard title="Critérios nas evidências registradas" hint="Todas as aplicações desta atividade. Não é nota.">
               <StackedBar segments={observedSegments} empty="Nenhum critério observado ainda." />
               <div className="mt-4 rounded-2xl bg-surface-muted/70 px-3.5 py-3">
-                <p className="text-xs font-medium text-ink">Fora da análise</p>
+                <p className="text-sm font-medium text-ink">Fora da análise</p>
                 <ul className="mt-2 flex min-w-0 flex-wrap gap-1.5">
                   {outsideRows.map((row) => (
-                    <li key={row.key} className="inline-flex max-w-full items-center gap-1.5 rounded-2xl border border-dashed border-line bg-paper-raised px-3 py-1.5 text-xs text-ink">
+                    <li key={row.key} className="inline-flex max-w-full items-center gap-1.5 rounded-2xl border border-dashed border-line bg-paper-raised px-3 py-1.5 text-sm text-ink">
                       <span className="min-w-0">{row.label}</span>
                       <span className="tabular-nums font-medium">{row.value}</span>
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 text-xs leading-relaxed text-ink-soft">Não são progresso nem “ainda não demonstrou”.</p>
+                <p className="mt-2 text-sm leading-relaxed text-ink-soft">Não são progresso nem “ainda não demonstrou”.</p>
               </div>
             </DataCard>
           </DataBoard>

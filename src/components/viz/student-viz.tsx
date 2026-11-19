@@ -21,7 +21,7 @@ export function SupportMeter({ level, showName = true }: { level: number; showNa
   return (
     <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1">
       <SupportCells level={level} className="flex w-14 shrink-0 gap-0.5" />
-      <span className="min-w-0 text-xs text-ink">
+      <span className="min-w-0 text-sm text-ink">
         <span className="font-medium">{info.code}</span>
         <span className={showName ? "text-ink-soft" : "sr-only"}> · {info.label}</span>
       </span>

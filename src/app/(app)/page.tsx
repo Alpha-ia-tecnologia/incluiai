@@ -74,7 +74,7 @@ export default async function SchoolDashboard() {
           {upcomingDates.length ? <ul className="space-y-2">{upcomingDates.map((event) => (
             <li key={event.key}><Link href={`/calendario?mes=${monthKey(event.start.year, event.start.month)}#evento-${event.key}`} className="flex items-center gap-3 rounded-2xl bg-paper-raised p-3 transition-colors hover:bg-brand-soft">
               <span className={`flex w-11 shrink-0 flex-col items-center rounded-xl py-1.5 ${CALENDAR_THEMES[event.entry.theme].chip}`}><span className="text-base font-medium leading-none">{event.start.day}</span><span className="text-xs">{MONTH_SHORT[event.start.month - 1]}</span></span>
-              <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-xs text-ink-soft">{relativeLabel(event, today)}</span></span>
+              <span className="min-w-0"><span className="block text-sm font-medium leading-snug">{event.entry.title}</span><span className="mt-0.5 block text-sm text-ink-soft">{relativeLabel(event, today)}</span></span>
             </Link></li>
           ))}</ul> : <p className="rounded-2xl bg-paper-raised p-4 text-sm leading-relaxed text-ink-soft">Nenhuma data comemorativa nas próximas semanas.</p>}
           <Link href="/calendario" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-strong"><CalendarDays size={16} aria-hidden /> Ver calendário inclusivo</Link>

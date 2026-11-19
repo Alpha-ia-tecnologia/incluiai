@@ -89,7 +89,7 @@ export function ChoiceField({
           />
         </>
       ) : null}
-      {hint ? <p id={`${id}-hint`} className="mt-1.5 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+      {hint ? <p id={`${id}-hint`} className="mt-1.5 text-sm leading-relaxed text-ink-soft">{hint}</p> : null}
       {error ? <FieldError id={errorIdOf(id)}>{error}</FieldError> : null}
       <input type="hidden" name={name} value={value} />
     </div>
@@ -154,7 +154,7 @@ export function MultiChoiceField({
   return (
     <fieldset className="relative min-w-0" aria-describedby={hint ? `${id}-hint` : undefined}>
       <legend className={labelCls}>{label}</legend>
-      {hint ? <p id={`${id}-hint`} className="-mt-1 mb-2 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+      {hint ? <p id={`${id}-hint`} className="-mt-1 mb-2 text-sm leading-relaxed text-ink-soft">{hint}</p> : null}
       <div className="flex flex-wrap gap-2">
         {items.map((item) => {
           const active = selected.includes(item.value);

@@ -50,7 +50,7 @@ export function AeeSessionForm({ studentId, today }: { studentId: string; today:
                 <input type="radio" name="status" value={option} checked={status === option} onChange={() => setStatus(option)} className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
                 <span className="min-w-0">
                   {AEE_SESSION_STATUS[option].label}
-                  <span className="block text-xs text-ink-soft">{AEE_SESSION_STATUS[option].hint}</span>
+                  <span className="block text-sm text-ink-soft">{AEE_SESSION_STATUS[option].hint}</span>
                 </span>
               </label>
             ))}

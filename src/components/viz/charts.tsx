@@ -204,7 +204,7 @@ export function ShareRing({ id, part, whole, label, caption, color = SIGNAL.bran
       <RingStat id={id} value={pct} label={label} size={size} color={color}>
         <span aria-hidden className="text-xs font-medium tabular-nums text-ink">{pct === null ? "—" : `${pct}%`}</span>
       </RingStat>
-      <p className="min-w-0 text-xs leading-relaxed text-ink-soft">{pct === null ? "Sem base para calcular o percentual." : caption}</p>
+      <p className="min-w-0 text-sm leading-relaxed text-ink-soft">{pct === null ? "Sem base para calcular o percentual." : caption}</p>
     </div>
   );
 }
@@ -321,7 +321,7 @@ export function StackedColumns({ rows, series, label, empty = "Sem registros no 
 
 // Com non-scaling-stroke, o viz-draw (tracejado) cortava a linha no meio.
 export function Sparkline({ values, label, domain, invert = false, color = SIGNAL.ink, height = 36 }: { values: ReadonlyArray<number>; label: string; domain?: [number, number]; invert?: boolean; color?: string; height?: number }) {
-  if (values.length < 2) return <p className="text-xs text-ink-soft">Poucos registros para a linha.</p>;
+  if (values.length < 2) return <p className="text-sm text-ink-soft">Poucos registros para a linha.</p>;
   const [min, max] = domain ?? [Math.min(...values), Math.max(...values)];
   const span = max - min || 1;
   const x = (index: number) => (index / (values.length - 1)) * 100;

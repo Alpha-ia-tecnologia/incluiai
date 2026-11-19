@@ -124,13 +124,13 @@ export default async function SchoolDossierPage({ searchParams }: { searchParams
                 return (
                   <li key={student.id} className="min-w-0 rounded-2xl border border-line bg-paper-raised p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <Link href={`/estudantes/${student.id}/dossie`} className="min-w-0 break-words text-sm font-medium text-brand-strong underline underline-offset-4">{student.name}</Link>
+                      <Link href={`/estudantes/${student.id}/dossie`} className="-my-2.5 inline-flex min-h-11 min-w-0 items-center break-words text-sm font-medium text-brand-strong underline underline-offset-4">{student.name}</Link>
                       <span className="flex flex-wrap gap-2">
                         {student.summary.pendente ? <Badge tone="alert">{student.summary.pendente} {student.summary.pendente === 1 ? "pendente" : "pendentes"}</Badge> : <EvidenceBadge status="ok" />}
                         {student.summary.conferir ? <Badge tone="mid">{student.summary.conferir} para conferir</Badge> : null}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-ink-soft">{student.className}{students.some((other) => other.schoolId !== student.schoolId) ? ` · ${student.school}` : ""}</p>
+                    <p className="mt-1 text-sm text-ink-soft">{student.className}{students.some((other) => other.schoolId !== student.schoolId) ? ` · ${student.school}` : ""}</p>
                     {missing.length ? <p className="mt-2 text-sm text-ink"><span className="font-medium">Falta:</span> {missing.map((item) => item.short).join(", ")}.</p> : null}
                   </li>
                 );

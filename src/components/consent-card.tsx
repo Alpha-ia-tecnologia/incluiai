@@ -104,8 +104,8 @@ export function ConsentCard({ studentId, firstName, consent, canDecide }: {
           );
         })}
       </ul>
-      {consent.updatedAt ? <p className="mt-3 text-xs text-ink-soft">Última decisão em {formatDate(consent.updatedAt)}{consent.updatedBy ? ` por ${consent.updatedBy}` : ""}.</p> : null}
-      <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-ink-soft">
+      {consent.updatedAt ? <p className="mt-3 text-sm text-ink-soft">Última decisão em {formatDate(consent.updatedAt)}{consent.updatedBy ? ` por ${consent.updatedBy}` : ""}.</p> : null}
+      <p className="mt-3 flex items-start gap-2 text-sm leading-relaxed text-ink-soft">
         <Languages size={14} aria-hidden className="mt-0.5 shrink-0 text-brand-strong" />
         <span><span className="font-medium text-ink">Libras (VLibras):</span> o texto escolhido vai ao tradutor do governo federal sem nomes, documentos, datas nem contatos.</span>
       </p>

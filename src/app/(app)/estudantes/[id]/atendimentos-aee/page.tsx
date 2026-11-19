@@ -62,7 +62,7 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
               <HowToRead className="mt-2">Cada coluna separa o mês por situação. O número acima da coluna é o total do mês.</HowToRead>
             </DataCard>
           </DataBoard>
-          <p className="mt-2 text-xs text-ink-soft">Contagem dos registros listados abaixo.</p>
+          <p className="mt-2 text-sm text-ink-soft">Contagem dos registros listados abaixo.</p>
         </section>
 
         {canRecord ? (
@@ -88,7 +88,7 @@ export default async function AeeSessionsPage({ params }: { params: Promise<{ id
                       </div>
                       {session.reason ? <p className="mt-2 break-words text-sm text-ink"><span className="font-medium">Motivo: </span>{session.reason}</p> : null}
                       {session.note ? <p className="mt-2 whitespace-pre-line break-words text-sm text-ink-soft"><span className="font-medium text-ink">Observação: </span>{session.note}</p> : null}
-                      <p className="mt-2 text-xs text-ink-soft">Registrado por {session.authorName}</p>
+                      <p className="mt-2 text-sm text-ink-soft">Registrado por {session.authorName}</p>
                     </Card>
                   </li>
                 );

@@ -151,8 +151,8 @@ export const STUDENT_FIELDS: ChatField<Registration>[] = [
     },
   },
   { key: "shift", section: STUDENT, label: "Turno", question: "Em qual turno estuda?", input: "choice", options: Object.entries(SHIFTS).map(([value, label]) => ({ value, label })), other: { placeholder: "Ex.: Noite" }, required: true },
-  { key: "guardianName", section: GUARDIAN, label: "Responsável", question: "Quem é o responsável pelo estudante?", input: "text", placeholder: "Nome completo do responsável", required: true },
-  { key: "guardianPhone", section: GUARDIAN, label: "Telefone", question: "Qual é o telefone do responsável?", input: "tel", placeholder: "(00) 00000-0000", skip: LATER },
+  { key: "guardianName", section: GUARDIAN, label: "Responsável", question: "Quem é o responsável pelo estudante?", hint: "Nome completo.", input: "text", placeholder: "Nome completo do responsável", required: true },
+  { key: "guardianPhone", section: GUARDIAN, label: "Telefone", question: "Qual é o telefone do responsável?", hint: "Com DDD.", input: "tel", placeholder: "(00) 00000-0000", skip: LATER },
   { key: "aeeFrequency", section: GUARDIAN, label: "Frequência do atendimento", question: "Com qual frequência é atendido?", hint: "Atendimento Educacional Especializado.", input: "choice", options: asOptions(AEE_FREQUENCY_OPTIONS), other: { placeholder: "Ex.: 2 vezes por semana, à tarde" }, skip: LATER },
   { key: "supportProfessional", section: GUARDIAN, label: "Profissional de apoio", question: "O estudante conta com profissional de apoio?", input: "choice", options: YES_NO, checkbox: true, required: true },
   {

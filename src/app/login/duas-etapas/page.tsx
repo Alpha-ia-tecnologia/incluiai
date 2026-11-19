@@ -40,7 +40,7 @@ export default async function SecondStepPage() {
           <div className="grid gap-6">
             <CodeForm action={verifySecondStep} label="Código do aplicativo (6 números)" button="Entrar" pendingLabel="Conferindo…" />
             <details className="rounded-2xl bg-surface-muted p-4">
-              <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Estou sem o celular</summary>
+              <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Estou sem o celular</summary>
               <div className="mt-4">
                 <CodeForm
                   action={verifySecondStep}
@@ -51,7 +51,7 @@ export default async function SecondStepPage() {
                   button="Entrar com o código de recuperação"
                   pendingLabel="Conferindo…"
                 />
-                <p className="mt-4 text-xs leading-relaxed text-ink-soft">Sem o celular e sem os códigos? Peça à coordenação ou à Secretaria para desligar as duas etapas da sua conta.</p>
+                <p className="mt-4 text-sm leading-relaxed text-ink-soft">Sem o celular e sem os códigos? Peça à coordenação ou à Secretaria para desligar as duas etapas da sua conta.</p>
               </div>
             </details>
           </div>

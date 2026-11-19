@@ -22,12 +22,12 @@ export function EvidenceList({ groups, studentId, tabs }: { groups: EvidenceGrou
               <li key={item.id} className="min-w-0 rounded-2xl border border-line bg-paper p-4 print:break-inside-avoid">
                 <div className="flex flex-wrap items-center gap-2">
                   <EvidenceBadge status={item.status} />
-                  <span className="text-xs text-ink-soft">{item.norm}</span>
+                  <span className="text-sm text-ink-soft">{item.norm}</span>
                 </div>
                 <h4 className="mt-2 text-sm font-medium text-ink">{item.label}</h4>
                 <p className="mt-1 text-sm leading-relaxed text-ink-soft">{item.detail}</p>
                 {tabs?.has(item.tab) && item.status !== "info" ? (
-                  <p className="mt-2 text-sm print:hidden"><Link href={`/estudantes/${studentId}${item.tab ? `/${item.tab}` : ""}`} className={linkCls}>Ver o registro<span className="sr-only">: {item.label}</span></Link></p>
+                  <p className="-mb-3 mt-1 text-sm print:hidden"><Link href={`/estudantes/${studentId}${item.tab ? `/${item.tab}` : ""}`} className={`${linkCls} inline-flex min-h-11 items-center`}>Ver o registro<span className="sr-only">: {item.label}</span></Link></p>
                 ) : null}
               </li>
             ))}

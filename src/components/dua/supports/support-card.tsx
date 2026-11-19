@@ -31,7 +31,7 @@ export function SupportCard({ support, options, suggestions, aiOn, today }: Prop
                 {support.data.origin ? <OriginBadge origin={support.data.origin} /> : null}
               </div>
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+            <p className="mt-1 text-sm leading-relaxed text-ink-soft">
               Responsável: {support.responsibleName} · atualizado em {formatDate(support.updatedAt)}
               {support.state === "validado" && support.validatedByName && support.validatedAt ? ` · validado por ${support.validatedByName} em ${formatDate(support.validatedAt)}` : ""}
             </p>

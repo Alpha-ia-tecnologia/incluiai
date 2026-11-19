@@ -117,9 +117,9 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                 <div className="mb-5 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                   <div className="min-w-0">
                     <h2 id="etapas-resumo" className="text-base font-medium tracking-tight text-ink">Em que etapa estão</h2>
-                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">Pelo próximo passo sugerido de cada estudante desta lista.</p>
+                    <p className="mt-1 text-sm leading-relaxed text-ink-soft">Pelo próximo passo sugerido de cada estudante desta lista.</p>
                   </div>
-                  <p className="text-xs text-ink-soft"><span className="font-display font-bold text-2xl leading-none text-ink tabular-nums">{inRoutine}</span> de {rows.length} na rotina de registros</p>
+                  <p className="text-sm text-ink-soft"><span className="font-display font-bold text-2xl leading-none text-ink tabular-nums">{inRoutine}</span> de {rows.length} na rotina de registros</p>
                 </div>
                 <ol className="grid grid-cols-5 gap-1">
                   {byStep.map((step, index) => (

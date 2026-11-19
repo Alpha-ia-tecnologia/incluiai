@@ -245,11 +245,15 @@ Uma paleta fria e contida: marinho e azul estruturam tudo, o azul-claro marca a�
 - **Headline** (700, 40 px, 1,12): título de página (h1) no computador; 24 a 32 px no celular, onde palavras longas como "Acompanhamento" não cabem a 40 px.
 - **Title** (500, 20 px): títulos de seção; 24 px para título de aba e número em anel, 32 px para número de cartão.
 - **Body Reading** (400, 16 px, 1,5): leitura corrida, títulos de cartão, menu lateral; até ~65ch.
-- **Body** (400, 14 px, 1,5): texto de interface, campos, botões (500).
-- **Label** (500, 12 px): selos, legendas de gráfico. Nada abaixo de 12 px.
+- **Body** (400, 14 px, 1,5): texto de interface, campos, botões (500), rótulos e dicas de campo, metadados (autor · data), frases sob gráficos.
+- **Label** (500, 12 px): só selos e texto de gráfico (eixos, legendas, centro de anel, rótulos e datas dos Degraus de apoio), mais o rótulo sob o ícone na barra do celular. Nada abaixo de 12 px.
 
 ### Named Rules
-**The Escala Única Rule.** Só os oito degraus 12, 14, 16, 20, 24, 32, 40, 56. Sem `text-lg` (18) e sem tamanhos arbitrários. Números sempre com algarismos tabulares.
+**The Escala Única Rule.** Só os oito degraus 12, 14, 16, 20, 24, 32, 40, 56. Sem `text-lg` (18) e sem tamanhos arbitrários; as únicas exceções são a letra ampliada da atividade adaptada e o "A" maior do controle de tamanho do texto, onde o tamanho é o conteúdo. Números sempre com algarismos tabulares.
+
+**The Doze É Selo Rule.** 12 px é de selo e de gráfico. Frase, dica, rótulo, metadado e título pequeno ficam em 14 px, também em `ink-soft`; a hierarquia vem do peso e da cor. Sem rótulo em caixa alta e sem rótulo pequeno acima de título (o tipo de um item vira selo).
+
+**The Quebra Calma Rule.** Títulos com `text-wrap: balance`, parágrafos e itens de lista com `text-wrap: pretty` (regra global): nenhuma última palavra sozinha, nenhum título com uma linha longa e outra curta.
 
 **The Texto Que Cresce Rule.** Todo tamanho em rem: o controle de tamanho do texto e a impressão escalam a interface inteira; com o texto ampliado, palavra longa quebra em vez de empurrar a tela para o lado.
 
@@ -300,7 +304,8 @@ Pílulas firmes e calmas, sempre com 44 px de altura mínima (`BUTTON_CLS` em `s
 - **Internal Padding:** 22 px (20 px no Painel, 16 a 18 px no celular). Entram subindo 8 px em 260 ms, sem opacidade.
 
 ### Inputs / Fields
-- **Style:** fundo Papel, borda 1 px `line`, canto 12 px, 44 px de altura, texto 14 px; rótulo 14 px peso 500 acima, dica 12 px em `ink-soft`, ligados por `Field`.
+- **Style:** fundo Papel, borda 1 px `line`, canto 12 px, 44 px de altura, texto 14 px; rótulo 14 px peso 500 acima, dica 14 px em `ink-soft`, ligados por `Field`.
+- **Placeholder:** `ink-soft` (5,7:1), por regra global; só exemplo ("Ex.: …") ou o rótulo repetido. Formato e regra ficam no rótulo ou na dica, que não somem ao digitar.
 - **Focus:** borda azul mais o Halo de Foco (160 ms).
 - **Select:** o `<select>` nativo, com a seta azul da plataforma (`--select-arrow`). **Escolhas** (rádio e caixa): linhas de 48 px que ficam azul-brisa com borda azul quando marcadas.
 - **Error / Disabled:** o resultado da ação aparece em `FormResult` (alerta com os problemas); desabilitado a 60%.
@@ -334,14 +339,14 @@ A assinatura do produto e a direção assumida que está sendo implementada nest
 - **Do** usar os Degraus de apoio onde houver nível de apoio por aula: cabeçalho da ficha, cartão depois de salvar, Evolução, portal da família, Painel.
 - **Do** manter um bloco marinho por tela, além do menu, com ação em azul-céu dentro dele.
 - **Do** usar o azul da marca para quantidade sem juízo nos gráficos e os sinais (lima, amarelo, laranja) só para estado, sempre com o valor também em texto.
-- **Do** garantir 44 px nos alvos de toque, contraste de 4.5:1 no texto (3:1 em gráficos), foco visível e nenhuma rolagem lateral a 320 px.
+- **Do** garantir 44 px nos alvos de toque (botões, links soltos ou em lista, chips que agem, abas, `summary`, botões de ícone; link dentro de frase fica de fora), contraste de 4.5:1 no texto e no placeholder (3:1 em gráficos), foco visível e nenhuma rolagem lateral a 320 px.
 - **Do** dizer uma vez: rótulo no lugar de frase, seção vazia some, explicação de leitura atrás de "Como ler".
 - **Do** usar personagens só nas boas-vindas, nos estados vazios e nos momentos de conclusão, sempre decorativos (`aria-hidden`).
 
 ### Don't:
 - **Don't** pintar nível de apoio de âmbar, laranja ou coral: precisar de apoio físico não é alerta.
 - **Don't** chamar de "Pede atenção" a falta de avanço por algumas aulas; isso é Estável, com uma dica pedagógica.
-- **Don't** criar hex novo, fonte nova, `text-lg` ou tamanho arbitrário, nem texto abaixo de 12 px.
+- **Don't** criar hex novo, fonte nova, `text-lg` ou tamanho arbitrário, nem texto abaixo de 12 px; nem pôr frase, dica ou metadado em 12 px.
 - **Don't** pôr `ink`, `ink-soft` ou `brand` sobre o marinho, nem empilhar dois blocos marinhos.
 - **Don't** usar azul-céu, amarelo ou lima como cor de texto sobre branco.
 - **Don't** pôr rótulo pequeno acima de título nem introdução que repete o título.

@@ -19,7 +19,7 @@ export function Timeline({ items, label }: { items: ReadonlyArray<TimelineItem>;
           <span aria-hidden className={`relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full ${item.markerClassName ?? "bg-surface-muted text-ink-soft"}`}>{item.marker}</span>
           <div className="min-w-0 flex-1 pt-0.5">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              <p className="text-xs tabular-nums text-ink-soft">{item.date}</p>
+              <p className="text-sm tabular-nums text-ink-soft">{item.date}</p>
               {item.badge}
             </div>
             <div className="mt-0.5 break-words text-sm font-medium leading-snug text-ink">{item.title}</div>

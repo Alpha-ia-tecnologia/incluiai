@@ -228,7 +228,7 @@ function SaveIndicator({ status, readOnly, onKeepMine, onUseTheirs, onRetry }: {
   }
   const text = status.kind === "salvando" ? "Salvando…" : status.kind === "alterado" ? "Alterações ainda não salvas" : "Tudo salvo";
   return (
-    <p role="status" aria-live="polite" className="mb-4 inline-flex items-center gap-2 text-xs text-ink-soft">
+    <p role="status" aria-live="polite" className="mb-4 inline-flex items-center gap-2 text-sm text-ink-soft">
       {status.kind === "salvo" ? <Sprout size={16} aria-hidden className="sprout-mark text-green" /> : <CloudUpload size={14} aria-hidden />} {text}
     </p>
   );

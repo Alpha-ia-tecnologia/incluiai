@@ -110,8 +110,8 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
                     <input type="checkbox" name="profileFields" value={option.field} defaultChecked={Boolean(previous)} className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]" />
                     <span className="min-w-0 break-words">
                       <span className="font-medium">{option.label}:</span> {option.value}
-                      <span className="mt-0.5 block text-xs text-ink-soft">{option.source} · {option.dateLabel}</span>
-                      {previous && previous.version !== option.version ? <span className="mt-0.5 block text-xs text-amber">O perfil mudou depois da escolha. Ao salvar, vale a versão atual.</span> : null}
+                      <span className="mt-0.5 block text-sm text-ink-soft">{option.source} · {option.dateLabel}</span>
+                      {previous && previous.version !== option.version ? <span className="mt-0.5 block text-sm text-amber">O perfil mudou depois da escolha. Ao salvar, vale a versão atual.</span> : null}
                     </span>
                   </label>
                 </li>
@@ -121,7 +121,7 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
         ) : (
           <p className="text-sm text-ink-soft">Ainda não há itens de Como aprende nem do estudo de caso de {student.name}. O apoio pode ser planejado assim mesmo.</p>
         )}
-        {goneRefs.length ? <p className="mt-2 text-xs text-ink-soft">Não estão mais no perfil e saem ao salvar: {goneRefs.map((ref) => ref.label).join(", ")}.</p> : null}
+        {goneRefs.length ? <p className="mt-2 text-sm text-ink-soft">Não estão mais no perfil e saem ao salvar: {goneRefs.map((ref) => ref.label).join(", ")}.</p> : null}
       </fieldset>
 
       <fieldset className="min-w-0">
@@ -143,7 +143,7 @@ function SupportFields({ planningId, student, profileOptions, objectives, existi
         ) : (
           <p className="text-sm text-ink-soft">{student.name} não tem objetivos no Plano de ensino ativo. O apoio pode ser planejado sem esse vínculo.</p>
         )}
-        {goneLinks.length ? <p className="mt-2 text-xs text-ink-soft">Objetivos que não estão mais no plano ativo saem ao salvar: {goneLinks.map((link) => link.description).join("; ")}.</p> : null}
+        {goneLinks.length ? <p className="mt-2 text-sm text-ink-soft">Objetivos que não estão mais no plano ativo saem ao salvar: {goneLinks.map((link) => link.description).join("; ")}.</p> : null}
       </fieldset>
 
       <div className="grid min-w-0 gap-4 rounded-xl bg-surface-muted/60 p-3 sm:p-4">

@@ -32,7 +32,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
         {brand ? (
           <Link href={home} aria-label={`${brand.name} — início`} className="mb-8 flex items-center gap-3 px-2.5 text-on-navy">
             {brand.logoUrl ? <Image src={brand.logoUrl} alt="" width={44} height={44} unoptimized className="size-11 shrink-0 rounded-xl bg-white object-contain p-1" /> : <Sprout size={32} className="shrink-0 text-accent-sky" aria-hidden />}
-            <span className="min-w-0"><span className="block text-lg font-semibold leading-tight tracking-tight">{brand.name}</span><span className="block text-sm text-on-navy-soft">IncluiEdu</span></span>
+            <span className="min-w-0"><span className="block text-xl font-semibold leading-tight tracking-tight">{brand.name}</span><span className="block text-sm text-on-navy-soft">IncluiEdu</span></span>
           </Link>
         ) : (
           <Link href={home} aria-label="IncluiEdu — início" className="mb-8 flex items-center gap-3 px-2.5 text-on-navy">
@@ -58,7 +58,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
       </aside>
       <div className="app-content">
         <header className="shell-header mb-7 flex min-h-12 items-center justify-between gap-2">
-          <Link href={home} className={`flex items-center gap-2${brand ? " min-w-0" : ""}`}>
+          <Link href={home} className={`flex min-h-11 items-center gap-2${brand ? " min-w-0" : ""}`}>
             {brand?.logoUrl ? <Image src={brand.logoUrl} alt="" width={28} height={28} unoptimized className="size-8 shrink-0 rounded-lg bg-white object-contain p-0.5 lg:hidden" /> : <Sprout size={22} className="text-brand lg:hidden" aria-hidden />}
             <span className={`shell-brand-name font-semibold lg:hidden${brand ? " truncate" : ""}`}>{brand ? brand.name : "IncluiEdu"}</span>
             <span className="hidden text-sm text-ink-soft lg:inline">Cada pessoa, uma possibilidade.</span>
@@ -73,7 +73,7 @@ export function Shell({ user, notices = { unread: 0, latest: null }, brand = nul
                 <span className="shell-user-name max-w-24 truncate">{firstName(user.name)}</span><ChevronDown size={14} aria-hidden />
               </summary>
               <div className="absolute right-0 top-full mt-2 w-60 rounded-2xl border border-line bg-paper-raised p-4 shadow-e2">
-                <p className="text-sm font-medium">{user.name}</p><p className="mt-1 text-xs text-ink-soft">{roleLabel(user.role)}</p>
+                <p className="text-sm font-medium">{user.name}</p><p className="mt-1 text-sm text-ink-soft">{roleLabel(user.role)}</p>
                 <Link href="/ajuda" className="mt-3 flex min-h-11 items-center gap-2 rounded-lg p-2 text-sm hover:bg-brand-soft"><CircleHelp size={18} aria-hidden /> Ajuda e primeiros passos</Link>
                 <Link href="/conta/seguranca" className="flex min-h-11 items-center gap-2 rounded-lg p-2 text-sm hover:bg-brand-soft"><ShieldCheck size={18} aria-hidden /> Segurança da conta</Link>
                 <div className="mt-2 border-t border-line px-2 pt-3"><TextSizeControl /></div>

@@ -122,7 +122,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
                   </span>
                 </div>
                 <SupportSteps data={data} size="full" name={objective.action} />
-                <p className="mt-3 text-xs text-ink-soft">{trendMessage(data.trend, data.total)}</p>
+                <p className="mt-3 text-sm text-ink-soft">{trendMessage(data.trend, data.total)}</p>
               </section>
             ))}
           </DataBoard>
@@ -137,7 +137,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
             <DataCard title="Eventos por mês" hint={`${lastYear ? plural(lastYear, "evento", "eventos") : "Nenhum evento"} nos últimos 12 meses · ${entries.length} no total.`}>
               {lastYear ? <ColumnChart rows={months} label="Eventos por mês, nos últimos 12 meses" /> : null}
               <div className={lastYear ? "mt-4" : ""}>
-                <h4 className="mb-2 text-xs font-medium text-ink-soft">Por tipo, em todo o histórico</h4>
+                <h4 className="mb-2 text-sm font-medium text-ink-soft">Por tipo, em todo o histórico</h4>
                 <CountChips items={typeCounts} tone="neutral" unit="" />
               </div>
             </DataCard>
@@ -147,7 +147,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
               <section key={group.key} aria-labelledby={`mes-${group.key}`}>
                 <h2 id={`mes-${group.key}`} className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="rounded-full bg-surface-muted px-3 py-1 text-sm font-medium text-ink">{group.label}</span>
-                  <span className="text-xs text-ink-soft">{plural(group.entries.length, "evento", "eventos")}</span>
+                  <span className="text-sm text-ink-soft">{plural(group.entries.length, "evento", "eventos")}</span>
                 </h2>
                 <ol className="relative ml-3 space-y-6 border-l-2 border-line pl-8">
                   {group.entries.map((e) => {
@@ -158,7 +158,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
                           <Icon size={14} aria-hidden />
                         </span>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs font-medium text-ink-soft">{formatDate(e.date)}</span>
+                          <span className="text-sm font-medium text-ink-soft">{formatDate(e.date)}</span>
                           <Badge tone={e.term.tone}>{e.term.label}</Badge>
                           {e.context ? <Badge tone={e.context.tone}>{e.context.label}</Badge> : null}
                         </div>

@@ -73,7 +73,7 @@ export default async function StudentDuaPage({ params }: { params: Promise<{ id:
                         </h3>
                         <ReviewBadge state={support.state} />
                       </div>
-                      <p className="mb-3 text-xs text-ink-soft">
+                      <p className="mb-3 text-sm text-ink-soft">
                         Responsável: {support.responsibleName} · atualizado em {formatDate(support.updatedAt)}
                         {support.state === "validado" && support.validatedByName && support.validatedAt ? ` · validado por ${support.validatedByName} em ${formatDate(support.validatedAt)}` : ""}
                       </p>
@@ -171,7 +171,7 @@ function EvidenceItem({ item }: { item: StudentEvidenceView }) {
             <Badge tone="neutral">{formatDate(item.date)}</Badge>
           </div>
         </div>
-        <p className="mt-1 text-xs text-ink-soft">Versão {item.versionNumber} da atividade · registrado por {item.authorName}</p>
+        <p className="mt-1 text-sm text-ink-soft">Versão {item.versionNumber} da atividade · registrado por {item.authorName}</p>
 
         <p className="mt-3 text-sm text-ink">
           <span className="font-medium">{labelOf(OBSERVATION, item.observation)}.</span>{" "}
@@ -228,7 +228,7 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
         <DataCard title="Critérios observados" hint="Somando todas as evidências." className="sm:col-span-2">
           <StackedBar segments={observed} empty="Nenhum critério foi observado ainda." />
           <div className="mt-4 rounded-xl border border-dashed border-line p-3">
-            <p className="text-xs font-medium text-ink">Fora da conta</p>
+            <p className="text-sm font-medium text-ink">Fora da conta</p>
             <ul className="mt-2 grid gap-1.5 text-sm">
               {notObserved.map((item) => (
                 <li key={item.status} className="flex min-w-0 items-center gap-2.5">
@@ -238,7 +238,7 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs leading-relaxed text-ink-soft">Não observados: não contam como progresso nem dificuldade.</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">Não observados: não contam como progresso nem dificuldade.</p>
           </div>
         </DataCard>
         <DataCard title="Resultado de cada registro" hint={ordered.length < evidence.length ? `Os ${ordered.length} mais recentes, do mais antigo ao mais novo.` : "Do mais antigo ao mais novo."}>
@@ -251,7 +251,7 @@ function EvidenceSummary({ evidence }: { evidence: ReadonlyArray<StudentEvidence
               tone: item.result ? resultTerm(item.result).tone : "neutral",
             }))}
           />
-          <p className="mt-3 text-xs leading-relaxed text-ink-soft">
+          <p className="mt-3 text-sm leading-relaxed text-ink-soft">
             {results.sim} demonstrou, {results.parcial} em parte, {results.nao} ainda não{results.none ? `; ${results.none} sem resultado (não conta)` : ""}.
           </p>
         </DataCard>

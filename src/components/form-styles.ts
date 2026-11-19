@@ -1,8 +1,8 @@
-export const inputBoxCls = "min-h-11 min-w-0 rounded-xl border border-line bg-paper px-3.5 py-2 text-sm text-ink placeholder:text-ink-soft/70";
+export const inputBoxCls = "min-h-11 min-w-0 rounded-xl border border-line bg-paper px-3.5 py-2 text-sm text-ink";
 export const inputCls = `${inputBoxCls} w-full`;
 export const textareaCls = `${inputCls} min-h-24 leading-relaxed`;
 export const labelCls = "mb-2 block text-sm font-medium text-ink";
-export const hintCls = "mb-2 text-xs leading-relaxed text-ink-soft";
+export const hintCls = "mb-2 text-sm leading-relaxed text-ink-soft";
 export const choiceCls = "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-line bg-paper px-3 py-3 text-sm text-ink has-checked:border-brand has-checked:bg-brand-soft";
 export const linkCls = "font-medium text-brand-strong underline underline-offset-4";
 

@@ -14,6 +14,7 @@ import { CHANNELS } from "@/lib/scale";
 import { withoutCodes } from "@/lib/without-codes";
 import { PageHero, Card, SectionTitle } from "@/components/ui";
 import { MultiChoiceField } from "@/components/choice-field";
+import { BUTTON_CLS } from "@/components/form-styles";
 import { ActionForm } from "@/components/action-form";
 import {
   ACCESSIBILITY_RESOURCE_OPTIONS, COMMUNICATION_OPTIONS, FACILITATOR_OPTIONS, POSITIONING_OPTIONS,
@@ -117,7 +118,7 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
           <MultiChoiceField name="schoolGuidance" label="Orientações aplicáveis à escola *" options={SCHOOL_GUIDANCE_OPTIONS} required />
           <MultiChoiceField name="sharedGoals" label="Objetivos compartilhados escola-família *" options={SHARED_GOAL_OPTIONS} required />
           <div>
-            <button type="submit" className="rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-strong">
+            <button type="submit" className={BUTTON_CLS.primary}>
               Enviar para a equipe escolar
             </button>
           </div>
@@ -136,9 +137,9 @@ export default async function TherapistPage({ searchParams }: { searchParams: Pr
               return {
                 key: r.id,
                 date: formatDate(r.createdAt),
-                badge: seen ? <><StatusPill tone="good"><Check size={12} aria-hidden /> Visto pela escola</StatusPill><span className="text-xs text-ink-soft">em {formatDate(seen)}</span></>
+                badge: seen ? <><StatusPill tone="good"><Check size={12} aria-hidden /> Visto pela escola</StatusPill><span className="text-sm text-ink-soft">em {formatDate(seen)}</span></>
                   : index === 0 ? <StatusPill tone="mid">Aguardando a escola abrir</StatusPill>
-                    : <><StatusPill tone="neutral">Sem visualização</StatusPill><span className="text-xs text-ink-soft">um relatório mais novo o substituiu</span></>,
+                    : <><StatusPill tone="neutral">Sem visualização</StatusPill><span className="text-sm text-ink-soft">um relatório mais novo o substituiu</span></>,
                 marker: seen ? <Check size={16} strokeWidth={3} /> : <FileText size={16} />,
                 markerClassName: seen ? "bg-signal-lime text-ink-strong" : "border-2 border-dashed border-line bg-paper-raised text-ink-soft",
                 title: `Relatório de ${r.authorName}`,
@@ -157,13 +158,13 @@ type Report = { communication: string; accessResources: string; positioning: str
 function ReportDetails({ report: r }: { report: Report }) {
   return (
     <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-      <div><dt className="text-xs text-ink-soft">Comunicação eficaz</dt><dd className="text-ink">{r.communication}</dd></div>
-      <div><dt className="text-xs text-ink-soft">Recursos de acessibilidade</dt><dd className="text-ink">{r.accessResources}</dd></div>
-      {r.positioning ? <div><dt className="text-xs text-ink-soft">Posicionamento</dt><dd className="text-ink">{r.positioning}</dd></div> : null}
-      <div><dt className="text-xs text-ink-soft">Fatores facilitadores</dt><dd className="text-ink">{r.facilitators}</dd></div>
-      <div><dt className="text-xs text-ink-soft">Estratégias a testar</dt><dd className="text-ink">{r.strategiesToTry}</dd></div>
-      <div><dt className="text-xs text-ink-soft">Orientações à escola</dt><dd className="text-ink">{r.schoolGuidance}</dd></div>
-      <div><dt className="text-xs text-ink-soft">Objetivos compartilhados</dt><dd className="text-ink">{r.sharedGoals}</dd></div>
+      <div><dt className="text-sm text-ink-soft">Comunicação eficaz</dt><dd className="text-ink">{r.communication}</dd></div>
+      <div><dt className="text-sm text-ink-soft">Recursos de acessibilidade</dt><dd className="text-ink">{r.accessResources}</dd></div>
+      {r.positioning ? <div><dt className="text-sm text-ink-soft">Posicionamento</dt><dd className="text-ink">{r.positioning}</dd></div> : null}
+      <div><dt className="text-sm text-ink-soft">Fatores facilitadores</dt><dd className="text-ink">{r.facilitators}</dd></div>
+      <div><dt className="text-sm text-ink-soft">Estratégias a testar</dt><dd className="text-ink">{r.strategiesToTry}</dd></div>
+      <div><dt className="text-sm text-ink-soft">Orientações à escola</dt><dd className="text-ink">{r.schoolGuidance}</dd></div>
+      <div><dt className="text-sm text-ink-soft">Objetivos compartilhados</dt><dd className="text-ink">{r.sharedGoals}</dd></div>
     </dl>
   );
 }

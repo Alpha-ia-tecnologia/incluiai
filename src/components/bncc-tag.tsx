@@ -7,10 +7,10 @@ export type BnccAudience = "equipe" | "familia";
 
 export function BnccSkillLine({ skill, audience = "equipe" }: { skill: Pick<BnccSkill, "code" | "component" | "description">; audience?: BnccAudience }) {
   if (audience === "familia") {
-    return <p className="w-full text-xs leading-relaxed text-ink-soft"><span className="font-medium text-ink">Ligado ao que a turma aprende em {skill.component}:</span> {skill.description}</p>;
+    return <p className="w-full text-sm leading-relaxed text-ink-soft"><span className="font-medium text-ink">Ligado ao que a turma aprende em {skill.component}:</span> {skill.description}</p>;
   }
   return (
-    <p className="w-full text-xs leading-relaxed text-ink-soft">
+    <p className="w-full text-sm leading-relaxed text-ink-soft">
       <span className="font-medium text-ink">BNCC <span className="font-mono">{skill.code}</span> · {skill.component}:</span> {skill.description}
     </p>
   );

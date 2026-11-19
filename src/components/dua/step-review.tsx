@@ -94,13 +94,13 @@ export function StepReview({ content, update, readOnly, planningId, access, vers
         {access.share ? (
           <div className="mt-2 grid gap-2 border-t border-line pt-3">
             <p className="text-sm text-ink"><span className="font-medium">Compartilhamento:</span> {labelOf(SHARING, sharing)}</p>
-            <p className="text-xs leading-relaxed text-ink-soft">Compartilhar é uma decisão separada da validação. Compartilhado, o planejamento pode ser lido e aplicado pela equipe da escola, sem edição. Apoios individuais e evidências nunca são compartilhados.</p>
+            <p className="text-sm leading-relaxed text-ink-soft">Compartilhar é uma decisão separada da validação. Compartilhado, o planejamento pode ser lido e aplicado pela equipe da escola, sem edição. Apoios individuais e evidências nunca são compartilhados.</p>
             {sharing === "compartilhado" ? (
               <button type="button" disabled={pending} onClick={() => act(() => setDuaSharing({ planningId, sharing: "privado" }), "O planejamento deixou de ser compartilhado.")} className={`${BUTTON_CLS.quiet} justify-self-start`}><Share2 size={16} aria-hidden /> Deixar de compartilhar</button>
             ) : (
               <button type="button" disabled={pending || !hasValidated} onClick={() => act(() => setDuaSharing({ planningId, sharing: "compartilhado" }), "Compartilhado com a equipe da escola.")} className={`${BUTTON_CLS.quiet} justify-self-start`}><Share2 size={16} aria-hidden /> Compartilhar com a equipe da escola</button>
             )}
-            {!hasValidated && sharing !== "compartilhado" ? <p className="text-xs text-ink-soft">Disponível depois da primeira validação.</p> : null}
+            {!hasValidated && sharing !== "compartilhado" ? <p className="text-sm text-ink-soft">Disponível depois da primeira validação.</p> : null}
           </div>
         ) : null}
         <FormResult result={result} />

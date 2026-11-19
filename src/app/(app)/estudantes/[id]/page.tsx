@@ -121,12 +121,12 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                       <p className="min-w-0 max-w-xl text-sm leading-relaxed text-ink">{obj.description}</p>
                       <TrendChip reading={data.trend} />
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
                       <span>{latest && latest.level > obj.targetSupport ? `${supportInfo(latest.level).label} → meta ${supportInfo(obj.targetSupport).label}` : `Meta: ${supportInfo(obj.targetSupport).label}`}</span>
                       {obj.bnccCode ? <BnccTag code={obj.bnccCode} /> : null}
                     </div>
                     <SupportSteps data={data} size="regular" name={obj.action} className="mt-4" />
-                    <p className="mt-3 text-xs text-ink-soft">{trendMessage(data.trend, data.total)}</p>
+                    <p className="mt-3 text-sm text-ink-soft">{trendMessage(data.trend, data.total)}</p>
                     {can.edit ? (
                       <Link href={lessonLogHref(id, obj.id)} className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-strong underline-offset-4 hover:underline">
                         Registrar aula<span className="sr-only">: {obj.action}</span> <ArrowRight size={15} aria-hidden />
@@ -147,11 +147,11 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 <DataCard title="Participação e resultado das aulas" hint={`${records} ${records === 1 ? "registro de aula" : "registros de aula"}.`}>
                   <div className="grid min-w-0 gap-6 md:grid-cols-2">
                     <div className="min-w-0">
-                      <h4 className="mb-3 text-xs font-medium text-ink-soft">Participação</h4>
+                      <h4 className="mb-3 text-sm font-medium text-ink-soft">Participação</h4>
                       <ParticipationDonut id="resumo-participacao" entries={student.diaryEntries} />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="mb-3 text-xs font-medium text-ink-soft">Resultado esperado</h4>
+                      <h4 className="mb-3 text-sm font-medium text-ink-soft">Resultado esperado</h4>
                       <CriterionBar entries={student.diaryEntries} />
                     </div>
                   </div>
@@ -197,7 +197,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-ink-soft">Aceitas pela equipe na revisão do laudo.</p>
+            <p className="mt-2 text-sm text-ink-soft">Aceitas pela equipe na revisão do laudo.</p>
           </Card>
         ) : null}
         <Card>
@@ -212,24 +212,24 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
           ) : (
             <dl className="space-y-2.5 text-sm">
               <div>
-                <dt className="text-xs text-ink-soft">Comunicação</dt>
+                <dt className="text-sm text-ink-soft">Comunicação</dt>
                 <dd className="text-ink">{CHANNELS[student.profile.expressiveChannel] ?? student.profile.expressiveChannel} · compreende orientações com {student.profile.commandSteps} etapa(s)</dd>
               </div>
               <div>
-                <dt className="text-xs text-ink-soft">Do que gosta</dt>
+                <dt className="text-sm text-ink-soft">Do que gosta</dt>
                 <dd className="mt-1 flex flex-wrap gap-1">{interests.map((i) => <Badge key={i} tone="mid">{i}</Badge>)}</dd>
               </div>
               <div>
-                <dt className="text-xs text-ink-soft">O que dificulta a participação</dt>
+                <dt className="text-sm text-ink-soft">O que dificulta a participação</dt>
                 <dd className="mt-1 flex flex-wrap gap-1">{barriers.map((b) => <Badge key={b} tone="alert">{BARRIERS[b] ?? b}</Badge>)}</dd>
               </div>
               <div>
-                <dt className="text-xs text-ink-soft">Tempo de participação em uma atividade</dt>
+                <dt className="text-sm text-ink-soft">Tempo de participação em uma atividade</dt>
                 <dd className="text-ink">{student.profile.taskToleranceMinutes} min · melhor turno: {(SHIFTS[student.profile.bestShift] ?? student.profile.bestShift).toLowerCase()}</dd>
               </div>
               {student.profile.strengths ? (
                 <div>
-                  <dt className="text-xs text-ink-soft">Pontos fortes</dt>
+                  <dt className="text-sm text-ink-soft">Pontos fortes</dt>
                   <dd className="leading-relaxed text-ink">{student.profile.strengths}</dd>
                 </div>
               ) : null}
@@ -241,11 +241,11 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
                 <h3>Apoio de que precisa em cada área</h3>
                 <ChevronDown size={18} aria-hidden className="shrink-0 text-ink-soft group-open:rotate-180 motion-safe:transition-transform" />
               </summary>
-              <p className="mt-1 text-xs leading-relaxed text-ink-soft">0 (IND) é fazer sozinho; 5 (FIS-T), apoio físico total. Menos casas, menos apoio.</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-soft">0 (IND) é fazer sozinho; 5 (FIS-T), apoio físico total. Menos casas, menos apoio.</p>
               <div className="mt-4 space-y-4">
                 {PROFILE_SUPPORT_GROUPS.map((group) => (
                   <div key={group.title} className="min-w-0">
-                    <h4 className="mb-2 text-xs font-medium text-ink-soft">{group.title}</h4>
+                    <h4 className="mb-2 text-sm font-medium text-ink-soft">{group.title}</h4>
                     <SupportBars rows={group.fields.map(({ key, label }) => ({ label, level: profile[key] }))} />
                   </div>
                 ))}
@@ -261,7 +261,7 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
               {student.familyNotes.map((n) => (
                 <li key={n.id} className="text-sm">
                   <p className="leading-relaxed text-ink">“{n.note}”</p>
-                  <p className="mt-0.5 text-xs text-ink-soft">{n.author} · {formatDate(n.date)}</p>
+                  <p className="mt-0.5 text-sm text-ink-soft">{n.author} · {formatDate(n.date)}</p>
                 </li>
               ))}
             </ul>
@@ -284,11 +284,11 @@ export default async function StudentOverview({ params }: { params: Promise<{ id
         {intersector ? (
           <Card>
             <SectionTitle>Orientações da equipe de saúde</SectionTitle>
-            <p className="mb-2 text-xs text-ink-soft">{intersector.authorName} · {formatDate(intersector.createdAt)}</p>
+            <p className="mb-2 text-sm text-ink-soft">{intersector.authorName} · {formatDate(intersector.createdAt)}</p>
             <dl className="space-y-2 text-sm">
-              <div><dt className="text-xs text-ink-soft">Comunicação eficaz</dt><dd className="text-ink">{intersector.communication}</dd></div>
-              <div><dt className="text-xs text-ink-soft">Estratégias a testar na escola</dt><dd className="text-ink">{intersector.strategiesToTry}</dd></div>
-              <div><dt className="text-xs text-ink-soft">Como ajudar na escola</dt><dd className="text-ink">{intersector.schoolGuidance}</dd></div>
+              <div><dt className="text-sm text-ink-soft">Comunicação eficaz</dt><dd className="text-ink">{intersector.communication}</dd></div>
+              <div><dt className="text-sm text-ink-soft">Estratégias a testar na escola</dt><dd className="text-ink">{intersector.strategiesToTry}</dd></div>
+              <div><dt className="text-sm text-ink-soft">Como ajudar na escola</dt><dd className="text-ink">{intersector.schoolGuidance}</dd></div>
             </dl>
           </Card>
         ) : null}

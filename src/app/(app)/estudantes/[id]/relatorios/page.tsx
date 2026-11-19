@@ -52,7 +52,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
                 <li key={report.id} className="ui-card flex min-w-0 flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink"><Link href={`/estudantes/${id}/relatorios/${report.id}`} className="underline-offset-4 hover:underline">Período de {periodLabel(reportData(report.data))}</Link></p>
-                    <p className="mt-1 text-xs text-ink-soft">{report.status === "validado" ? `Validado por ${report.validatedByName} em ${formatDate(report.validatedAt!)}` : `Rascunho, atualizado em ${formatDate(report.updatedAt)}`}</p>
+                    <p className="mt-1 text-sm text-ink-soft">{report.status === "validado" ? `Validado por ${report.validatedByName} em ${formatDate(report.validatedAt!)}` : `Rascunho, atualizado em ${formatDate(report.updatedAt)}`}</p>
                   </div>
                   <Badge tone={toneOf(REPORT_STATUS, report.status)}>{report.status === "validado" ? <CircleCheck size={12} aria-hidden /> : null} {labelOf(REPORT_STATUS, report.status)}</Badge>
                 </li>

@@ -80,7 +80,7 @@ export default async function LoginPage() {
             <LoginForm />
           </div>
 
-          <p className="mt-auto flex items-start gap-2 text-xs leading-relaxed text-ink-soft">
+          <p className="mt-auto flex items-start gap-2 text-sm leading-relaxed text-ink-soft">
             <ShieldCheck size={16} strokeWidth={1.6} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>Conectando escolas, profissionais e famílias.<br className="hidden sm:block" /> Cuidando de cada trajetória.</span>
           </p>
@@ -105,7 +105,7 @@ export default async function LoginPage() {
 
           <div className="mb-4 mt-9 flex flex-wrap items-end justify-between gap-3">
             <h2 id="demo-title" className="text-sm font-medium text-on-navy">{demo ? "Explore a plataforma" : "Um espaço para cada perfil"}</h2>
-            <span className="text-xs text-on-navy-soft">{demo ? "Contas de demonstração" : "Quem usa a plataforma"}</span>
+            <span className="text-sm text-on-navy-soft">{demo ? "Contas de demonstração" : "Quem usa a plataforma"}</span>
           </div>
           <ul className="grid gap-2.5 sm:grid-cols-2">
             {cards.map(({ key, label, detail, icon: Icon, color }) => (
@@ -114,16 +114,16 @@ export default async function LoginPage() {
                   <Icon size={17} strokeWidth={1.6} aria-hidden="true" />
                 </span>
                 <p className="text-sm font-medium leading-snug">{label}</p>
-                <p className={`mt-1.5 text-xs leading-relaxed text-ink/75 ${demo ? "break-all" : ""}`}>{detail}</p>
+                <p className={`mt-1.5 text-sm leading-relaxed text-ink/75 ${demo ? "break-all" : ""}`}>{detail}</p>
               </li>
             ))}
           </ul>
           {demo ? (
-            <p className="mt-5 text-xs leading-relaxed text-on-navy-soft">
+            <p className="mt-5 text-sm leading-relaxed text-on-navy-soft">
               Cada perfil tem seu espaço. A senha de todas as contas é <strong className="rounded-md bg-paper-raised px-1.5 py-0.5 font-mono font-medium text-ink">{DEMO_PASSWORD}</strong>.
             </p>
           ) : (
-            <p className="mt-5 text-xs leading-relaxed text-on-navy-soft">
+            <p className="mt-5 text-sm leading-relaxed text-on-navy-soft">
               Primeiro acesso? A conta é criada pela Secretaria de Educação ou pela gestão da escola, que entrega uma senha temporária; na primeira entrada, você cria a sua. Esqueceu a senha? Peça uma nova a quem criou a sua conta.
             </p>
           )}

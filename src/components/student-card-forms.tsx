@@ -96,7 +96,7 @@ export function CardPreferencesForm({ action, firstName, settings, guardian, has
         <input type="checkbox" name="mostrarComoAjudar" defaultChecked={settings.showHelp} disabled={!hasProfile} className="size-5 shrink-0 accent-[var(--brand)]" />
         <span>
           Mostrar no verso como ajudar {firstName}: como se comunica, o que acalma e o que incomoda.
-          {hasProfile ? null : <span className="mt-0.5 block text-xs text-ink-soft">Fica disponível quando a escola preencher o &ldquo;Como aprende&rdquo;.</span>}
+          {hasProfile ? null : <span className="mt-0.5 block text-sm text-ink-soft">Fica disponível quando a escola preencher o &ldquo;Como aprende&rdquo;.</span>}
         </span>
       </label>
       <fieldset className="space-y-3 rounded-xl border border-line p-4">

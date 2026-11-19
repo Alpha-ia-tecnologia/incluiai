@@ -71,17 +71,38 @@ Uma escala só, nada abaixo de 12 px:
 
 | Classe | Tamanho | Uso |
 | --- | --- | --- |
-| `text-xs` | 12 | selos, legendas de gráfico |
-| `text-sm` | 14 | texto de interface |
-| `text-base` | 16 | leitura, títulos de cartão |
+| `text-xs` | 12 | selos (`Badge`, `StatusPill`, `TrendChip`, contador numa pílula), texto de gráfico (eixos, rótulos de barra e coluna, legenda, centro de anel, rótulos e datas dos degraus de apoio) e o rótulo sob o ícone na navegação de baixo |
+| `text-sm` | 14 | texto de interface: rótulos e dicas de campo, botões, metadados (autor · data), `dt`, frases sob gráficos, mensagens de vazio |
+| `text-base` | 16 | leitura, títulos de cartão (`SectionTitle`, `DataCard`) |
 | `text-xl` | 20 | títulos de seção |
 | `text-2xl` | 24 | título de aba, número em anel, título de página no celular (em negrito, palavras longas como "Acompanhamento" não cabem a 32 px) |
 | `text-3xl` | 32 | número de cartão, título no celular |
 | `text-4xl` | 40 | título de página |
 | `text-5xl` | 56 | número em destaque |
 
-- Sem `text-lg` e sem tamanhos arbitrários (`text-[15px]`).
-- Números com `tabular-nums`. A fonte mono só aparece em código.
+- **12 px é de selo e de gráfico.** Frase, dica, rótulo de campo, metadado e
+  título pequeno (`h4`) ficam em 14 px, também em cor de apoio (`ink-soft`). A
+  hierarquia vem do peso e da cor, não de letra miúda. Exceção: a carteirinha
+  (`StudentCardView`), que tem o tamanho do cartão impresso.
+- Sem rótulo em caixa alta (`uppercase tracking-wide`) e sem rótulo pequeno
+  acima de título: o tipo de um item vira selo.
+- Sem `text-lg` e sem tamanhos arbitrários (`text-[15px]`). Exceções, em que o
+  tamanho é o próprio conteúdo: a letra ampliada da atividade adaptada
+  (`AdaptedView` com `largeText`) e o "A" maior do controle de tamanho do texto.
+- **Placeholder:** cor `ink-soft` (5,7:1 sobre o campo), por uma regra global em
+  `globals.css`; nada de opacidade local (`placeholder:text-ink-soft/70` ficava
+  em 2,9:1). Ele só mostra um exemplo ("Ex.: …") ou repete o rótulo: formato,
+  regra e instrução ficam no rótulo ou na dica, que não somem ao digitar.
+- **Quebra de linha** (regra global em `globals.css`): títulos (`h1`–`h4`,
+  `legend`) com `text-wrap: balance`; parágrafos, itens de lista e definições
+  com `text-wrap: pretty`, sem a última palavra sozinha. Título em flex (com
+  ícone ou número ao lado) fica com `pretty`: no Chrome, o `balance` ali quebra
+  cedo e deixa uma palavra sozinha na primeira linha. Quebra à mão só entre
+  frases, conferida em todas as larguras.
+- Números com `tabular-nums` (células de tabela já têm, pela regra global). A
+  fonte mono só aparece em código.
+- O `visual-check.mjs` confere, em todas as telas, parágrafo, rótulo, legenda e
+  título abaixo de 14 px e placeholder abaixo de 4,5:1.
 
 ## Cantos
 
@@ -291,7 +312,12 @@ novo só com aprovação.
 - axe sem violações.
 - Nenhuma rolagem lateral a 320 px: use `min-w-0` em filho de grid ou flex
   com texto.
-- Alvos de toque de 44 px (`min-h-11`) em botões e links soltos.
+- Alvos de toque de 44 px (`min-h-11`) em botões, links soltos ou em lista,
+  chips que agem, abas, botões de ícone e `summary` (com o marcador nativo, a
+  altura vem de `py-3`). Numa célula estreita (dia do calendário), o link cobre a
+  célula inteira (`after:absolute after:inset-0`). Num cartão, o link de 44 px
+  avança sobre o respiro com margem negativa (`-my-2.5`), sem alongar a lista
+  no computador. Link dentro de uma frase fica de fora (exceção da WCAG 2.5.8).
 - O valor sempre também em texto: nenhum gráfico depende só da cor.
 - Um h1 por página.
 - O foco do teclado nunca fica escondido embaixo do cabeçalho preso

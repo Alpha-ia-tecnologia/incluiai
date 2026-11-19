@@ -62,7 +62,7 @@ export default async function ProfilePage({
         ...(suggested.strengths ? { strengths: splitItems(suggested.strengths) } : {}),
       };
   const suggestionNote = hasSuggestions ? (
-    <p className="mb-4 max-w-3xl rounded-xl bg-sky-soft px-4 py-3 text-xs leading-relaxed text-sky-ink">
+    <p className="mb-4 max-w-3xl rounded-xl bg-sky-soft px-4 py-3 text-sm leading-relaxed text-sky-ink">
       Sugestões do estudo de caso já preenchidas. Confira antes de salvar.
     </p>
   ) : null;
@@ -85,7 +85,7 @@ export default async function ProfilePage({
         />
 
         {p ? (
-          <p className="mb-4 max-w-3xl rounded-xl bg-brand-soft/60 px-4 py-3 text-xs leading-relaxed text-brand-strong">
+          <p className="mb-4 max-w-3xl rounded-xl bg-brand-soft/60 px-4 py-3 text-sm leading-relaxed text-brand-strong">
             {savedAt ? "Perfil salvo. Atualize sempre que algo mudar." : "Perfil já salvo. Atualize o que mudou."}
           </p>
         ) : suggestionNote}

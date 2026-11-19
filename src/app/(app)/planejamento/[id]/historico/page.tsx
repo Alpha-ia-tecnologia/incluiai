@@ -81,7 +81,7 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <h3 className="text-base font-medium text-ink">Versão {version.version}</h3>
                     <ReviewBadge state={state} />
-                    {state === "validado" ? <span className="inline-flex items-center gap-1 text-xs text-ink-soft"><Lock size={12} aria-hidden /> não muda mais</span> : null}
+                    {state === "validado" ? <span className="inline-flex items-center gap-1 text-sm text-ink-soft"><Lock size={12} aria-hidden /> não muda mais</span> : null}
                   </div>
                   <dl className="mt-2 grid min-w-0 gap-1 text-sm">
                     <div className="min-w-0"><dt className="inline font-medium text-ink">Criada: </dt><dd className="inline text-ink-soft">por {version.createdByName} em {formatDate(version.createdAt)}</dd></div>
@@ -120,7 +120,7 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
         ) : (
           <>
             <p className="text-sm text-ink">{planning.collaboratorList.length ? `Colaboram: ${planning.collaboratorList.map((item) => item.name).join(", ")}.` : "Sem colaboradores."}</p>
-            <p className="mt-1 text-xs text-ink-soft">Só o responsável ou a coordenação definem quem colabora.</p>
+            <p className="mt-1 text-sm text-ink-soft">Só o responsável ou a coordenação definem quem colabora.</p>
           </>
         )}
       </Card>
@@ -138,9 +138,9 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
                     <p className="min-w-0 break-words text-ink">
                       <span className="font-medium">{event.actorName}</span> <span className="text-ink-soft">({roleLabel(event.role)})</span> {event.action}
                     </p>
-                    <time dateTime={event.createdAt.toISOString()} className="shrink-0 text-xs text-ink-soft">{formatDateTime(event.createdAt)}</time>
+                    <time dateTime={event.createdAt.toISOString()} className="shrink-0 text-sm text-ink-soft">{formatDateTime(event.createdAt)}</time>
                   </div>
-                  <p className="mt-1 text-xs text-ink-soft">
+                  <p className="mt-1 text-sm text-ink-soft">
                     {OBJECT_TYPE_LABEL[event.objectType] ?? event.objectType}{event.versionNumber ? ` · versão ${event.versionNumber}` : ""}
                   </p>
                   {detail ? <p className="mt-1 break-words text-ink-soft">{detail}</p> : null}

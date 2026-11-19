@@ -24,7 +24,7 @@ export function ActivityImageForm({ action, hasImage }: {
           defaultValue="sequencia"
           required
           otherPlaceholder="Descreva a imagem, sem nomes nem dados pessoais"
-          labelClassName="mb-1 block text-xs font-medium text-ink-soft"
+          labelClassName="mb-1 block text-sm font-medium text-ink-soft"
           inputClassName="min-h-11 w-full min-w-0 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink"
         />
       </div>

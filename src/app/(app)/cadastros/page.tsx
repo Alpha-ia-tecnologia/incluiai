@@ -101,7 +101,7 @@ export default async function RegistriesPage() {
                     <table className="w-full border-collapse text-left text-sm">
                       <caption className="sr-only">Turmas da escola {s.name}</caption>
                       <thead>
-                        <tr className="border-b border-line text-xs text-ink-soft">
+                        <tr className="border-b border-line text-sm text-ink-soft">
                           <th scope="col" className="py-2 pr-3 font-medium">Turma</th>
                           <th scope="col" className="py-2 pr-3 font-medium">Ano</th>
                           <th scope="col" className="py-2 pr-3 font-medium">Turno</th>

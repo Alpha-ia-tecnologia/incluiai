@@ -63,14 +63,14 @@ export default async function AdaptedTaskPage({ params }: { params: Promise<{ id
           <SectionTitle>Ajustar antes de aprovar</SectionTitle>
           <AdaptedEditor action={saveTask.bind(null, { studentId: id }, task.id)} content={content} />
           <details className="mt-6 rounded-2xl bg-surface-muted p-4">
-            <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir esta adaptação</summary>
+            <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Excluir esta adaptação</summary>
             <ActionForm action={removeStudentTask.bind(null, id, task.id)} className="mt-3">
               <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir</button>
             </ActionForm>
           </details>
         </Card>
       ) : null}
-      <p className="text-xs text-ink-soft print:hidden">Impressão: {printSettings(options).largeText ? "letra ampliada" : "letra normal"}{printSettings(options).itemsPerPage ? `, até ${printSettings(options).itemsPerPage} questões por página` : ""}.</p>
+      <p className="text-sm text-ink-soft print:hidden">Impressão: {printSettings(options).largeText ? "letra ampliada" : "letra normal"}{printSettings(options).itemsPerPage ? `, até ${printSettings(options).itemsPerPage} questões por página` : ""}.</p>
     </div>
   );
 }

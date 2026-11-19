@@ -14,7 +14,7 @@ export function DataCard({ title, hint, href, linkLabel, children, className = "
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-base font-medium tracking-tight text-ink">{title}</h3>
-          {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+          {hint ? <p className="mt-1 text-sm leading-relaxed text-ink-soft">{hint}</p> : null}
         </div>
         {href ? <Link href={href} className="circle-link" aria-label={linkLabel ?? `Abrir ${title.toLowerCase()}`}><ArrowUpRight size={16} aria-hidden /></Link> : null}
       </div>
@@ -47,7 +47,7 @@ export function StatTile({ label, value, unit, hint, tone, status, trend, chart,
         {trend}
       </div>
       {chart ? <div className="mt-3">{chart}</div> : null}
-      {hint ? <p className="mt-2.5 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+      {hint ? <p className="mt-2.5 text-sm leading-relaxed text-ink-soft">{hint}</p> : null}
     </article>
   );
 }
@@ -67,7 +67,7 @@ export function RingTile({ id, pct, label, value, hint, color = SIGNAL.brand, ch
       <div className="min-w-[8rem] flex-1">
         <h3 className="text-sm font-medium leading-snug text-ink">{label}</h3>
         <p className="mt-1 font-display font-bold text-3xl leading-none tracking-tight text-ink tabular-nums">{value}</p>
-        {hint ? <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+        {hint ? <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{hint}</p> : null}
       </div>
       {children ? <div className="w-full min-w-0">{children}</div> : null}
     </article>

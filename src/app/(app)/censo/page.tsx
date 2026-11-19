@@ -70,7 +70,7 @@ export default async function CensusPage() {
               <SectionTitle>Verificação na janela do Censo</SectionTitle>
               <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink"><CalendarClock size={16} aria-hidden className="text-brand-strong" /> {state.title} <Badge tone={STATUS_TONE[state.status]}>{config.times.join(" e ")}</Badge></p>
               <p className="mt-1 text-sm leading-relaxed text-ink-soft">{state.text}</p>
-              <p className="mt-1 text-xs text-ink-soft">Compara o AEE com o último arquivo de cada escola. Mudou a pendência, a coordenação é avisada.</p>
+              <p className="mt-1 text-sm text-ink-soft">Compara o AEE com o último arquivo de cada escola. Mudou a pendência, a coordenação é avisada.</p>
             </div>
             <CensusVerifyForm action={verifyCensusNow} />
           </div>
@@ -122,8 +122,8 @@ export default async function CensusPage() {
             <SectionTitle>Comparação com o FNDE</SectionTitle>
             {monitor.fndeAee !== null ? (
               <dl className="mb-3 flex flex-wrap gap-x-8 gap-y-2">
-                <div><dt className="text-xs text-ink-soft">Consideradas pelo FNDE{monitor.fndeYear ? ` · Fundeb ${monitor.fndeYear}` : ""}</dt><dd className="font-display text-2xl font-bold tabular-nums text-ink">{monitor.fndeAee}</dd></div>
-                <div><dt className="text-xs text-ink-soft">Estimativa dos arquivos</dt><dd className="font-display text-2xl font-bold tabular-nums text-ink">{estimate.considered}</dd></div>
+                <div><dt className="text-sm text-ink-soft">Consideradas pelo FNDE{monitor.fndeYear ? ` · Fundeb ${monitor.fndeYear}` : ""}</dt><dd className="font-display text-2xl font-bold tabular-nums text-ink">{monitor.fndeAee}</dd></div>
+                <div><dt className="text-sm text-ink-soft">Estimativa dos arquivos</dt><dd className="font-display text-2xl font-bold tabular-nums text-ink">{estimate.considered}</dd></div>
               </dl>
             ) : null}
             <p className="text-sm leading-relaxed text-ink">{access.network || monitor.fndeAee !== null ? fnde.text : "A Secretaria informa o número do FNDE para comparar."}</p>
@@ -149,8 +149,8 @@ export default async function CensusPage() {
                   <h3 className="min-w-0 break-words text-sm font-medium text-ink">{school.name}</h3>
                   {school.coverage ? (school.coverage.pending ? <Badge tone="mid">{count(school.coverage.pending)} com pendência</Badge> : <Badge tone="good">Sem pendências</Badge>) : <Badge>Sem arquivo aplicado</Badge>}
                 </div>
-                <p className="mt-1 text-xs text-ink-soft">{school.inepCode ? `INEP ${school.inepCode}` : "Sem código INEP"}{school.importedAt ? ` · arquivo aplicado em ${brMoment(school.importedAt)}${school.importedByName ? ` por ${school.importedByName}` : ""}` : ""}</p>
-                {school.note && school.note.tone !== "ok" ? <p className="mt-2 text-xs leading-relaxed text-amber">{school.note.text}</p> : null}
+                <p className="mt-1 text-sm text-ink-soft">{school.inepCode ? `INEP ${school.inepCode}` : "Sem código INEP"}{school.importedAt ? ` · arquivo aplicado em ${brMoment(school.importedAt)}${school.importedByName ? ` por ${school.importedByName}` : ""}` : ""}</p>
+                {school.note && school.note.tone !== "ok" ? <p className="mt-2 text-sm leading-relaxed text-amber">{school.note.text}</p> : null}
                 <p className="mt-2 text-sm text-ink">
                   {school.platformAee} {school.platformAee === 1 ? "estudante" : "estudantes"} com AEE na plataforma
                   {school.coverage ? `; dupla matrícula confirmada para ${count(school.coverage.confirmed)}${school.coverage.percent !== null ? ` (${school.coverage.percent}%)` : ""}` : ""}

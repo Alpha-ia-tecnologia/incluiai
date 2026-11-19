@@ -60,7 +60,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
         <Card className="mb-6 max-w-3xl bg-sky-soft/60">
           <SectionTitle>Da família, nesta semana</SectionTitle>
           <p className="text-sm leading-relaxed text-ink">{readList(checkIn.answers).join(", ") || "Sem opções marcadas."}{checkIn.note ? ` "${checkIn.note}"` : ""}</p>
-          <p className="mt-1 text-xs text-ink-soft">Respondido por {checkIn.authorName} em {formatDate(checkIn.createdAt)}.</p>
+          <p className="mt-1 text-sm text-ink-soft">Respondido por {checkIn.authorName} em {formatDate(checkIn.createdAt)}.</p>
         </Card>
       ) : null}
 
@@ -114,7 +114,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
               <Card key={entry.id}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-semibold text-ink">{formatDate(entry.date)}</h3>
-                  <span className="text-xs text-ink-soft">{roleLabel(entry.authorRole)}</span>
+                  <span className="text-sm text-ink-soft">{roleLabel(entry.authorRole)}</span>
                 </div>
                 {entry.objective ? <p className="mt-3 text-sm text-ink"><span className="font-medium">Objetivo: </span>{entry.objective.action}</p> : null}
                 {entry.activity ? <p className="mt-1 text-sm text-ink"><span className="font-medium">Atividade: </span>{entry.activity.title}</p> : null}

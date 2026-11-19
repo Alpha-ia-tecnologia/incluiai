@@ -21,7 +21,7 @@ function Issues({ row }: { row: CoverageRow }) {
   if (!row.issues.length) return null;
   return (
     <ul className="grid gap-1">
-      {row.issues.map((issue) => <li key={issue} className="flex gap-1.5 text-xs leading-relaxed text-amber"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {ISSUE_LABEL[issue]}</li>)}
+      {row.issues.map((issue) => <li key={issue} className="flex gap-1.5 text-sm leading-relaxed text-amber"><TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" /> {ISSUE_LABEL[issue]}</li>)}
     </ul>
   );
 }
@@ -60,7 +60,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
           <Card>
             <SectionTitle>Código INEP da escola</SectionTitle>
             <InepForm action={saveSchoolInep.bind(null, schoolId)} id="escola-inep" label="Código INEP (8 números)" name="inepCode" length={8} value={school.inepCode} />
-            <p className="mt-2 text-xs text-ink-soft">Sem ele, vem do primeiro arquivo aplicado.</p>
+            <p className="mt-2 text-sm text-ink-soft">Sem ele, vem do primeiro arquivo aplicado.</p>
           </Card>
           <Card>
             <SectionTitle>Importar o arquivo do Censo</SectionTitle>
@@ -96,7 +96,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
                     <ul className="grid gap-3">
                       {list.map((row) => (
                         <li key={row.id} className="grid min-w-0 gap-2 rounded-xl bg-surface-muted/60 p-3">
-                          <Link href={`/estudantes/${row.id}`} className="w-fit text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
+                          <Link href={`/estudantes/${row.id}`} className="-my-2 inline-flex min-h-11 w-fit items-center text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
                           <Issues row={row} />
                           {status === "ausente" ? <InepForm action={saveStudentInep.bind(null, row.id, schoolId)} id={`inep-${row.id}`} label="ID INEP do estudante (12 números)" name="inepId" length={12} /> : null}
                         </li>
@@ -112,7 +112,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
                   <ul className="grid gap-3">
                     {alerts.map((row) => (
                       <li key={row.id} className="grid min-w-0 gap-2 rounded-xl bg-surface-muted/60 p-3">
-                        <Link href={`/estudantes/${row.id}`} className="w-fit text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
+                        <Link href={`/estudantes/${row.id}`} className="-my-2 inline-flex min-h-11 w-fit items-center text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
                         <Issues row={row} />
                       </li>
                     ))}
@@ -144,7 +144,7 @@ export default async function CensusSchoolPage({ params, searchParams }: { param
                 <ul className="grid gap-2">
                   {unreferenced.map((row) => (
                     <li key={row.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-3 py-2">
-                      <Link href={`/estudantes/${row.id}`} className="min-w-0 break-words text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
+                      <Link href={`/estudantes/${row.id}`} className="inline-flex min-h-11 min-w-0 items-center break-words text-sm font-medium text-brand-strong underline underline-offset-4">{row.name}</Link>
                       <Link href={`/estudantes/${row.id}/estudo-de-caso`} className="inline-flex min-h-11 items-center text-sm text-ink-soft underline underline-offset-4">Concluir o estudo de caso</Link>
                     </li>
                   ))}

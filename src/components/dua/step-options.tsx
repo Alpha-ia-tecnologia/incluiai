@@ -28,17 +28,17 @@ export function StepOptions({ content, update, readOnly, planningId, access, sug
         {DUA_PRINCIPLES.map((principle) => (
           <div key={principle} className="min-w-0 rounded-xl bg-surface-muted/60 p-3">
             <p className="text-sm font-medium text-ink">{PRINCIPLE_LABEL[principle]}</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">{PRINCIPLE_QUESTION[principle]}</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">{PRINCIPLE_QUESTION[principle]}</p>
             {!readOnly ? (
               <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Exemplos de ${PRINCIPLE_LABEL[principle]}`}>
                 {PRINCIPLE_EXAMPLES[principle].map((example) => (
-                  <button key={example} type="button" onClick={() => addStrategy(principle, example)} className="inline-flex min-h-11 items-center rounded-full bg-paper-raised px-3 py-1.5 text-xs text-ink hover:bg-line">
+                  <button key={example} type="button" onClick={() => addStrategy(principle, example)} className="inline-flex min-h-11 items-center rounded-full bg-paper-raised px-3 py-1.5 text-sm text-ink hover:bg-line">
                     <Plus size={12} aria-hidden className="mr-1" /> {example}
                   </button>
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-xs text-ink-soft">Exemplos: {PRINCIPLE_EXAMPLES[principle].join(", ")}.</p>
+              <p className="mt-2 text-sm text-ink-soft">Exemplos: {PRINCIPLE_EXAMPLES[principle].join(", ")}.</p>
             )}
           </div>
         ))}

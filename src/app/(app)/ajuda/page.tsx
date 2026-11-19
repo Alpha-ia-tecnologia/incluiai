@@ -93,7 +93,7 @@ export default async function HelpPage() {
                 <Link href={`/ajuda/pilulas/${pill.slug}`} className="flex h-full min-h-11 flex-col rounded-2xl border border-line bg-paper-raised p-4 hover:border-brand">
                   <span className="text-base font-medium">{pill.title}</span>
                   <span className="mt-1 text-sm leading-relaxed text-ink-soft">{pill.summary}</span>
-                  <span className="mt-2 text-xs font-medium text-brand-strong">Leitura de {readingMinutes(pill)} min</span>
+                  <span className="mt-2 text-sm font-medium text-brand-strong">Leitura de {readingMinutes(pill)} min</span>
                 </Link>
               </li>
             ))}

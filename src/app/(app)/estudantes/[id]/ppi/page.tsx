@@ -169,7 +169,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                   { icon: UserCheck, label: "Você decide e ativa" },
                 ]}
           />
-          {!aiOn && !consentMissing ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">IA desligada nesta instalação: falta configurar um provedor de IA no servidor.</p> : null}
+          {!aiOn && !consentMissing ? <p className="mt-3 text-sm leading-relaxed text-ink-soft">IA desligada nesta instalação: falta configurar um provedor de IA no servidor.</p> : null}
           {hasData ? (
             <ActionForm action={generate} className="mt-4">
               <PendingButton className={BUTTON_CLS.primary} pendingText={aiOn ? "Os agentes estão analisando o caso e montando o plano." : "Preparando a proposta…"} wait={aiOn ? "plano" : undefined}>
@@ -244,7 +244,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                 {daysLeft !== 0 ? <span className="ml-1 text-xl text-ink-soft">{Math.abs(daysLeft) === 1 ? "dia" : "dias"}</span> : null}
               </p>
               <p className="mt-2"><StatusPill tone={reviewTone}>{reviewStatus}</StatusPill></p>
-              <p className="mt-2 text-xs text-ink-soft tabular-nums">Marcada para {formatDate(plan.reviewDate)}</p>
+              <p className="mt-2 text-sm text-ink-soft tabular-nums">Marcada para {formatDate(plan.reviewDate)}</p>
               <HowToRead summary="Como ler o anel">
                 {elapsedPct === null ? "Sem base para calcular o tempo percorrido." : `O anel mostra o tempo já percorrido desde a criação do plano: ${elapsedPct}%.`}
               </HowToRead>
@@ -256,7 +256,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <div className="flex min-w-0 flex-wrap items-center gap-4">
               <HatchedDonut id="ppi-objetivos" segments={objectiveStatus} size={96} thickness={13} label={`Objetivos do plano: ${objectiveStatus.map((segment) => `${segment.label.toLowerCase()} ${segment.value}`).join(", ")}`}>
                 <span className="font-display font-bold text-2xl leading-none text-ink tabular-nums">{plan.objectives.length}</span>
-                <span className="mt-0.5 text-xs text-ink-soft">{plan.objectives.length === 1 ? "objetivo" : "objetivos"}</span>
+                <span className="mt-0.5 text-sm text-ink-soft">{plan.objectives.length === 1 ? "objetivo" : "objetivos"}</span>
               </HatchedDonut>
               <div className="min-w-0 flex-1 basis-40"><Legend segments={objectiveStatus} /></div>
             </div>
@@ -295,7 +295,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                   {item.onTime ? <Badge tone="good">No prazo</Badge> : <Badge tone="mid">Fora do prazo (marcada para {formatDate(item.dueDate)})</Badge>}
                 </p>
                 <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink">{item.summary}</p>
-                <p className="mt-1.5 text-xs text-ink-soft">{item.reviewerName} · próxima: {formatDate(item.nextReviewDate)}</p>
+                <p className="mt-1.5 text-sm text-ink-soft">{item.reviewerName} · próxima: {formatDate(item.nextReviewDate)}</p>
               </li>
             ))}
           </ol>
@@ -359,7 +359,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
                   />
                 </div>
               ) : (
-                <p className="mt-3 text-xs text-ink-soft">Ainda sem registro de aula para este objetivo.</p>
+                <p className="mt-3 text-sm text-ink-soft">Ainda sem registro de aula para este objetivo.</p>
               )}
               {editable && obj.status === "ativo" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -492,7 +492,7 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
       <div id="proposta" className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <SectionTitle>Proposta de plano</SectionTitle>
-          <p className="-mt-2 text-xs text-ink-soft">Pedida por {createdBy} em {formatDate(createdAt)}.</p>
+          <p className="-mt-2 text-sm text-ink-soft">Pedida por {createdBy} em {formatDate(createdAt)}.</p>
         </div>
         <Badge tone={source === "ia" ? "info" : "neutral"}>{source === "ia" ? <><Sparkles size={12} aria-hidden /> Agentes de IA</> : "Motor de regras"}</Badge>
       </div>
@@ -536,17 +536,17 @@ function ProposalReview({ studentId, studentName, proposal, analysis, trace, sou
                   <input type="checkbox" name="objetivo" value={index} defaultChecked className="mt-1 size-4 shrink-0 accent-[var(--brand)]" />
                   <span className="min-w-0">
                     <span className="block text-sm leading-relaxed text-ink">{buildObjectiveDescription({ studentName, ...objective })}</span>
-                    <span className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-ink-soft">
+                    <span className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink-soft">
                       <Badge>{DIMENSIONS[objective.dimension] ?? objective.dimension}</Badge>
                       {objective.bnccCode ? <BnccTag code={objective.bnccCode} /> : null}
                       <SupportPill level={objective.currentSupport} /> → <SupportPill level={objective.targetSupport} />
                     </span>
-                    <span className="mt-2 block text-xs leading-relaxed text-ink-soft">{objective.rationale}</span>
+                    <span className="mt-2 block text-sm leading-relaxed text-ink-soft">{objective.rationale}</span>
                   </span>
                 </label>
               ))}
             </div>
-            <p className="mt-2 text-xs text-ink-soft">Depois de ativar, dá para acrescentar ou revisar objetivos.</p>
+            <p className="mt-2 text-sm text-ink-soft">Depois de ativar, dá para acrescentar ou revisar objetivos.</p>
           </fieldset>
           <AIDisclaimer />
           <PendingButton className={BUTTON_CLS.primary} pendingText="Ativando o plano…">Ativar plano com os objetivos marcados <ArrowRight size={16} aria-hidden /></PendingButton>
@@ -588,7 +588,7 @@ function PlanDocumentCard({ id, title, norm, teacherLabel, teacher, participants
     <section id={id} aria-labelledby={`${id}-titulo`} className="ui-card min-w-0">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 id={`${id}-titulo`} className="text-sm font-semibold tracking-tight text-ink">{title}</h2>
-        <span className="text-xs text-ink-soft">Portaria MEC nº 421/2026, {norm}</span>
+        <span className="text-sm text-ink-soft">Portaria MEC nº 421/2026, {norm}</span>
       </div>
       <dl className="grid gap-3 text-sm">
         {teacher ? <div><dt className="font-medium text-ink">{teacherLabel}</dt><dd className="mt-1 break-words text-ink-soft">{teacher}</dd></div> : null}
@@ -631,7 +631,7 @@ function PastPlans({ plans }: { plans: { id: string; createdAt: Date; closedAt: 
             <li key={past.id} className="rounded-2xl border border-line bg-paper-raised p-4">
               <p className="text-sm font-medium text-ink">De {formatDate(past.createdAt)} a {past.closedAt ? formatDate(past.closedAt) : "data não registrada"}</p>
               <p className="mt-1 text-sm text-ink-soft">{past.closedReason ?? "Encerrado"}</p>
-              <p className="mt-2 text-xs tabular-nums text-ink-soft">
+              <p className="mt-2 text-sm tabular-nums text-ink-soft">
                 {reached} de {past.objectives.length} {past.objectives.length === 1 ? "objetivo alcançado" : "objetivos alcançados"} · {reviews.total} {reviews.total === 1 ? "revisão" : "revisões"}{reviews.total ? `, ${reviews.onTime} no prazo` : ""}
               </p>
             </li>

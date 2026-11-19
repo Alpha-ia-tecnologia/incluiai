@@ -50,7 +50,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
             {user.passwordChangedAt ? `Trocada em ${formatDate(user.passwordChangedAt)}.` : "Ainda é a senha do cadastro."} Trocar encerra as outras sessões.
           </p>
           <details className="rounded-2xl bg-surface-muted p-4">
-            <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Trocar a senha</summary>
+            <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Trocar a senha</summary>
             <div className="mt-4">
               <PasswordForm action={changeOwnPassword} askCurrent button="Trocar a senha" pendingLabel="Trocando…" savedMessage="Senha trocada. As outras sessões foram encerradas." />
             </div>
@@ -69,7 +69,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
                 Ligada desde {formatDate(user.totpEnabledAt)} · {codesLeft === 1 ? "Resta 1 código de recuperação" : `Restam ${codesLeft} códigos de recuperação`}
               </p>
               <details className="rounded-2xl bg-surface-muted p-4" open={usedRecovery && codesLeft <= 3}>
-                <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Gerar novos códigos de recuperação</summary>
+                <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Gerar novos códigos de recuperação</summary>
                 <p className="my-3 text-sm leading-relaxed text-ink-soft">Os códigos antigos deixam de valer.</p>
                 <CodeForm action={regenerateRecoveryCodes} label="Código do aplicativo (6 números)" button="Gerar novos códigos" pendingLabel="Gerando…" variant="secondary" />
               </details>
@@ -77,7 +77,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
                 <p className="text-sm text-ink-soft">Obrigatória para a equipe na sua rede.</p>
               ) : (
                 <details className="rounded-2xl bg-surface-muted p-4">
-                  <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Desligar a verificação em duas etapas</summary>
+                  <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Desligar a verificação em duas etapas</summary>
                   <p className="my-3 text-sm leading-relaxed text-ink-soft">A entrada volta a pedir só a senha.</p>
                   <CodeForm action={disableTwoFactor} label="Código do aplicativo ou de recuperação" kind="recovery" button="Desligar" pendingLabel="Desligando…" variant="danger" />
                 </details>
@@ -138,7 +138,7 @@ export default async function AccountSecurityPage({ searchParams }: { searchPara
                 <li key={event.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
                   <p className="text-sm text-ink">{event.actorId === session.id ? "Você" : <><strong className="font-medium">{event.actorName}</strong> ({roleLabel(event.actorRole)})</>} {event.action}</p>
                   {event.detail ? <p className="mt-0.5 text-sm text-ink-soft">{event.detail}</p> : null}
-                  <p className="mt-0.5 text-xs text-ink-soft">{formatDate(event.createdAt)}</p>
+                  <p className="mt-0.5 text-sm text-ink-soft">{formatDate(event.createdAt)}</p>
                 </li>
               ))}
             </ol>

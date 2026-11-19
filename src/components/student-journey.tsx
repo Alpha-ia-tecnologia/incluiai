@@ -65,7 +65,7 @@ export function StudentNextStepLink({ progress }: { progress: StudentJourneyInpu
   const next = getStudentNextStep(progress);
   if (pathname === next.href) {
     return (
-      <span className={`${HEAD_PART.detail} inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-paper-raised px-3 text-xs font-medium text-brand-strong`}>
+      <span className={`${HEAD_PART.detail} inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-paper-raised px-3 text-sm font-medium text-brand-strong`}>
         <Check size={14} aria-hidden /> Você está no próximo passo
       </span>
     );

@@ -60,7 +60,7 @@ export function Card({ children, className = "", id }: { children: ReactNode; cl
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-4 text-sm font-medium tracking-tight text-ink">
+    <h2 className="mb-4 text-base font-medium tracking-tight text-ink">
       {children}
     </h2>
   );
@@ -94,7 +94,7 @@ export function SupportPill({ level }: { level: number }) {
 
 export function AIDisclaimer() {
   return (
-    <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2 text-xs leading-relaxed text-amber">
+    <p className="mt-3 rounded-xl bg-amber-soft px-3 py-2 text-sm leading-relaxed text-amber">
       Sugestão para análise do profissional — não substitui avaliação pedagógica ou clínica.
     </p>
   );

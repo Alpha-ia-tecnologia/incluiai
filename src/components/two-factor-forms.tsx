@@ -36,7 +36,7 @@ export function SetupFlow({ svg, secret, account, finish }: { svg: string; secre
             { icon: KeyRound, label: "Digite o código" },
           ]}
         />
-        <p className="text-xs text-ink-soft">Google Authenticator, Microsoft Authenticator, FreeOTP ou outro.</p>
+        <p className="text-sm text-ink-soft">Google Authenticator, Microsoft Authenticator, FreeOTP ou outro.</p>
       </div>
       <div className="flex flex-wrap items-start gap-6">
         <div
@@ -48,7 +48,7 @@ export function SetupFlow({ svg, secret, account, finish }: { svg: string; secre
         <div className="min-w-0 flex-1 basis-56">
           <p className="mb-2 text-sm text-ink-soft">Sem câmera? Digite este código no aplicativo:</p>
           <p id="totp-secret" className="break-all rounded-xl bg-surface-muted px-3 py-2 font-mono text-sm tracking-wider text-ink">{secret}</p>
-          <p className="mt-2 text-xs leading-relaxed text-ink-soft">Conta: {account}. Tipo: baseado em tempo.</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">Conta: {account}. Tipo: baseado em tempo.</p>
         </div>
       </div>
       <CodeFields result={result} submit={submit} pending={pending} label="Código do aplicativo (6 números)" button="Confirmar e ligar" pendingLabel="Conferindo o código…" />

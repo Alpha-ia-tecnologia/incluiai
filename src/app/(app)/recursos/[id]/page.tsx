@@ -54,7 +54,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   return (
     <div className={styles.detail} {...printMark("root")}>
-      <Link href="/recursos" {...printMark("screen")} className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-brand-strong">
+      <Link href="/recursos" {...printMark("screen")} className="-mt-3 mb-1 inline-flex min-h-11 items-center gap-1.5 text-sm text-ink-soft hover:text-brand-strong">
         <ArrowLeft size={14} aria-hidden /> Banco de recursos
       </Link>
       <div {...printMark("introduction")}><PageHeader
@@ -72,7 +72,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
       <Card className="mb-6 grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:items-center">
         <figure className="min-w-0">
           <Image src={guide.image} alt={guide.imageAlt} width={1000} height={750} sizes="(min-width: 1280px) 460px, (min-width: 768px) 40vw, 100vw" className="aspect-[4/3] w-full rounded-2xl bg-surface-muted object-cover" preload />
-          <figcaption className="mt-2 text-xs text-ink-soft">Imagem ilustrativa dos materiais.</figcaption>
+          <figcaption className="mt-2 text-sm text-ink-soft">Imagem ilustrativa dos materiais.</figcaption>
         </figure>
         <section aria-labelledby="antes-de-comecar" className="min-w-0">
           <SectionTitle><span id="antes-de-comecar" className="flex items-center gap-1.5"><PackageOpen size={13} aria-hidden /> Antes de começar</span></SectionTitle>
@@ -117,7 +117,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
       <div className="mb-8 grid gap-5 lg:grid-cols-2">
         <Card>
           <SectionTitle>Modelo de apoio</SectionTitle>
-          <h2 className="font-display text-lg font-semibold text-ink">{guide.model.title}</h2>
+          <h3 className="font-display text-xl font-semibold text-ink">{guide.model.title}</h3>
           <p className="mb-3 mt-1 text-sm leading-relaxed text-ink-soft">{guide.model.instruction}</p>
           <ul className="flex flex-wrap gap-1.5" aria-label="Itens do modelo">
             {guide.model.items.map((item) => <li key={item} className="rounded-full bg-surface-muted px-3 py-1.5 text-sm text-ink">{item}</li>)}
@@ -138,7 +138,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <SectionTitle>Atividades correspondentes</SectionTitle>
-        <span className="text-xs text-ink-soft">{resource.activities.length} propostas prontas para aplicar</span>
+        <span className="text-sm text-ink-soft">{resource.activities.length} propostas prontas para aplicar</span>
       </div>
       </div>
 
@@ -222,7 +222,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
               <ActivityPrintMaterials activityId={activity.id} activityTitle={activity.title} resourceTitle={resource.title} sheets={sheets} network={network} />
 
               <div {...printMark("screen")} className="mt-5 border-t border-line pt-4">
-                <p className="mb-2 text-xs text-ink-soft">Depois de aplicar, registre a resposta:</p>
+                <p className="mb-2 text-sm text-ink-soft">Depois de aplicar, registre a resposta:</p>
                 <div className="flex flex-wrap gap-2">
                   <ActionForm action={register}>
                     <input type="hidden" name="worked" value="sim" />

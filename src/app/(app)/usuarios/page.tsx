@@ -82,8 +82,8 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                   <h3 className="text-sm font-medium text-ink">
                     <Link href={`/usuarios/${account.id}`} className="underline-offset-4 hover:underline">{account.name}</Link>
                   </h3>
-                  <p className="break-all text-xs text-ink-soft">{account.email}</p>
-                  <p className="mt-1 text-xs text-ink-soft">
+                  <p className="break-all text-sm text-ink-soft">{account.email}</p>
+                  <p className="mt-1 text-sm text-ink-soft">
                     {roleLabel(account.role)}
                     {account.links.length ? ` · ${account.links.map((link) => firstName(link.name)).join(", ")}` : account.schoolName ? ` · ${account.schoolName}` : accountSchool(account.role) === "opcional" ? " · Rede" : ""}
                   </p>
@@ -91,7 +91,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                 <div className="flex flex-wrap items-center gap-2">
                   {account.deactivatedAt ? <Badge>Desativada</Badge> : account.mustChangePassword ? <Badge tone="mid">Primeiro acesso pendente</Badge> : null}
                   {account.totpEnabledAt && !account.deactivatedAt ? <Badge tone="good"><ShieldCheck size={14} aria-hidden /> Duas etapas</Badge> : null}
-                  <span className="text-xs text-ink-soft">{account.lastLoginAt ? `Último acesso: ${formatDate(account.lastLoginAt)}` : "Ainda não entrou"}</span>
+                  <span className="text-sm text-ink-soft">{account.lastLoginAt ? `Último acesso: ${formatDate(account.lastLoginAt)}` : "Ainda não entrou"}</span>
                 </div>
               </li>
             ))}

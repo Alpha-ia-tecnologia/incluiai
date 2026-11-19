@@ -24,7 +24,7 @@ export default async function NoticesPage() {
               <li key={notice.id}>
                 <Link href={notice.href} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-paper-raised px-4 py-3 text-sm hover:border-brand">
                   <span className="flex min-w-0 items-center gap-2 text-ink"><Bell size={16} aria-hidden className="shrink-0 text-brand-strong" /> {notice.title}</span>
-                  <span className="flex items-center gap-2 text-xs text-ink-soft">{unread.has(notice.id) ? <Badge tone="info">Novo</Badge> : null}{formatDate(notice.createdAt)}</span>
+                  <span className="flex items-center gap-2 text-sm text-ink-soft">{unread.has(notice.id) ? <Badge tone="info">Novo</Badge> : null}{formatDate(notice.createdAt)}</span>
                 </Link>
               </li>
             ))}

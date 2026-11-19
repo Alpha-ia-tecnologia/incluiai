@@ -24,7 +24,7 @@ export function ObjectiveScale({ initial, latest, target, caption }: { initial: 
           );
         })}
       </dl>
-      {caption ? <p className="mt-3 text-xs leading-relaxed text-ink-soft">{caption}</p> : null}
+      {caption ? <p className="mt-3 text-sm leading-relaxed text-ink-soft">{caption}</p> : null}
     </div>
   );
 }

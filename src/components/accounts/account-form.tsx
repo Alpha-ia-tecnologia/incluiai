@@ -98,7 +98,7 @@ function AccountFormBody({ action, roles, schools, fixedSchool, students, defaul
                 <li key={student.id} className={`min-w-0 ${shown.includes(student) ? "" : "hidden"}`}>
                   <label className={choiceCls}>
                     <input type="checkbox" name="studentIds" value={student.id} defaultChecked={defaults?.studentIds.includes(student.id)} className="size-5 shrink-0 accent-[var(--brand)]" />
-                    <span className="min-w-0"><span className="block truncate font-medium">{student.name}</span><span className="block text-xs text-ink-soft">{student.detail}</span></span>
+                    <span className="min-w-0"><span className="block truncate font-medium">{student.name}</span><span className="block text-sm text-ink-soft">{student.detail}</span></span>
                   </label>
                 </li>
               ))}

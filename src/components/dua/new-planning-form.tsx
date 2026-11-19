@@ -42,7 +42,7 @@ export function NewPlanningForm({ classes, reusable, defaultReuse }: { classes: 
           </select>
         )}
       </Field>
-      <p className="text-xs leading-relaxed text-ink-soft sm:col-span-2">Ao partir de outra atividade, só o planejamento da turma é copiado, sem dados dos estudantes.</p>
+      <p className="text-sm leading-relaxed text-ink-soft sm:col-span-2">Ao partir de outra atividade, só o planejamento da turma é copiado, sem dados dos estudantes.</p>
       <div className="sm:col-span-2">
         <button type="submit" disabled={pending} aria-busy={pending} className={BUTTON_CLS.primary}>
           {pending ? "Criando…" : "Começar o planejamento"} <ArrowRight size={16} aria-hidden />

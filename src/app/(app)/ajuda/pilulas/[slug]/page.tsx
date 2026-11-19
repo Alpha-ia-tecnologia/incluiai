@@ -49,9 +49,9 @@ export default async function PillPage({ params }: { params: Promise<{ slug: str
         <section aria-labelledby="pilula-onde" className="rounded-2xl bg-brand-soft p-4 sm:p-5">
           <h2 id="pilula-onde" className="mb-2 text-base font-medium text-ink">Na plataforma</h2>
           <p className="text-sm leading-relaxed text-ink">{pill.where.text}</p>
-          <p className="mt-2 text-sm"><Link href={pill.where.href} className={linkCls}>Ir para lá</Link></p>
+          <p className="mt-1 text-sm"><Link href={pill.where.href} className={`${linkCls} inline-flex min-h-11 items-center`}>Ir para lá</Link></p>
         </section>
-        {pill.norm ? <p className="text-xs text-ink-soft">Base: {pill.norm}.</p> : null}
+        {pill.norm ? <p className="text-sm text-ink-soft">Base: {pill.norm}.</p> : null}
       </article>
       <section aria-labelledby="pilula-outras" className="mt-10">
         <h2 id="pilula-outras" className="mb-3 text-base font-medium text-ink">Outras pílulas</h2>

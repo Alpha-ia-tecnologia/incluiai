@@ -127,7 +127,7 @@ export default async function PlanningListPage({ searchParams }: { searchParams:
                   </span>
                   <span className="font-display text-xl font-medium text-ink">{item.title}</span>
                   {item.objective ? <span className="line-clamp-2 text-sm text-ink-soft">{item.objective}</span> : null}
-                  <span className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2 text-xs text-ink-soft">
+                  <span className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2 text-sm text-ink-soft">
                     <span>{item.ownerName}{item.className ? ` · ${item.className}` : ""} · atualizado em {formatDate(item.updatedAt)} · {plural(item.applications, "aplicação", "aplicações")}</span>
                     <span className="inline-flex items-center gap-1 font-medium text-brand-strong">Abrir <ArrowRight size={14} aria-hidden /></span>
                   </span>

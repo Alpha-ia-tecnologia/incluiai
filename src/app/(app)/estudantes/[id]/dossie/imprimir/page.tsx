@@ -25,7 +25,7 @@ export default async function PrintDossierPage({ params }: { params: Promise<{ i
           <p className="text-sm text-ink-soft">{evidence.school} · {evidence.className}</p>
           <h2 id="dossie-titulo" className="mt-1 break-words font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Dossiê de evidências: {evidence.name}</h2>
           <p className="mt-1 text-sm text-ink-soft">Gerado em {formatDate(new Date())} por {user.name}. {ok} em dia, {conferir} para conferir e {pendente} {pendente === 1 ? "pendente" : "pendentes"}.</p>
-          <p className="mt-1 text-xs text-ink-soft">Orientação do Governo Federal: {FEDERAL_SOURCE_LINE}. O decreto está com a redação do Decreto nº 12.773/2025.</p>
+          <p className="mt-1 text-sm text-ink-soft">Orientação do Governo Federal: {FEDERAL_SOURCE_LINE}. O decreto está com a redação do Decreto nº 12.773/2025.</p>
         </header>
         <EvidenceList groups={evidence.groups} studentId={id} />
       </article>

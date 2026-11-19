@@ -39,7 +39,7 @@ export function TextSizeControl() {
   };
   return (
     <div role="group" aria-label="Tamanho do texto" className="flex items-center gap-1 print:hidden">
-      <span aria-hidden className="mr-1 text-xs text-surface-ink-soft">Texto</span>
+      <span aria-hidden className="mr-1 text-sm text-surface-ink-soft">Texto</span>
       {TEXT_SCALES.map((option, index) => (
         <button
           key={option.value}

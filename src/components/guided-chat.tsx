@@ -152,7 +152,7 @@ export function ChatQuestion<C>({ field }: { field: ChatField<C> }) {
       <Character variant="ideas" className="w-10" />
       <div className="min-w-0">
         <p id={`pergunta-${field.key}`} className="max-w-xl rounded-2xl rounded-tl-sm bg-paper px-4 py-3 text-sm leading-relaxed text-ink shadow-sm">{field.question}</p>
-        {field.hint ? <p className="mt-2 px-1 text-xs leading-relaxed text-ink-soft">{field.hint}</p> : null}
+        {field.hint ? <p className="mt-2 px-1 text-sm leading-relaxed text-ink-soft">{field.hint}</p> : null}
       </div>
     </div>
   );
@@ -162,9 +162,9 @@ export function ChatError({ error }: { error: string }) {
   return error ? <p className="mt-4 rounded-xl bg-coral-soft px-4 py-3 text-sm text-coral" role="alert">{error}</p> : null;
 }
 
-const inputCls = "w-full rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-sm placeholder:text-ink-soft/60 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15";
+const inputCls = "w-full rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15";
 const sendCls = "inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-e1 transition hover:bg-brand-strong";
-const linkCls = "inline-flex min-h-11 items-center text-xs font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline";
+const linkCls = "inline-flex min-h-11 items-center text-sm font-medium text-ink-soft underline-offset-4 hover:text-brand-strong hover:underline";
 const cardCls = (active: boolean) => `rounded-xl border px-4 py-3 text-left transition ${active ? "border-brand bg-brand-soft text-brand-strong shadow-sm" : "border-line bg-paper-raised text-ink hover:border-brand/50 hover:bg-brand-soft/25"}`;
 const chipCls = (active: boolean) => `inline-flex min-h-11 items-center rounded-full border px-3.5 py-2 text-sm font-medium transition ${active ? "border-brand bg-brand-soft text-brand-strong" : "border-line bg-paper-raised text-ink hover:border-brand/50"}`;
 
@@ -191,7 +191,7 @@ export function ChatAnswerControl<C>({ chat, context }: { chat: Chat<C>; context
           })}
         </div>
         <div className="mt-4">
-          <label htmlFor={`${field.key}-outro`} className="mb-1.5 block text-xs font-medium text-ink-soft">Outro: escreva o que não está na lista</label>
+          <label htmlFor={`${field.key}-outro`} className="mb-1.5 block text-sm font-medium text-ink-soft">Outro: escreva o que não está na lista</label>
           <input id={`${field.key}-outro`} value={drafts.text} onChange={(event) => setText(event.target.value)} placeholder={field.other?.placeholder} autoComplete="off" className={inputCls} />
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-4">
@@ -216,20 +216,20 @@ export function ChatAnswerControl<C>({ chat, context }: { chat: Chat<C>; context
                 {option.label}
                 {active ? <Check size={14} className="ml-auto" aria-hidden /> : null}
               </span>
-              {option.description ? <span className="mt-1 block text-xs leading-relaxed text-ink-soft">{option.description}</span> : null}
+              {option.description ? <span className="mt-1 block text-sm leading-relaxed text-ink-soft">{option.description}</span> : null}
             </button>
           );
         })}
         {field.other ? (
           <button type="button" aria-expanded={drafts.otherOpen} aria-controls={`${field.key}-outro-form`} onClick={() => setDrafts({ ...drafts, otherOpen: !drafts.otherOpen })} className={`${cardCls(drafts.otherOpen || custom)} border-dashed text-sm font-semibold`}>
             Outro
-            <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-soft">Escrever uma resposta que não está na lista</span>
+            <span className="mt-1 block text-sm font-normal leading-relaxed text-ink-soft">Escrever uma resposta que não está na lista</span>
           </button>
         ) : null}
         {field.other && drafts.otherOpen ? (
           <form id={`${field.key}-outro-form`} className="flex items-end gap-2 sm:col-span-2" onSubmit={(event) => { event.preventDefault(); answer(drafts.text); }}>
             <div className="min-w-0 flex-1">
-              <label htmlFor={`${field.key}-outro`} className="mb-1.5 block text-xs font-medium text-ink-soft">{field.other.suffix ? `Quantos ${field.other.suffix}?` : "Qual?"}</label>
+              <label htmlFor={`${field.key}-outro`} className="mb-1.5 block text-sm font-medium text-ink-soft">{field.other.suffix ? `Quantos ${field.other.suffix}?` : "Qual?"}</label>
               <input
                 id={`${field.key}-outro`} type={field.other.type ?? "text"} min={field.other.min} max={field.other.max} autoFocus autoComplete="off"
                 value={drafts.text} onChange={(event) => setText(event.target.value)} placeholder={field.other.placeholder} className={inputCls}
@@ -261,12 +261,12 @@ export function ChatAnswerControl<C>({ chat, context }: { chat: Chat<C>; context
 export function ChatFooter<C>({ chat, resetLabel }: { chat: Chat<C>; resetLabel: string | null }) {
   return (
     <div className="flex items-center justify-between border-t border-line bg-paper/50 px-5 py-3 sm:px-7">
-      <button type="button" onClick={chat.back} disabled={chat.index === 0 && !chat.editing} className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-ink-soft hover:text-brand-strong disabled:invisible">
+      <button type="button" onClick={chat.back} disabled={chat.index === 0 && !chat.editing} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-brand-strong disabled:invisible">
         <ChevronLeft size={14} aria-hidden />
         {chat.editing ? "Cancelar edição" : "Voltar"}
       </button>
       {resetLabel ? (
-        <button type="button" onClick={chat.askReset} className="inline-flex min-h-11 items-center gap-1.5 text-xs text-ink-soft hover:text-coral">
+        <button type="button" onClick={chat.askReset} className="inline-flex min-h-11 items-center gap-1.5 text-sm text-ink-soft hover:text-coral">
           <RotateCcw size={13} aria-hidden /> {resetLabel}
         </button>
       ) : null}
@@ -303,12 +303,12 @@ export function ChatReview<C>({ chat, fields, context, sections, empty, title, t
           <section key={section.title} className="rounded-2xl border border-line bg-paper/40 p-4">
             <div className="mb-3">
               <h3 className="text-sm font-semibold text-ink">{section.title}</h3>
-              {section.description ? <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">{section.description}</p> : null}
+              {section.description ? <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">{section.description}</p> : null}
             </div>
             <dl className="divide-y divide-line/70">
               {fields.filter((field) => field.section === section.title).map((field) => (
                 <div key={field.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 py-2.5">
-                  <dt className="col-start-1 text-xs font-semibold text-ink-soft">{field.label}</dt>
+                  <dt className="col-start-1 text-sm font-semibold text-ink-soft">{field.label}</dt>
                   <dd className="col-start-1 mt-0.5 break-words text-sm leading-relaxed text-ink">{answerText(field, chat.answers, context, empty)}</dd>
                   <dd className="col-start-2 row-span-2 row-start-1">
                     <button type="button" onClick={() => chat.edit(field)} aria-label={`Editar ${field.label}`} className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-brand-soft hover:text-brand-strong">

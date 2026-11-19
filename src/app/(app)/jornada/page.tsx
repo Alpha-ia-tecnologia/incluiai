@@ -133,13 +133,13 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${chapter.done ? `${tone.soft} ${tone.ink}` : chapter.status === "agora" ? "bg-brand text-white" : "bg-surface-muted text-ink-soft"}`}>
                           {STATUS_LABELS[chapter.status]}{chapter.done && chapter.date ? ` em ${formatDate(chapter.date)}` : ""}
                         </span>
-                        {chapter.progress && chapter.progress.total ? <span className="text-xs text-ink-soft">{chapter.progress.done} de {chapter.progress.total}</span> : null}
+                        {chapter.progress && chapter.progress.total ? <span className="text-sm text-ink-soft">{chapter.progress.done} de {chapter.progress.total}</span> : null}
                       </div>
                       {chapter.status === "agora" ? <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">Detalhes no destaque acima.</p>
                         : chapter.done ? <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{chapter.evidence ?? chapter.story}</p>
                           : <>
                             <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{chapter.story}</p>
-                            {chapter.evidence ? <p className={`mt-2 inline-block rounded-xl px-3 py-1.5 text-xs leading-relaxed ${tone.soft} ${tone.ink}`}>{chapter.evidence}</p> : null}
+                            {chapter.evidence ? <p className={`mt-2 inline-block rounded-xl px-3 py-1.5 text-sm leading-relaxed ${tone.soft} ${tone.ink}`}>{chapter.evidence}</p> : null}
                           </>}
                       {chapter.status !== "agora" ? <ChapterProgress chapter={chapter} /> : null}
                       <Link href={chapter.action.href} className={`mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium ${tone.ink} underline-offset-4 hover:underline`}>
@@ -170,7 +170,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
             {journey.milestones.length ? (
               <section aria-labelledby="conquistas-titulo" className="rounded-2xl bg-paper-raised p-5 ring-1 ring-line">
                 <h2 id="conquistas-titulo" className="text-base font-medium">Conquistas da jornada</h2>
-                <p className="mt-1 text-xs text-ink-soft">{journey.milestones.filter((milestone) => milestone.achieved).length} de {journey.milestones.length} alcançadas{journey.kind === "professor" || journey.kind === "escola" || journey.kind === "rede" ? " pela equipe" : ""}.</p>
+                <p className="mt-1 text-sm text-ink-soft">{journey.milestones.filter((milestone) => milestone.achieved).length} de {journey.milestones.length} alcançadas{journey.kind === "professor" || journey.kind === "escola" || journey.kind === "rede" ? " pela equipe" : ""}.</p>
                 <ul className="mt-4 space-y-3">
                   {journey.milestones.map((milestone) => (
                     <li key={milestone.key} className="flex items-start gap-3">
@@ -179,7 +179,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
                       </span>
                       <span className="min-w-0">
                         <span className={`block text-sm font-medium leading-snug ${milestone.achieved ? "text-ink" : "text-ink-soft"}`}>{milestone.title}<span className="sr-only">{milestone.achieved ? ": alcançada" : ": ainda não alcançada"}</span></span>
-                        <span className="block text-xs leading-relaxed text-ink-soft">{milestone.achieved && milestone.date ? `${formatDate(milestone.date)} · ` : ""}{milestone.description}</span>
+                        <span className="block text-sm leading-relaxed text-ink-soft">{milestone.achieved && milestone.date ? `${formatDate(milestone.date)} · ` : ""}{milestone.description}</span>
                       </span>
                     </li>
                   ))}
@@ -216,7 +216,7 @@ function ImpactTile({ item, id }: { item: ImpactItem; id: string }) {
         <div className="min-w-0">
           <h3 className="text-sm font-medium leading-snug text-ink">{item.label}</h3>
           <p className="mt-1 font-display font-bold text-3xl leading-none tracking-tight text-ink tabular-nums">{item.value}</p>
-          {item.hint ? <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{item.hint}</p> : null}
+          {item.hint ? <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{item.hint}</p> : null}
         </div>
       </article>
     );

@@ -67,7 +67,7 @@ export function Overview({ data, nominal, canCensus, periodText }: { data: Dashb
           <li key={item.key}>
             <Link href={`/estudantes/${item.student!.id}/linha-do-tempo#objetivo-${item.key}`} className={ROW_LINK}>
               <span aria-hidden><SupportSteps data={item.steps} size="mini" /></span>
-              <span className="min-w-0 flex-1"><span className="block font-medium text-ink">{item.student!.name}</span><span className="block text-xs text-ink-soft first-letter:uppercase">{item.action}</span></span>
+              <span className="min-w-0 flex-1"><span className="block font-medium text-ink">{item.student!.name}</span><span className="block text-sm text-ink-soft first-letter:uppercase">{item.action}</span></span>
               <ArrowUpRight size={16} aria-hidden className="shrink-0 text-ink-soft" />
             </Link>
           </li>
@@ -78,7 +78,7 @@ export function Overview({ data, nominal, canCensus, periodText }: { data: Dashb
   const strategyList = strategies.length ? (
     <div>
       <ListTitle>Funcionou nas aulas</ListTitle>
-      <p className="-mt-1 mb-3 text-xs text-ink-soft">Marcado em “o que funcionou” · {periodText}</p>
+      <p className="-mt-1 mb-3 text-sm text-ink-soft">Marcado em “o que funcionou” · {periodText}</p>
       <ul className="flex flex-wrap gap-1.5">
         {strategies.map((item) => (
           <li key={item.label} className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-surface-muted px-3 text-sm text-ink">{item.label}<span className="text-xs tabular-nums text-ink-soft">{item.value}×</span></li>
@@ -108,7 +108,7 @@ export function Overview({ data, nominal, canCensus, periodText }: { data: Dashb
                 {pending.map((student) => (
                   <li key={student.id}>
                     <Link href={student.next.href} className={ROW_LINK}>
-                      <span className="min-w-0 flex-1"><span className="block font-medium text-ink">{student.name}</span><span className="block text-xs text-ink-soft">{student.next.label}{where(student.school)}</span></span>
+                      <span className="min-w-0 flex-1"><span className="block font-medium text-ink">{student.name}</span><span className="block text-sm text-ink-soft">{student.next.label}{where(student.school)}</span></span>
                       <ArrowUpRight size={16} aria-hidden className="shrink-0 text-ink-soft" />
                     </Link>
                   </li>
@@ -161,7 +161,7 @@ export function Overview({ data, nominal, canCensus, periodText }: { data: Dashb
                   <Link href={`/estudantes/${student.id}`} className={ROW_LINK}>
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium text-ink">{student.name}</span>
-                      <span className="block text-xs text-ink-soft">{student.className}{where(student.school)} · {student.alerts.map((kind) => shortOf(ALERTS, kind)).join(" · ")}</span>
+                      <span className="block text-sm text-ink-soft">{student.className}{where(student.school)} · {student.alerts.map((kind) => shortOf(ALERTS, kind)).join(" · ")}</span>
                     </span>
                     <StatusPill tone="alert">{plural(student.alerts.length, "aviso", "avisos")}</StatusPill>
                     <ArrowUpRight size={16} aria-hidden className="shrink-0 text-ink-soft" />
@@ -188,7 +188,7 @@ export function Overview({ data, nominal, canCensus, periodText }: { data: Dashb
                 <li key={school.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
                   <span className="min-w-0">
                     <span className="block font-medium text-ink">{school.name}</span>
-                    <span className="block text-xs text-ink-soft">{school.byKind.map((row) => `${shortOf(ALERTS, row.kind)}: ${row.value}`).join(" · ")}</span>
+                    <span className="block text-sm text-ink-soft">{school.byKind.map((row) => `${shortOf(ALERTS, row.kind)}: ${row.value}`).join(" · ")}</span>
                   </span>
                   <span className="flex flex-wrap items-center gap-3">
                     <span className="text-sm tabular-nums text-ink"><strong className="font-semibold">{school.withAlerts}</strong> de {plural(school.students, "estudante", "estudantes")} com aviso</span>

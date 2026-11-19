@@ -11,7 +11,7 @@ import { HowToRead } from "@/components/explain";
 import { Character } from "@/components/character";
 import { STAGES } from "@/lib/scale";
 import { COMPLEXITY_LABELS, RESOURCE_TYPES, resourcePresentation, resourceTypeLabel } from "@/lib/resource-bank";
-import { ArrowUpRight, Search, ListChecks } from "lucide-react";
+import { Search, ListChecks } from "lucide-react";
 import { Meter, RingStat, SIGNAL } from "@/components/viz/charts";
 import { percentOf } from "@/lib/series";
 
@@ -47,16 +47,15 @@ export default async function ResourcesPage({
       </section>
 
       <Card className="mb-8">
-        <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_auto]">
+        <form className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_auto]">
           <div className="min-w-0">
-            <label htmlFor="q" className={labelCls}>Buscar recurso</label>
+            <label htmlFor="q" className={labelCls}>Buscar por título, habilidade ou acessibilidade</label>
             <div className="relative">
               <Search size={16} className="pointer-events-none absolute left-4 top-3.5 text-ink-soft" aria-hidden />
               <input
                 id="q"
                 name="q"
                 defaultValue={q}
-                placeholder="Título, habilidade ou acessibilidade"
                 className="h-11 w-full rounded-xl border border-line bg-paper py-2.5 pl-11 pr-4 text-sm text-ink"
               />
             </div>
@@ -92,7 +91,7 @@ export default async function ResourcesPage({
           <div className="mb-4">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
               <h2 className="text-base font-medium text-ink">Explore os recursos</h2>
-              <span className="text-xs text-ink-soft">{resources.length} {resources.length === 1 ? "recurso disponível" : "recursos disponíveis"}</span>
+              <span className="text-sm text-ink-soft">{resources.length} {resources.length === 1 ? "recurso disponível" : "recursos disponíveis"}</span>
             </div>
             <HowToRead>
               O anel mostra a boa resposta entre as aplicações registradas na rede; a barra compara o uso com o recurso mais aplicado desta lista{mostUsed ? ` (${mostUsed}x)` : ""}. Sem aplicações, não há percentual. As fotografias são ilustrativas.
@@ -106,30 +105,29 @@ export default async function ResourcesPage({
                 <Link key={r.id} href={`/recursos/${r.id}`} className={`group flex h-full flex-col overflow-hidden rounded-3xl text-ink transition duration-200 hover:-translate-y-1 hover:shadow-e2 ${TYPE_COLORS[r.resourceType] ?? "bg-surface-muted"}`}>
                   <Image src={photo.image} alt="" width={1000} height={750} sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw" className="aspect-[3/2] w-full bg-surface-muted object-cover" />
                   <div className="flex flex-1 flex-col p-6">
-                    <span className="mb-2 text-xs font-medium">{resourceTypeLabel(r.resourceType)}</span>
                     <h3 className="max-w-lg text-xl font-medium leading-snug tracking-tight text-ink">{r.title}</h3>
                     <p className="mb-5 mt-2 line-clamp-3 text-sm leading-relaxed text-ink/75">{r.description}</p>
                     <div className="mt-auto flex flex-wrap gap-1.5">
+                      <Badge>{resourceTypeLabel(r.resourceType)}</Badge>
                       <Badge>{STAGES[r.stage] ?? r.stage}</Badge>
                       <Badge>{r.skillArea}</Badge>
                       <Badge>{r.accessibilityNeed}</Badge>
                       <Badge>{COMPLEXITY_LABELS[r.complexity] ?? r.complexity}</Badge>
                     </div>
-                    <div className="mt-5 flex items-center gap-3 border-t border-ink/10 pt-4">
-                      <div aria-hidden className="shrink-0 rounded-full bg-white/80 p-1">
-                        <RingStat id={`boa-resposta-${r.id}`} value={successRate} label="Boa resposta" size={52} color={SIGNAL.lime}>
-                          <span aria-hidden className="text-xs font-medium tabular-nums text-ink">{successRate === null ? "—" : `${successRate}%`}</span>
-                        </RingStat>
+                    <div className="mt-5 border-t border-ink/10 pt-4">
+                      <div className="flex items-center gap-3">
+                        <div aria-hidden className="shrink-0 rounded-full bg-white/80 p-1">
+                          <RingStat id={`boa-resposta-${r.id}`} value={successRate} label="Boa resposta" size={52} color={SIGNAL.lime}>
+                            <span aria-hidden className="text-xs font-medium tabular-nums text-ink">{successRate === null ? "—" : `${successRate}%`}</span>
+                          </RingStat>
+                        </div>
+                        <p className="min-w-0 flex-1 text-sm font-medium text-ink">{successRate === null ? "Sem aplicações registradas" : `${successRate}% de boa resposta`}{successRate === null ? null : <span className="block font-normal tabular-nums text-ink/75">{r.positiveOutcomes} de {r.timesUsed} aplicações</span>}</p>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-ink">{successRate === null ? "Sem aplicações registradas" : `${successRate}% de boa resposta`}<span className="font-normal text-ink/75">{successRate === null ? "" : ` · ${r.positiveOutcomes} de ${r.timesUsed}`}</span></p>
-                        <Meter value={r.timesUsed} max={mostUsed} track="bg-white/70" className="mt-1.5" />
-                        <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink/75">
-                          <span>Aplicado {r.timesUsed}x na rede</span>
-                          <span className="inline-flex items-center gap-1.5"><ListChecks size={13} aria-hidden /> {r._count.activities} atividades</span>
-                        </p>
-                      </div>
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/70 transition-colors group-hover:bg-white"><ArrowUpRight size={17} aria-hidden /></span>
+                      <Meter value={r.timesUsed} max={mostUsed} track="bg-white/70" className="mt-3" />
+                      <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/75">
+                        <span>Aplicado {r.timesUsed}x na rede</span>
+                        <span className="inline-flex items-center gap-1.5"><ListChecks size={14} aria-hidden /> {r._count.activities} atividades</span>
+                      </p>
                     </div>
                   </div>
                 </Link>

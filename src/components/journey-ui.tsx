@@ -44,7 +44,7 @@ export function JourneyWelcome({ journey, hero = false }: { journey: Journey; he
                   <span key={chapter.key} className={`h-1.5 flex-1 rounded-full ${chapter.done ? "bg-action" : chapter === next ? "bg-action/45" : "bg-surface-line"}`} />
                 ))}
               </div>
-              <p className="mt-2 text-xs text-surface-ink-soft">{journey.completed} de {total} capítulos concluídos</p>
+              <p className="mt-2 text-sm text-surface-ink-soft">{journey.completed} de {total} capítulos concluídos</p>
               {next ? <p className="mt-3 text-base font-medium leading-snug text-surface-ink">Próximo: {next.title}</p> : null}
             </div>
           ) : null}
@@ -74,7 +74,7 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
     return (
       <section aria-label="Sua jornada" className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-line bg-paper-raised px-4 py-3.5 sm:px-5 print:hidden">
         <div className="min-w-[180px] flex-1">
-          <p className="flex items-center gap-2 text-xs font-medium text-brand-strong"><Route size={14} aria-hidden /> Sua jornada · {summary}</p>
+          <p className="flex items-center gap-2 text-sm font-medium text-brand-strong"><Route size={14} aria-hidden /> Sua jornada · {summary}</p>
           <p className="mt-1 text-sm font-medium text-ink">{current ? `Próximo: ${current.title}` : journey.completed < total ? "Você está em dia. O restante aguarda a outra parte." : "Todos os capítulos concluídos. A história continua a cada semana."}</p>
           <div className="mt-2 max-w-sm"><JourneyBar journey={journey} /></div>
         </div>
@@ -93,13 +93,12 @@ export function JourneyProgress({ journey, layout = "card" }: { journey: Journey
         </RingStat>
         <div className="min-w-0">
           <h2 id="jornada-resumo-titulo" className="text-base font-medium leading-snug">{journey.title}</h2>
-          <p className="mt-1 text-xs text-ink-soft">{summary} concluídos</p>
+          <p className="mt-1 text-sm text-ink-soft">{summary} concluídos</p>
         </div>
       </div>
       {current ? (
         <>
-          <p className="mt-4 text-xs text-ink-soft">Próximo capítulo</p>
-          <p className="mt-0.5 text-sm font-medium leading-snug text-ink">{current.title}</p>
+          <p className="mt-4 text-sm font-medium leading-snug text-ink">Próximo: {current.title}</p>
           <Link href={current.action.href} className="task-action task-action-secondary mt-3 !min-h-11 !py-2">{current.action.label} <ArrowRight size={16} aria-hidden /></Link>
         </>
       ) : <p className="mt-4 text-sm leading-relaxed text-ink-soft">{journey.completed < total ? "Você está em dia. O restante aguarda a outra parte." : "Todos os capítulos concluídos. A história continua a cada aula registrada."}</p>}

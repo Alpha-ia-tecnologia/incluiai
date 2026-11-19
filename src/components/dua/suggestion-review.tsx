@@ -90,7 +90,7 @@ function SuggestionCard({ planningId, suggestion, canDecide, beforeChange }: { p
         <Badge tone={AI_STATE[suggestion.state].tone}>{AI_STATE[suggestion.state].label}</Badge>
         {suggestion.studentName ? <Badge tone="neutral">Apoio de {suggestion.studentName}</Badge> : null}
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+      <p className="mt-2 text-sm leading-relaxed text-ink-soft">
         Pedida por {suggestion.requestedByName} em {formatDateTime(suggestion.createdAt)} · versão {suggestion.versionNumber} do planejamento · {suggestion.provider === "ia" ? `IA (${suggestion.model ?? "sem resposta"})` : "regras da plataforma"} · instruções {suggestion.promptVersion}
         {suggestion.removedCount ? ` · ${suggestion.removedCount} identificador(es) trocado(s) antes do envio` : ""}
       </p>
@@ -111,7 +111,7 @@ function SuggestionCard({ planningId, suggestion, canDecide, beforeChange }: { p
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-ink-soft">As verificações apoiam a sua revisão; não a substituem.</p>
+          <p className="mt-2 text-sm text-ink-soft">As verificações apoiam a sua revisão; não a substituem.</p>
         </details>
       ) : null}
       {suggestion.blocks.length ? (

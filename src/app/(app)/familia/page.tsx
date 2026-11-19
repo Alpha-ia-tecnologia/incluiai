@@ -30,7 +30,7 @@ export default async function FamilyPortalIndex() {
           : "Um ambiente simples, sem linguagem excessivamente técnica, para acompanhar avanços, registrar conquistas e saber quem acessou os dados do estudante."}
       />
       {family ? null : (
-        <p className="mb-4 text-xs text-ink-soft">
+        <p className="mb-4 text-sm text-ink-soft">
           Veja como a família enxerga o portal. Cada responsável acessa só os estudantes vinculados à conta dele.
         </p>
       )}
@@ -47,7 +47,7 @@ export default async function FamilyPortalIndex() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-ink">{s.name}</p>
-                <p className="text-xs text-ink-soft">{s.gradeYear} · {s.school.name}</p>
+                <p className="text-sm text-ink-soft">{s.gradeYear} · {s.school.name}</p>
               </div>
               <ArrowRight size={16} className="text-ink-soft" aria-hidden />
             </Card>

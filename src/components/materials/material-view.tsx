@@ -49,7 +49,7 @@ function ActivityCard({ activity, index, studentId, materialId, printMode, canEd
       {activity.goal ? <p className="mt-1 text-sm text-ink-soft">{activity.goal}</p> : null}
       <div className="mt-3 grid min-w-0 gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-soft">Passo a passo</p>
+          <p className="text-sm font-medium text-ink-soft">Passo a passo</p>
           <ol className="mt-1.5 grid gap-1.5">
             {activity.steps.map((step, stepIndex) => (
               <li key={stepIndex} className="flex gap-2 text-sm text-ink">
@@ -64,16 +64,16 @@ function ActivityCard({ activity, index, studentId, materialId, printMode, canEd
         <div className="grid min-w-0 content-start gap-3">
           {activity.responseForms.length ? (
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-soft">Pode responder</p>
+              <p className="text-sm font-medium text-ink-soft">Pode responder</p>
               <ul className="mt-1.5 flex flex-wrap gap-1.5">{activity.responseForms.map((form) => <li key={form} className="rounded-full bg-sky-soft px-2.5 py-1 text-xs text-sky-ink">{form}</li>)}</ul>
             </div>
           ) : null}
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-soft">Escada de apoio</p>
+            <p className="text-sm font-medium text-ink-soft">Escada de apoio</p>
             <dl className="mt-1.5 grid gap-1.5 text-sm">
-              <div className="rounded-lg bg-amber-soft/60 px-2.5 py-1.5"><dt className="text-xs font-medium text-amber">Se ficar difícil</dt><dd className="text-ink">{activity.supportBelow}</dd></div>
-              <div className="rounded-lg bg-brand-soft/60 px-2.5 py-1.5"><dt className="text-xs font-medium text-brand-strong">Apoio de hoje</dt><dd className="text-ink">{activity.supportTarget}</dd></div>
-              <div className="rounded-lg bg-green-soft/70 px-2.5 py-1.5"><dt className="text-xs font-medium text-green">Quando estiver pronto</dt><dd className="text-ink">{activity.supportAbove}</dd></div>
+              <div className="rounded-lg bg-amber-soft/60 px-2.5 py-1.5"><dt className="text-sm font-medium text-amber">Se ficar difícil</dt><dd className="text-ink">{activity.supportBelow}</dd></div>
+              <div className="rounded-lg bg-brand-soft/60 px-2.5 py-1.5"><dt className="text-sm font-medium text-brand-strong">Apoio de hoje</dt><dd className="text-ink">{activity.supportTarget}</dd></div>
+              <div className="rounded-lg bg-green-soft/70 px-2.5 py-1.5"><dt className="text-sm font-medium text-green">Quando estiver pronto</dt><dd className="text-ink">{activity.supportAbove}</dd></div>
             </dl>
           </div>
         </div>
@@ -118,12 +118,12 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
             {material.context ? <Badge tone={toneOf(CONTEXTS, material.context)}>{labelOf(CONTEXTS, material.context)}</Badge> : null}
           </div>
           <h2 id={`material-${material.id}-titulo`} className="mt-2 break-words font-display text-2xl font-semibold leading-tight tracking-tight text-ink sm:text-3xl">{material.title}</h2>
-          <p className="mt-1 text-xs text-ink-soft">
+          <p className="mt-1 text-sm text-ink-soft">
             Criado em {formatDate(material.createdAt)}
             {material.topic ? ` · situação: ${material.topic}` : ""}
             {approved && material.approvedBy ? ` · aprovado por ${material.approvedBy}${material.approvedAt ? ` em ${formatDate(material.approvedAt)}` : ""}` : ""}
           </p>
-          {objective ? <p className="mt-1 text-xs text-ink-soft"><span className="font-medium text-ink">Objetivo do plano:</span> {objective}</p> : null}
+          {objective ? <p className="mt-1 text-sm text-ink-soft"><span className="font-medium text-ink">Objetivo do plano:</span> {objective}</p> : null}
         </div>
         {!printMode ? (
           <div className="flex flex-wrap items-center gap-2 print:hidden">
@@ -173,7 +173,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
                 </span>
               )}
               <span className={`mt-2 font-medium text-ink ${printMode ? "text-xl" : "text-sm"} ${story ? "text-left" : ""}`}>{card.label}</span>
-              {card.caption ? <span className="mt-0.5 text-xs text-ink-soft">{card.caption}</span> : null}
+              {card.caption ? <span className="mt-0.5 text-sm text-ink-soft">{card.caption}</span> : null}
             </li>
           ))}
         </ol>
@@ -210,7 +210,7 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
             <h3 className="flex items-center gap-2 text-sm font-medium text-ink"><Target size={16} aria-hidden /> Por que assim</h3>
             <ul className="mt-2 grid gap-2 text-sm">
               {content.adaptations.map((item) => (
-                <li key={item.text}><span className="text-ink">{item.text}</span><span className="block text-xs text-ink-soft">{item.basis}</span></li>
+                <li key={item.text}><span className="text-ink">{item.text}</span><span className="block text-sm text-ink-soft">{item.basis}</span></li>
               ))}
             </ul>
           </section>
@@ -231,8 +231,8 @@ export function MaterialView({ studentId, material, objective, imagesOn, printMo
 
       {!printMode && canEdit && trace.length ? (
         <details className="mt-4 print:hidden">
-          <summary className="min-h-11 cursor-pointer py-2 text-xs font-medium text-brand-strong">Como este material foi feito</summary>
-          <ul className="mt-1 grid gap-1 text-xs text-ink-soft">{trace.map((step, index) => <li key={index}><span className="font-medium text-ink">{step.agent}:</span> {step.summary}</li>)}</ul>
+          <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium text-brand-strong">Como este material foi feito</summary>
+          <ul className="mt-1 grid gap-1 text-sm text-ink-soft">{trace.map((step, index) => <li key={index}><span className="font-medium text-ink">{step.agent}:</span> {step.summary}</li>)}</ul>
         </details>
       ) : null}
     </article>

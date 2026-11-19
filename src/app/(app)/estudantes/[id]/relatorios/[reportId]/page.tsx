@@ -42,7 +42,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         <Card>
           <OpinionEditor action={saveReport.bind(null, id, report.id)} opinion={report.opinion} canValidate={can.validateReports} />
           <details className="mt-6 rounded-2xl bg-surface-muted p-4">
-            <summary className="min-h-6 cursor-pointer text-sm font-medium text-ink">Excluir este rascunho</summary>
+            <summary className="cursor-pointer py-3 text-sm font-medium text-ink">Excluir este rascunho</summary>
             <p className="my-3 text-sm text-ink-soft">O rascunho e o parecer escrito saem. Os registros do período continuam na ficha.</p>
             <ActionForm action={removeReportDraft.bind(null, id, report.id)}>
               <button type="submit" className={BUTTON_CLS.danger}><Trash2 size={16} aria-hidden /> Excluir o rascunho</button>

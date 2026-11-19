@@ -25,7 +25,7 @@ export function ContentSummary({ content, children }: { content: DuaContent; chi
         <dd>
           {content.barriers.length ? (
             <ul className="list-disc pl-5 text-ink-soft">
-              {content.barriers.map((item) => <li key={item.id} className="break-words">{item.description || "—"} <span className="text-xs">({(BARRIER_STATUS_LABEL[item.status] ?? item.status).toLowerCase()})</span></li>)}
+              {content.barriers.map((item) => <li key={item.id} className="break-words">{item.description || "—"} <span className="text-sm">({(BARRIER_STATUS_LABEL[item.status] ?? item.status).toLowerCase()})</span></li>)}
             </ul>
           ) : <span className="text-ink-soft">Nenhuma registrada</span>}
         </dd>

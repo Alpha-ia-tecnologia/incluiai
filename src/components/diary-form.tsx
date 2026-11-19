@@ -195,7 +195,7 @@ export function DiaryForm({
         </section>
 
         <details className="rounded-2xl border border-line p-4 sm:p-5">
-          <summary className="cursor-pointer py-1 text-sm font-semibold text-brand-strong">Adicionar mais detalhes (opcional)</summary>
+          <summary className="cursor-pointer py-3 text-sm font-semibold text-brand-strong">Adicionar mais detalhes (opcional)</summary>
           <div className="mt-4 space-y-6">
             <MultiChoiceField name="whatWorked" label="O que ajudou o estudante?" options={WHAT_WORKED_OPTIONS} />
             <MultiChoiceField name="recommendation" label="O que tentar no próximo encontro?" options={RECOMMENDATION_OPTIONS} />

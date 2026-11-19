@@ -25,7 +25,7 @@ function CardHeader({ title, hint, help, href, linkLabel }: { title: string; hin
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="min-w-0">
         <h3 className="text-base font-medium tracking-tight text-ink">{title}</h3>
-        {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-soft">{hint}</p> : null}
+        {hint ? <p className="mt-1 text-sm leading-relaxed text-ink-soft">{hint}</p> : null}
         {help ? <HowToRead>{help}</HowToRead> : null}
       </div>
       {href ? <Link href={href} className="circle-link !size-11" aria-label={linkLabel ?? `Abrir ${title.toLowerCase()}`}><ArrowUpRight size={16} aria-hidden /></Link> : null}
@@ -51,7 +51,7 @@ function CountList({ label, items }: { label: string; items: { key: string; valu
   return (
     <ul aria-label={label} className="flex min-w-0 flex-wrap gap-1.5">
       {items.map((item) => (
-        <li key={item.key} className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-full bg-surface-muted/70 py-1 pl-1 pr-3 text-xs text-ink">
+        <li key={item.key} className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-full bg-surface-muted/70 py-1 pl-1 pr-3 text-sm text-ink">
           <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-accent-sky px-1.5 text-sm font-semibold tabular-nums text-ink-strong">{item.value}</span>
           <span className="min-w-0">{item.label}</span>
         </li>
@@ -63,7 +63,7 @@ function CountList({ label, items }: { label: string; items: { key: string; valu
 function AiStat({ label, value, detail }: { label: string; value: ReactNode; detail?: string }) {
   return (
     <div className="flex min-w-0 items-baseline justify-between gap-x-4 py-2.5">
-      <dt className="min-w-0 text-sm text-ink">{label}{detail ? <span className="block text-xs text-ink-soft">{detail}</span> : null}</dt>
+      <dt className="min-w-0 text-sm text-ink">{label}{detail ? <span className="block text-sm text-ink-soft">{detail}</span> : null}</dt>
       <dd className="shrink-0 font-display text-2xl font-semibold leading-none tracking-tight text-ink tabular-nums">{value}</dd>
     </div>
   );
@@ -100,7 +100,7 @@ export function ObjectivesView({ data, periodText }: { data: Dashboard; periodTe
           <h3 id="apoio-titulo" className="text-base font-medium tracking-tight">Nível de apoio</h3>
           {support.initial !== null && support.latest !== null && support.target !== null ? (
             <>
-              <p className="mt-1 text-xs text-ink-soft">Média de {plural(support.objectives, "objetivo", "objetivos")} com registro</p>
+              <p className="mt-1 text-sm text-ink-soft">Média de {plural(support.objectives, "objetivo", "objetivos")} com registro</p>
               <SupportScale initial={support.initial} latest={support.latest} target={support.target} />
               <dl className="mt-4 flex min-w-0 flex-wrap gap-1.5">
                 {([["No início", support.initial, SCALE_MARKER.initial], ["Agora", support.latest, SCALE_MARKER.latest], ["Meta", support.target, SCALE_MARKER.target]] as const).map(([label, value, marker]) => (
@@ -177,7 +177,7 @@ export function LessonsView({ data, periodText }: { data: Dashboard; periodText:
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 id="meses-titulo" className="text-base font-medium tracking-tight">Meses com registro de aula</h3>
-              <p className="mt-1 text-xs text-ink-soft">
+              <p className="mt-1 text-sm text-ink-soft">
                 {cal.schoolMonths
                   ? <><strong className="text-sm font-semibold text-ink tabular-nums">{cal.monthsWithRecords} de {cal.schoolMonths}</strong> {cal.schoolMonths === 1 ? "mês letivo" : "meses letivos"} · todo o histórico</>
                   : "Ainda não há registros de aula · todo o histórico"}
@@ -234,26 +234,26 @@ export function ActivitiesView({ data, dua, periodText, canConfigureAi, canPlanD
             <CardHeader title="Onde acontecem" />
             <BarList rows={act.byContext} empty="Nenhuma atividade criada no período." />
           </div>
-          <div className="dash-card">
+          <div className="dash-card min-w-0">
             <CardHeader title="Origem e adesão" help="Adesão: atividades aceitas ou aplicadas entre as avaliadas." />
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <caption className="sr-only">Atividades por origem e adesão</caption>
                 <thead>
-                  <tr className="text-xs text-ink-soft">
+                  <tr className="text-sm text-ink-soft">
                     <th scope="col" className="pb-2.5 text-left font-normal">Origem</th>
-                    <th scope="col" className="pb-2.5 pl-3 text-right font-normal">Criadas</th>
-                    <th scope="col" className="pb-2.5 pl-3 text-right font-normal">Avaliadas</th>
-                    <th scope="col" className="pb-2.5 pl-3 text-right font-normal">Adesão</th>
+                    <th scope="col" className="pb-2.5 pl-2 text-right font-normal">Criadas</th>
+                    <th scope="col" className="pb-2.5 pl-2 text-right font-normal">Avaliadas</th>
+                    <th scope="col" className="pb-2.5 pl-2 text-right font-normal">Adesão</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line border-t border-line">
                   {act.sources.map((source) => (
                     <tr key={source.source}>
                       <th scope="row" className="py-3 pr-2 text-left font-normal">{source.label}</th>
-                      <td className="py-3 pl-3 text-right tabular-nums">{source.total}</td>
-                      <td className="py-3 pl-3 text-right tabular-nums">{source.decided}</td>
-                      <td className="py-3 pl-3 text-right">{source.adhesion === null ? <span className="text-ink-soft">—</span> : <StatusPill tone={source.adhesion >= 70 ? "good" : source.adhesion >= 40 ? "mid" : "alert"}>{source.adhesion}%</StatusPill>}</td>
+                      <td className="py-3 pl-2 text-right tabular-nums">{source.total}</td>
+                      <td className="py-3 pl-2 text-right tabular-nums">{source.decided}</td>
+                      <td className="py-3 pl-2 text-right">{source.adhesion === null ? <span className="text-ink-soft">—</span> : <StatusPill tone={source.adhesion >= 70 ? "good" : source.adhesion >= 40 ? "mid" : "alert"}>{source.adhesion}%</StatusPill>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -280,7 +280,7 @@ export function ActivitiesView({ data, dua, periodText, canConfigureAi, canPlanD
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 id="recursos-titulo" className="text-base font-medium tracking-tight text-ink">Recursos mais usados</h3>
-                <p className="mt-1 text-xs leading-relaxed text-ink-soft">Banco municipal · o mesmo para toda a rede</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink-soft">Banco municipal · o mesmo para toda a rede</p>
               </div>
               <Link href="/recursos" className="circle-link !size-11" aria-label="Abrir o banco de recursos"><ArrowUpRight size={16} aria-hidden /></Link>
             </div>
@@ -301,7 +301,7 @@ export function ActivitiesView({ data, dua, periodText, canConfigureAi, canPlanD
                     <Link href={`/recursos/${item.id}`} className="group block min-h-12 py-2.5 text-sm">
                       <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                         <span className="min-w-0 group-hover:underline">{item.title}</span>
-                        <span className="ml-auto flex shrink-0 items-center gap-2 text-xs tabular-nums text-ink-soft">{plural(item.uses, "uso", "usos")}{item.positive !== null ? <StatusPill tone={item.positive >= 70 ? "good" : item.positive >= 40 ? "mid" : "alert"}>{item.positive}% bom resultado</StatusPill> : null}</span>
+                        <span className="ml-auto flex shrink-0 items-center gap-2 text-sm tabular-nums text-ink-soft">{plural(item.uses, "uso", "usos")}{item.positive !== null ? <StatusPill tone={item.positive >= 70 ? "good" : item.positive >= 40 ? "mid" : "alert"}>{item.positive}% bom resultado</StatusPill> : null}</span>
                       </span>
                       <Meter value={item.uses} max={topUses} className="mt-2" />
                     </Link>
@@ -357,7 +357,7 @@ export function ProfileView({ data, periodText }: { data: Dashboard; periodText:
           <p className="shrink-0 font-display text-3xl font-bold leading-none tracking-tight text-ink tabular-nums">{p.caa.withoutResources} <span className="text-base font-medium">de {p.caa.total}</span></p>
           <div className="min-w-0 flex-1 basis-60 text-sm text-ink">
             <p><strong className="font-medium">Sem recursos de acessibilidade registrados</strong>, entre quem usa comunicação alternativa ou acionador</p>
-            <p className="mt-0.5 text-xs">Leitura para a gestão: indicativo para compra de materiais e formação.</p>
+            <p className="mt-0.5 text-sm">Leitura para a gestão: indicativo para compra de materiais e formação.</p>
           </div>
         </div>
       ) : null}
@@ -368,7 +368,7 @@ export function ProfileView({ data, periodText }: { data: Dashboard; periodText:
         <div className="dash-card"><CardHeader title="Barreiras ativas" /><BarList rows={p.barriers} color={SIGNAL.yellow} empty="Nenhuma barreira registrada." /></div>
         <div className="dash-card"><CardHeader title="Hipersensibilidade sensorial" /><BarList rows={p.hypersensitivity} empty="Nenhuma hipersensibilidade registrada." /></div>
       </div>
-      {p.withoutProfile ? <p className="mt-3 px-1 text-xs text-ink-soft">{plural(p.withoutProfile, "estudante sem perfil de aprendizagem fica", "estudantes sem perfil de aprendizagem ficam")} fora destes números.</p> : null}
+      {p.withoutProfile ? <p className="mt-3 px-1 text-sm text-ink-soft">{plural(p.withoutProfile, "estudante sem perfil de aprendizagem fica", "estudantes sem perfil de aprendizagem ficam")} fora destes números.</p> : null}
       {p.practices.length ? (
         <>
           <h3 className="mb-1 mt-7 px-1 text-base font-medium">Banco de práticas por perfil</h3>
@@ -378,7 +378,7 @@ export function ProfileView({ data, periodText }: { data: Dashboard; periodText:
               <div key={cluster.label} className="dash-card">
                 <div className="mb-3 flex items-start justify-between gap-2">
                   <h4 className="text-sm font-medium text-ink">{cluster.label}</h4>
-                  <span className="shrink-0 text-xs tabular-nums text-ink-soft">{plural(cluster.records, "registro", "registros")}</span>
+                  <span className="shrink-0 text-sm tabular-nums text-ink-soft">{plural(cluster.records, "registro", "registros")}</span>
                 </div>
                 <BarList rows={cluster.top} empty="Sem estratégias marcadas para este perfil." />
               </div>

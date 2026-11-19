@@ -38,7 +38,7 @@ export function StepBarriers({ content, update, readOnly }: StepProps) {
         {!readOnly ? (
           <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Começar por uma barreira comum">
             {BARRIER_CATEGORIES.filter((category) => category !== "outra").map((category) => (
-              <button key={category} type="button" onClick={() => addBarrier(category)} className="inline-flex min-h-11 items-center rounded-full bg-surface-muted px-4 py-2 text-left text-xs text-ink hover:bg-line">
+              <button key={category} type="button" onClick={() => addBarrier(category)} className="inline-flex min-h-11 items-center rounded-full bg-surface-muted px-4 py-2 text-left text-sm text-ink hover:bg-line">
                 <Plus size={14} aria-hidden className="mr-1 shrink-0" /> {BARRIER_CATEGORY_LABEL[category]}
               </button>
             ))}

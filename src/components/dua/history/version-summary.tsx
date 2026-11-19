@@ -12,7 +12,7 @@ export function VersionSummary({ content }: { content: DuaContent }) {
               {content.strategies.map((item) => (
                 <li key={item.id} className="break-words">
                   {item.description || "sem descrição"}
-                  {item.principles.length ? <span className="text-xs"> ({item.principles.map((principle) => PRINCIPLE_LABEL[principle] ?? principle).join(", ")})</span> : null}
+                  {item.principles.length ? <span className="text-sm"> ({item.principles.map((principle) => PRINCIPLE_LABEL[principle] ?? principle).join(", ")})</span> : null}
                 </li>
               ))}
             </ol>

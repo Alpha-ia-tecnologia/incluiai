@@ -257,7 +257,7 @@ export default async function CaseStudyPage({
                   <span className="block text-base font-semibold text-ink">Aprofundar o estudo <span className="font-normal text-ink-soft">· opcional</span></span>
                   <span className="mt-0.5 block text-sm leading-relaxed text-ink-soft">Motivo do encaminhamento, entrevista com a família, escuta do estudante, observação e avaliação pedagógica. Preencha quando tiver as informações.</span>
                 </span>
-                <span className="flex shrink-0 items-center gap-2 text-xs text-ink-soft">
+                <span className="flex shrink-0 items-center gap-2 text-sm text-ink-soft">
                   <span className="tabular-nums">{deeperFilled} de {deeperFields.length} respondidas</span>
                   <ChevronDown size={18} aria-hidden className="transition-transform group-open:rotate-180" />
                 </span>
@@ -275,13 +275,13 @@ export default async function CaseStudyPage({
                     <div className="grid gap-6 md:grid-cols-2">
                       {section.fields.map((field) => <FieldInput key={field.key} field={field} value={fieldValue(field)} />)}
                     </div>
-                    <p className="mt-5 text-xs text-ink-soft"><span className="tabular-nums">{answered(section.fields)} de {section.fields.length}</span> perguntas com resposta salva</p>
+                    <p className="mt-5 text-sm text-ink-soft"><span className="tabular-nums">{answered(section.fields)} de {section.fields.length}</span> perguntas com resposta salva</p>
                   </section>
                 ))}
               </div>
             </details>
 
-            <p className="text-xs text-ink-soft">Para concluir, basta a parte Essencial.</p>
+            <p className="text-sm text-ink-soft">Para concluir, basta a parte Essencial.</p>
             <div className="save-bar flex flex-wrap items-center gap-3">
               {concluded ? (
                 <>
@@ -315,7 +315,7 @@ export default async function CaseStudyPage({
                 <a href={part.href} className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-surface-muted">
                   <span aria-hidden className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs ${part.filled === part.total ? "bg-brand text-white" : part.filled ? "bg-brand-soft text-brand-strong" : "border border-line text-ink-soft"}`}>{index + 1}</span>
                   <span className="min-w-0 flex-1">{part.label}</span>
-                  <span className="text-xs tabular-nums text-ink-soft">{part.filled}/{part.total}</span>
+                  <span className="text-sm tabular-nums text-ink-soft">{part.filled}/{part.total}</span>
                 </a>
               </li>
             ))}

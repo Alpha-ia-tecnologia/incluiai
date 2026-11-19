@@ -242,7 +242,7 @@ export default async function FamilyStudentPage({ params }: { params: Promise<{ 
                 <li key={report.id}>
                   <Link href={`${portal}/relatorios/${report.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted/60 px-4 py-3 text-sm hover:bg-brand-soft">
                     <span className="font-medium text-ink">Período de {periodLabel(reportData(report.data))}</span>
-                    {report.validatedAt ? <span className="text-xs text-ink-soft">Validado em {formatDate(report.validatedAt)}</span> : null}
+                    {report.validatedAt ? <span className="text-sm text-ink-soft">Validado em {formatDate(report.validatedAt)}</span> : null}
                   </Link>
                 </li>
               ))}
@@ -299,7 +299,7 @@ function NoteList({ notes }: { notes: { id: string; note: string; author: string
       {notes.map((note) => (
         <li key={note.id} className="py-2.5">
           <p className="text-sm leading-relaxed text-ink">“{withoutCodes(note.note)}”</p>
-          <p className="mt-0.5 text-xs text-ink-soft">{note.author} · {formatDate(note.date)}</p>
+          <p className="mt-0.5 text-sm text-ink-soft">{note.author} · {formatDate(note.date)}</p>
         </li>
       ))}
     </ul>

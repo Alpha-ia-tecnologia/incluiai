@@ -1417,6 +1417,30 @@ if (!ONLY_WAIT) {
     check("acessibilidade: sem erros de cliente", errors.length === 0, errors.join("; "));
     await ctx.close();
   });
+  if (danteHref) await section("alvos de toque no celular", async () => {
+    const { ctx, page, errors } = await openSession(browser, { width: 390, height: 844, isMobile: true, hasTouch: true });
+    await login(page, "professor_aee");
+    for (const path of [danteHref, `${danteHref}/diario`, `${danteHref}/ppi`, `${danteHref}/dossie`, "/dossie", "/conta/seguranca"]) {
+      await page.goto(`${BASE}${path}`, { waitUntil: "networkidle2" });
+      await settle(page);
+      // Link dentro de uma frase fica de fora (exceção da WCAG 2.5.8).
+      const small = await page.evaluate(() => {
+        const seen = new Set();
+        return [...document.querySelectorAll("a[href], button, select, input:not([type=hidden]), textarea, summary")].flatMap((control) => {
+          const target = control.matches("input[type=checkbox], input[type=radio]") && control.labels?.[0] ? control.labels[0] : control;
+          if (seen.has(target) || target.classList.contains("skip-link") || !target.checkVisibility({ visibilityProperty: true }) || target.closest(".sr-only")) return [];
+          seen.add(target);
+          const host = control.closest("p, li, td, dd");
+          if (control.tagName === "A" && getComputedStyle(control).display === "inline" && host && host.textContent.trim().length > control.textContent.trim().length + 10) return [];
+          const { width, height } = target.getBoundingClientRect();
+          return width >= 44 && height >= 44 ? [] : [`${Math.round(width)}×${Math.round(height)} ${(control.getAttribute("aria-label") || control.textContent || "").trim().slice(0, 30)}`];
+        });
+      });
+      check(`alvos de 44 px a 390 px: ${path.replace(danteHref, "ficha de Dante")}`, small.length === 0, small.slice(0, 5).join(" | "));
+    }
+    check("alvos de toque: sem erros de cliente", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  });
   await section("BNCC", async () => {
     const { ctx, page, errors } = await newSession();
     await login(page, "professor_aee");

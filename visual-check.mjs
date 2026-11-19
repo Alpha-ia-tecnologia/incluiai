@@ -49,6 +49,25 @@ async function check(wide, narrow, label, path, expectedStatus = 200) {
   await wide.page.addScriptTag({ path: AXE });
   const violations = await wide.page.evaluate(async (tags) => (await window.axe.run(document, { runOnly: { type: "tag", values: tags } })).violations.map((v) => `${v.id}(${v.nodes.length}) ${v.nodes[0].target.join(" ")}`), TAGS);
   const h1 = await wide.page.evaluate(() => document.querySelectorAll("h1").length);
+  // Tipografia: 12 px é só de selo e gráfico (frase, rótulo e título ficam em 14 px ou mais;
+  // a carteirinha tem o tamanho do cartão impresso) e o placeholder tem contraste de texto.
+  const typography = await wide.page.evaluate(() => {
+    const pill = (el) => parseFloat(getComputedStyle(el).borderTopLeftRadius) >= 100;
+    const tiny = [...document.querySelectorAll("main :is(p, label, legend, h1, h2, h3, h4)")]
+      .filter((el) => el.checkVisibility() && !el.closest(".id-card, .sr-only") && !pill(el) && el.textContent.trim() && parseFloat(getComputedStyle(el).fontSize) < 14)
+      .map((el) => `"${el.textContent.trim().slice(0, 30)}"`);
+    const canvas = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d", { willReadFrequently: true });
+    const rgba = (color) => { canvas.clearRect(0, 0, 1, 1); canvas.fillStyle = color; canvas.fillRect(0, 0, 1, 1); const [r, g, b, a] = canvas.getImageData(0, 0, 1, 1).data; return [r, g, b, a / 255]; };
+    const luminance = (rgb) => rgb.slice(0, 3).map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }).reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+    const backgroundOf = (el) => { for (let node = el; node; node = node.parentElement) { const color = rgba(getComputedStyle(node).backgroundColor); if (color[3] > 0.5) return color; } return [255, 255, 255, 1]; };
+    const faint = [...document.querySelectorAll("input[placeholder], textarea[placeholder]")].filter((el) => el.checkVisibility()).flatMap((el) => {
+      const bg = backgroundOf(el); const [r, g, b, a] = rgba(getComputedStyle(el, "::placeholder").color);
+      const [x, y] = [luminance([r * a + bg[0] * (1 - a), g * a + bg[1] * (1 - a), b * a + bg[2] * (1 - a)]), luminance(bg)].sort((m, n) => n - m);
+      const ratio = (x + 0.05) / (y + 0.05);
+      return ratio < 4.5 ? [`"${el.placeholder.slice(0, 24)}" ${ratio.toFixed(2)}:1`] : [];
+    });
+    return [...(tiny.length ? [`texto < 14 px: ${tiny.slice(0, 3).join(", ")}${tiny.length > 3 ? ` (+${tiny.length - 3})` : ""}`] : []), ...(faint.length ? [`placeholder: ${faint.join(", ")}`] : [])];
+  });
   await narrow.page.goto(`${BASE}${path}`, { waitUntil: "networkidle2" });
   const overflow = await narrow.page.evaluate(() => {
     const width = document.documentElement.clientWidth;
@@ -59,9 +78,9 @@ async function check(wide, narrow, label, path, expectedStatus = 200) {
   const errors = [...wide.errors, ...narrow.errors];
   wide.errors.length = 0;
   narrow.errors.length = 0;
-  const bad = violations.length || overflow || (status >= 400 && status !== expectedStatus) || errors.length || h1 !== 1;
+  const bad = violations.length || typography.length || overflow || (status >= 400 && status !== expectedStatus) || errors.length || h1 !== 1;
   if (bad) problems += 1;
-  console.log(`${bad ? "✗" : "✓"} ${label} [${status}] h1=${h1}${violations.length ? ` axe: ${violations.join(" | ")}` : ""}${overflow ? ` 320px: ${overflow}` : ""}${errors.length ? ` erros: ${errors.join(" | ")}` : ""}`);
+  console.log(`${bad ? "✗" : "✓"} ${label} [${status}] h1=${h1}${violations.length ? ` axe: ${violations.join(" | ")}` : ""}${typography.length ? ` tipografia: ${typography.join(" | ")}` : ""}${overflow ? ` 320px: ${overflow}` : ""}${errors.length ? ` erros: ${errors.join(" | ")}` : ""}`);
 }
 
 async function signedIn(role) {

@@ -22,8 +22,8 @@ export function StudentRegistrationChat({ schools, action }: { schools: SchoolCh
         <ChatHeader
           title="Assistente de cadastro"
           badge="Conversa guiada"
-          subtitle={<p className="text-xs text-ink-soft">Uma pergunta por vez. Você revisa tudo antes de salvar.</p>}
-          counter={<span className="shrink-0 text-xs tabular-nums text-ink-soft">{chat.done ? "Resumo" : `${position + 1} de ${total}`}</span>}
+          subtitle={<p className="text-sm text-ink-soft">Uma pergunta por vez. Você revisa tudo antes de salvar.</p>}
+          counter={<span className="shrink-0 text-sm tabular-nums text-ink-soft">{chat.done ? "Resumo" : `${position + 1} de ${total}`}</span>}
           progress={chat.done ? 100 : Math.round((position / total) * 100)}
         />
 
@@ -58,7 +58,7 @@ export function StudentRegistrationChat({ schools, action }: { schools: SchoolCh
         )}
       </div>
 
-      <p className="mt-4 text-center text-xs leading-relaxed text-ink-soft">
+      <p className="mt-4 text-center text-sm leading-relaxed text-ink-soft">
         As informações são usadas para o acompanhamento pedagógico e ficam protegidas pelo controle de acesso da plataforma.
       </p>
       <ChatResetConfirm chat={chat} text="Excluir todas as respostas e recomeçar?" confirmLabel="Excluir rascunho" />

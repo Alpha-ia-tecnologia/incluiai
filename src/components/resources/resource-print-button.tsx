@@ -57,6 +57,6 @@ export function ResourcePrintButton({ label, activityId, materialsOnly = false }
     <button type="button" className={BUTTON_CLS.quiet} disabled={pending} aria-busy={pending || undefined} onClick={(event) => void print(event.currentTarget)}>
       <Printer size={16} aria-hidden="true" /> {pending ? "Preparando imagens…" : label}
     </button>
-    {error ? <span role="alert" className="max-w-sm text-xs text-coral">{error}</span> : null}
+    {error ? <span role="alert" className="max-w-sm text-sm text-coral">{error}</span> : null}
   </span>;
 }
